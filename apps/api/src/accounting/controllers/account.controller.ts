@@ -6,7 +6,9 @@ import {
   Body,
   Param,
   Query,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { AccountService, CreateAccountDto } from '../services/account.service';
 import { AccountType } from '../../entities/account.entity';
 
@@ -19,32 +21,36 @@ export class AccountController {
    * POST /accounts
    */
   @Post()
-  async createAccount(@Body() dto: CreateAccountDto) {
+  async createAccount(
+    @Req() req: Request,
+    @Body() dto: CreateAccountDto,
+  ) {
+    dto.business_id = req.user!.businessId;
     return this.accountService.createAccount(dto);
   }
 
   /**
    * Seed default chart of accounts for a business
-   * POST /accounts/seed?businessId=xxx
+   * POST /accounts/seed
    */
   @Post('seed')
-  async seedDefaultAccounts(@Query('businessId') businessId: string) {
-    return this.accountService.seedDefaultChartOfAccounts(businessId);
+  async seedDefaultAccounts(@Req() req: Request) {
+    return this.accountService.seedDefaultChartOfAccounts(req.user!.businessId);
   }
 
   /**
    * Get all accounts for a business
-   * GET /accounts?businessId=xxx&accountType=asset&activeOnly=true
+   * GET /accounts?accountType=asset&activeOnly=true
    */
   @Get()
   async getAccounts(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Query('accountType') accountType?: AccountType,
     @Query('activeOnly') activeOnly?: string | boolean,
   ) {
     const isActiveOnly = activeOnly === true || activeOnly === 'true';
     return this.accountService.getAccounts(
-      businessId,
+      req.user!.businessId,
       accountType,
       isActiveOnly,
     );
@@ -52,38 +58,38 @@ export class AccountController {
 
   /**
    * Get a specific account
-   * GET /accounts/:id?businessId=xxx
+   * GET /accounts/:id
    */
   @Get(':id')
   async getAccount(
     @Param('id') id: string,
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
   ) {
-    return this.accountService.getAccount(id, businessId);
+    return this.accountService.getAccount(id, req.user!.businessId);
   }
 
   /**
    * Update an account
-   * PATCH /accounts/:id?businessId=xxx
+   * PATCH /accounts/:id
    */
   @Patch(':id')
   async updateAccount(
     @Param('id') id: string,
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Body() updates: Partial<CreateAccountDto>,
   ) {
-    return this.accountService.updateAccount(id, businessId, updates);
+    return this.accountService.updateAccount(id, req.user!.businessId, updates);
   }
 
   /**
    * Deactivate an account
-   * PATCH /accounts/:id/deactivate?businessId=xxx
+   * PATCH /accounts/:id/deactivate
    */
   @Patch(':id/deactivate')
   async deactivateAccount(
     @Param('id') id: string,
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
   ) {
-    return this.accountService.deactivateAccount(id, businessId);
+    return this.accountService.deactivateAccount(id, req.user!.businessId);
   }
 }

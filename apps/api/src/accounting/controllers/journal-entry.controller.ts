@@ -6,13 +6,14 @@ import {
   Body,
   Param,
   Query,
+  Req,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { JournalEntryService } from '../services/journal-entry.service';
 import {
   CreateJournalEntryDto,
-  PostJournalEntryDto,
 } from '../services/dto/create-journal-entry.dto';
 import { JournalEntryStatus } from '../../entities/journal-entry.entity';
 
@@ -26,11 +27,10 @@ export class JournalEntryController {
    */
   @Post()
   async createJournalEntry(
+    @Req() req: Request,
     @Body() dto: CreateJournalEntryDto,
-    // TODO: Get userId from auth token
-    @Query('userId') userId: string = 'test-user-id',
   ) {
-    return this.journalEntryService.createJournalEntry(dto, userId);
+    return this.journalEntryService.createJournalEntry(dto, req.user!.userId);
   }
 
   /**
@@ -40,48 +40,48 @@ export class JournalEntryController {
   @Post(':id/post')
   async postJournalEntry(
     @Param('id') id: string,
-    @Query('postedBy') postedBy: string = 'test-user-id',
+    @Req() req: Request,
   ) {
     return this.journalEntryService.postJournalEntry({
       journal_entry_id: id,
-      posted_by: postedBy,
+      posted_by: req.user!.userId,
     });
   }
 
   /**
    * Get all journal entries for a business
-   * GET /journal-entries?businessId=xxx&status=draft
+   * GET /journal-entries?status=draft
    */
   @Get()
   async getJournalEntries(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Query('status') status?: JournalEntryStatus,
   ) {
-    return this.journalEntryService.getJournalEntries(businessId, status);
+    return this.journalEntryService.getJournalEntries(req.user!.businessId, status);
   }
 
   /**
    * Get a specific journal entry
-   * GET /journal-entries/:id?businessId=xxx
+   * GET /journal-entries/:id
    */
   @Get(':id')
   async getJournalEntry(
     @Param('id') id: string,
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
   ) {
-    return this.journalEntryService.getJournalEntry(id, businessId);
+    return this.journalEntryService.getJournalEntry(id, req.user!.businessId);
   }
 
   /**
    * Delete a draft journal entry
-   * DELETE /journal-entries/:id?businessId=xxx
+   * DELETE /journal-entries/:id
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteJournalEntry(
     @Param('id') id: string,
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
   ) {
-    await this.journalEntryService.deleteJournalEntry(id, businessId);
+    await this.journalEntryService.deleteJournalEntry(id, req.user!.businessId);
   }
 }

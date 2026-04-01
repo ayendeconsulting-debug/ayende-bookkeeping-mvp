@@ -6,8 +6,9 @@ import {
   Delete,
   Body,
   Param,
-  Query,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { ClassificationService } from '../services/classification.service';
 import {
   ClassifyTransactionDto,
@@ -23,64 +24,81 @@ import {
 export class ClassificationController {
   constructor(private readonly classificationService: ClassificationService) {}
 
-  // ── Rules ──────────────────────────────────────────────────────────
+  // ── Rules ──────────────────────────────────────────────────────────────
 
   @Post('rules')
-  createRule(@Body() dto: CreateClassificationRuleDto) {
+  createRule(
+    @Req() req: Request,
+    @Body() dto: CreateClassificationRuleDto,
+  ) {
+    dto.businessId = req.user!.businessId;
     return this.classificationService.createRule(dto);
   }
 
   @Get('rules')
-  findAllRules(@Query('businessId') businessId: string) {
-    return this.classificationService.findAllRules(businessId);
+  findAllRules(@Req() req: Request) {
+    return this.classificationService.findAllRules(req.user!.businessId);
   }
 
   @Patch('rules/:id')
   updateRule(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Param('id') id: string,
     @Body() dto: UpdateClassificationRuleDto,
   ) {
-    return this.classificationService.updateRule(businessId, id, dto);
+    return this.classificationService.updateRule(req.user!.businessId, id, dto);
   }
 
   @Delete('rules/:id')
   deactivateRule(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Param('id') id: string,
   ) {
-    return this.classificationService.deactivateRule(businessId, id);
+    return this.classificationService.deactivateRule(req.user!.businessId, id);
   }
 
-  // ── Classification & Posting ───────────────────────────────────────
+  // ── Classification & Posting ────────────────────────────────────────────
 
   @Post('classify')
-  classify(@Body() dto: ClassifyTransactionDto) {
+  classify(
+    @Req() req: Request,
+    @Body() dto: ClassifyTransactionDto,
+  ) {
+    dto.businessId = req.user!.businessId;
     return this.classificationService.classify(dto);
   }
 
   @Post('post/:id')
   postClassified(
     @Param('id') id: string,
-    @Body() body: { businessId: string; sourceAccountId: string; postedBy: string },
+    @Req() req: Request,
+    @Body() body: { sourceAccountId: string },
   ) {
     return this.classificationService.postClassifiedTransaction(
-      body.businessId,
+      req.user!.businessId,
       id,
       body.sourceAccountId,
-      body.postedBy,
+      req.user!.userId,
     );
   }
 
-  // ── Owner Equity ───────────────────────────────────────────────────
+  // ── Owner Equity ────────────────────────────────────────────────────────
 
   @Post('owner-contribution')
-  ownerContribution(@Body() dto: OwnerContributionDto) {
+  ownerContribution(
+    @Req() req: Request,
+    @Body() dto: OwnerContributionDto,
+  ) {
+    dto.businessId = req.user!.businessId;
     return this.classificationService.postOwnerContribution(dto);
   }
 
   @Post('owner-draw')
-  ownerDraw(@Body() dto: OwnerDrawDto) {
+  ownerDraw(
+    @Req() req: Request,
+    @Body() dto: OwnerDrawDto,
+  ) {
+    dto.businessId = req.user!.businessId;
     return this.classificationService.postOwnerDraw(dto);
   }
 }

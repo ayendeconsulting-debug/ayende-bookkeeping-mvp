@@ -5,7 +5,9 @@ import {
   Body,
   Param,
   Query,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { ClassificationAiService } from '../services/classification-ai.service';
 import { AnomalyService } from '../services/anomaly.service';
 import { NarrativeService } from '../services/narrative.service';
@@ -22,16 +24,16 @@ export class AiController {
   ) {}
 
   /**
-   * POST /ai/classify/:rawTransactionId?businessId=
+   * POST /ai/classify/:rawTransactionId
    * AI suggests account + tax code for a raw transaction.
    * Returns a suggestion — human must still confirm before posting.
    */
   @Post('classify/:rawTransactionId')
   classify(
     @Param('rawTransactionId') rawTransactionId: string,
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
   ) {
-    return this.classificationAiService.suggest(businessId, rawTransactionId);
+    return this.classificationAiService.suggest(req.user!.businessId, rawTransactionId);
   }
 
   /**
@@ -39,39 +41,46 @@ export class AiController {
    * Scan posted journal entries and flag unusual patterns.
    */
   @Post('anomalies')
-  detectAnomalies(@Body() dto: AiAnomalyDto) {
-    return this.anomalyService.detect(dto.businessId, dto.startDate, dto.endDate);
+  detectAnomalies(
+    @Req() req: Request,
+    @Body() dto: AiAnomalyDto,
+  ) {
+    return this.anomalyService.detect(
+      req.user!.businessId,
+      dto.startDate,
+      dto.endDate,
+    );
   }
 
   /**
-   * GET /ai/narrative/income-statement?businessId=&startDate=&endDate=&businessName=
+   * GET /ai/narrative/income-statement?startDate=&endDate=&businessName=
    * Returns Income Statement data + plain English narrative.
    */
   @Get('narrative/income-statement')
   incomeStatementNarrative(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('businessName') businessName: string = 'Your Business',
   ) {
     return this.narrativeService.incomeStatementWithNarrative(
-      { businessId, startDate, endDate },
+      { businessId: req.user!.businessId, startDate, endDate },
       businessName,
     );
   }
 
   /**
-   * GET /ai/narrative/balance-sheet?businessId=&asOfDate=&businessName=
+   * GET /ai/narrative/balance-sheet?asOfDate=&businessName=
    * Returns Balance Sheet data + plain English narrative.
    */
   @Get('narrative/balance-sheet')
   balanceSheetNarrative(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Query('asOfDate') asOfDate: string,
     @Query('businessName') businessName: string = 'Your Business',
   ) {
     return this.narrativeService.balanceSheetWithNarrative(
-      { businessId, asOfDate },
+      { businessId: req.user!.businessId, asOfDate },
       businessName,
     );
   }
@@ -82,7 +91,11 @@ export class AiController {
    * Stateless — client sends full message history each call.
    */
   @Post('chat')
-  chat(@Body() dto: AiChatDto) {
+  chat(
+    @Req() req: Request,
+    @Body() dto: AiChatDto,
+  ) {
+    dto.businessId = req.user!.businessId;
     return this.chatService.chat(dto);
   }
 }

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
@@ -8,6 +9,8 @@ import { AccountingModule } from './accounting/accounting.module';
 import { PlaidModule } from './plaid/plaid.module';
 import { ReportsModule } from './reports/reports.module';
 import { AiModule } from './ai/ai.module';
+import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { HealthController } from './health.controller';
 
 // Parse REDIS_URL (Railway format: redis://default:password@host:port)
@@ -40,12 +43,21 @@ function getRedisBullMQConnection() {
     BullModule.forRoot({
       connection: getRedisBullMQConnection(),
     }),
+    AuthModule,
     AccountingModule,
     PlaidModule,
     ReportsModule,
     AiModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    // Register JwtAuthGuard globally — applies to every route.
+    // Use @Public() decorator on routes that must bypass auth.
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

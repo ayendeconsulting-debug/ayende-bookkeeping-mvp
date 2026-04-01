@@ -6,8 +6,9 @@ import {
   Delete,
   Body,
   Param,
-  Query,
+  Req,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { TaxService } from '../services/tax.service';
 import { CreateTaxCodeDto } from '../dto/create-tax-code.dto';
 import { UpdateTaxCodeDto } from '../dto/update-tax-code.dto';
@@ -18,39 +19,39 @@ export class TaxController {
 
   @Post('codes')
   create(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Body() dto: CreateTaxCodeDto,
   ) {
-    return this.taxService.create(businessId, dto);
+    return this.taxService.create(req.user!.businessId, dto);
   }
 
   @Get('codes')
-  findAll(@Query('businessId') businessId: string) {
-    return this.taxService.findAll(businessId);
+  findAll(@Req() req: Request) {
+    return this.taxService.findAll(req.user!.businessId);
   }
 
   @Get('codes/:id')
   findOne(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Param('id') id: string,
   ) {
-    return this.taxService.findOne(businessId, id);
+    return this.taxService.findOne(req.user!.businessId, id);
   }
 
   @Patch('codes/:id')
   update(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Param('id') id: string,
     @Body() dto: UpdateTaxCodeDto,
   ) {
-    return this.taxService.update(businessId, id, dto);
+    return this.taxService.update(req.user!.businessId, id, dto);
   }
 
   @Delete('codes/:id')
   deactivate(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Param('id') id: string,
   ) {
-    return this.taxService.deactivate(businessId, id);
+    return this.taxService.deactivate(req.user!.businessId, id);
   }
 }

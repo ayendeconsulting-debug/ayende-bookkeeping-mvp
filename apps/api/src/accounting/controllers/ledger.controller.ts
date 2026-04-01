@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import { Request } from 'express';
 import { LedgerService } from '../services/ledger.service';
 
 @Controller('ledger')
@@ -7,39 +8,39 @@ export class LedgerController {
 
   /**
    * Get account balance
-   * GET /ledger/accounts/:accountId/balance?businessId=xxx&asOfDate=2024-12-31
+   * GET /ledger/accounts/:accountId/balance?asOfDate=2024-12-31
    */
   @Get('accounts/:accountId/balance')
   async getAccountBalance(
     @Param('accountId') accountId: string,
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Query('asOfDate') asOfDate?: string,
   ) {
     const date = asOfDate ? new Date(asOfDate) : undefined;
-    return this.ledgerService.getAccountBalance(accountId, businessId, date);
+    return this.ledgerService.getAccountBalance(accountId, req.user!.businessId, date);
   }
 
   /**
    * Get trial balance
-   * GET /ledger/trial-balance?businessId=xxx&asOfDate=2024-12-31
+   * GET /ledger/trial-balance?asOfDate=2024-12-31
    */
   @Get('trial-balance')
   async getTrialBalance(
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Query('asOfDate') asOfDate?: string,
   ) {
     const date = asOfDate ? new Date(asOfDate) : undefined;
-    return this.ledgerService.getTrialBalance(businessId, date);
+    return this.ledgerService.getTrialBalance(req.user!.businessId, date);
   }
 
   /**
    * Get general ledger for an account
-   * GET /ledger/accounts/:accountId?businessId=xxx&startDate=2024-01-01&endDate=2024-12-31
+   * GET /ledger/accounts/:accountId?startDate=2024-01-01&endDate=2024-12-31
    */
   @Get('accounts/:accountId')
   async getGeneralLedger(
     @Param('accountId') accountId: string,
-    @Query('businessId') businessId: string,
+    @Req() req: Request,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
@@ -47,7 +48,7 @@ export class LedgerController {
     const end = endDate ? new Date(endDate) : undefined;
     return this.ledgerService.getGeneralLedger(
       accountId,
-      businessId,
+      req.user!.businessId,
       start,
       end,
     );
@@ -55,10 +56,10 @@ export class LedgerController {
 
   /**
    * Verify accounting integrity
-   * GET /ledger/verify?businessId=xxx
+   * GET /ledger/verify
    */
   @Get('verify')
-  async verifyAccountingIntegrity(@Query('businessId') businessId: string) {
-    return this.ledgerService.verifyAccountingIntegrity(businessId);
+  async verifyAccountingIntegrity(@Req() req: Request) {
+    return this.ledgerService.verifyAccountingIntegrity(req.user!.businessId);
   }
 }

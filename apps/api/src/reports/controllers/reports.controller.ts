@@ -2,8 +2,10 @@ import {
   Controller,
   Get,
   Query,
+  Req,
   Res,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { Response } from 'express';
 import { IncomeStatementService } from '../services/income-statement.service';
 import { BalanceSheetService } from '../services/balance-sheet.service';
@@ -22,71 +24,95 @@ export class ReportsController {
     private readonly exportService: ExportService,
   ) {}
 
-  // ── Report Endpoints ───────────────────────────────────────────────
+  // ── Report Endpoints ────────────────────────────────────────────────────
 
   @Get('income-statement')
-  incomeStatement(@Query() filter: ReportFilterDto) {
+  incomeStatement(
+    @Req() req: Request,
+    @Query() filter: ReportFilterDto,
+  ) {
+    filter.businessId = req.user!.businessId;
     return this.incomeStatementService.generate(filter);
   }
 
   @Get('balance-sheet')
-  balanceSheet(@Query() filter: ReportFilterDto) {
+  balanceSheet(
+    @Req() req: Request,
+    @Query() filter: ReportFilterDto,
+  ) {
+    filter.businessId = req.user!.businessId;
     return this.balanceSheetService.generate(filter);
   }
 
   @Get('trial-balance')
-  trialBalance(@Query() filter: ReportFilterDto) {
+  trialBalance(
+    @Req() req: Request,
+    @Query() filter: ReportFilterDto,
+  ) {
+    filter.businessId = req.user!.businessId;
     return this.trialBalanceService.generate(filter);
   }
 
   @Get('general-ledger')
-  generalLedger(@Query() filter: ReportFilterDto) {
+  generalLedger(
+    @Req() req: Request,
+    @Query() filter: ReportFilterDto,
+  ) {
+    filter.businessId = req.user!.businessId;
     return this.generalLedgerService.generate(filter);
   }
 
-  // ── Export Endpoints ───────────────────────────────────────────────
+  // ── Export Endpoints ────────────────────────────────────────────────────
 
   @Get('income-statement/export')
   async exportIncomeStatement(
+    @Req() req: Request,
     @Query() filter: ReportFilterDto,
     @Query('businessName') businessName: string = 'Business',
     @Res() res: Response,
   ) {
+    filter.businessId = req.user!.businessId;
     const data = await this.incomeStatementService.generate(filter);
     return this.sendExport(res, 'income-statement', data, businessName, filter.format);
   }
 
   @Get('balance-sheet/export')
   async exportBalanceSheet(
+    @Req() req: Request,
     @Query() filter: ReportFilterDto,
     @Query('businessName') businessName: string = 'Business',
     @Res() res: Response,
   ) {
+    filter.businessId = req.user!.businessId;
     const data = await this.balanceSheetService.generate(filter);
     return this.sendExport(res, 'balance-sheet', data, businessName, filter.format);
   }
 
   @Get('trial-balance/export')
   async exportTrialBalance(
+    @Req() req: Request,
     @Query() filter: ReportFilterDto,
     @Query('businessName') businessName: string = 'Business',
     @Res() res: Response,
   ) {
+    filter.businessId = req.user!.businessId;
     const data = await this.trialBalanceService.generate(filter);
     return this.sendExport(res, 'trial-balance', data, businessName, filter.format);
   }
 
   @Get('general-ledger/export')
   async exportGeneralLedger(
+    @Req() req: Request,
     @Query() filter: ReportFilterDto,
     @Query('businessName') businessName: string = 'Business',
     @Res() res: Response,
   ) {
+    filter.businessId = req.user!.businessId;
     const data = await this.generalLedgerService.generate(filter);
     return this.sendExport(res, 'general-ledger', data, businessName, filter.format);
   }
 
-  // ── Helper ─────────────────────────────────────────────────────────
+  // ── Helper ──────────────────────────────────────────────────────────────
 
   private async sendExport(
     res: Response,
