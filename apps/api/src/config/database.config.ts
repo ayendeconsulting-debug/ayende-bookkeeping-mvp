@@ -13,8 +13,9 @@ export const getDatabaseConfig = (
     'DATABASE_NAME',
     'ayende_bookkeeping_multitenant',
   ),
+  // Auto-discovers all *.entity.ts files — no manual imports needed
   entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-  synchronize: false, // NEVER use true in production - we use migrations
+  synchronize: true, // Auto-creates new tables (plaid_items, plaid_accounts, etc.)
   logging: configService.get<string>('NODE_ENV') === 'development',
   autoLoadEntities: true,
 });
