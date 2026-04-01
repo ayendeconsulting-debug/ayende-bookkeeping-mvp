@@ -1,8 +1,17 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import { ClassificationMethod } from '../../entities/classified-transaction.entity';
 
 export class ClassifyTransactionDto {
-  @IsUUID('all')
+  // Set from JWT in controller — not sent by client
+  @IsString()
+  @IsOptional()
   businessId: string;
 
   @IsUUID('all')
@@ -28,13 +37,15 @@ export class ClassifyTransactionDto {
   @IsOptional()
   overrideAmount?: number;
 
-  // Temporary placeholder until auth is implemented
-  @IsUUID('all')
-  classifiedBy: string;
+  // Set from JWT in controller — Clerk userId (string, not UUID)
+  @IsString()
+  @IsOptional()
+  classifiedBy?: string;
 }
 
 export class OwnerContributionDto {
-  @IsUUID('all')
+  @IsString()
+  @IsOptional()
   businessId: string;
 
   @IsUUID('all')
@@ -44,12 +55,14 @@ export class OwnerContributionDto {
   @IsUUID('all')
   debitAccountId: string;
 
-  @IsUUID('all')
-  classifiedBy: string;
+  @IsString()
+  @IsOptional()
+  classifiedBy?: string;
 }
 
 export class OwnerDrawDto {
-  @IsUUID('all')
+  @IsString()
+  @IsOptional()
   businessId: string;
 
   @IsUUID('all')
@@ -59,6 +72,33 @@ export class OwnerDrawDto {
   @IsUUID('all')
   creditAccountId: string;
 
-  @IsUUID('all')
-  classifiedBy: string;
+  @IsString()
+  @IsOptional()
+  classifiedBy?: string;
+}
+
+export class RawTransactionFilterDto {
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsString()
+  @IsOptional()
+  search?: string;
+
+  @IsString()
+  @IsOptional()
+  startDate?: string;
+
+  @IsString()
+  @IsOptional()
+  endDate?: string;
+
+  @IsNumber()
+  @IsOptional()
+  limit?: number;
+
+  @IsNumber()
+  @IsOptional()
+  offset?: number;
 }

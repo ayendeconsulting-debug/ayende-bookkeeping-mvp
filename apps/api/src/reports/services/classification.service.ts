@@ -4,10 +4,10 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, ILike, Between } from 'typeorm';
 import { ClassifiedTransaction, ClassificationMethod } from '../../entities/classified-transaction.entity';
 import { ClassificationRule } from '../../entities/classification-rule.entity';
-import { RawTransaction } from '../../entities/raw-transaction.entity';
+import { RawTransaction, RawTransactionStatus } from '../../entities/raw-transaction.entity';
 import { Account, AccountSubtype } from '../../entities/account.entity';
 import { TaxCode } from '../../entities/tax-code.entity';
 import { TaxTransaction } from '../../entities/tax-transaction.entity';
@@ -82,6 +82,48 @@ export class ClassificationService {
     if (!rule) throw new NotFoundException(`Rule ${id} not found`);
     rule.is_active = false;
     return this.ruleRepo.save(rule);
+  }
+
+  // ── Raw Transactions ──────────────────────────────────────────────
+
+  async getRawTransactions(
+    businessId: string,
+    filters: {
+      status?: string;
+      search?: string;
+      startDate?: string;
+      endDate?: string;
+      limit?: number;
+      offset?: number;
+    },
+  ): Promise<{ data: RawTransaction[]; total: number }> {
+    const { status, search, startDate, endDate, limit = 20, offset = 0 } = filters;
+
+    const where: any = { business_id: businessId };
+
+    if (status && status !== 'all') {
+      where.status = status as RawTransactionStatus;
+    }
+
+    if (search) {
+      where.description = ILike(`%${search}%`);
+    }
+
+    if (startDate && endDate) {
+      where.transaction_date = Between(
+        new Date(startDate),
+        new Date(endDate),
+      );
+    }
+
+    const [data, total] = await this.rawTxRepo.findAndCount({
+      where,
+      order: { transaction_date: 'DESC', created_at: 'DESC' },
+      take: Math.min(limit, 100),
+      skip: offset,
+    });
+
+    return { data, total };
   }
 
   // ── Manual Classification ─────────────────────────────────────────
@@ -275,7 +317,6 @@ export class ClassificationService {
       });
       const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
 
-      // Debit expense/asset, Credit owner_contribution equity
       await manager.save(JournalLine, [
         manager.create(JournalLine, {
           business_id: dto.businessId,
@@ -333,7 +374,6 @@ export class ClassificationService {
       });
       const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
 
-      // Debit owner_draw equity, Credit bank account
       await manager.save(JournalLine, [
         manager.create(JournalLine, {
           business_id: dto.businessId,
