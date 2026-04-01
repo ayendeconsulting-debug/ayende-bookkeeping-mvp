@@ -3,19 +3,27 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  // rawBody: true is required for Plaid webhook signature verification
-  // Plaid signs the raw request body — we must preserve it before JSON parsing
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create(AppModule, {
+    // Required for Plaid webhook signature verification
+    rawBody: true,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: true,
+      forbidNonWhitelisted: false,
       transform: true,
     }),
   );
 
-  const port = process.env.PORT || 3000;
+  app.enableCors({
+    origin: process.env.FRONTEND_URL || '*',
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
+
+  // Railway injects PORT automatically — fallback to 3005 for local dev
+  const port = process.env.PORT || 3005;
   await app.listen(port);
   console.log(`Ayende CX Bookkeeping API running on port ${port}`);
 }
