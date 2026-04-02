@@ -16,7 +16,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { updateBusinessSettings, verifyAccountingIntegrity } from '@/app/(app)/settings/actions';
 
 interface Business {
@@ -136,11 +135,7 @@ function BusinessSettingsSection({ business }: { business: Business | null }) {
 
         <div className="flex justify-end">
           <Button onClick={handleSave} disabled={saving} className="flex items-center gap-2">
-            {saving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? 'Saving…' : 'Save Changes'}
           </Button>
         </div>
@@ -177,8 +172,8 @@ function IntegritySection() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <p className="text-sm text-gray-500">
-          Run a verification check to ensure all journal entries are balanced and
-          your books are mathematically correct.
+          Run a verification check to ensure all journal entries are balanced
+          and your books are mathematically correct.
         </p>
 
         <Button
@@ -187,11 +182,7 @@ function IntegritySection() {
           disabled={running}
           className="w-fit flex items-center gap-2"
         >
-          {running ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <ShieldCheck className="w-4 h-4" />
-          )}
+          {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
           {running ? 'Verifying…' : 'Run Integrity Check'}
         </Button>
 
@@ -203,24 +194,14 @@ function IntegritySection() {
         )}
 
         {result && (
-          <div
-            className={`rounded-xl border px-4 py-3 ${
-              result.is_balanced
-                ? 'bg-[#F0FAF6] border-[#C3E8D8]'
-                : 'bg-red-50 border-red-200'
-            }`}
-          >
+          <div className={`rounded-xl border px-4 py-3 ${result.is_balanced ? 'bg-[#F0FAF6] border-[#C3E8D8]' : 'bg-red-50 border-red-200'}`}>
             <div className="flex items-center gap-2 mb-2">
               {result.is_balanced ? (
                 <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" />
               ) : (
                 <AlertCircle className="w-4 h-4 text-red-500" />
               )}
-              <span
-                className={`text-sm font-medium ${
-                  result.is_balanced ? 'text-[#0F6E56]' : 'text-red-600'
-                }`}
-              >
+              <span className={`text-sm font-medium ${result.is_balanced ? 'text-[#0F6E56]' : 'text-red-600'}`}>
                 {result.is_balanced
                   ? 'Books are balanced — no issues found'
                   : 'Books are NOT balanced — review journal entries'}
@@ -246,14 +227,12 @@ export function SettingsClient({ business }: SettingsClientProps) {
 
   return (
     <div className="p-6 max-w-screen-md mx-auto">
-      {/* Header */}
       <div className="flex items-center gap-2 mb-6">
         <Settings className="w-5 h-5 text-gray-400" />
         <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
       </div>
 
       <div className="flex flex-col gap-5">
-        {/* Business settings */}
         <BusinessSettingsSection business={business} />
 
         {/* User profile */}
@@ -273,7 +252,9 @@ export function SettingsClient({ business }: SettingsClientProps) {
           </CardHeader>
           {showProfile && (
             <CardContent className="pt-0">
+              {/* routing="hash" avoids needing a catch-all route */}
               <UserProfile
+                routing="hash"
                 appearance={{
                   elements: {
                     rootBox: 'w-full',
@@ -286,14 +267,13 @@ export function SettingsClient({ business }: SettingsClientProps) {
           {!showProfile && (
             <CardContent className="pt-0">
               <p className="text-sm text-gray-500">
-                Manage your name, email address, password, and connected accounts
-                via Clerk's secure profile manager.
+                Manage your name, email address, password, and connected
+                accounts via Clerk's secure profile manager.
               </p>
             </CardContent>
           )}
         </Card>
 
-        {/* Accounting integrity */}
         <IntegritySection />
       </div>
     </div>

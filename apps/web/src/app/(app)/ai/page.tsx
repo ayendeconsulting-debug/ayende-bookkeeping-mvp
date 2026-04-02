@@ -1,28 +1,62 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useAuth } from '@clerk/nextjs';
+import ReactMarkdown from 'react-markdown';
 import { Sparkles, Send, Loader2, Trash2, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ChatMessage } from '@/types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+import { sendChatMessage } from '@/lib/ai-actions';
 
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
   content:
-    "Hi! I'm your Ayende AI assistant with full context of your business finances.\n\nYou can ask me about:\n• Your revenue, expenses, and net income\n• How to classify specific transactions\n• Tax code guidance for Canadian/US businesses\n• Journal entry questions\n• Any general bookkeeping questions\n\nHow can I help you today?",
+    "Hi! I'm your Ayende AI assistant with full context of your business finances.\n\nYou can ask me about your revenue, expenses, and net income, how to classify specific transactions, tax code guidance for Canadian and US businesses, journal entry questions, and any general bookkeeping questions.\n\nHow can I help you today?",
 };
 
 const SUGGESTED_PROMPTS = [
   'What was my net income this year?',
-  'How do I classify a owner draw?',
+  'How do I classify an owner draw?',
   'What is HST and when do I charge it?',
   'Explain my current trial balance',
 ];
 
+function MarkdownMessage({ content, dark }: { content: string; dark?: boolean }) {
+  return (
+    <ReactMarkdown
+      components={{
+        p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
+        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+        em: ({ children }) => <em className="italic">{children}</em>,
+        h1: ({ children }) => <p className="font-semibold text-base mb-1">{children}</p>,
+        h2: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
+        h3: ({ children }) => <p className="font-medium mb-0.5">{children}</p>,
+        ul: ({ children }) => <ul className="mb-1.5 space-y-1">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-1.5 space-y-1">{children}</ol>,
+        li: ({ children }) => (
+          <li className="flex gap-2">
+            <span className="flex-shrink-0 mt-0.5">•</span>
+            <span>{children}</span>
+          </li>
+        ),
+        hr: () => <div className={cn('my-3 border-t', dark ? 'border-white/20' : 'border-gray-200')} />,
+        code: ({ children }) => (
+          <code className={cn('rounded px-1.5 py-0.5 text-xs font-mono', dark ? 'bg-white/20' : 'bg-gray-100')}>
+            {children}
+          </code>
+        ),
+        blockquote: ({ children }) => (
+          <blockquote className={cn('border-l-2 pl-3 my-1.5 opacity-80', dark ? 'border-white/40' : 'border-gray-300')}>
+            {children}
+          </blockquote>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+}
+
 export default function AiPage() {
-  const { getToken } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -40,32 +74,15 @@ export default function AiPage() {
 
     const userMsg: ChatMessage = { role: 'user', content };
     const updatedMessages = [...messages, userMsg];
-
     setMessages(updatedMessages);
     setInput('');
     setLoading(true);
     setError(null);
 
     try {
-      const token = await getToken();
-      const res = await fetch(`${API_URL}/ai/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ messages: updatedMessages }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? `Error ${res.status}`);
-      }
-
-      const data = await res.json();
-      const reply = data.reply ?? data.message ?? data.content ?? 'No response received.';
-
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }]);
+      const result = await sendChatMessage(updatedMessages);
+      if (!result.success) throw new Error(result.error ?? 'Something went wrong.');
+      setMessages((prev) => [...prev, { role: 'assistant', content: result.reply! }]);
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong. Please try again.');
     } finally {
@@ -84,7 +101,6 @@ export default function AiPage() {
 
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto px-4">
-
       {/* Header */}
       <div className="flex items-center justify-between py-5 flex-shrink-0">
         <div>
@@ -98,10 +114,7 @@ export default function AiPage() {
         </div>
         {!isWelcomeOnly && (
           <button
-            onClick={() => {
-              setMessages([WELCOME_MESSAGE]);
-              setError(null);
-            }}
+            onClick={() => { setMessages([WELCOME_MESSAGE]); setError(null); }}
             className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
           >
             <Trash2 className="w-4 h-4" />
@@ -121,13 +134,7 @@ export default function AiPage() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-4 pb-4">
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={cn(
-              'flex',
-              msg.role === 'user' ? 'justify-end' : 'justify-start',
-            )}
-          >
+          <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
             {msg.role === 'assistant' && (
               <div className="w-7 h-7 rounded-full bg-[#0F6E56] flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
                 <Sparkles className="w-3.5 h-3.5 text-white" />
@@ -135,18 +142,21 @@ export default function AiPage() {
             )}
             <div
               className={cn(
-                'max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap',
+                'max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
                 msg.role === 'user'
                   ? 'bg-[#0F6E56] text-white rounded-br-sm'
                   : 'bg-gray-100 text-gray-800 rounded-bl-sm',
               )}
             >
-              {msg.content}
+              {msg.role === 'assistant' ? (
+                <MarkdownMessage content={msg.content} />
+              ) : (
+                msg.content
+              )}
             </div>
           </div>
         ))}
 
-        {/* Loading */}
         {loading && (
           <div className="flex justify-start">
             <div className="w-7 h-7 rounded-full bg-[#0F6E56] flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
@@ -159,14 +169,12 @@ export default function AiPage() {
           </div>
         )}
 
-        {/* Error */}
         {error && (
           <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
             {error}
           </div>
         )}
 
-        {/* Suggested prompts — shown only on welcome */}
         {isWelcomeOnly && !loading && (
           <div className="flex flex-wrap gap-2 mt-2">
             {SUGGESTED_PROMPTS.map((prompt) => (
@@ -202,7 +210,6 @@ export default function AiPage() {
             onClick={() => sendMessage()}
             disabled={!input.trim() || loading}
             className="w-8 h-8 rounded-lg bg-[#0F6E56] hover:bg-[#0a5a45] disabled:bg-gray-200 flex items-center justify-center transition-colors flex-shrink-0"
-            aria-label="Send"
           >
             <Send className="w-4 h-4 text-white" />
           </button>
