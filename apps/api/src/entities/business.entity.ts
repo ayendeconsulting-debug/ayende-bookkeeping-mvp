@@ -9,6 +9,12 @@ import {
 import { BusinessUser } from './business-user.entity';
 import { Account } from './account.entity';
 
+export enum BusinessMode {
+  BUSINESS = 'business',
+  FREELANCER = 'freelancer',
+  PERSONAL = 'personal',
+}
+
 @Entity('businesses')
 export class Business {
   @PrimaryGeneratedColumn('uuid')
@@ -32,6 +38,19 @@ export class Business {
   // Clerk Organization ID — links Clerk org to this business record
   @Column({ name: 'clerk_org_id', type: 'varchar', length: 255, nullable: true, unique: true })
   clerk_org_id: string | null;
+
+  // Phase 5: Platform mode — determines UI experience and available features
+  @Column({
+    type: 'enum',
+    enum: BusinessMode,
+    enumName: 'business_mode',
+    default: BusinessMode.BUSINESS,
+  })
+  mode: BusinessMode;
+
+  // Phase 5: Country code — drives tax rate calculations and mileage rates (CA or US)
+  @Column({ type: 'varchar', length: 2, default: 'CA' })
+  country: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;

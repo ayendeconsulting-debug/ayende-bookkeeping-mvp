@@ -6,6 +6,7 @@ import { Search, SlidersHorizontal } from 'lucide-react';
 import { Account, TaxCode, RawTransaction } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
+import { AdminOnly } from '@/components/admin-only';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,7 +68,6 @@ export function TransactionInbox({
   const LIMIT = 20;
   const totalPages = Math.ceil(totalCount / LIMIT);
 
-  // Update URL params to trigger server re-fetch
   const updateParams = useCallback(
     (updates: Record<string, string | undefined>) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -78,9 +78,7 @@ export function TransactionInbox({
           params.set(key, value);
         }
       });
-      // Reset page on filter change
       if (!('page' in updates)) params.delete('page');
-
       startTransition(() => {
         router.push(`${pathname}?${params.toString()}`);
       });
@@ -88,18 +86,9 @@ export function TransactionInbox({
     [router, pathname, searchParams],
   );
 
-  function handleStatusTab(status: string) {
-    updateParams({ status });
-  }
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    updateParams({ search: searchValue });
-  }
-
-  function handlePage(page: number) {
-    updateParams({ page: String(page) });
-  }
+  function handleStatusTab(status: string) { updateParams({ status }); }
+  function handleSearch(e: React.FormEvent) { e.preventDefault(); updateParams({ search: searchValue }); }
+  function handlePage(page: number) { updateParams({ page: String(page) }); }
 
   function openClassify(tx: RawTransaction) {
     setSelectedTx(tx);
@@ -114,7 +103,6 @@ export function TransactionInbox({
   function handleSuccess() {
     setPanelOpen(false);
     setSelectedTx(null);
-    // Refresh — server component will re-fetch
     startTransition(() => router.refresh());
   }
 
@@ -122,7 +110,6 @@ export function TransactionInbox({
 
   return (
     <div className="flex flex-col h-full">
-
       {/* Page header */}
       <div className="px-6 py-5 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between mb-4">
@@ -205,27 +192,20 @@ export function TransactionInbox({
                   <TableRow key={tx.id}>
                     <TableCell className="text-gray-500 whitespace-nowrap">
                       {new Date(tx.transaction_date).toLocaleDateString('en-CA', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: '2-digit',
+                        month: 'short', day: 'numeric', year: '2-digit',
                       })}
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      <span className="block truncate text-gray-900">
-                        {tx.description}
-                      </span>
+                      <span className="block truncate text-gray-900">{tx.description}</span>
                       {tx.plaid_category && (
                         <span className="text-xs text-gray-400">{tx.plaid_category}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-gray-500 text-sm">
-                      {tx.source_account_name ?? '—'}
+                      {tx.source_account_name ?? '–'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className={cn(
-                        'font-medium text-sm',
-                        amount >= 0 ? 'text-primary' : 'text-danger',
-                      )}>
+                      <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
                         {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
                       </span>
                     </TableCell>
@@ -236,25 +216,30 @@ export function TransactionInbox({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
+                        {/* Classify/Post actions — admin only */}
                         {tx.status === 'pending' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs border-primary text-primary hover:bg-primary-light"
-                            onClick={() => openClassify(tx)}
-                          >
-                            Classify
-                          </Button>
+                          <AdminOnly>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs border-primary text-primary hover:bg-primary-light"
+                              onClick={() => openClassify(tx)}
+                            >
+                              Classify
+                            </Button>
+                          </AdminOnly>
                         )}
                         {tx.status === 'classified' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs"
-                            onClick={() => openClassify(tx)}
-                          >
-                            Post
-                          </Button>
+                          <AdminOnly>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => openClassify(tx)}
+                            >
+                              Post
+                            </Button>
+                          </AdminOnly>
                         )}
                         {tx.status === 'posted' && (
                           <span className="text-xs text-gray-400">Posted</span>
@@ -276,27 +261,16 @@ export function TransactionInbox({
             Page {currentPage} of {totalPages} · {totalCount} transactions
           </span>
           <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={currentPage <= 1}
-              onClick={() => handlePage(currentPage - 1)}
-            >
+            <Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => handlePage(currentPage - 1)}>
               Previous
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={currentPage >= totalPages}
-              onClick={() => handlePage(currentPage + 1)}
-            >
+            <Button size="sm" variant="outline" disabled={currentPage >= totalPages} onClick={() => handlePage(currentPage + 1)}>
               Next
             </Button>
           </div>
         </div>
       )}
 
-      {/* Classify panel */}
       <ClassifyPanel
         transaction={selectedTx}
         accounts={accounts}

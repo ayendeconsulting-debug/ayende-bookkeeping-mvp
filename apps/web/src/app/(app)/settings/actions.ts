@@ -33,3 +33,16 @@ export async function verifyAccountingIntegrity() {
     return { success: false, error: error.message };
   }
 }
+
+export async function getCurrencyRates(base: string) {
+  try {
+    const result = await api<{
+      base: string;
+      rates: Record<string, number>;
+      supported_currencies: string[];
+    }>(`/currency/rates?base=${base}`);
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

@@ -16,15 +16,14 @@ import { Request } from 'express';
 import { PlaidService } from '../services/plaid.service';
 import { ExchangeTokenDto } from '../dto/exchange-token.dto';
 import { Public } from '../../auth/public.decorator';
+import { Roles } from '../../auth/roles.decorator';
 
 /**
  * PlaidController
  *
- * All endpoints except /plaid/webhook are protected by the global JwtAuthGuard.
- * businessId and userId are derived from the Clerk JWT via req.user.
- *
- * /plaid/webhook is @Public — Plaid calls it directly.
- * It is secured by Plaid signature verification inside PlaidService.
+ * Write endpoints (link-token, exchange-token, disconnect) require admin role.
+ * Read endpoints (items, accounts) are accessible by all authenticated users.
+ * Webhook is @Public — Plaid calls it directly, secured by signature verification.
  */
 @Controller('plaid')
 export class PlaidController {
@@ -32,12 +31,13 @@ export class PlaidController {
 
   constructor(private readonly plaidService: PlaidService) {}
 
-  // ── LINK TOKEN ──────────────────────────────────────────────────────────
+  // ── LINK TOKEN — admin only ───────────────────────────────────────────────
 
   /**
    * POST /plaid/link-token
    * Creates a Plaid Link token for the tenant to open Plaid Link in the frontend.
    */
+  @Roles('admin')
   @Post('link-token')
   async createLinkToken(@Req() req: Request) {
     const linkToken = await this.plaidService.createLinkToken(
@@ -47,14 +47,13 @@ export class PlaidController {
     return { link_token: linkToken };
   }
 
-  // ── TOKEN EXCHANGE ───────────────────────────────────────────────────────
+  // ── TOKEN EXCHANGE — admin only ───────────────────────────────────────────
 
   /**
    * POST /plaid/exchange-token
    * Called after Plaid Link completes successfully.
-   * Exchanges the public_token for a permanent access_token.
-   * Saves the PlaidItem and queues initial transaction sync.
    */
+  @Roles('admin')
   @Post('exchange-token')
   @HttpCode(HttpStatus.CREATED)
   async exchangeToken(
@@ -73,7 +72,7 @@ export class PlaidController {
     };
   }
 
-  // ── LIST CONNECTED BANKS ────────────────────────────────────────────────
+  // ── LIST CONNECTED BANKS — all roles ─────────────────────────────────────
 
   /**
    * GET /plaid/items
@@ -82,15 +81,13 @@ export class PlaidController {
   @Get('items')
   async getItems(@Req() req: Request) {
     const items = await this.plaidService.getItemsForBusiness(req.user!.businessId);
-    // Strip encrypted token from response — never expose it
     return items.map(({ access_token_encrypted, ...item }) => item);
   }
 
-  // ── LIST ACCOUNTS FOR ITEM ───────────────────────────────────────────────
+  // ── LIST ACCOUNTS FOR ITEM — all roles ───────────────────────────────────
 
   /**
    * GET /plaid/items/:id/accounts
-   * Returns all accounts within a specific connected bank.
    */
   @Get('items/:id/accounts')
   async getAccountsForItem(
@@ -100,12 +97,13 @@ export class PlaidController {
     return this.plaidService.getAccountsForItem(itemId, req.user!.businessId);
   }
 
-  // ── DISCONNECT BANK ──────────────────────────────────────────────────────
+  // ── DISCONNECT BANK — admin only ──────────────────────────────────────────
 
   /**
    * DELETE /plaid/items/:id
-   * Disconnects a bank: revokes the access_token with Plaid and soft-deletes locally.
+   * Disconnects a bank: revokes the access_token and soft-deletes locally.
    */
+  @Roles('admin')
   @Delete('items/:id')
   @HttpCode(HttpStatus.OK)
   async disconnectItem(
@@ -116,15 +114,12 @@ export class PlaidController {
     return { message: 'Bank account disconnected successfully' };
   }
 
-  // ── WEBHOOK (PUBLIC) ─────────────────────────────────────────────────────
+  // ── WEBHOOK (PUBLIC) ──────────────────────────────────────────────────────
 
   /**
    * POST /plaid/webhook
-   * Public endpoint — receives real-time events from Plaid.
-   * Secured by Plaid-Verification-Header signature verification inside PlaidService.
-   *
-   * @Public() bypasses the global JwtAuthGuard for this route only.
-   * rawBody must remain enabled in main.ts for signature verification.
+   * Public endpoint — Plaid calls this directly.
+   * @Public() bypasses both JwtAuthGuard and RolesGuard.
    */
   @Public()
   @Post('webhook')

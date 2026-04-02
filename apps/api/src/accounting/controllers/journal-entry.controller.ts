@@ -12,19 +12,19 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { JournalEntryService } from '../services/journal-entry.service';
-import {
-  CreateJournalEntryDto,
-} from '../services/dto/create-journal-entry.dto';
+import { CreateJournalEntryDto } from '../services/dto/create-journal-entry.dto';
 import { JournalEntryStatus } from '../../entities/journal-entry.entity';
+import { Roles } from '../../auth/roles.decorator';
 
 @Controller('journal-entries')
 export class JournalEntryController {
   constructor(private readonly journalEntryService: JournalEntryService) {}
 
   /**
-   * Create a new journal entry in DRAFT status
+   * Create a new journal entry in DRAFT status — admin only
    * POST /journal-entries
    */
+  @Roles('admin')
   @Post()
   async createJournalEntry(
     @Req() req: Request,
@@ -34,9 +34,10 @@ export class JournalEntryController {
   }
 
   /**
-   * Post a journal entry (make it permanent)
+   * Post a journal entry (make it permanent) — admin only
    * POST /journal-entries/:id/post
    */
+  @Roles('admin')
   @Post(':id/post')
   async postJournalEntry(
     @Param('id') id: string,
@@ -49,7 +50,7 @@ export class JournalEntryController {
   }
 
   /**
-   * Get all journal entries for a business
+   * Get all journal entries for a business — all roles
    * GET /journal-entries?status=draft
    */
   @Get()
@@ -61,7 +62,7 @@ export class JournalEntryController {
   }
 
   /**
-   * Get a specific journal entry
+   * Get a specific journal entry — all roles
    * GET /journal-entries/:id
    */
   @Get(':id')
@@ -73,9 +74,10 @@ export class JournalEntryController {
   }
 
   /**
-   * Delete a draft journal entry
+   * Delete a draft journal entry — admin only
    * DELETE /journal-entries/:id
    */
+  @Roles('admin')
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteJournalEntry(

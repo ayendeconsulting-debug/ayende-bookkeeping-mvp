@@ -1,8 +1,17 @@
 /* ── Business & Auth ─────────────────────────────────────────────────────── */
 
+export type BusinessMode = 'business' | 'freelancer' | 'personal';
+
 export interface Business {
   id: string;
   name: string;
+  legal_name?: string;
+  tax_id?: string;
+  currency_code: string;
+  fiscal_year_end: string;
+  mode: BusinessMode;
+  country: string;
+  settings: Record<string, any>;
   created_at: string;
 }
 
@@ -28,6 +37,7 @@ export interface Account {
   account_type: AccountType;
   account_subtype: AccountSubtype;
   is_active: boolean;
+  currency_code?: string;
   balance?: number;
   created_at: string;
 }
@@ -45,6 +55,9 @@ export interface RawTransaction {
   amount: number;
   source: TransactionSource;
   status: TransactionStatus;
+  is_personal: boolean;
+  currency_code?: string;
+  original_amount?: number;
   plaid_transaction_id?: string;
   source_account_name?: string;
   plaid_account_id?: string;
@@ -197,6 +210,154 @@ export interface AiClassificationSuggestion {
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+}
+
+/* ── Phase 5 — Invoices ──────────────────────────────────────────────────── */
+
+export type InvoiceStatus =
+  | 'draft'
+  | 'sent'
+  | 'viewed'
+  | 'partially_paid'
+  | 'paid'
+  | 'overdue'
+  | 'void';
+
+export interface InvoiceLineItem {
+  id: string;
+  invoice_id: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  tax_code_id?: string;
+  line_total: number;
+  sort_order: number;
+}
+
+export interface Invoice {
+  id: string;
+  business_id: string;
+  invoice_number: string;
+  client_name: string;
+  client_email?: string;
+  issue_date: string;
+  due_date: string;
+  status: InvoiceStatus;
+  subtotal: number;
+  tax_amount: number;
+  total: number;
+  amount_paid: number;
+  balance_due: number;
+  notes?: string;
+  linked_journal_entry_id?: string;
+  line_items: InvoiceLineItem[];
+  created_at: string;
+}
+
+/* ── Phase 5 — AR/AP ─────────────────────────────────────────────────────── */
+
+export type ArApType = 'receivable' | 'payable';
+export type ArApStatus = 'outstanding' | 'partially_paid' | 'paid' | 'overdue' | 'void';
+
+export interface ArApRecord {
+  id: string;
+  business_id: string;
+  type: ArApType;
+  party_name: string;
+  party_email?: string;
+  amount: number;
+  amount_paid: number;
+  due_date: string;
+  description?: string;
+  status: ArApStatus;
+  linked_journal_entry_id?: string;
+  created_at: string;
+}
+
+/* ── Phase 5 — Recurring Transactions ───────────────────────────────────── */
+
+export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annually';
+export type RecurringStatus = 'active' | 'paused' | 'completed' | 'cancelled';
+
+export interface RecurringTransaction {
+  id: string;
+  business_id: string;
+  description: string;
+  amount: number;
+  currency_code: string;
+  debit_account_id: string;
+  credit_account_id: string;
+  frequency: RecurringFrequency;
+  start_date: string;
+  end_date?: string;
+  next_run_date?: string;
+  status: RecurringStatus;
+  is_personal: boolean;
+  last_posted_at?: string;
+  created_at: string;
+}
+
+/* ── Phase 5 — Budget Categories ────────────────────────────────────────── */
+
+export interface BudgetCategory {
+  id: string;
+  business_id: string;
+  name: string;
+  monthly_target?: number;
+  color: string;
+  icon?: string;
+  is_system: boolean;
+  is_active: boolean;
+  sort_order: number;
+}
+
+/* ── Phase 5 — Savings Goals ─────────────────────────────────────────────── */
+
+export type SavingsGoalStatus = 'active' | 'paused' | 'completed';
+
+export interface SavingsGoal {
+  id: string;
+  business_id: string;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  target_date?: string;
+  linked_account_id?: string;
+  status: SavingsGoalStatus;
+  created_at: string;
+}
+
+/* ── Phase 5 — Mileage Logs ──────────────────────────────────────────────── */
+
+export interface MileageLog {
+  id: string;
+  business_id: string;
+  user_id: string;
+  trip_date: string;
+  start_location: string;
+  end_location: string;
+  purpose: string;
+  distance_km: number;
+  rate_per_km: number;
+  deduction_value: number;
+  country: string;
+  created_at: string;
+}
+
+/* ── Phase 5 — Payment Reminders ─────────────────────────────────────────── */
+
+export type PaymentReminderStatus = 'pending' | 'paid' | 'dismissed' | 'snoozed';
+
+export interface PaymentReminder {
+  id: string;
+  business_id: string;
+  recurring_transaction_id: string;
+  due_date: string;
+  estimated_amount: number;
+  status: PaymentReminderStatus;
+  snoozed_until?: string;
+  matched_raw_transaction_id?: string;
+  created_at: string;
 }
 
 /* ── API Responses ───────────────────────────────────────────────────────── */

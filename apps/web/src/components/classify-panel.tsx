@@ -4,7 +4,10 @@ import { useState, useTransition } from 'react';
 import { Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, AiClassificationSuggestion } from '@/types';
 import { formatCurrency } from '@/lib/utils';
+import { toastSuccess, toastError } from '@/lib/toast';
 import { classifyTransaction, postTransaction, getAiSuggestion } from '@/app/(app)/transactions/actions';
+import { AdminOnly } from '@/components/admin-only';
+import { DocumentAttachments } from '@/components/document-attachments';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -77,39 +80,40 @@ export function ClassifyPanel({
   }
 
   async function handleAiSuggest() {
+    if (!transaction) return;
     setIsAiLoading(true);
     setError('');
-    if (!transaction) return;
     try {
-      const result = await getAiSuggestion(transaction.id);
+      const result = await getAiSuggestion(transaction!.id);
       if (result.success && result.data) {
         setAiSuggestion(result.data);
-        if (result.data.suggested_account_id) {
-          setAccountId(result.data.suggested_account_id);
-        }
-        if (result.data.suggested_tax_code_id) {
-          setTaxCodeId(result.data.suggested_tax_code_id);
-        }
+        if (result.data.suggested_account_id) setAccountId(result.data.suggested_account_id);
+        if (result.data.suggested_tax_code_id) setTaxCodeId(result.data.suggested_tax_code_id);
+        toastSuccess('AI suggestion ready', 'Review and confirm before classifying.');
       } else {
-        setError(result.error ?? 'AI suggestion failed');
+        const msg = result.error ?? 'AI suggestion failed';
+        setError(msg);
+        toastError('AI suggestion failed', msg);
       }
     } catch {
-      setError('AI suggestion unavailable');
+      const msg = 'AI suggestion unavailable';
+      setError(msg);
+      toastError(msg);
     } finally {
       setIsAiLoading(false);
     }
   }
 
   function handleClassify() {
+    if (!transaction) return;
     if (!accountId || !sourceAccountId) {
       setError('Please select both a category account and a source account.');
       return;
     }
     setError('');
     startTransition(async () => {
-      if (!transaction) return;
       const result = await classifyTransaction({
-        rawTransactionId: transaction.id,
+        rawTransactionId: transaction!.id,
         accountId,
         sourceAccountId,
         taxCodeId: taxCodeId || undefined,
@@ -118,27 +122,26 @@ export function ClassifyPanel({
       if (result.success) {
         setClassifiedId(result.data.id);
         setStep('post');
+        toastSuccess('Transaction classified', 'Ready to post to the ledger.');
       } else {
-        setError(result.error ?? 'Classification failed');
+        const msg = result.error ?? 'Classification failed';
+        setError(msg);
+        toastError('Classification failed', msg);
       }
     });
   }
 
   function handlePost() {
     startTransition(async () => {
-      if (!transaction) return;
-      const result = await postTransaction({
-        classifiedId,
-        sourceAccountId,
-      });
+      const result = await postTransaction({ classifiedId, sourceAccountId });
       if (result.success) {
         setStep('done');
-        setTimeout(() => {
-          handleClose();
-          onSuccess();
-        }, 1200);
+        toastSuccess('Posted to ledger', 'Journal entry created successfully.');
+        setTimeout(() => { handleClose(); onSuccess(); }, 1200);
       } else {
-        setError(result.error ?? 'Posting failed');
+        const msg = result.error ?? 'Posting failed';
+        setError(msg);
+        toastError('Posting failed', msg);
       }
     });
   }
@@ -147,7 +150,7 @@ export function ClassifyPanel({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {step === 'classify' && 'Classify Transaction'}
@@ -161,7 +164,6 @@ export function ClassifyPanel({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Done state */}
         {step === 'done' && (
           <div className="flex flex-col items-center py-6 gap-3">
             <CheckCircle2 className="w-12 h-12 text-primary" />
@@ -169,7 +171,6 @@ export function ClassifyPanel({
           </div>
         )}
 
-        {/* Classify / Post states */}
         {step !== 'done' && (
           <>
             {/* Transaction summary */}
@@ -205,9 +206,7 @@ export function ClassifyPanel({
                   <span className="font-medium">AI suggests:</span> {aiSuggestion.suggested_account_name}
                   {aiSuggestion.suggested_tax_code_name && ` with ${aiSuggestion.suggested_tax_code_name}`}
                   {' '}
-                  <Badge variant="info" className="text-[10px] ml-1">
-                    {aiSuggestion.confidence} confidence
-                  </Badge>
+                  <Badge variant="info" className="text-[10px] ml-1">{aiSuggestion.confidence} confidence</Badge>
                   <p className="text-xs mt-1 text-gray-500">{aiSuggestion.reasoning}</p>
                 </AlertDescription>
               </Alert>
@@ -217,7 +216,6 @@ export function ClassifyPanel({
 
             {step === 'classify' && (
               <div className="flex flex-col gap-4">
-                {/* Debit account */}
                 <div className="flex flex-col gap-1.5">
                   <Label>Category (debit account) *</Label>
                   <Select value={accountId} onValueChange={setAccountId}>
@@ -227,14 +225,13 @@ export function ClassifyPanel({
                     <SelectContent>
                       {debitAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
-                          {a.account_code} — {a.account_name}
+                          {a.account_code} – {a.account_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Source / credit account */}
                 <div className="flex flex-col gap-1.5">
                   <Label>Source account (credit) *</Label>
                   <Select value={sourceAccountId} onValueChange={setSourceAccountId}>
@@ -244,14 +241,13 @@ export function ClassifyPanel({
                     <SelectContent>
                       {bankAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
-                          {a.account_code} — {a.account_name}
+                          {a.account_code} – {a.account_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Tax code (optional) */}
                 {activeTaxCodes.length > 0 && (
                   <div className="flex flex-col gap-1.5">
                     <Label>Tax code <span className="text-gray-400 font-normal">(optional)</span></Label>
@@ -263,13 +259,17 @@ export function ClassifyPanel({
                         <SelectItem value="">None</SelectItem>
                         {activeTaxCodes.map((t) => (
                           <SelectItem key={t.id} value={t.id}>
-                            {t.code} — {t.name} ({(t.rate * 100).toFixed(0)}%)
+                            {t.code} – {t.name} ({(t.rate * 100).toFixed(0)}%)
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 )}
+
+                {/* Document attachments */}
+                <Separator />
+                <DocumentAttachments rawTransactionId={transaction?.id ?? ''} />
               </div>
             )}
 
@@ -298,12 +298,11 @@ export function ClassifyPanel({
                   )}
                 </div>
                 <p className="text-xs text-gray-500">
-                  Posting creates a balanced journal entry and moves this transaction to the general ledger. This action cannot be undone.
+                  Posting creates a balanced journal entry. This action cannot be undone.
                 </p>
               </div>
             )}
 
-            {/* Error */}
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="w-4 h-4" />
@@ -314,42 +313,31 @@ export function ClassifyPanel({
             <DialogFooter>
               {step === 'classify' && (
                 <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleAiSuggest}
-                    disabled={isAiLoading || isPending}
-                  >
-                    {isAiLoading ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" />
-                    ) : (
-                      <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                    )}
-                    AI Suggest
-                  </Button>
+                  <AdminOnly>
+                    <Button variant="ghost" size="sm" onClick={handleAiSuggest} disabled={isAiLoading || isPending}>
+                      {isAiLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Sparkles className="w-3.5 h-3.5 mr-1.5" />}
+                      AI Suggest
+                    </Button>
+                  </AdminOnly>
                   <div className="flex-1" />
-                  <Button variant="outline" onClick={handleClose} disabled={isPending}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleClassify} disabled={isPending}>
-                    {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    Classify
-                  </Button>
+                  <Button variant="outline" onClick={handleClose} disabled={isPending}>Cancel</Button>
+                  <AdminOnly fallback={<Button disabled>Classify</Button>}>
+                    <Button onClick={handleClassify} disabled={isPending}>
+                      {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Classify
+                    </Button>
+                  </AdminOnly>
                 </>
               )}
               {step === 'post' && (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep('classify')}
-                    disabled={isPending}
-                  >
-                    Back
-                  </Button>
-                  <Button onClick={handlePost} disabled={isPending}>
-                    {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                    Post to Ledger
-                  </Button>
+                  <Button variant="outline" onClick={() => setStep('classify')} disabled={isPending}>Back</Button>
+                  <AdminOnly fallback={<Button disabled>Post to Ledger</Button>}>
+                    <Button onClick={handlePost} disabled={isPending}>
+                      {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                      Post to Ledger
+                    </Button>
+                  </AdminOnly>
                 </>
               )}
             </DialogFooter>
@@ -359,5 +347,3 @@ export function ClassifyPanel({
     </Dialog>
   );
 }
-
-

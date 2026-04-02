@@ -11,14 +11,16 @@ import { ReportsModule } from './reports/reports.module';
 import { AiModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
 import { BusinessesModule } from './businesses/businesses.module';
+import { InvoiceModule } from './invoice/invoice.module';
+import { RecurringModule } from './recurring/recurring.module';
+import { DocumentsModule } from './documents/documents.module';
+import { CurrencyModule } from './currency/currency.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { RolesGuard } from './auth/roles.guard';
 import { HealthController } from './health.controller';
 
-// Parse REDIS_URL (Railway format: redis://default:password@host:port)
-// Falls back to individual vars for local development
 function getRedisBullMQConnection() {
   const redisUrl = process.env.REDIS_URL;
-
   if (redisUrl) {
     const url = new URL(redisUrl);
     return {
@@ -29,7 +31,6 @@ function getRedisBullMQConnection() {
       tls: url.protocol === 'rediss:' ? {} : undefined,
     };
   }
-
   return {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT, 10) || 6379,
@@ -41,25 +42,25 @@ function getRedisBullMQConnection() {
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
-    BullModule.forRoot({
-      connection: getRedisBullMQConnection(),
-    }),
+    BullModule.forRoot({ connection: getRedisBullMQConnection() }),
     AuthModule,
     BusinessesModule,
+    // CurrencyModule must be imported before PlaidModule since it is @Global()
+    // and PlaidSyncProcessor injects CurrencyService
+    CurrencyModule,
     AccountingModule,
     PlaidModule,
     ReportsModule,
     AiModule,
+    InvoiceModule,
+    RecurringModule,
+    DocumentsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
     AppService,
-    // Register JwtAuthGuard globally — applies to every route.
-    // Use @Public() decorator on routes that must bypass auth.
-    {
-      provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: RolesGuard },
   ],
 })
 export class AppModule {}

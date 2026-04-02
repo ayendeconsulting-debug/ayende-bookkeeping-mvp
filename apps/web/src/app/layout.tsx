@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,7 +16,22 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body>{children}</body>
+        <body>
+          {children}
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              style: {
+                fontFamily: 'inherit',
+              },
+              classNames: {
+                success: 'border-[#0F6E56]',
+              },
+            }}
+            richColors
+            closeButton
+          />
+        </body>
       </html>
     </ClerkProvider>
   );

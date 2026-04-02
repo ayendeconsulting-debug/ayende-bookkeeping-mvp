@@ -1,8 +1,10 @@
 import { Body, Controller, Get, Patch, Post, Req } from '@nestjs/common';
-import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsIn } from 'class-validator';
 import { Request } from 'express';
 import { BusinessesService } from './businesses.service';
 import { Public } from '../auth/public.decorator';
+import { Roles } from '../auth/roles.decorator';
+import { BusinessMode } from '../entities/business.entity';
 
 export class ProvisionBusinessDto {
   @IsString()
@@ -25,6 +27,19 @@ export class UpdateBusinessDto {
   @IsString()
   @IsOptional()
   currency_code?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['business', 'freelancer', 'personal'])
+  mode?: BusinessMode;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['CA', 'US'])
+  country?: string;
+
+  @IsOptional()
+  settings?: Record<string, any>;
 }
 
 @Controller('businesses')
@@ -50,8 +65,8 @@ export class BusinessesController {
   }
 
   /**
-   * GET /businesses/me
-   * Returns the current authenticated business details.
+   * GET /businesses/me — all roles
+   * Returns the current authenticated business details including mode/country/settings.
    */
   @Get('me')
   async getMe(@Req() req: Request) {
@@ -63,14 +78,18 @@ export class BusinessesController {
       tax_id: business.tax_id,
       currency_code: business.currency_code,
       fiscal_year_end: business.fiscal_year_end,
+      mode: business.mode,
+      country: business.country,
+      settings: business.settings,
       created_at: business.created_at,
     };
   }
 
   /**
-   * PATCH /businesses/me
-   * Updates business name, fiscal year end, or currency.
+   * PATCH /businesses/me — admin only
+   * Updates business name, fiscal year end, currency, mode, country, or settings.
    */
+  @Roles('admin')
   @Patch('me')
   async updateMe(@Req() req: Request, @Body() dto: UpdateBusinessDto) {
     const business = await this.businessesService.update(req.user!.businessId, dto);
@@ -79,6 +98,9 @@ export class BusinessesController {
       name: business.name,
       currency_code: business.currency_code,
       fiscal_year_end: business.fiscal_year_end,
+      mode: business.mode,
+      country: business.country,
+      settings: business.settings,
     };
   }
 }

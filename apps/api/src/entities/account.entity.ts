@@ -77,6 +77,11 @@ export class Account {
   @Column({ type: 'boolean', default: false })
   is_system: boolean;
 
+  // Phase 5: Account base currency for multi-currency support
+  // null = inherits business base currency
+  @Column({ type: 'varchar', length: 3, nullable: true })
+  currency_code: string | null;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 

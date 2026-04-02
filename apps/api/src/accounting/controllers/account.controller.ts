@@ -11,15 +11,17 @@ import {
 import { Request } from 'express';
 import { AccountService, CreateAccountDto } from '../services/account.service';
 import { AccountType } from '../../entities/account.entity';
+import { Roles } from '../../auth/roles.decorator';
 
 @Controller('accounts')
 export class AccountController {
   constructor(private readonly accountService: AccountService) {}
 
   /**
-   * Create a new account
+   * Create a new account — admin only
    * POST /accounts
    */
+  @Roles('admin')
   @Post()
   async createAccount(
     @Req() req: Request,
@@ -30,16 +32,17 @@ export class AccountController {
   }
 
   /**
-   * Seed default chart of accounts for a business
+   * Seed default chart of accounts — admin only
    * POST /accounts/seed
    */
+  @Roles('admin')
   @Post('seed')
   async seedDefaultAccounts(@Req() req: Request) {
     return this.accountService.seedDefaultChartOfAccounts(req.user!.businessId);
   }
 
   /**
-   * Get all accounts for a business
+   * Get all accounts for a business — all roles
    * GET /accounts?accountType=asset&activeOnly=true
    */
   @Get()
@@ -57,7 +60,7 @@ export class AccountController {
   }
 
   /**
-   * Get a specific account
+   * Get a specific account — all roles
    * GET /accounts/:id
    */
   @Get(':id')
@@ -69,9 +72,10 @@ export class AccountController {
   }
 
   /**
-   * Update an account
+   * Update an account — admin only
    * PATCH /accounts/:id
    */
+  @Roles('admin')
   @Patch(':id')
   async updateAccount(
     @Param('id') id: string,
@@ -82,9 +86,10 @@ export class AccountController {
   }
 
   /**
-   * Deactivate an account
+   * Deactivate an account — admin only
    * PATCH /accounts/:id/deactivate
    */
+  @Roles('admin')
   @Patch(':id/deactivate')
   async deactivateAccount(
     @Param('id') id: string,

@@ -1,0 +1,308 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { Account, TaxCode, Invoice } from '@/types';
+import { createInvoice, updateInvoice } from '@/app/(app)/invoices/actions';
+import { toastSuccess, toastError } from '@/lib/toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
+
+interface LineItem {
+  description: string;
+  quantity: string;
+  unit_price: string;
+  tax_code_id: string;
+}
+
+const EMPTY_LINE: LineItem = {
+  description: '', quantity: '1', unit_price: '', tax_code_id: '',
+};
+
+interface InvoiceFormProps {
+  open: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  accounts: Account[];
+  taxCodes: TaxCode[];
+  editingInvoice?: Invoice | null;
+}
+
+export function InvoiceForm({
+  open,
+  onClose,
+  onSuccess,
+  accounts,
+  taxCodes,
+  editingInvoice,
+}: InvoiceFormProps) {
+  const today = new Date().toISOString().split('T')[0];
+  const net30 = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
+
+  const [clientName, setClientName] = useState(editingInvoice?.client_name ?? '');
+  const [clientEmail, setClientEmail] = useState(editingInvoice?.client_email ?? '');
+  const [issueDate, setIssueDate] = useState(
+    editingInvoice?.issue_date ? String(editingInvoice.issue_date).slice(0, 10) : today,
+  );
+  const [dueDate, setDueDate] = useState(
+    editingInvoice?.due_date ? String(editingInvoice.due_date).slice(0, 10) : net30,
+  );
+  const [invoiceNumber, setInvoiceNumber] = useState(editingInvoice?.invoice_number ?? '');
+  const [notes, setNotes] = useState(editingInvoice?.notes ?? '');
+  const [lineItems, setLineItems] = useState<LineItem[]>(
+    editingInvoice?.line_items?.length
+      ? editingInvoice.line_items.map((li) => ({
+          description: li.description,
+          quantity: String(li.quantity),
+          unit_price: String(li.unit_price),
+          tax_code_id: li.tax_code_id ?? '',
+        }))
+      : [{ ...EMPTY_LINE }],
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const activeTaxCodes = taxCodes.filter((t) => t.is_active);
+
+  function handleClose() {
+    setError(null);
+    onClose();
+  }
+
+  function addLine() {
+    setLineItems((prev) => [...prev, { ...EMPTY_LINE }]);
+  }
+
+  function removeLine(idx: number) {
+    setLineItems((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function updateLine(idx: number, field: keyof LineItem, value: string) {
+    setLineItems((prev) =>
+      prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)),
+    );
+  }
+
+  // Calculate preview totals
+  const lineItemsWithTotals = lineItems.map((item) => {
+    const qty = parseFloat(item.quantity) || 0;
+    const price = parseFloat(item.unit_price) || 0;
+    const lineTotal = qty * price;
+    const taxCode = activeTaxCodes.find((t) => t.id === item.tax_code_id);
+    const taxAmount = taxCode ? lineTotal * Number(taxCode.rate) : 0;
+    return { lineTotal, taxAmount };
+  });
+  const subtotal = lineItemsWithTotals.reduce((s, l) => s + l.lineTotal, 0);
+  const taxTotal = lineItemsWithTotals.reduce((s, l) => s + l.taxAmount, 0);
+  const total = subtotal + taxTotal;
+
+  function handleSubmit() {
+    if (!clientName.trim()) { setError('Client name is required.'); return; }
+    if (!issueDate || !dueDate) { setError('Issue date and due date are required.'); return; }
+    if (lineItems.length === 0) { setError('At least one line item is required.'); return; }
+
+    const validLines = lineItems.filter((l) => l.description && parseFloat(l.unit_price) > 0);
+    if (validLines.length === 0) {
+      setError('Each line item must have a description and price.'); return;
+    }
+
+    setError(null);
+    startTransition(async () => {
+      const payload = {
+        client_name: clientName.trim(),
+        client_email: clientEmail || undefined,
+        issue_date: issueDate,
+        due_date: dueDate,
+        invoice_number: invoiceNumber || undefined,
+        notes: notes || undefined,
+        line_items: validLines.map((l, idx) => ({
+          description: l.description,
+          quantity: parseFloat(l.quantity) || 1,
+          unit_price: parseFloat(l.unit_price),
+          tax_code_id: l.tax_code_id || undefined,
+          sort_order: idx,
+        })),
+      };
+
+      const result = editingInvoice
+        ? await updateInvoice(editingInvoice.id, payload)
+        : await createInvoice(payload);
+
+      if (result.success) {
+        toastSuccess(
+          editingInvoice ? 'Invoice updated' : 'Invoice created',
+          `${invoiceNumber || 'INV'} — ${clientName}`,
+        );
+        handleClose();
+        onSuccess();
+      } else {
+        const msg = result.error ?? 'Operation failed';
+        setError(msg);
+        toastError(editingInvoice ? 'Failed to update invoice' : 'Failed to create invoice', msg);
+      }
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{editingInvoice ? 'Edit Invoice' : 'New Invoice'}</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4 mt-2">
+          {/* Client + dates */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>Client Name *</Label>
+              <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Acme Corp" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Client Email</Label>
+              <Input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="billing@acme.com" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <Label>Invoice # <span className="text-gray-400 font-normal">(auto)</span></Label>
+              <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="INV-2026-001" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Issue Date *</Label>
+              <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Due Date *</Label>
+              <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Line Items */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <Label>Line Items</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addLine} className="flex items-center gap-1.5">
+                <Plus className="w-3.5 h-3.5" />Add Line
+              </Button>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {/* Header */}
+              <div className="grid grid-cols-12 gap-2 text-xs text-gray-400 px-1">
+                <span className="col-span-5">Description</span>
+                <span className="col-span-2">Qty</span>
+                <span className="col-span-2">Unit Price</span>
+                <span className="col-span-2">Tax</span>
+                <span className="col-span-1" />
+              </div>
+
+              {lineItems.map((item, idx) => {
+                const lineTotal = (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
+                return (
+                  <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                    <div className="col-span-5">
+                      <Input
+                        value={item.description}
+                        onChange={(e) => updateLine(idx, 'description', e.target.value)}
+                        placeholder="Service description"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateLine(idx, 'quantity', e.target.value)}
+                        min="0.01"
+                        step="0.01"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <Input
+                        type="number"
+                        value={item.unit_price}
+                        onChange={(e) => updateLine(idx, 'unit_price', e.target.value)}
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <select
+                        value={item.tax_code_id}
+                        onChange={(e) => updateLine(idx, 'tax_code_id', e.target.value)}
+                        className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-[#0F6E56]"
+                      >
+                        <option value="">None</option>
+                        {activeTaxCodes.map((t) => (
+                          <option key={t.id} value={t.id}>{t.code} ({(t.rate * 100).toFixed(0)}%)</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-span-1 flex items-center justify-between">
+                      <span className="text-xs text-gray-500">${lineTotal.toFixed(2)}</span>
+                      {lineItems.length > 1 && (
+                        <button onClick={() => removeLine(idx)} className="text-gray-300 hover:text-red-400 ml-1">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Totals preview */}
+            <div className="mt-4 flex flex-col gap-1 items-end text-sm">
+              <div className="flex gap-8 text-gray-500">
+                <span>Subtotal</span>
+                <span className="font-medium text-gray-900 w-24 text-right">${subtotal.toFixed(2)}</span>
+              </div>
+              {taxTotal > 0 && (
+                <div className="flex gap-8 text-gray-500">
+                  <span>Tax</span>
+                  <span className="font-medium text-gray-900 w-24 text-right">${taxTotal.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex gap-8 text-[#0F6E56] font-semibold">
+                <span>Total</span>
+                <span className="w-24 text-right">${total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="flex flex-col gap-1.5">
+            <Label>Notes <span className="text-gray-400 font-normal">(optional)</span></Label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              placeholder="Payment terms, bank details, etc."
+              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] resize-none"
+            />
+          </div>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose} disabled={isPending}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={isPending}>
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            {editingInvoice ? 'Save Changes' : 'Create Invoice'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

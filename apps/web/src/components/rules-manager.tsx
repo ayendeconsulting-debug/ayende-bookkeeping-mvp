@@ -1,9 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Trash2, Filter } from 'lucide-react';
 import { ClassificationRule, Account } from '@/types';
 import { createRule, updateRule, deleteRule } from '@/app/(app)/rules/actions';
+import { AdminOnly } from '@/components/admin-only';
+import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,26 +22,14 @@ interface RulesManagerProps {
 }
 
 interface RuleFormData {
-  match_type: string;
-  match_value: string;
-  target_account_id: string;
-  priority: string;
+  match_type: string; match_value: string; target_account_id: string; priority: string;
 }
 
-const EMPTY_FORM: RuleFormData = {
-  match_type: 'keyword',
-  match_value: '',
-  target_account_id: '',
-  priority: '10',
-};
-
-const MATCH_TYPE_LABELS: Record<string, string> = {
-  keyword: 'Keyword',
-  vendor: 'Vendor',
-  account: 'Account',
-};
+const EMPTY_FORM: RuleFormData = { match_type: 'keyword', match_value: '', target_account_id: '', priority: '10' };
+const MATCH_TYPE_LABELS: Record<string, string> = { keyword: 'Keyword', vendor: 'Vendor', account: 'Account' };
 
 export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
+  const router = useRouter();
   const [rules, setRules] = useState<ClassificationRule[]>(
     [...initialRules].sort((a, b) => a.priority - b.priority),
   );
@@ -50,68 +41,48 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
 
   function openCreate() {
     setEditingRule(null);
-    setForm({
-      ...EMPTY_FORM,
-      priority: String((rules.length + 1) * 10),
-    });
+    setForm({ ...EMPTY_FORM, priority: String((rules.length + 1) * 10) });
     setError(null);
     setDialogOpen(true);
   }
 
   function openEdit(rule: ClassificationRule) {
     setEditingRule(rule);
-    setForm({
-      match_type: rule.match_type,
-      match_value: rule.match_value,
-      target_account_id: rule.target_account_id,
-      priority: String(rule.priority),
-    });
+    setForm({ match_type: rule.match_type, match_value: rule.match_value, target_account_id: rule.target_account_id, priority: String(rule.priority) });
     setError(null);
     setDialogOpen(true);
   }
 
   async function handleSave() {
-    if (!form.match_value || !form.target_account_id) {
-      setError('Match value and target account are required.');
-      return;
-    }
+    if (!form.match_value || !form.target_account_id) { setError('Match value and target account are required.'); return; }
     const priority = parseInt(form.priority, 10);
-    if (isNaN(priority) || priority < 1) {
-      setError('Priority must be a positive number.');
-      return;
-    }
+    if (isNaN(priority) || priority < 1) { setError('Priority must be a positive number.'); return; }
 
-    setSaving(true);
-    setError(null);
-
+    setSaving(true); setError(null);
     const result = editingRule
-      ? await updateRule(editingRule.id, {
-          match_value: form.match_value,
-          target_account_id: form.target_account_id,
-          priority,
-        })
-      : await createRule({
-          match_type: form.match_type,
-          match_value: form.match_value,
-          target_account_id: form.target_account_id,
-          priority,
-        });
-
+      ? await updateRule(editingRule.id, { match_value: form.match_value, target_account_id: form.target_account_id, priority })
+      : await createRule({ match_type: form.match_type, match_value: form.match_value, target_account_id: form.target_account_id, priority });
     setSaving(false);
 
     if (!result.success) {
-      setError(result.error ?? 'Operation failed.');
+      const msg = result.error ?? 'Operation failed.';
+      setError(msg);
+      toastError(editingRule ? 'Failed to update rule' : 'Failed to create rule', msg);
       return;
     }
 
+    toastSuccess(editingRule ? 'Rule updated' : 'Rule created', `Match: ${form.match_value}`);
     setDialogOpen(false);
-    window.location.reload();
+    router.refresh();
   }
 
-  async function handleDelete(id: string) {
-    const result = await deleteRule(id);
+  async function handleDelete(rule: ClassificationRule) {
+    const result = await deleteRule(rule.id);
     if (result.success) {
-      setRules((prev) => prev.filter((r) => r.id !== id));
+      setRules((prev) => prev.filter((r) => r.id !== rule.id));
+      toastSuccess('Rule deleted', rule.match_value);
+    } else {
+      toastError('Failed to delete rule', result.error ?? 'Please try again.');
     }
   }
 
@@ -119,21 +90,18 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
 
   return (
     <div className="p-6 max-w-screen-lg mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Classification Rules</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Auto-classify transactions by keyword, vendor, or account match
-          </p>
+          <p className="text-sm text-gray-500 mt-0.5">Auto-classify transactions by keyword, vendor, or account match</p>
         </div>
-        <Button onClick={openCreate} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          New Rule
-        </Button>
+        <AdminOnly>
+          <Button onClick={openCreate} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />New Rule
+          </Button>
+        </AdminOnly>
       </div>
 
-      {/* Info box */}
       <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700">
         Rules are applied in priority order (lowest number first). The first matching rule wins.
       </div>
@@ -143,9 +111,7 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
           {rules.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Filter className="w-8 h-8 text-gray-300 mb-3" />
-              <p className="text-sm text-gray-400">
-                No rules yet. Add rules to auto-classify transactions.
-              </p>
+              <p className="text-sm text-gray-400">No rules yet. Add rules to auto-classify transactions.</p>
             </div>
           ) : (
             <Table>
@@ -163,64 +129,40 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
                   const account = accountMap[rule.target_account_id];
                   return (
                     <TableRow key={rule.id}>
-                      <TableCell className="font-mono text-sm text-gray-500">
-                        {rule.priority}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="pending">
-                          {MATCH_TYPE_LABELS[rule.match_type] ?? rule.match_type}
-                        </Badge>
-                      </TableCell>
+                      <TableCell className="font-mono text-sm text-gray-500">{rule.priority}</TableCell>
+                      <TableCell><Badge variant="pending">{MATCH_TYPE_LABELS[rule.match_type] ?? rule.match_type}</Badge></TableCell>
                       <TableCell className="font-medium">{rule.match_value}</TableCell>
                       <TableCell className="text-sm">
-                        {account ? (
-                          <span>
-                            <span className="text-gray-400 mr-1.5">{account.account_code}</span>
-                            {account.account_name}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">Unknown account</span>
-                        )}
+                        {account ? <span><span className="text-gray-400 mr-1.5">{account.account_code}</span>{account.account_name}</span> : <span className="text-gray-400">Unknown account</span>}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEdit(rule)}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-gray-400 hover:text-red-500"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete rule?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  This rule will be deleted and will no longer auto-classify
-                                  matching transactions.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDelete(rule.id)}
-                                  className="bg-red-500 hover:bg-red-600 text-white"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <AdminOnly>
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(rule)} className="text-gray-400 hover:text-gray-600">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                          </AdminOnly>
+                          <AdminOnly>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete rule?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This rule will be deleted and will no longer auto-classify matching transactions.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(rule)} className="bg-red-500 hover:bg-red-600 text-white">Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </AdminOnly>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -232,7 +174,6 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
         </CardContent>
       </Card>
 
-      {/* Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -242,12 +183,7 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Match Type</Label>
-                <select
-                  value={form.match_type}
-                  onChange={(e) => setForm((f) => ({ ...f, match_type: e.target.value }))}
-                  disabled={!!editingRule}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50"
-                >
+                <select value={form.match_type} onChange={(e) => setForm((f) => ({ ...f, match_type: e.target.value }))} disabled={!!editingRule} className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50">
                   <option value="keyword">Keyword (description contains)</option>
                   <option value="vendor">Vendor (exact match)</option>
                   <option value="account">Account (source account)</option>
@@ -255,49 +191,24 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Priority</Label>
-                <Input
-                  type="number"
-                  value={form.priority}
-                  onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
-                  min="1"
-                  placeholder="e.g. 10"
-                />
+                <Input type="number" value={form.priority} onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))} min="1" placeholder="e.g. 10" />
               </div>
             </div>
-
             <div className="flex flex-col gap-1.5">
               <Label>Match Value</Label>
-              <Input
-                value={form.match_value}
-                onChange={(e) => setForm((f) => ({ ...f, match_value: e.target.value }))}
-                placeholder={
-                  form.match_type === 'keyword'
-                    ? 'e.g. Shopify, AWS, Netflix'
-                    : form.match_type === 'vendor'
-                    ? 'e.g. Amazon.ca'
-                    : 'e.g. account name'
-                }
+              <Input value={form.match_value} onChange={(e) => setForm((f) => ({ ...f, match_value: e.target.value }))}
+                placeholder={form.match_type === 'keyword' ? 'e.g. Shopify, AWS' : form.match_type === 'vendor' ? 'e.g. Amazon.ca' : 'e.g. account name'}
               />
             </div>
-
             <div className="flex flex-col gap-1.5">
               <Label>Target Account</Label>
-              <select
-                value={form.target_account_id}
-                onChange={(e) => setForm((f) => ({ ...f, target_account_id: e.target.value }))}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
-              >
+              <select value={form.target_account_id} onChange={(e) => setForm((f) => ({ ...f, target_account_id: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]">
                 <option value="">Select account…</option>
-                {accounts
-                  .filter((a) => a.is_active)
-                  .map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.account_code} — {a.account_name} ({a.account_type})
-                    </option>
-                  ))}
+                {accounts.filter((a) => a.is_active).map((a) => (
+                  <option key={a.id} value={a.id}>{a.account_code} – {a.account_name} ({a.account_type})</option>
+                ))}
               </select>
             </div>
-
             {error && <p className="text-sm text-red-500">{error}</p>}
             <div className="flex justify-end gap-2 mt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>

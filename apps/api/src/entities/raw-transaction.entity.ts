@@ -54,8 +54,7 @@ export class RawTransaction {
   @Column({ type: 'varchar', length: 100, nullable: true })
   source_account_type: string;
 
-  // ─── SOURCE TRACKING ──────────────────────────────────────────
-  // Identifies whether this transaction came from Plaid or file upload
+  // ─── SOURCE TRACKING ────────────────────────────────────────────────────────
   @Column({
     type: 'enum',
     enum: RawTransactionSource,
@@ -63,36 +62,42 @@ export class RawTransaction {
   })
   source: RawTransactionSource;
 
-  // ─── PLAID-SPECIFIC FIELDS ────────────────────────────────────
-  // Plaid's stable transaction identifier — used for deduplication
-  // Only populated for source = 'plaid'
+  // ─── PLAID-SPECIFIC FIELDS ──────────────────────────────────────────────────
   @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   plaid_transaction_id: string;
 
-  // Plaid's account_id for the account this transaction belongs to
   @Column({ type: 'varchar', length: 255, nullable: true })
   plaid_account_id: string;
 
-  // Plaid transaction category info
   @Column({ type: 'varchar', length: 255, nullable: true })
   plaid_category: string;
 
-  // Whether Plaid has marked this as pending (not yet cleared)
   @Column({ type: 'boolean', default: false })
   plaid_pending: boolean;
 
-  // If this transaction is a cleared version of a pending transaction,
-  // this stores the original pending plaid_transaction_id
   @Column({ type: 'varchar', length: 255, nullable: true })
   plaid_pending_transaction_id: string;
 
-  // ─── FILE-IMPORT-SPECIFIC FIELDS ─────────────────────────────
-  // Hash signature for deduplication of file-imported transactions
-  // Only populated for source = 'csv' or 'pdf'
+  // ─── FILE-IMPORT-SPECIFIC FIELDS ────────────────────────────────────────────
   @Column({ type: 'varchar', length: 64, nullable: true })
   hash_signature: string;
 
-  // ─── STATUS ───────────────────────────────────────────────────
+  // ─── MULTI-CURRENCY (Phase 5) ───────────────────────────────────────────────
+  // ISO currency code of the original transaction (e.g. 'USD' for a USD charge on a CAD account)
+  @Column({ type: 'varchar', length: 3, nullable: true })
+  currency_code: string | null;
+
+  // Original amount in the transaction currency before conversion
+  // null when transaction is in the business base currency
+  @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
+  original_amount: number | null;
+
+  // ─── FREELANCER MODE (Phase 5) ──────────────────────────────────────────────
+  // When true, transaction is excluded from all business reports and tax calculations
+  @Column({ type: 'boolean', default: false })
+  is_personal: boolean;
+
+  // ─── STATUS ─────────────────────────────────────────────────────────────────
   @Column({
     type: 'enum',
     enum: RawTransactionStatus,

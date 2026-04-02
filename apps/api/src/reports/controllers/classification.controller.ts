@@ -15,23 +15,21 @@ import {
   ClassifyTransactionDto,
   OwnerContributionDto,
   OwnerDrawDto,
-  RawTransactionFilterDto,
 } from '../dto/classify-transaction.dto';
 import {
   CreateClassificationRuleDto,
   UpdateClassificationRuleDto,
 } from '../dto/create-classification-rule.dto';
+import { Roles } from '../../auth/roles.decorator';
 
 @Controller('classification')
 export class ClassificationController {
   constructor(private readonly classificationService: ClassificationService) {}
 
-  // ── Raw Transactions ────────────────────────────────────────────────────
+  // ── Raw Transactions — all roles ─────────────────────────────────────────
 
   /**
-   * GET /classification/raw
-   * Returns paginated raw transactions for the authenticated business.
-   * Supports filtering by status, search, and date range.
+   * GET /classification/raw — all roles
    */
   @Get('raw')
   getRawTransactions(
@@ -43,35 +41,34 @@ export class ClassificationController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
-    return this.classificationService.getRawTransactions(
-      req.user!.businessId,
-      {
-        status,
-        search,
-        startDate,
-        endDate,
-        limit: limit ? parseInt(limit, 10) : 20,
-        offset: offset ? parseInt(offset, 10) : 0,
-      },
-    );
+    return this.classificationService.getRawTransactions(req.user!.businessId, {
+      status,
+      search,
+      startDate,
+      endDate,
+      limit: limit ? parseInt(limit, 10) : 20,
+      offset: offset ? parseInt(offset, 10) : 0,
+    });
   }
 
-  // ── Rules ──────────────────────────────────────────────────────────────
+  // ── Rules ─────────────────────────────────────────────────────────────────
 
+  /** POST /classification/rules — admin only */
+  @Roles('admin')
   @Post('rules')
-  createRule(
-    @Req() req: Request,
-    @Body() dto: CreateClassificationRuleDto,
-  ) {
+  createRule(@Req() req: Request, @Body() dto: CreateClassificationRuleDto) {
     dto.businessId = req.user!.businessId;
     return this.classificationService.createRule(dto);
   }
 
+  /** GET /classification/rules — all roles */
   @Get('rules')
   findAllRules(@Req() req: Request) {
     return this.classificationService.findAllRules(req.user!.businessId);
   }
 
+  /** PATCH /classification/rules/:id — admin only */
+  @Roles('admin')
   @Patch('rules/:id')
   updateRule(
     @Req() req: Request,
@@ -81,26 +78,26 @@ export class ClassificationController {
     return this.classificationService.updateRule(req.user!.businessId, id, dto);
   }
 
+  /** DELETE /classification/rules/:id — admin only */
+  @Roles('admin')
   @Delete('rules/:id')
-  deactivateRule(
-    @Req() req: Request,
-    @Param('id') id: string,
-  ) {
+  deactivateRule(@Req() req: Request, @Param('id') id: string) {
     return this.classificationService.deactivateRule(req.user!.businessId, id);
   }
 
-  // ── Classification & Posting ────────────────────────────────────────────
+  // ── Classification & Posting — admin only ─────────────────────────────────
 
+  /** POST /classification/classify — admin only */
+  @Roles('admin')
   @Post('classify')
-  classify(
-    @Req() req: Request,
-    @Body() dto: ClassifyTransactionDto,
-  ) {
+  classify(@Req() req: Request, @Body() dto: ClassifyTransactionDto) {
     dto.businessId = req.user!.businessId;
     dto.classifiedBy = req.user!.userId;
     return this.classificationService.classify(dto);
   }
 
+  /** POST /classification/post/:id — admin only */
+  @Roles('admin')
   @Post('post/:id')
   postClassified(
     @Param('id') id: string,
@@ -115,23 +112,21 @@ export class ClassificationController {
     );
   }
 
-  // ── Owner Equity ────────────────────────────────────────────────────────
+  // ── Owner Equity — admin only ─────────────────────────────────────────────
 
+  /** POST /classification/owner-contribution — admin only */
+  @Roles('admin')
   @Post('owner-contribution')
-  ownerContribution(
-    @Req() req: Request,
-    @Body() dto: OwnerContributionDto,
-  ) {
+  ownerContribution(@Req() req: Request, @Body() dto: OwnerContributionDto) {
     dto.businessId = req.user!.businessId;
     dto.classifiedBy = req.user!.userId;
     return this.classificationService.postOwnerContribution(dto);
   }
 
+  /** POST /classification/owner-draw — admin only */
+  @Roles('admin')
   @Post('owner-draw')
-  ownerDraw(
-    @Req() req: Request,
-    @Body() dto: OwnerDrawDto,
-  ) {
+  ownerDraw(@Req() req: Request, @Body() dto: OwnerDrawDto) {
     dto.businessId = req.user!.businessId;
     dto.classifiedBy = req.user!.userId;
     return this.classificationService.postOwnerDraw(dto);

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Business } from '../entities/business.entity';
+import { Business, BusinessMode } from '../entities/business.entity';
 
 @Injectable()
 export class BusinessesService {
@@ -20,12 +20,39 @@ export class BusinessesService {
     return business;
   }
 
+  /**
+   * Updates business fields.
+   * `settings` is deep-merged with the existing jsonb value so callers
+   * can set individual keys (e.g. { mode_selected: true }) without
+   * wiping other settings keys.
+   */
   async update(
     id: string,
-    updates: { name?: string; fiscal_year_end?: string; currency_code?: string },
+    updates: {
+      name?: string;
+      fiscal_year_end?: string;
+      currency_code?: string;
+      mode?: BusinessMode;
+      country?: string;
+      settings?: Record<string, any>;
+    },
   ): Promise<Business> {
     const business = await this.findById(id);
-    Object.assign(business, updates);
+
+    if (updates.name !== undefined) business.name = updates.name;
+    if (updates.fiscal_year_end !== undefined) business.fiscal_year_end = updates.fiscal_year_end as any;
+    if (updates.currency_code !== undefined) business.currency_code = updates.currency_code;
+    if (updates.mode !== undefined) business.mode = updates.mode;
+    if (updates.country !== undefined) business.country = updates.country;
+
+    // Deep-merge settings — preserve existing keys, overlay new ones
+    if (updates.settings !== undefined) {
+      business.settings = {
+        ...(business.settings ?? {}),
+        ...updates.settings,
+      };
+    }
+
     return this.businessRepo.save(business);
   }
 

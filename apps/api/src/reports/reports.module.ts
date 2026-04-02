@@ -14,11 +14,13 @@ import { Account } from '../entities/account.entity';
 import { JournalEntry } from '../entities/journal-entry.entity';
 import { JournalLine } from '../entities/journal-line.entity';
 import { RawTransaction } from '../entities/raw-transaction.entity';
+import { ArApRecord } from '../entities/ar-ap-record.entity';
 
 // Controllers
 import { TaxController } from './controllers/tax.controller';
 import { ClassificationController } from './controllers/classification.controller';
 import { ReportsController } from './controllers/reports.controller';
+import { ArApController } from './controllers/ar-ap.controller';
 
 // Services
 import { TaxService } from './services/tax.service';
@@ -28,6 +30,7 @@ import { BalanceSheetService } from './services/balance-sheet.service';
 import { TrialBalanceService } from './services/trial-balance.service';
 import { GeneralLedgerService } from './services/general-ledger.service';
 import { ExportService } from './services/export.service';
+import { ArApService } from './services/ar-ap.service';
 
 @Module({
   imports: [
@@ -44,9 +47,10 @@ import { ExportService } from './services/export.service';
       JournalEntry,
       JournalLine,
       RawTransaction,
+      ArApRecord,
     ]),
   ],
-  controllers: [TaxController, ClassificationController, ReportsController],
+  controllers: [TaxController, ClassificationController, ReportsController, ArApController],
   providers: [
     TaxService,
     ClassificationService,
@@ -55,6 +59,7 @@ import { ExportService } from './services/export.service';
     TrialBalanceService,
     GeneralLedgerService,
     ExportService,
+    ArApService,
   ],
   exports: [
     IncomeStatementService,

@@ -5,6 +5,8 @@ import { Repository } from 'typeorm';
 import { Job } from 'bullmq';
 import { PlaidService } from '../services/plaid.service';
 import { PlaidWebhookLog, WebhookProcessingStatus } from '../../entities/plaid-webhook-log.entity';
+import { PlaidItem } from '../../entities/plaid-item.entity';
+import { CurrencyService } from '../../currency/currency.service';
 
 export interface PlaidSyncJobData {
   plaidItemId: string;
@@ -17,9 +19,11 @@ export class PlaidSyncProcessor extends WorkerHost {
 
   constructor(
     private readonly plaidService: PlaidService,
-
+    private readonly currencyService: CurrencyService,
     @InjectRepository(PlaidWebhookLog)
     private webhookLogRepo: Repository<PlaidWebhookLog>,
+    @InjectRepository(PlaidItem)
+    private plaidItemRepo: Repository<PlaidItem>,
   ) {
     super();
   }
@@ -29,13 +33,38 @@ export class PlaidSyncProcessor extends WorkerHost {
     this.logger.log(`Processing sync job ${job.id} for plaid item ${plaidItemId}`);
 
     try {
+      // Step 1: Sync transactions from Plaid
       const result = await this.plaidService.syncTransactions(plaidItemId);
-
       this.logger.log(
         `Sync job ${job.id} complete: +${result.added} ~${result.modified} -${result.removed}`,
       );
 
-      // Update webhook log to processed
+      // Step 2: Convert any newly synced foreign currency transactions
+      if (result.added > 0 || result.modified > 0) {
+        try {
+          const plaidItem = await this.plaidItemRepo.findOne({
+            where: { item_id: plaidItemId },
+          });
+
+          if (plaidItem?.business_id) {
+            const converted = await this.currencyService.convertPendingTransactions(
+              plaidItem.business_id,
+            );
+            if (converted > 0) {
+              this.logger.log(
+                `Currency conversion: ${converted} foreign transactions converted for business ${plaidItem.business_id}`,
+              );
+            }
+          }
+        } catch (currencyErr) {
+          // Non-fatal — log and continue
+          this.logger.warn(
+            `Currency conversion skipped for job ${job.id}: ${currencyErr.message}`,
+          );
+        }
+      }
+
+      // Step 3: Update webhook log to processed
       if (webhookLogId) {
         await this.webhookLogRepo.update(webhookLogId, {
           status: WebhookProcessingStatus.PROCESSED,
@@ -45,7 +74,6 @@ export class PlaidSyncProcessor extends WorkerHost {
     } catch (error) {
       this.logger.error(`Sync job ${job.id} failed: ${error.message}`, error.stack);
 
-      // Update webhook log to failed
       if (webhookLogId) {
         await this.webhookLogRepo.update(webhookLogId, {
           status: WebhookProcessingStatus.FAILED,
