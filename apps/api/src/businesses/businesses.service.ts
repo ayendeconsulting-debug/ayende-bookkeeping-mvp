@@ -91,17 +91,19 @@ export class BusinessesService {
     const country = business.country ?? 'CA';
     const seeds = this.buildAccountSeeds(country, industry);
 
-    const accounts = seeds.map((seed) =>
-      this.accountRepo.create({
+    const accounts = seeds.map((seed) => {
+      // Object.assign bypasses DeepPartial<Account> type constraints
+      const acc = this.accountRepo.create();
+      Object.assign(acc, {
         business_id: businessId,
         account_code: seed.code,
         account_name: seed.name,
-        account_type: seed.type as any,
-        account_subtype: seed.subtype as any ?? null,
-        description: seed.description ?? null,
+        account_type: seed.type,
         is_active: true,
-      }),
-    );
+        ...(seed.subtype ? { account_subtype: seed.subtype } : {}),
+      });
+      return acc;
+    });
 
     await this.accountRepo.save(accounts);
     return { seeded: accounts.length, skipped: false };
