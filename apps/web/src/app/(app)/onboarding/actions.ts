@@ -5,38 +5,99 @@ import { redirect } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
 
+async function getAuthHeaders() {
+  const { getToken } = await auth();
+  const token = await getToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+async function patchBusiness(data: Record<string, unknown>) {
+  const res = await fetch(`${API_URL}/businesses/me`, {
+    method: 'PATCH',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return { error: body.message ?? 'Request failed' };
+  }
+  return {};
+}
+
+/* ── Step 1: Save mode + country ────────────────────────────────────────── */
+export async function saveModeAndCountry(
+  mode: 'business' | 'freelancer' | 'personal',
+  country: 'CA' | 'US',
+): Promise<{ error?: string }> {
+  return patchBusiness({ mode, country });
+}
+
+/* ── Step 2: Save business details ─────────────────────────────────────── */
+export async function saveBusinessDetails(data: {
+  name: string;
+  currency_code: string;
+  fiscal_year_end?: string;
+}): Promise<{ error?: string }> {
+  return patchBusiness(data);
+}
+
+/* ── Step 3: Seed chart of accounts ─────────────────────────────────────── */
+export async function seedAccounts(
+  industry: string,
+): Promise<{ seeded?: number; skipped?: boolean; error?: string }> {
+  const res = await fetch(`${API_URL}/businesses/seed-accounts`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ industry }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return { error: body.message ?? 'Failed to seed accounts' };
+  }
+  return res.json();
+}
+
+/* ── Step 4: Create first tax code (optional) ───────────────────────────── */
+export async function createFirstTaxCode(data: {
+  code: string;
+  name: string;
+  rate: number;
+  tax_type: 'input' | 'output';
+  tax_account_id: string;
+}): Promise<{ error?: string }> {
+  const res = await fetch(`${API_URL}/tax/codes`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return { error: body.message ?? 'Failed to create tax code' };
+  }
+  return {};
+}
+
+/* ── Step 5 / Complete: Mark onboarding done and redirect ───────────────── */
+export async function completeOnboarding(
+  destination: '/dashboard' | '/banks',
+): Promise<void> {
+  await patchBusiness({ settings: { mode_selected: true } });
+  redirect(destination);
+}
+
+/* ── Legacy — kept for backward compatibility ────────────────────────────── */
 export async function saveModeSelection(
   mode: 'business' | 'freelancer' | 'personal',
   country: 'CA' | 'US',
 ): Promise<{ error?: string }> {
-  const { getToken } = await auth();
-  const token = await getToken();
-
-  if (!token) {
-    return { error: 'Not authenticated' };
-  }
-
-  try {
-    const res = await fetch(`${API_URL}/businesses/me`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        mode,
-        country,
-        settings: { mode_selected: true },
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      return { error: body.message ?? 'Failed to save mode selection' };
-    }
-  } catch (err) {
-    return { error: 'Network error — please try again' };
-  }
-
+  const result = await patchBusiness({
+    mode,
+    country,
+    settings: { mode_selected: true },
+  });
+  if (result.error) return result;
   redirect('/dashboard');
 }

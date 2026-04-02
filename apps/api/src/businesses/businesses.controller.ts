@@ -42,13 +42,19 @@ export class UpdateBusinessDto {
   settings?: Record<string, any>;
 }
 
+export class SeedAccountsDto {
+  @IsString()
+  @IsIn(['general', 'retail', 'services', 'construction', 'restaurant', 'freelancer', 'personal'])
+  industry: string;
+}
+
 @Controller('businesses')
 export class BusinessesController {
   constructor(private readonly businessesService: BusinessesService) {}
 
   /**
    * POST /businesses/provision
-   * Public endpoint — idempotent, called by frontend on every page load.
+   * Public — idempotent, called by frontend on every page load.
    */
   @Public()
   @Post('provision')
@@ -66,7 +72,6 @@ export class BusinessesController {
 
   /**
    * GET /businesses/me — all roles
-   * Returns the current authenticated business details including mode/country/settings.
    */
   @Get('me')
   async getMe(@Req() req: Request) {
@@ -87,7 +92,6 @@ export class BusinessesController {
 
   /**
    * PATCH /businesses/me — admin only
-   * Updates business name, fiscal year end, currency, mode, country, or settings.
    */
   @Roles('admin')
   @Patch('me')
@@ -102,5 +106,16 @@ export class BusinessesController {
       country: business.country,
       settings: business.settings,
     };
+  }
+
+  /**
+   * POST /businesses/seed-accounts — admin only
+   * Seeds chart of accounts for the business.
+   * Idempotent — safe to call multiple times (skips if accounts already exist).
+   */
+  @Roles('admin')
+  @Post('seed-accounts')
+  async seedAccounts(@Req() req: Request, @Body() dto: SeedAccountsDto) {
+    return this.businessesService.seedAccounts(req.user!.businessId, dto.industry);
   }
 }
