@@ -107,6 +107,7 @@ export function ClassifyPanel({
     }
     setError('');
     startTransition(async () => {
+      if (!transaction) return;
       const result = await classifyTransaction({
         rawTransactionId: transaction.id,
         accountId,
@@ -125,6 +126,7 @@ export function ClassifyPanel({
 
   function handlePost() {
     startTransition(async () => {
+      if (!transaction) return;
       const result = await postTransaction({
         classifiedId,
         sourceAccountId,
@@ -357,4 +359,5 @@ export function ClassifyPanel({
     </Dialog>
   );
 }
+
 
