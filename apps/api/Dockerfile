@@ -1,55 +1,27 @@
-# ── Stage 1: Dependencies ─────────────────────────────────────────────────
-FROM node:20-alpine AS deps
+# ── Stage 1: Build ────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
 WORKDIR /app
-COPY package*.json ./
+
+# Copy from apps/api/ since Railway builds from repo root
+COPY apps/api/package*.json ./
 RUN npm install
 
-# ── Stage 2: Builder ──────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
-WORKDIR /app
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Build args for NEXT_PUBLIC vars (must be present at build time)
-ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-ARG NEXT_PUBLIC_API_URL
-ARG NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-ARG NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-ARG NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
-
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_CLERK_SIGN_IN_URL=$NEXT_PUBLIC_CLERK_SIGN_IN_URL
-ENV NEXT_PUBLIC_CLERK_SIGN_UP_URL=$NEXT_PUBLIC_CLERK_SIGN_UP_URL
-ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=$NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
-ENV NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=$NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL
-
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
-
+COPY apps/api/ .
 RUN npm run build
 
-# ── Stage 3: Runner ───────────────────────────────────────────────────────
-FROM node:20-alpine AS runner
+# ── Stage 2: Production ────────────────────────────────────────────
+FROM node:20-alpine AS production
+
 WORKDIR /app
 
+COPY apps/api/package*.json ./
+RUN npm install --omit=dev
+
+COPY --from=builder /app/dist ./dist
+
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+EXPOSE 3005
 
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-CMD ["node", "server.js"]
+CMD ["node", "dist/main"]

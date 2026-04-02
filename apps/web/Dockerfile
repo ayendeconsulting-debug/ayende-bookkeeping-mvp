@@ -1,18 +1,15 @@
 # ── Stage 1: Dependencies ─────────────────────────────────────────────────
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY apps/web/package*.json ./
+COPY package*.json ./
 RUN npm install
 
 # ── Stage 2: Builder ──────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy deps
 COPY --from=deps /app/node_modules ./node_modules
-
-# Copy source
-COPY apps/web/ .
+COPY . .
 
 # Build args for NEXT_PUBLIC vars (must be present at build time)
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
@@ -41,11 +38,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Copy standalone output (requires output: 'standalone' in next.config.ts)
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
