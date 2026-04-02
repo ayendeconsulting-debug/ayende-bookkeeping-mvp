@@ -79,6 +79,7 @@ export function ClassifyPanel({
   async function handleAiSuggest() {
     setIsAiLoading(true);
     setError('');
+    if (!transaction) return;
     try {
       const result = await getAiSuggestion(transaction.id);
       if (result.success && result.data) {
@@ -356,3 +357,4 @@ export function ClassifyPanel({
     </Dialog>
   );
 }
+
