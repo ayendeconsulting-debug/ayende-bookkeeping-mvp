@@ -3,25 +3,22 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
 import { ClerkUser } from './clerk-user.interface';
+import { BusinessesService } from '../businesses/businesses.service';
 
 /**
  * JwtStrategy
  *
  * Validates Clerk-issued JWTs using Clerk's public JWKS endpoint.
- * On success, attaches ClerkUser to req.user for use in controllers.
+ * Resolves the Clerk org_id to a real business UUID from the DB.
+ * Attaches ClerkUser (with real businessId UUID) to req.user.
  *
  * Required env var:
  *   CLERK_JWKS_URL — e.g. https://<your-clerk-instance>.clerk.accounts.dev/.well-known/jwks.json
  *   Find this in: Clerk Dashboard → API Keys → Advanced → JWKS URL
- *
- * Clerk JWT claims used:
- *   sub      → userId
- *   org_id   → businessId (Clerk Organization ID — maps 1:1 to businesses table)
- *   org_role → role       (org:admin = owner/accountant, org:member = viewer)
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(private readonly businessesService: BusinessesService) {
     super({
       secretOrKeyProvider: passportJwtSecret({
         cache: true,
@@ -36,21 +33,30 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   /**
-   * Called after signature verification succeeds.
+   * Called after JWT signature verification succeeds.
+   * Looks up the business UUID from the Clerk org_id.
    * Return value is attached to req.user.
    */
-  validate(payload: Record<string, any>): ClerkUser {
-    const businessId = payload.org_id as string | undefined;
+  async validate(payload: Record<string, any>): Promise<ClerkUser> {
+    const clerkOrgId = payload.org_id as string | undefined;
 
-    if (!businessId) {
+    if (!clerkOrgId) {
       throw new UnauthorizedException(
         'No organization context in token. Please select an organization in the Ayende Bookkeeping App.',
       );
     }
 
+    const business = await this.businessesService.findByClerkOrgId(clerkOrgId);
+
+    if (!business) {
+      throw new UnauthorizedException(
+        'Business not provisioned. Please complete the sign-up flow.',
+      );
+    }
+
     return {
       userId: payload.sub as string,
-      businessId,
+      businessId: business.id, // real UUID — safe to use in all DB queries
       role: (payload.org_role as string) ?? null,
     };
   }

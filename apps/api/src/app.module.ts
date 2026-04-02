@@ -10,6 +10,7 @@ import { PlaidModule } from './plaid/plaid.module';
 import { ReportsModule } from './reports/reports.module';
 import { AiModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
+import { BusinessesModule } from './businesses/businesses.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { HealthController } from './health.controller';
 
@@ -44,6 +45,7 @@ function getRedisBullMQConnection() {
       connection: getRedisBullMQConnection(),
     }),
     AuthModule,
+    BusinessesModule,
     AccountingModule,
     PlaidModule,
     ReportsModule,

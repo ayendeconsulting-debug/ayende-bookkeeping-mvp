@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ChatMessageDto {
@@ -12,8 +12,10 @@ export class ChatMessageDto {
 }
 
 export class AiChatDto {
-  @IsUUID('all')
-  businessId: string;
+  // Set from JWT in controller — not validated from request body
+  @IsString()
+  @IsOptional()
+  businessId?: string;
 
   // Full conversation history — client manages state
   @IsArray()
@@ -32,16 +34,21 @@ export class AiChatDto {
 }
 
 export class AiClassifyDto {
-  @IsUUID('all')
-  businessId: string;
+  // Set from JWT in controller — not validated from request body
+  @IsString()
+  @IsOptional()
+  businessId?: string;
 
-  @IsUUID('all')
+  @IsString()
+  @IsNotEmpty()
   rawTransactionId: string;
 }
 
 export class AiAnomalyDto {
-  @IsUUID('all')
-  businessId: string;
+  // Set from JWT in controller — not validated from request body
+  @IsString()
+  @IsOptional()
+  businessId?: string;
 
   @IsString()
   @IsOptional()

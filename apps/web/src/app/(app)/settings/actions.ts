@@ -1,0 +1,35 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { api } from '@/lib/api';
+
+export async function getBusinessSettings() {
+  try {
+    return await api('/businesses/me', { method: 'GET' });
+  } catch (error: any) {
+    return null;
+  }
+}
+
+export async function updateBusinessSettings(data: {
+  name?: string;
+  fiscal_year_end?: string;
+  currency_code?: string;
+}) {
+  try {
+    await api('/businesses/me', { method: 'PATCH', body: JSON.stringify(data) });
+    revalidatePath('/settings');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function verifyAccountingIntegrity() {
+  try {
+    const result = await api('/ledger/verify', { method: 'GET' });
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

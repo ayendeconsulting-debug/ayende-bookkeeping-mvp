@@ -26,7 +26,25 @@ import {
   Building2,
   RefreshCw,
   AlertCircle,
+  ShieldAlert,
+  AlertTriangle,
+  Info,
 } from 'lucide-react';
+
+/* ── Types ───────────────────────────────────────────────────────────────── */
+
+interface AnomalyFlag {
+  journal_entry_id: string;
+  entry_number: string;
+  description: string;
+  severity: 'high' | 'medium' | 'low';
+  reason: string;
+}
+
+interface AnomalyResult {
+  flags: AnomalyFlag[];
+  summary: string;
+}
 
 /* ── Data fetchers (server-side) ─────────────────────────────────────────── */
 
@@ -60,6 +78,14 @@ async function getConnectedBanks(): Promise<PlaidItem[]> {
   }
 }
 
+async function getAnomalies(): Promise<AnomalyResult | null> {
+  try {
+    return await apiGet('/ai/anomalies');
+  } catch {
+    return null;
+  }
+}
+
 /* ── Metric card helpers ─────────────────────────────────────────────────── */
 
 function deriveMetrics(tb: TrialBalance | null) {
@@ -86,19 +112,33 @@ function statusVariant(status: string): 'pending' | 'classified' | 'posted' | 'r
   return map[status] ?? 'pending';
 }
 
+function severityIcon(severity: AnomalyFlag['severity']) {
+  if (severity === 'high') return <ShieldAlert className="w-4 h-4 text-red-500 flex-shrink-0" />;
+  if (severity === 'medium') return <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />;
+  return <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />;
+}
+
+function severityBadgeClass(severity: AnomalyFlag['severity']) {
+  if (severity === 'high') return 'bg-red-50 text-red-600 border-red-100';
+  if (severity === 'medium') return 'bg-amber-50 text-amber-600 border-amber-100';
+  return 'bg-blue-50 text-blue-600 border-blue-100';
+}
+
 /* ── Page ────────────────────────────────────────────────────────────────── */
 
 export default async function DashboardPage() {
   const { orgSlug } = await auth();
 
-  const [trialBalance, transactions, banks] = await Promise.all([
+  const [trialBalance, transactions, banks, anomalies] = await Promise.all([
     getTrialBalance(),
     getRecentTransactions(),
     getConnectedBanks(),
+    getAnomalies(),
   ]);
 
   const { revenue, expenses, netIncome } = deriveMetrics(trialBalance);
   const pendingCount = transactions.filter((t) => t.status === 'pending').length;
+  const highAnomalies = anomalies?.flags.filter((f) => f.severity === 'high') ?? [];
 
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
@@ -112,6 +152,21 @@ export default async function DashboardPage() {
           })}
         </p>
       </div>
+
+      {/* High severity anomaly banner */}
+      {highAnomalies.length > 0 && (
+        <div className="mb-5 flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <ShieldAlert className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-700">
+              {highAnomalies.length} high-severity anomaly{highAnomalies.length > 1 ? 'ies' : ''} detected
+            </p>
+            <p className="text-xs text-red-500 mt-0.5">
+              {highAnomalies[0].reason}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Metric cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
@@ -153,7 +208,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-3 gap-4">
 
         {/* Recent transactions — spans 2 cols */}
-        <div className="col-span-2">
+        <div className="col-span-2 flex flex-col gap-4">
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle>Recent Transactions</CardTitle>
@@ -208,6 +263,64 @@ export default async function DashboardPage() {
                     ))}
                   </TableBody>
                 </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Anomaly detection widget */}
+          <Card>
+            <CardHeader className="flex-row items-center justify-between pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-gray-400" />
+                AI Anomaly Detection
+              </CardTitle>
+              {anomalies && (
+                <span className="text-xs text-gray-400">
+                  {anomalies.flags.length} flag{anomalies.flags.length !== 1 ? 's' : ''}
+                </span>
+              )}
+            </CardHeader>
+            <CardContent className="pt-0">
+              {!anomalies && (
+                <EmptyState
+                  icon={ShieldAlert}
+                  message="Anomaly detection unavailable — check AI configuration."
+                  compact
+                />
+              )}
+              {anomalies && anomalies.flags.length === 0 && (
+                <div className="flex items-center gap-2 py-3 text-sm text-primary">
+                  <div className="w-5 h-5 rounded-full bg-primary-light flex items-center justify-center flex-shrink-0">
+                    <TrendingUp className="w-3 h-3 text-primary" />
+                  </div>
+                  No anomalies detected — your books look clean.
+                </div>
+              )}
+              {anomalies && anomalies.flags.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {anomalies.flags.slice(0, 5).map((flag, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 ${severityBadgeClass(flag.severity)}`}
+                    >
+                      {severityIcon(flag.severity)}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium truncate">
+                          {flag.entry_number} — {flag.description}
+                        </div>
+                        <div className="text-xs mt-0.5 opacity-80">{flag.reason}</div>
+                      </div>
+                      <span className="text-[10px] font-medium uppercase tracking-wide opacity-60 flex-shrink-0 pt-0.5">
+                        {flag.severity}
+                      </span>
+                    </div>
+                  ))}
+                  {anomalies.flags.length > 5 && (
+                    <p className="text-xs text-gray-400 text-center pt-1">
+                      +{anomalies.flags.length - 5} more flags — review journal entries
+                    </p>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

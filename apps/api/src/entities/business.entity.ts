@@ -29,6 +29,10 @@ export class Business {
   @Column({ type: 'date', default: '2024-12-31' })
   fiscal_year_end: Date;
 
+  // Clerk Organization ID — links Clerk org to this business record
+  @Column({ name: 'clerk_org_id', type: 'varchar', length: 255, nullable: true, unique: true })
+  clerk_org_id: string | null;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 
