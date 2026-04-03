@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+const API_URL = process.env.API_URL || 'http://localhost:3005';
 
 /**
  * Server-side API client for Ayende Bookkeeping API.
