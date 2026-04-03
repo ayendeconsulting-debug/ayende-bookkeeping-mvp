@@ -1,22 +1,13 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Req,
+  Controller, Get, Post, Patch, Delete, Body, Param, Req,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { PersonalService } from './personal.service';
 import {
-  CreateBudgetCategoryDto,
-  UpdateBudgetCategoryDto,
-  CreateSavingsGoalDto,
-  UpdateSavingsGoalDto,
-  ConfirmDetectionDto,
-  DismissDetectionDto,
+  CreateBudgetCategoryDto, UpdateBudgetCategoryDto,
+  CreateSavingsGoalDto, UpdateSavingsGoalDto,
+  ConfirmDetectionDto, DismissDetectionDto,
+  SnoozeReminderDto, DismissReminderDto,
 } from './dto/personal.dto';
 import { Roles } from '../auth/roles.decorator';
 
@@ -83,29 +74,51 @@ export class PersonalController {
 
   // ── Recurring Detection ───────────────────────────────────────────
 
-  /** GET /personal/recurring-detections — run analysis, return unconfirmed candidates */
   @Get('recurring-detections')
   detectRecurringPayments(@Req() req: Request) {
     return this.personalService.detectRecurringPayments(req.user!.businessId);
   }
 
-  /** POST /personal/recurring-detections/confirm — confirm a detected pattern */
   @Roles('admin')
   @Post('recurring-detections/confirm')
   confirmDetection(@Req() req: Request, @Body() dto: ConfirmDetectionDto) {
     return this.personalService.confirmDetection(req.user!.businessId, dto);
   }
 
-  /** POST /personal/recurring-detections/dismiss — dismiss a detected pattern */
   @Roles('admin')
   @Post('recurring-detections/dismiss')
   dismissDetection(@Req() req: Request, @Body() dto: DismissDetectionDto) {
     return this.personalService.dismissDetection(req.user!.businessId, dto.key);
   }
 
-  /** GET /personal/recurring-confirmed — return all confirmed recurring payments */
   @Get('recurring-confirmed')
   getConfirmedRecurring(@Req() req: Request) {
     return this.personalService.getConfirmedRecurring(req.user!.businessId);
+  }
+
+  // ── Upcoming Reminders ────────────────────────────────────────────
+
+  /** GET /personal/upcoming-reminders — reminders for next 30 days with balance warning */
+  @Get('upcoming-reminders')
+  getUpcomingReminders(@Req() req: Request) {
+    return this.personalService.getUpcomingReminders(req.user!.businessId);
+  }
+
+  /** POST /personal/upcoming-reminders/snooze — snooze a reminder until a given date */
+  @Roles('admin')
+  @Post('upcoming-reminders/snooze')
+  snoozeReminder(@Req() req: Request, @Body() dto: SnoozeReminderDto) {
+    return this.personalService.snoozeReminder(
+      req.user!.businessId, dto.key, dto.due_date, dto.snoozed_until,
+    );
+  }
+
+  /** POST /personal/upcoming-reminders/dismiss — dismiss a specific reminder occurrence */
+  @Roles('admin')
+  @Post('upcoming-reminders/dismiss')
+  dismissReminder(@Req() req: Request, @Body() dto: DismissReminderDto) {
+    return this.personalService.dismissReminder(
+      req.user!.businessId, dto.key, dto.due_date,
+    );
   }
 }

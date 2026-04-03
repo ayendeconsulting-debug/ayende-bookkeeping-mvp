@@ -8,7 +8,8 @@ import { BusinessMode } from '@/types';
 import {
   LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
   ClipboardList, Receipt, Filter, Sparkles, Settings, ChevronDown, FileText,
-  ArrowRightLeft, RefreshCw, Users, Car, Calculator, Tag, PieChart, Target, Landmark,
+  ArrowRightLeft, RefreshCw, Users, Car, Calculator, Tag, PieChart, Target,
+  Landmark, Bell,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -48,11 +49,12 @@ const freelancerItems = [
 ];
 
 const personalItems = [
-  { href: '/personal/dashboard',  label: 'My Dashboard',      icon: LayoutDashboard },
-  { href: '/personal/budget',     label: 'Budget',            icon: PieChart },
-  { href: '/personal/goals',      label: 'Savings Goals',     icon: Target },
-  { href: '/personal/networth',   label: 'Net Worth',         icon: Landmark },
-  { href: '/personal/recurring',  label: 'Recurring Payments', icon: RefreshCw },
+  { href: '/personal/dashboard',   label: 'My Dashboard',       icon: LayoutDashboard },
+  { href: '/personal/budget',      label: 'Budget',             icon: PieChart },
+  { href: '/personal/goals',       label: 'Savings Goals',      icon: Target },
+  { href: '/personal/networth',    label: 'Net Worth',          icon: Landmark },
+  { href: '/personal/recurring',   label: 'Recurring Payments', icon: RefreshCw },
+  { href: '/personal/reminders',   label: 'Upcoming Payments',  icon: Bell },
 ];
 
 export function Sidebar({ mode = 'business' }: SidebarProps) {
@@ -134,9 +136,12 @@ function NavSection({ label }: { label: string }) {
   );
 }
 
-function NavItem({ href, label, icon: Icon, active }: { href: string; label: string; icon: React.ElementType; active: boolean; }) {
+function NavItem({ href, label, icon: Icon, active }: {
+  href: string; label: string; icon: React.ElementType; active: boolean;
+}) {
   return (
-    <Link href={href} className={cn('flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors', active ? 'bg-[#E1F5EE] text-[#0F6E56] font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900')}>
+    <Link href={href} className={cn('flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors',
+      active ? 'bg-[#E1F5EE] text-[#0F6E56] font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900')}>
       <Icon className="w-4 h-4 flex-shrink-0" />
       <span className="truncate">{label}</span>
     </Link>

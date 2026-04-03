@@ -447,3 +447,25 @@ export interface ApiError {
   error: string;
   statusCode: number;
 }
+
+/* ── Phase 5 — Upcoming Reminders ───────────────────────────────────────────── */
+
+export interface UpcomingReminder {
+  key: string;
+  merchant: string;
+  amount: number;
+  frequency: string;
+  due_date: string;
+  type: string;
+  days_until: number;
+  is_due_soon: boolean;
+}
+
+export interface UpcomingRemindersResult {
+  reminders: UpcomingReminder[];
+  total_due_7_days: number;
+  total_due_30_days: number;
+  current_balance: number;
+  balance_warning: boolean;
+  balance_shortfall: number;
+}

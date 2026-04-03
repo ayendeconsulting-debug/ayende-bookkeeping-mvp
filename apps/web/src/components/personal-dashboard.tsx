@@ -2,24 +2,16 @@
 
 import Link from 'next/link';
 import {
-  BudgetCategoryWithSpending,
-  SavingsGoalWithProgress,
-  NetWorthResult,
-  IncomeStatement,
-  Business,
-  ConfirmedRecurring,
+  BudgetCategoryWithSpending, SavingsGoalWithProgress,
+  NetWorthResult, IncomeStatement, Business,
+  ConfirmedRecurring, UpcomingRemindersResult,
 } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { UpcomingRemindersWidget } from '@/components/upcoming-reminders-widget';
 import {
-  TrendingDown,
-  TrendingUp,
-  PiggyBank,
-  Wallet,
-  AlertCircle,
-  ArrowRight,
-  Target,
-  RefreshCw,
+  TrendingDown, TrendingUp, PiggyBank, Wallet,
+  AlertCircle, ArrowRight, Target, RefreshCw,
 } from 'lucide-react';
 
 interface PersonalDashboardProps {
@@ -29,45 +21,38 @@ interface PersonalDashboardProps {
   monthlyStatement: IncomeStatement | null;
   business: Business | null;
   confirmedRecurring: ConfirmedRecurring[];
+  upcomingReminders: UpcomingRemindersResult | null;
 }
 
 function calcMonthlyEquivalent(amount: number, frequency: string): number {
   switch (frequency) {
-    case 'weekly':    return amount * 4.33;
-    case 'monthly':   return amount;
+    case 'weekly': return amount * 4.33;
+    case 'monthly': return amount;
     case 'quarterly': return amount / 3;
-    case 'annually':  return amount / 12;
-    default:          return amount;
+    case 'annually': return amount / 12;
+    default: return amount;
   }
 }
 
 export function PersonalDashboard({
-  budgetCategories,
-  savingsGoals,
-  netWorth,
-  monthlyStatement,
-  business,
-  confirmedRecurring,
+  budgetCategories, savingsGoals, netWorth,
+  monthlyStatement, business, confirmedRecurring, upcomingReminders,
 }: PersonalDashboardProps) {
   const moneyIn = Number(monthlyStatement?.total_revenue ?? 0);
   const moneyOut = Number(monthlyStatement?.total_expenses ?? 0);
-
   const totalMonthlyTarget = budgetCategories.reduce((s, c) => s + (c.monthly_target ?? 0), 0);
   const totalSpent = budgetCategories.reduce((s, c) => s + c.spent_this_month, 0);
   const remainingBudget = Math.max(0, totalMonthlyTarget - totalSpent);
   const overBudgetCount = budgetCategories.filter((c) => c.over_budget).length;
   const activeGoals = savingsGoals.filter((g) => g.status === 'active');
-
   const totalMonthlyRecurring = confirmedRecurring.reduce(
     (s, c) => s + calcMonthlyEquivalent(c.amount, c.frequency), 0,
   );
-  const dueSoonItems = confirmedRecurring.filter((c) => c.is_due_soon);
-
+  const dueSoonItems = upcomingReminders?.reminders.filter((r) => r.is_due_soon) ?? [];
   const monthName = new Date().toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
 
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
-      {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-gray-900">{business?.name ?? 'My Finances'}</h1>
         <p className="text-sm text-gray-500 mt-0.5">
@@ -76,23 +61,22 @@ export function PersonalDashboard({
       </div>
 
       {/* Alerts */}
-      {overBudgetCount > 0 && (
+      {upcomingReminders?.balance_warning && (
         <div className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
           <p className="text-sm font-medium text-red-700">
-            {overBudgetCount} budget {overBudgetCount === 1 ? 'category is' : 'categories are'} over target.
+            Balance may be insufficient — {formatCurrency(upcomingReminders.total_due_7_days)} due in 7 days, balance is {formatCurrency(upcomingReminders.current_balance)}.
           </p>
-          <Link href="/personal/budget" className="ml-auto text-xs text-red-600 underline">Review</Link>
+          <Link href="/personal/reminders" className="ml-auto text-xs text-red-600 underline">Review</Link>
         </div>
       )}
-      {dueSoonItems.length > 0 && (
+      {overBudgetCount > 0 && (
         <div className="mb-4 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-          <RefreshCw className="w-5 h-5 text-amber-500 flex-shrink-0" />
+          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
           <p className="text-sm font-medium text-amber-700">
-            {dueSoonItems.length} recurring payment{dueSoonItems.length > 1 ? 's' : ''} due within 7 days:{' '}
-            {dueSoonItems.map((d) => d.merchant).join(', ')}
+            {overBudgetCount} budget {overBudgetCount === 1 ? 'category is' : 'categories are'} over target.
           </p>
-          <Link href="/personal/recurring" className="ml-auto text-xs text-amber-600 underline">View</Link>
+          <Link href="/personal/budget" className="ml-auto text-xs text-amber-600 underline">Review</Link>
         </div>
       )}
 
@@ -111,9 +95,7 @@ export function PersonalDashboard({
         <MetricCard
           label="Net Worth"
           value={netWorth ? formatCurrency(netWorth.net_worth) : '—'}
-          icon={PiggyBank}
-          iconColor="text-blue-600"
-          iconBg="bg-blue-50"
+          icon={PiggyBank} iconColor="text-blue-600" iconBg="bg-blue-50"
           sub={netWorth ? `${formatCurrency(netWorth.total_assets)} assets` : 'Connect a bank'}
         />
       </div>
@@ -134,9 +116,7 @@ export function PersonalDashboard({
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {budgetCategories.slice(0, 8).map((cat) => (
-                    <BudgetBar key={cat.id} category={cat} />
-                  ))}
+                  {budgetCategories.slice(0, 8).map((cat) => <BudgetBar key={cat.id} category={cat} />)}
                   {budgetCategories.length > 8 && (
                     <Link href="/personal/budget" className="text-xs text-gray-400 hover:text-primary text-center pt-1">
                       +{budgetCategories.length - 8} more →
@@ -154,8 +134,7 @@ export function PersonalDashboard({
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-gray-400" />
-                Savings Goals
+                <Target className="w-4 h-4 text-gray-400" />Savings Goals
               </CardTitle>
               <Link href="/personal/goals" className="text-xs text-primary hover:underline font-medium">Manage →</Link>
             </CardHeader>
@@ -166,20 +145,17 @@ export function PersonalDashboard({
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {activeGoals.slice(0, 3).map((goal) => (
-                    <GoalCard key={goal.id} goal={goal} />
-                  ))}
+                  {activeGoals.slice(0, 3).map((goal) => <GoalCard key={goal.id} goal={goal} />)}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Recurring Payments widget */}
+          {/* Recurring Payments */}
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 text-gray-400" />
-                Recurring Payments
+                <RefreshCw className="w-4 h-4 text-gray-400" />Recurring
               </CardTitle>
               <Link href="/personal/recurring" className="text-xs text-primary hover:underline font-medium">
                 {confirmedRecurring.length === 0 ? 'Detect →' : 'Manage →'}
@@ -192,17 +168,20 @@ export function PersonalDashboard({
                 </div>
               ) : (
                 <div>
-                  <div className="text-lg font-bold text-gray-900 mb-1">{formatCurrency(totalMonthlyRecurring)}<span className="text-xs font-normal text-gray-400 ml-1">/mo</span></div>
+                  <div className="text-lg font-bold text-gray-900 mb-1">
+                    {formatCurrency(totalMonthlyRecurring)}
+                    <span className="text-xs font-normal text-gray-400 ml-1">/mo</span>
+                  </div>
                   <div className="flex flex-col gap-1.5 mt-2">
-                    {confirmedRecurring.slice(0, 4).map((item) => (
-                      <div key={item.key} className={cn('flex justify-between text-xs', item.is_due_soon ? 'text-amber-600 font-medium' : 'text-gray-600')}>
+                    {confirmedRecurring.slice(0, 3).map((item) => (
+                      <div key={item.key} className="flex justify-between text-xs text-gray-600">
                         <span className="truncate">{item.merchant}</span>
                         <span className="ml-2 flex-shrink-0">{formatCurrency(item.amount)}</span>
                       </div>
                     ))}
-                    {confirmedRecurring.length > 4 && (
+                    {confirmedRecurring.length > 3 && (
                       <Link href="/personal/recurring" className="text-xs text-gray-400 hover:text-primary mt-1">
-                        +{confirmedRecurring.length - 4} more →
+                        +{confirmedRecurring.length - 3} more →
                       </Link>
                     )}
                   </div>
@@ -211,14 +190,21 @@ export function PersonalDashboard({
             </CardContent>
           </Card>
 
-          {/* Quick links */}
+          {/* Upcoming Reminders — replaces Quick Actions */}
           <Card>
-            <CardHeader className="pb-3"><CardTitle>Quick Actions</CardTitle></CardHeader>
-            <CardContent className="pt-0 flex flex-col gap-2">
-              <QuickLink href="/transactions" label="Review transactions" sub="See recent activity" />
-              <QuickLink href="/personal/budget" label="Update budget" sub="Set monthly targets" />
-              <QuickLink href="/personal/goals" label="Log a deposit" sub="Track goal progress" />
-              <QuickLink href="/personal/networth" label="Net worth" sub="Full assets & liabilities" />
+            <CardHeader className="flex-row items-center justify-between pb-3">
+              <CardTitle className="flex items-center gap-2">
+                Upcoming Payments
+                {dueSoonItems.length > 0 && (
+                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-100 px-1.5 py-0.5 rounded-full">
+                    {dueSoonItems.length} due soon
+                  </span>
+                )}
+              </CardTitle>
+              <Link href="/personal/reminders" className="text-xs text-primary hover:underline font-medium">View all →</Link>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <UpcomingRemindersWidget data={upcomingReminders} compact />
             </CardContent>
           </Card>
         </div>
@@ -226,8 +212,6 @@ export function PersonalDashboard({
     </div>
   );
 }
-
-/* ── Sub-components ──────────────────────────────────────────────────────────── */
 
 function MetricCard({ label, value, icon: Icon, iconColor, iconBg, sub }: {
   label: string; value: string; icon: React.ElementType; iconColor: string; iconBg: string; sub: string;
@@ -287,17 +271,5 @@ function GoalCard({ goal }: { goal: SavingsGoalWithProgress }) {
         <span>{formatCurrency(Number(goal.target_amount))}</span>
       </div>
     </div>
-  );
-}
-
-function QuickLink({ href, label, sub }: { href: string; label: string; sub: string; }) {
-  return (
-    <Link href={href} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-100 hover:border-primary/30 hover:bg-primary-light/30 transition-colors group">
-      <div>
-        <div className="text-sm font-medium text-gray-900 group-hover:text-primary">{label}</div>
-        <div className="text-xs text-gray-400">{sub}</div>
-      </div>
-      <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-primary transition-colors" />
-    </Link>
   );
 }

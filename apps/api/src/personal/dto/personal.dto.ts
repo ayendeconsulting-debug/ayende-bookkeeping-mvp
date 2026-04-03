@@ -120,3 +120,22 @@ export class DismissDetectionDto {
   @IsString()
   key: string;
 }
+
+export class SnoozeReminderDto {
+  @IsString()
+  key: string;
+
+  @IsString()
+  due_date: string;
+
+  @IsString()
+  snoozed_until: string;
+}
+
+export class DismissReminderDto {
+  @IsString()
+  key: string;
+
+  @IsString()
+  due_date: string;
+}

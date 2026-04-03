@@ -46,6 +46,26 @@ export interface ConfirmedRecurring extends RecurringCandidate {
   is_due_soon: boolean;
 }
 
+export interface UpcomingReminder {
+  key: string;
+  merchant: string;
+  amount: number;
+  frequency: string;
+  due_date: string;
+  type: string;
+  days_until: number;
+  is_due_soon: boolean;
+}
+
+export interface UpcomingRemindersResult {
+  reminders: UpcomingReminder[];
+  total_due_7_days: number;
+  total_due_30_days: number;
+  current_balance: number;
+  balance_warning: boolean;
+  balance_shortfall: number;
+}
+
 @Injectable()
 export class PersonalService {
   constructor(
@@ -59,9 +79,7 @@ export class PersonalService {
   // ── Budget Categories ─────────────────────────────────────────────
 
   async getBudgetCategories(businessId: string) {
-    const count = await this.budgetCategoryRepo.count({
-      where: { business_id: businessId },
-    });
+    const count = await this.budgetCategoryRepo.count({ where: { business_id: businessId } });
     if (count === 0) await this.seedDefaultCategories(businessId);
 
     const categories = await this.budgetCategoryRepo.find({
@@ -79,50 +97,37 @@ export class PersonalService {
        FROM raw_transactions
        WHERE business_id = $1
          AND transaction_date BETWEEN $2 AND $3
-         AND amount < 0
-         AND status != 'ignored'
+         AND amount < 0 AND status != 'ignored'
        GROUP BY LOWER(COALESCE(plaid_category, 'other'))`,
       [businessId, monthStart, monthEnd],
     );
 
     const spendingMap: Record<string, number> = {};
-    for (const row of spendingRows) {
-      spendingMap[row.cat] = Number(row.total_spent);
-    }
+    for (const row of spendingRows) spendingMap[row.cat] = Number(row.total_spent);
 
     return categories.map((cat) => {
       const catLower = cat.name.toLowerCase();
       let spent = 0;
       for (const [plaidCat, amount] of Object.entries(spendingMap)) {
-        if (plaidCat.includes(catLower) || catLower.includes(plaidCat)) {
-          spent += amount;
-        }
+        if (plaidCat.includes(catLower) || catLower.includes(plaidCat)) spent += amount;
       }
       const target = cat.monthly_target ? Number(cat.monthly_target) : null;
       const remaining = target !== null ? Math.max(0, target - spent) : null;
       const over_budget = target !== null && spent > target;
-      const percentage_spent =
-        target !== null && target > 0
-          ? parseFloat(Math.min(100, (spent / target) * 100).toFixed(1))
-          : null;
+      const percentage_spent = target !== null && target > 0
+        ? parseFloat(Math.min(100, (spent / target) * 100).toFixed(1)) : null;
       return { ...cat, spent_this_month: parseFloat(spent.toFixed(2)), remaining, over_budget, percentage_spent };
     });
   }
 
   async createBudgetCategory(businessId: string, dto: CreateBudgetCategoryDto) {
     const maxOrder = await this.budgetCategoryRepo
-      .createQueryBuilder('bc')
-      .where('bc.business_id = :businessId', { businessId })
-      .select('MAX(bc.sort_order)', 'max')
-      .getRawOne();
+      .createQueryBuilder('bc').where('bc.business_id = :businessId', { businessId })
+      .select('MAX(bc.sort_order)', 'max').getRawOne();
     const cat = this.budgetCategoryRepo.create({
-      business_id: businessId,
-      name: dto.name,
-      monthly_target: dto.monthly_target ?? null,
-      color: dto.color ?? '#9ca3af',
-      is_system: false,
-      is_active: true,
-      sort_order: (Number(maxOrder?.max) || 0) + 1,
+      business_id: businessId, name: dto.name,
+      monthly_target: dto.monthly_target ?? null, color: dto.color ?? '#9ca3af',
+      is_system: false, is_active: true, sort_order: (Number(maxOrder?.max) || 0) + 1,
     });
     return this.budgetCategoryRepo.save(cat);
   }
@@ -149,30 +154,31 @@ export class PersonalService {
 
   async getSavingsGoals(businessId: string) {
     const goals = await this.savingsGoalRepo.find({
-      where: { business_id: businessId },
-      order: { created_at: 'DESC' },
+      where: { business_id: businessId }, order: { created_at: 'DESC' },
     });
     return goals.map((goal) => {
       const current = Number(goal.current_amount);
       const target = Number(goal.target_amount);
-      const percentage_complete = target > 0 ? parseFloat(Math.min(100, (current / target) * 100).toFixed(1)) : 0;
+      const percentage_complete = target > 0
+        ? parseFloat(Math.min(100, (current / target) * 100).toFixed(1)) : 0;
       const createdAt = new Date(goal.created_at);
       const now = new Date();
-      const monthsElapsed = Math.max(1, (now.getFullYear() - createdAt.getFullYear()) * 12 + (now.getMonth() - createdAt.getMonth()));
+      const monthsElapsed = Math.max(1,
+        (now.getFullYear() - createdAt.getFullYear()) * 12 + (now.getMonth() - createdAt.getMonth()));
       const monthlyRate = current / monthsElapsed;
       let projected_completion_date: string | null = null;
       if (current >= target) {
         projected_completion_date = now.toISOString().split('T')[0];
       } else if (monthlyRate > 0) {
-        const monthsToGo = Math.ceil((target - current) / monthlyRate);
         const projDate = new Date();
-        projDate.setMonth(projDate.getMonth() + monthsToGo);
+        projDate.setMonth(projDate.getMonth() + Math.ceil((target - current) / monthlyRate));
         projected_completion_date = projDate.toISOString().split('T')[0];
       }
       let required_monthly_contribution: number | null = null;
       if (goal.target_date && current < target) {
         const targetDate = new Date(goal.target_date as any);
-        const monthsRemaining = Math.max(1, (targetDate.getFullYear() - now.getFullYear()) * 12 + (targetDate.getMonth() - now.getMonth()));
+        const monthsRemaining = Math.max(1,
+          (targetDate.getFullYear() - now.getFullYear()) * 12 + (targetDate.getMonth() - now.getMonth()));
         required_monthly_contribution = parseFloat(((target - current) / monthsRemaining).toFixed(2));
       }
       return { ...goal, percentage_complete, projected_completion_date, required_monthly_contribution };
@@ -181,13 +187,9 @@ export class PersonalService {
 
   async createSavingsGoal(businessId: string, dto: CreateSavingsGoalDto) {
     const goal = this.savingsGoalRepo.create({
-      business_id: businessId,
-      name: dto.name,
-      target_amount: dto.target_amount,
-      current_amount: dto.current_amount ?? 0,
-      target_date: dto.target_date as any ?? null,
-      linked_account_id: dto.linked_account_id ?? null,
-      status: 'active' as any,
+      business_id: businessId, name: dto.name, target_amount: dto.target_amount,
+      current_amount: dto.current_amount ?? 0, target_date: dto.target_date as any ?? null,
+      linked_account_id: dto.linked_account_id ?? null, status: 'active' as any,
     });
     return this.savingsGoalRepo.save(goal);
   }
@@ -247,10 +249,8 @@ export class PersonalService {
       net_worth: parseFloat((totalAssets - totalLiabilities).toFixed(2)),
       total_assets: parseFloat(totalAssets.toFixed(2)),
       total_liabilities: parseFloat(totalLiabilities.toFixed(2)),
-      plaid_assets: plaidAssets,
-      plaid_liabilities: plaidLiabilities,
-      coa_assets: coaAssets,
-      coa_liabilities: coaLiabilities,
+      plaid_assets: plaidAssets, plaid_liabilities: plaidLiabilities,
+      coa_assets: coaAssets, coa_liabilities: coaLiabilities,
     };
   }
 
@@ -258,111 +258,65 @@ export class PersonalService {
 
   async detectRecurringPayments(businessId: string): Promise<RecurringCandidate[]> {
     const settings = await this.getSettings(businessId);
-    const confirmedKeys = new Set(
-      (settings.confirmed_detections ?? []).map((c: any) => c.key),
-    );
+    const confirmedKeys = new Set((settings.confirmed_detections ?? []).map((c: any) => c.key));
     const dismissedKeys = new Set(settings.dismissed_detections ?? []);
-
     const twelveMonthsAgo = new Date();
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-
-    // Fetch last 12 months of Plaid debit transactions, capped at 1000 rows
     const rows = await this.dataSource.query(
-      `SELECT LOWER(TRIM(description)) AS norm_desc,
-              description,
-              transaction_date::text AS transaction_date,
-              ABS(amount) AS amount
+      `SELECT LOWER(TRIM(description)) AS norm_desc, description,
+              transaction_date::text AS transaction_date, ABS(amount) AS amount
        FROM raw_transactions
-       WHERE business_id = $1
-         AND source = 'plaid'
-         AND amount < 0
-         AND status != 'ignored'
-         AND transaction_date >= $2
-       ORDER BY LOWER(TRIM(description)), transaction_date ASC
-       LIMIT 1000`,
+       WHERE business_id = $1 AND source = 'plaid' AND amount < 0
+         AND status != 'ignored' AND transaction_date >= $2
+       ORDER BY LOWER(TRIM(description)), transaction_date ASC LIMIT 1000`,
       [businessId, twelveMonthsAgo.toISOString().split('T')[0]],
     );
-
-    // Group by normalized description
     const groups: Record<string, { desc: string; dates: string[]; amounts: number[] }> = {};
     for (const row of rows) {
-      const key = row.norm_desc.substring(0, 80); // cap key length
+      const key = row.norm_desc.substring(0, 80);
       if (!groups[key]) groups[key] = { desc: row.description, dates: [], amounts: [] };
       groups[key].dates.push(row.transaction_date);
       groups[key].amounts.push(Number(row.amount));
     }
-
     const candidates: RecurringCandidate[] = [];
-
     for (const [key, group] of Object.entries(groups)) {
       if (group.dates.length < 3) continue;
       if (confirmedKeys.has(key) || dismissedKeys.has(key)) continue;
-
-      // Calculate inter-transaction intervals in days
       const intervals: number[] = [];
       for (let i = 1; i < group.dates.length; i++) {
-        const d1 = new Date(group.dates[i - 1]);
-        const d2 = new Date(group.dates[i]);
-        const days = Math.round((d2.getTime() - d1.getTime()) / 86400000);
+        const days = Math.round((new Date(group.dates[i]).getTime() - new Date(group.dates[i - 1]).getTime()) / 86400000);
         if (days > 0) intervals.push(days);
       }
       if (intervals.length === 0) continue;
-
       const avgInterval = intervals.reduce((s, v) => s + v, 0) / intervals.length;
-      const intervalStdDev = Math.sqrt(
-        intervals.reduce((s, v) => s + Math.pow(v - avgInterval, 2), 0) / intervals.length,
-      );
+      const intervalStdDev = Math.sqrt(intervals.reduce((s, v) => s + Math.pow(v - avgInterval, 2), 0) / intervals.length);
       const intervalVariance = avgInterval > 0 ? intervalStdDev / avgInterval : 1;
-
-      // Amount variance check
       const avgAmount = group.amounts.reduce((s, v) => s + v, 0) / group.amounts.length;
-      const maxAmount = Math.max(...group.amounts);
-      const minAmount = Math.min(...group.amounts);
-      const amountVariance = avgAmount > 0 ? (maxAmount - minAmount) / avgAmount : 1;
-
+      const amountVariance = avgAmount > 0 ? (Math.max(...group.amounts) - Math.min(...group.amounts)) / avgAmount : 1;
       if (intervalVariance > 0.3 || amountVariance > 0.15) continue;
-
-      // Classify frequency
       let frequency: string | null = null;
       if (avgInterval >= 5 && avgInterval <= 9) frequency = 'weekly';
       else if (avgInterval >= 25 && avgInterval <= 35) frequency = 'monthly';
       else if (avgInterval >= 80 && avgInterval <= 100) frequency = 'quarterly';
       else if (avgInterval >= 345 && avgInterval <= 385) frequency = 'annually';
       if (!frequency) continue;
-
       const lastDate = group.dates[group.dates.length - 1].split('T')[0];
-      const nextDate = this.calculateNextDate(lastDate, frequency);
-
       candidates.push({
-        key,
-        merchant: group.desc,
-        amount: parseFloat(avgAmount.toFixed(2)),
-        frequency,
-        last_date: lastDate,
-        next_date: nextDate,
-        occurrence_count: group.dates.length,
-        type: this.classifyMerchantType(group.desc),
+        key, merchant: group.desc, amount: parseFloat(avgAmount.toFixed(2)),
+        frequency, last_date: lastDate, next_date: this.calculateNextDate(lastDate, frequency),
+        occurrence_count: group.dates.length, type: this.classifyMerchantType(group.desc),
       });
     }
-
     return candidates.sort((a, b) => b.amount - a.amount);
   }
 
   async confirmDetection(businessId: string, dto: ConfirmDetectionDto): Promise<void> {
     const settings = await this.getSettings(businessId);
     const confirmed: any[] = settings.confirmed_detections ?? [];
-    // Upsert by key
     const filtered = confirmed.filter((c: any) => c.key !== dto.key);
-    filtered.push({
-      key: dto.key,
-      merchant: dto.merchant,
-      amount: dto.amount,
-      frequency: dto.frequency,
-      last_date: dto.last_date,
-      next_date: dto.next_date,
-      type: dto.type,
-      occurrence_count: dto.occurrence_count,
-    });
+    filtered.push({ key: dto.key, merchant: dto.merchant, amount: dto.amount,
+      frequency: dto.frequency, last_date: dto.last_date, next_date: dto.next_date,
+      type: dto.type, occurrence_count: dto.occurrence_count });
     await this.mergeSettings(businessId, { confirmed_detections: filtered });
   }
 
@@ -383,7 +337,135 @@ export class PersonalService {
     }));
   }
 
+  // ── Upcoming Reminders ────────────────────────────────────────────
+
+  async getUpcomingReminders(businessId: string): Promise<UpcomingRemindersResult> {
+    const settings = await this.getSettings(businessId);
+    const confirmed: any[] = settings.confirmed_detections ?? [];
+    const snoozed: any[] = settings.snoozed_reminders ?? [];
+    const dismissed: any[] = settings.dismissed_reminders_personal ?? [];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+
+    const snoozedSet = new Set(
+      snoozed
+        .filter((s: any) => new Date(s.snoozed_until) > today)
+        .map((s: any) => `${s.key}::${s.due_date}`),
+    );
+    const dismissedSet = new Set(dismissed.map((d: any) => `${d.key}::${d.due_date}`));
+
+    const reminders: UpcomingReminder[] = [];
+
+    for (const payment of confirmed) {
+      const dueDates = this.projectDueDates(payment.last_date, payment.frequency, 30);
+      for (const dueDate of dueDates) {
+        const compositeKey = `${payment.key}::${dueDate}`;
+        if (snoozedSet.has(compositeKey) || dismissedSet.has(compositeKey)) continue;
+
+        const daysUntil = Math.round(
+          (new Date(dueDate).getTime() - today.getTime()) / 86400000,
+        );
+
+        reminders.push({
+          key: payment.key,
+          merchant: payment.merchant,
+          amount: payment.amount,
+          frequency: payment.frequency,
+          due_date: dueDate,
+          type: payment.type,
+          days_until: daysUntil,
+          is_due_soon: daysUntil <= 3,
+        });
+      }
+    }
+
+    reminders.sort((a, b) => a.days_until - b.days_until);
+
+    const total_due_7_days = reminders
+      .filter((r) => r.days_until <= 7)
+      .reduce((s, r) => s + r.amount, 0);
+
+    const total_due_30_days = reminders.reduce((s, r) => s + r.amount, 0);
+
+    // Get current Plaid depository balance
+    const balanceRows = await this.dataSource.query(
+      `SELECT COALESCE(SUM(COALESCE(pa.current_balance, 0)), 0) AS total
+       FROM plaid_accounts pa
+       INNER JOIN plaid_items pi ON pi.id = pa.plaid_item_id
+       WHERE pi.business_id = $1 AND pi.is_deleted = false AND pa.type = 'depository'`,
+      [businessId],
+    );
+    const current_balance = Number(balanceRows[0]?.total ?? 0);
+    const balance_warning = current_balance > 0 && total_due_7_days > current_balance;
+    const balance_shortfall = balance_warning
+      ? parseFloat((total_due_7_days - current_balance).toFixed(2)) : 0;
+
+    return {
+      reminders,
+      total_due_7_days: parseFloat(total_due_7_days.toFixed(2)),
+      total_due_30_days: parseFloat(total_due_30_days.toFixed(2)),
+      current_balance: parseFloat(current_balance.toFixed(2)),
+      balance_warning,
+      balance_shortfall,
+    };
+  }
+
+  async snoozeReminder(businessId: string, key: string, due_date: string, snoozed_until: string): Promise<void> {
+    const settings = await this.getSettings(businessId);
+    const snoozed: any[] = settings.snoozed_reminders ?? [];
+    // Upsert by key+due_date
+    const filtered = snoozed.filter((s: any) => !(s.key === key && s.due_date === due_date));
+    filtered.push({ key, due_date, snoozed_until });
+    await this.mergeSettings(businessId, { snoozed_reminders: filtered });
+  }
+
+  async dismissReminder(businessId: string, key: string, due_date: string): Promise<void> {
+    const settings = await this.getSettings(businessId);
+    const dismissed: any[] = settings.dismissed_reminders_personal ?? [];
+    const exists = dismissed.some((d: any) => d.key === key && d.due_date === due_date);
+    if (!exists) dismissed.push({ key, due_date });
+    await this.mergeSettings(businessId, { dismissed_reminders_personal: dismissed });
+  }
+
   // ── Private helpers ───────────────────────────────────────────────
+
+  private projectDueDates(lastDate: string, frequency: string, daysAhead: number): string[] {
+    const dates: string[] = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() + daysAhead);
+
+    const current = new Date(lastDate);
+
+    // Advance to first occurrence >= today (safety cap: 500 iterations)
+    let safety = 0;
+    while (current < today && safety < 500) {
+      this.advanceDate(current, frequency);
+      safety++;
+    }
+
+    // Collect all occurrences within window (max 10)
+    let collected = 0;
+    while (current <= cutoff && collected < 10) {
+      dates.push(current.toISOString().split('T')[0]);
+      this.advanceDate(current, frequency);
+      collected++;
+    }
+
+    return dates;
+  }
+
+  private advanceDate(date: Date, frequency: string): void {
+    switch (frequency) {
+      case 'weekly':    date.setDate(date.getDate() + 7); break;
+      case 'monthly':   date.setMonth(date.getMonth() + 1); break;
+      case 'quarterly': date.setMonth(date.getMonth() + 3); break;
+      case 'annually':  date.setFullYear(date.getFullYear() + 1); break;
+    }
+  }
 
   private async getSettings(businessId: string): Promise<Record<string, any>> {
     const rows = await this.dataSource.query(
@@ -402,12 +484,7 @@ export class PersonalService {
 
   private calculateNextDate(lastDate: string, frequency: string): string {
     const date = new Date(lastDate);
-    switch (frequency) {
-      case 'weekly':    date.setDate(date.getDate() + 7); break;
-      case 'monthly':   date.setMonth(date.getMonth() + 1); break;
-      case 'quarterly': date.setMonth(date.getMonth() + 3); break;
-      case 'annually':  date.setFullYear(date.getFullYear() + 1); break;
-    }
+    this.advanceDate(date, frequency);
     return date.toISOString().split('T')[0];
   }
 
@@ -434,13 +511,8 @@ export class PersonalService {
   private async seedDefaultCategories(businessId: string): Promise<void> {
     const cats = DEFAULT_CATEGORIES.map((c, i) =>
       this.budgetCategoryRepo.create({
-        business_id: businessId,
-        name: c.name,
-        color: c.color,
-        monthly_target: null,
-        is_system: true,
-        is_active: true,
-        sort_order: i + 1,
+        business_id: businessId, name: c.name, color: c.color,
+        monthly_target: null, is_system: true, is_active: true, sort_order: i + 1,
       }),
     );
     await this.budgetCategoryRepo.save(cats);
