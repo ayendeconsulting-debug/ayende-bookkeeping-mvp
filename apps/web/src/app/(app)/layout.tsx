@@ -1,10 +1,18 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { AppShell } from '@/components/app-shell';
 import { BillingBanner } from '@/components/billing-banner';
 import { BusinessMode } from '@/types';
 
 const API_URL = process.env.API_URL || 'http://localhost:3005';
+
+// Routes inside (app) that are exempt from the subscription gate
+const BILLING_EXEMPT_PATHS = [
+  '/billing/success',
+  '/billing/cancel',
+  '/settings',
+];
 
 async function provisionBusiness(clerkOrgId: string, orgName: string): Promise<void> {
   try {
@@ -78,8 +86,25 @@ export default async function AppLayout({
       getSubscriptionStatus(token),
     ]);
 
+    // ── Onboarding gate ─────────────────────────────────────────────────
     if (business && !business.settings?.mode_selected) {
       redirect('/onboarding');
+    }
+
+    // ── Subscription gate ────────────────────────────────────────────────
+    // After onboarding is complete, require a subscription (trial or active).
+    // Exempt billing/success, billing/cancel, and settings so users can
+    // complete checkout and manage their account without being looped.
+    const headersList = await headers();
+    const pathname    = headersList.get('x-pathname') ?? '';
+    const isExempt    = BILLING_EXEMPT_PATHS.some((p) => pathname.startsWith(p));
+
+    if (
+      !isExempt &&
+      business?.settings?.mode_selected &&
+      subscription?.status === 'none'
+    ) {
+      redirect('/pricing?start=1');
     }
   }
 

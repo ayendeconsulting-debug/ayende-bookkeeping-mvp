@@ -1,4 +1,5 @@
-﻿import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 /**
  * Public routes - no authentication required.
@@ -17,9 +18,18 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, request) => {
+  // Inject current pathname as a header so server component layouts
+  // can read it via headers() without requiring client-side routing hooks
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', request.nextUrl.pathname);
+
   if (!isPublicRoute(request)) {
     await auth.protect();
   }
+
+  return NextResponse.next({
+    request: { headers: requestHeaders },
+  });
 });
 
 export const config = {

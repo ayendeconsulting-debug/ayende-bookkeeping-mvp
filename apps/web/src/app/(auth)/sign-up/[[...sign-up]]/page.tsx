@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { SignUp } from '@clerk/nextjs';
@@ -10,7 +10,7 @@ export default function SignUpPage() {
   return (
     <div className="flex flex-col items-center gap-4 w-full">
 
-      {/* ── Agreement checkbox ────────────────────────────────────────── */}
+      {/* â”€â”€ Agreement checkbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="w-full max-w-[400px]">
         <label
           className={[
@@ -60,50 +60,33 @@ export default function SignUpPage() {
           {/* Label text */}
           <span className="text-sm text-foreground leading-relaxed">
             I agree to the{' '}
-            <a
-              href="/terms"
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href="/terms" target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041]"
-            >
+              className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041]">
               Terms of Service
             </a>
             ,{' '}
-            <a
-              href="/terms-of-use"
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href="/terms-of-use" target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041]"
-            >
+              className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041]">
               Terms of Use
             </a>
             ,{' '}
-            <a
-              href="/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href="/privacy" target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041]"
-            >
+              className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041]">
               Privacy Policy
             </a>
             , and{' '}
-            <a
-              href="/cookies"
-              target="_blank"
-              rel="noopener noreferrer"
+            <a href="/cookies" target="_blank" rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041]"
-            >
+              className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041]">
               Cookie Policy
             </a>
             .
           </span>
         </label>
 
-        {/* Validation message */}
         {touched && !agreed && (
           <p className="mt-1.5 text-xs text-destructive px-1">
             You must agree to the terms before creating an account.
@@ -111,27 +94,20 @@ export default function SignUpPage() {
         )}
       </div>
 
-      {/* ── Clerk SignUp — only mounts after checkbox is checked ──────── */}
+      {/* â”€â”€ Clerk SignUp â€” explicit redirect to dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {agreed ? (
-        <SignUp />
+        <SignUp
+          forceRedirectUrl="/dashboard"
+          
+        />
       ) : (
-        <div
-          className="w-full max-w-[400px]"
-          onClick={() => setTouched(true)}
-        >
-          {/* Disabled placeholder that mimics the Clerk card */}
+        <div className="w-full max-w-[400px]" onClick={() => setTouched(true)}>
           <div className="rounded-xl border-2 border-dashed border-border bg-card/50 p-8 flex flex-col items-center gap-3 cursor-not-allowed select-none">
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-              <svg
-                viewBox="0 0 20 20"
-                className="w-4 h-4 text-muted-foreground"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
+              <svg viewBox="0 0 20 20" className="w-4 h-4 text-muted-foreground" fill="currentColor">
+                <path fillRule="evenodd"
                   d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-                  clipRule="evenodd"
-                />
+                  clipRule="evenodd" />
               </svg>
             </div>
             <div className="text-center">
