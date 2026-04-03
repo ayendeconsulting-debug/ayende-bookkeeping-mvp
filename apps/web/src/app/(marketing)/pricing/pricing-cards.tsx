@@ -1,19 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
-import { CheckCircle2, ArrowRight, Zap, Sparkles } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
+import { CheckCircle2, ArrowRight, Zap, Sparkles, Loader2 } from 'lucide-react';
+import { createCheckoutSession } from './checkout-actions';
 
 const REGULAR_PRICES = { starter: 19, pro: 49, accountant: 99 };
 
 const PLANS = [
   {
     name: 'Starter',
+    key: 'starter' as const,
     description: 'For freelancers and solo founders',
     monthly: 10,
     annual: 100,
     annualPerMonth: 8.33,
-    annualSaving: 128,   // (19*12) - 100
     limit: 'Up to 500 transactions/mo',
     highlight: false,
     features: [
@@ -29,11 +31,11 @@ const PLANS = [
   },
   {
     name: 'Pro',
+    key: 'pro' as const,
     description: 'For growing small businesses',
     monthly: 25,
     annual: 250,
     annualPerMonth: 20.83,
-    annualSaving: 338,   // (49*12) - 250
     limit: 'Up to 2,500 transactions/mo',
     highlight: true,
     features: [
@@ -49,11 +51,11 @@ const PLANS = [
   },
   {
     name: 'Accountant',
+    key: 'accountant' as const,
     description: 'For accounting firms & multi-client',
     monthly: 50,
     annual: 500,
     annualPerMonth: 41.67,
-    annualSaving: 688,   // (99*12) - 500
     limit: 'Unlimited transactions',
     highlight: false,
     features: [
@@ -85,27 +87,53 @@ const COMPARISON_ROWS = [
 ];
 
 export function PricingCards() {
-  const [annual, setAnnual] = useState(false);
+  const [annual, setAnnual]         = useState(false);
+  const [loading, setLoading]       = useState<string | null>(null);
+  const [errorMsg, setErrorMsg]     = useState<string | null>(null);
+  const { isSignedIn }              = useAuth();
+  const router                      = useRouter();
+
+  async function handleCta(planKey: string) {
+    setErrorMsg(null);
+
+    // Not signed in → go to sign-up
+    if (!isSignedIn) {
+      router.push('/sign-up');
+      return;
+    }
+
+    setLoading(planKey);
+    try {
+      const result = await createCheckoutSession(planKey, annual ? 'annual' : 'monthly');
+      if (result.error) {
+        setErrorMsg(result.error);
+        return;
+      }
+      if (result.url) {
+        window.location.href = result.url;
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
 
   return (
     <div>
 
-      {/* ── Launch discount banner — red ──────────────────────────────── */}
+      {/* ── Launch discount banner ─────────────────────────────────── */}
       <div className="flex items-center justify-center gap-2 bg-red-600 text-white text-sm font-medium px-5 py-3 rounded-xl mb-8">
         <Zap className="w-4 h-4 flex-shrink-0" />
         <span>Launch sale: <strong>50% off all plans</strong> — limited time only. Original prices shown struck through.</span>
       </div>
 
-      {/* ── Billing period pill selector ──────────────────────────────── */}
+      {/* ── Billing period selector ───────────────────────────────── */}
       <div className="flex items-center justify-center mb-10">
         <div className="inline-flex items-center bg-muted rounded-xl p-1 gap-1">
           <button
             onClick={() => setAnnual(false)}
             className={[
               'px-5 py-2 rounded-lg text-sm font-semibold transition-all',
-              !annual
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
+              !annual ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
             ].join(' ')}
           >
             Monthly
@@ -114,9 +142,7 @@ export function PricingCards() {
             onClick={() => setAnnual(true)}
             className={[
               'px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2',
-              annual
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground',
+              annual ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
             ].join(' ')}
           >
             Annual
@@ -127,15 +153,23 @@ export function PricingCards() {
         </div>
       </div>
 
-      {/* ── Plan cards ─────────────────────────────────────────────────── */}
+      {/* Error message */}
+      {errorMsg && (
+        <div className="mb-6 text-center text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">
+          {errorMsg}
+        </div>
+      )}
+
+      {/* ── Plan cards ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {PLANS.map((plan) => {
-          const regularMonthly = REGULAR_PRICES[plan.name.toLowerCase() as keyof typeof REGULAR_PRICES];
+          const regularMonthly = REGULAR_PRICES[plan.key];
           const regularAnnual  = regularMonthly * 12;
+          const isLoading      = loading === plan.key;
 
           return (
             <div
-              key={plan.name}
+              key={plan.key}
               className={[
                 'rounded-2xl p-7 flex flex-col border-2 relative transition-all',
                 plan.highlight
@@ -158,13 +192,12 @@ export function PricingCards() {
 
                 {annual ? (
                   <>
-                    {/* Annual pricing */}
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-4xl font-bold text-foreground">${plan.annual}</span>
                       <span className="text-sm text-muted-foreground"> CAD/yr</span>
                     </div>
                     <p className="text-sm text-[#0F6E56] font-medium">
-                      ${plan.annualPerMonth.toFixed(2)} CAD/mo — 2 months free
+                      ${plan.annualPerMonth.toFixed(2)}/mo · 2 months free
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 line-through">
                       Normally ${regularAnnual} CAD/yr
@@ -175,7 +208,6 @@ export function PricingCards() {
                   </>
                 ) : (
                   <>
-                    {/* Monthly pricing */}
                     <div className="flex items-baseline gap-1 mb-1">
                       <span className="text-4xl font-bold text-foreground">${plan.monthly}</span>
                       <span className="text-sm text-muted-foreground"> CAD/mo</span>
@@ -205,33 +237,37 @@ export function PricingCards() {
               </ul>
 
               {/* CTA */}
-              <Link
-                href="/sign-up"
+              <button
+                onClick={() => handleCta(plan.key)}
+                disabled={loading !== null}
                 className={[
-                  'inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl transition-colors',
+                  'inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed',
                   plan.highlight
                     ? 'bg-[#0F6E56] text-white hover:bg-[#085041]'
                     : 'border-2 border-[#0F6E56] text-[#0F6E56] hover:bg-[#EDF7F2] dark:hover:bg-primary/10',
                 ].join(' ')}
               >
-                Start free trial <ArrowRight className="w-4 h-4" />
-              </Link>
+                {isLoading
+                  ? <><Loader2 className="w-4 h-4 animate-spin" />Setting up...</>
+                  : <>Start free trial <ArrowRight className="w-4 h-4" /></>
+                }
+              </button>
             </div>
           );
         })}
       </div>
 
-      {/* Trial note — no emoji */}
+      {/* Trial note */}
       <div className="text-center space-y-1">
         <p className="text-sm text-muted-foreground">
-          All plans include a <strong className="text-foreground">60-day free trial</strong>. Card required to start — no charge during trial.
+          All plans include a <strong className="text-foreground">60-day free trial</strong>. Card required — no charge during trial.
         </p>
         <p className="text-xs text-muted-foreground">
           No action needed after trial — you will automatically continue on Starter. Cancel anytime.
         </p>
       </div>
 
-      {/* ── AI Value prop callout ──────────────────────────────────────── */}
+      {/* ── AI value prop ─────────────────────────────────────────── */}
       <div className="mt-10 rounded-2xl border-2 border-[#0F6E56]/30 bg-[#EDF7F2] dark:bg-primary/10 p-6">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-[#0F6E56] flex items-center justify-center flex-shrink-0">
@@ -242,13 +278,13 @@ export function PricingCards() {
               AI bookkeeping assistant — included on every plan
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Ask anything about your books in plain English. "What was my net margin last quarter?", "Show me my top 5 expense categories", "Am I on track for my revenue target?" — instant answers from your actual data, powered by Claude AI.
+              Ask anything about your books in plain English. Instant answers from your actual data, powered by Claude AI.
             </p>
           </div>
         </div>
       </div>
 
-      {/* ── Comparison table ──────────────────────────────────────────── */}
+      {/* ── Comparison table ──────────────────────────────────────── */}
       <div className="mt-16">
         <h2 className="text-xl font-bold text-foreground text-center mb-8">Full feature comparison</h2>
         <div className="overflow-x-auto">

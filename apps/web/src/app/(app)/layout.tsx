@@ -1,6 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { AppShell } from '@/components/app-shell';
+import { BillingBanner } from '@/components/billing-banner';
 import { BusinessMode } from '@/types';
 
 const API_URL = process.env.API_URL || 'http://localhost:3005';
@@ -39,6 +40,22 @@ async function getMyBusiness(
   }
 }
 
+async function getSubscriptionStatus(token: string) {
+  try {
+    const res = await fetch(`${API_URL}/billing/subscription`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export default async function AppLayout({
   children,
 }: {
@@ -47,15 +64,20 @@ export default async function AppLayout({
   const { userId, orgId, orgSlug, getToken } = await auth();
 
   if (!userId) redirect('/sign-in');
-  if (!orgId) redirect('/sign-in?error=no-org');
+  if (!orgId)  redirect('/sign-in?error=no-org');
 
   await provisionBusiness(orgId, orgSlug ?? 'My Business');
 
   const token = await getToken();
   let business: { settings?: Record<string, unknown>; mode?: string } | null = null;
+  let subscription = null;
 
   if (token) {
-    business = await getMyBusiness(token);
+    [business, subscription] = await Promise.all([
+      getMyBusiness(token),
+      getSubscriptionStatus(token),
+    ]);
+
     if (business && !business.settings?.mode_selected) {
       redirect('/onboarding');
     }
@@ -63,10 +85,9 @@ export default async function AppLayout({
 
   const mode = (business?.mode ?? 'business') as BusinessMode;
 
-  // AppShell is a client component that owns mobile sidebar toggle state.
-  // All auth/provisioning logic stays server-side here.
   return (
     <AppShell mode={mode}>
+      <BillingBanner subscription={subscription} />
       {children}
     </AppShell>
   );
