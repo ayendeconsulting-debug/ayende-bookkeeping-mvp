@@ -303,12 +303,19 @@ export interface BudgetCategory {
   id: string;
   business_id: string;
   name: string;
-  monthly_target?: number;
+  monthly_target?: number | null;
   color: string;
   icon?: string;
   is_system: boolean;
   is_active: boolean;
   sort_order: number;
+}
+
+export interface BudgetCategoryWithSpending extends BudgetCategory {
+  spent_this_month: number;
+  remaining: number | null;
+  over_budget: boolean;
+  percentage_spent: number | null;
 }
 
 /* ── Phase 5 — Savings Goals ─────────────────────────────────────────────────── */
@@ -325,6 +332,12 @@ export interface SavingsGoal {
   linked_account_id?: string;
   status: SavingsGoalStatus;
   created_at: string;
+}
+
+export interface SavingsGoalWithProgress extends SavingsGoal {
+  percentage_complete: number;
+  projected_completion_date: string | null;
+  required_monthly_contribution: number | null;
 }
 
 /* ── Phase 5 — Mileage Logs ──────────────────────────────────────────────────── */
@@ -387,6 +400,33 @@ export interface TaxEstimateResult {
   annual_estimated_tax: number;
   quarters: QuarterEstimate[];
   disclaimer: string;
+}
+
+/* ── Phase 5 — Net Worth ─────────────────────────────────────────────────────── */
+
+export interface PlaidAccountBalance {
+  name: string;
+  type: string;
+  subtype: string;
+  current_balance: number;
+  currency_code: string;
+}
+
+export interface CoaAccountBalance {
+  account_name: string;
+  account_type: string;
+  account_subtype: string | null;
+  balance: number;
+}
+
+export interface NetWorthResult {
+  net_worth: number;
+  total_assets: number;
+  total_liabilities: number;
+  plaid_assets: PlaidAccountBalance[];
+  plaid_liabilities: PlaidAccountBalance[];
+  coa_assets: CoaAccountBalance[];
+  coa_liabilities: CoaAccountBalance[];
 }
 
 /* ── API Responses ───────────────────────────────────────────────────────────── */

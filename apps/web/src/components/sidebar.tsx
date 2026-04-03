@@ -25,6 +25,9 @@ import {
   Car,
   Calculator,
   Tag,
+  PieChart,
+  Target,
+  Landmark,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -61,6 +64,13 @@ const freelancerItems = [
   { href: '/freelancer/mileage', label: 'Mileage Tracker', icon: Car },
   { href: '/freelancer/tax', label: 'Tax Estimate', icon: Calculator },
   { href: '/freelancer/categories', label: 'Categories', icon: Tag },
+];
+
+const personalItems = [
+  { href: '/personal/dashboard', label: 'My Dashboard', icon: LayoutDashboard },
+  { href: '/personal/budget', label: 'Budget', icon: PieChart },
+  { href: '/personal/goals', label: 'Savings Goals', icon: Target },
+  { href: '/personal/networth', label: 'Net Worth', icon: Landmark },
 ];
 
 export function Sidebar({ mode = 'business' }: SidebarProps) {
@@ -101,27 +111,29 @@ export function Sidebar({ mode = 'business' }: SidebarProps) {
       </div>
 
       <nav className="flex-1 px-2 py-3 overflow-y-auto flex flex-col gap-0.5">
-        {/* Freelancer-specific section — shown only in Freelancer mode */}
+        {/* Freelancer section */}
         {mode === 'freelancer' && (
           <>
             <NavSection label="Freelancer" />
             {freelancerItems.map((item) => (
-              <NavItem
-                key={item.href}
-                {...item}
-                active={pathname === item.href || pathname.startsWith(item.href + '/')}
-              />
+              <NavItem key={item.href} {...item} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
+            ))}
+          </>
+        )}
+
+        {/* Personal section */}
+        {mode === 'personal' && (
+          <>
+            <NavSection label="Personal Finance" />
+            {personalItems.map((item) => (
+              <NavItem key={item.href} {...item} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
             ))}
           </>
         )}
 
         <NavSection label="Main" />
         {navItems.map((item) => (
-          <NavItem
-            key={item.href}
-            {...item}
-            active={pathname === item.href || pathname.startsWith(item.href + '/')}
-          />
+          <NavItem key={item.href} {...item} active={pathname === item.href || pathname.startsWith(item.href + '/')} />
         ))}
 
         <NavSection label="Reports" />
@@ -146,27 +158,9 @@ function NavSection({ label }: { label: string }) {
   );
 }
 
-function NavItem({
-  href,
-  label,
-  icon: Icon,
-  active,
-}: {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  active: boolean;
-}) {
+function NavItem({ href, label, icon: Icon, active }: { href: string; label: string; icon: React.ElementType; active: boolean; }) {
   return (
-    <Link
-      href={href}
-      className={cn(
-        'flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors',
-        active
-          ? 'bg-[#E1F5EE] text-[#0F6E56] font-medium'
-          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
-      )}
-    >
+    <Link href={href} className={cn('flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors', active ? 'bg-[#E1F5EE] text-[#0F6E56] font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900')}>
       <Icon className="w-4 h-4 flex-shrink-0" />
       <span className="truncate">{label}</span>
     </Link>

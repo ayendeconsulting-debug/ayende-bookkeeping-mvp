@@ -16,6 +16,7 @@ import { RecurringModule } from './recurring/recurring.module';
 import { DocumentsModule } from './documents/documents.module';
 import { CurrencyModule } from './currency/currency.module';
 import { FreelancerModule } from './freelancer/freelancer.module';
+import { PersonalModule } from './personal/personal.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { HealthController } from './health.controller';
@@ -46,8 +47,6 @@ function getRedisBullMQConnection() {
     BullModule.forRoot({ connection: getRedisBullMQConnection() }),
     AuthModule,
     BusinessesModule,
-    // CurrencyModule must be imported before PlaidModule since it is @Global()
-    // and PlaidSyncProcessor injects CurrencyService
     CurrencyModule,
     AccountingModule,
     PlaidModule,
@@ -57,6 +56,7 @@ function getRedisBullMQConnection() {
     RecurringModule,
     DocumentsModule,
     FreelancerModule,
+    PersonalModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
