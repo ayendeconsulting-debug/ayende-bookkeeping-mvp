@@ -70,9 +70,9 @@ function severityIcon(s: AnomalyFlag['severity']) {
   return <Info className="w-4 h-4 text-blue-400 flex-shrink-0" />;
 }
 function severityBadgeClass(s: AnomalyFlag['severity']) {
-  if (s === 'high')   return 'bg-red-50   text-red-600   border-red-100';
-  if (s === 'medium') return 'bg-amber-50 text-amber-600 border-amber-100';
-  return 'bg-blue-50 text-blue-600 border-blue-100';
+  if (s === 'high')   return 'bg-red-50   text-red-700   border-red-200   dark:bg-red-950   dark:text-red-400   dark:border-red-900';
+  if (s === 'medium') return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-900';
+  return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-900';
 }
 
 export default async function DashboardPage() {
@@ -85,8 +85,8 @@ export default async function DashboardPage() {
   if (business?.mode === 'personal')   redirect('/personal/dashboard');
 
   const { revenue, expenses, netIncome } = deriveMetrics(trialBalance);
-  const pendingCount   = transactions.filter((t) => t.status === 'pending').length;
-  const highAnomalies  = anomalies?.flags.filter((f) => f.severity === 'high') ?? [];
+  const pendingCount  = transactions.filter((t) => t.status === 'pending').length;
+  const highAnomalies = anomalies?.flags.filter((f) => f.severity === 'high') ?? [];
 
   const revenueSparkline  = sparklines?.revenue.map((p) => p.value)  ?? [];
   const expensesSparkline = sparklines?.expenses.map((p) => p.value) ?? [];
@@ -94,19 +94,22 @@ export default async function DashboardPage() {
   const pendingSparkline  = sparklines?.pending.map((p) => p.value)  ?? [];
 
   return (
-    <div className="p-6 max-w-screen-xl mx-auto">
-      <div className="mb-6">
+    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
+
+      {/* Page header */}
+      <div className="mb-5">
         <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           {new Date().toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
 
+      {/* High severity anomaly banner */}
       {highAnomalies.length > 0 && (
-        <div className="mb-5 flex items-start gap-3 bg-red-50 dark:bg-destructive/10 border border-red-200 dark:border-destructive/30 rounded-xl px-4 py-3">
+        <div className="mb-5 flex items-start gap-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 rounded-xl px-4 py-3">
           <ShieldAlert className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-red-700 dark:text-destructive">
+            <p className="text-sm font-medium text-red-700 dark:text-red-400">
               {highAnomalies.length} high-severity anomal{highAnomalies.length > 1 ? 'ies' : 'y'} detected
             </p>
             <p className="text-xs text-red-500 mt-0.5">{highAnomalies[0].reason}</p>
@@ -114,19 +117,22 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Metric cards with sparklines */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      {/* KPI cards — 1 col mobile, 2 col sm, 4 col lg
+          Pilot light signature: colour-coded top border per metric type */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
         <MetricCard
           label="Total Revenue" value={formatCurrency(revenue)}
           icon={TrendingUp} iconColor="text-primary" iconBg="bg-primary-light"
           sub={`YTD ${new Date().getFullYear()}`}
           sparklineData={revenueSparkline} sparklineColor="#0F6E56"
+          accentClass="border-t-2 border-t-[#0F6E56]"
         />
         <MetricCard
           label="Total Expenses" value={formatCurrency(expenses)}
           icon={TrendingDown} iconColor="text-danger" iconBg="bg-danger-light"
           sub={`YTD ${new Date().getFullYear()}`}
-          sparklineData={expensesSparkline} sparklineColor="#ef4444"
+          sparklineData={expensesSparkline} sparklineColor="#c0392b"
+          accentClass="border-t-2 border-t-[#c0392b]"
         />
         <MetricCard
           label="Net Income" value={formatCurrency(netIncome)}
@@ -135,27 +141,30 @@ export default async function DashboardPage() {
           iconBg={netIncome >= 0 ? 'bg-primary-light' : 'bg-danger-light'}
           sub={netIncome >= 0 ? 'Profitable' : 'Loss'}
           sparklineData={netSparkline}
-          sparklineColor={netIncome >= 0 ? '#0F6E56' : '#ef4444'}
+          sparklineColor={netIncome >= 0 ? '#0F6E56' : '#c0392b'}
+          accentClass="border-t-2 border-t-[#185fa5]"
         />
         <MetricCard
           label="Pending Review" value={pendingCount.toString()}
           icon={Clock} iconColor="text-warning" iconBg="bg-warning-light"
           sub={pendingCount > 0 ? 'Needs classification' : 'All clear'}
-          sparklineData={pendingSparkline} sparklineColor="#f59e0b"
+          sparklineData={pendingSparkline} sparklineColor="#92620a"
+          accentClass="border-t-2 border-t-[#92620a]"
         />
       </div>
 
-      {/* Dashboard charts — Revenue vs Expenses bar + Net Income line.
-          DashboardCharts is a client component; renders nothing if < 2 data points. */}
+      {/* Dashboard charts — 1 col mobile, 2 col md+ */}
       <DashboardCharts
         revenueData={sparklines?.revenue   ?? []}
         expensesData={sparklines?.expenses ?? []}
         netData={sparklines?.net           ?? []}
       />
 
-      {/* Main content grid */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 flex flex-col gap-4">
+      {/* Main content — 1 col mobile, 3 col lg */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* Left/main — transactions + anomalies */}
+        <div className="col-span-1 lg:col-span-2 flex flex-col gap-4">
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle>Recent Transactions</CardTitle>
@@ -165,32 +174,37 @@ export default async function DashboardPage() {
               {transactions.length === 0 ? (
                 <EmptyState icon={RefreshCw} message="No transactions yet. Connect a bank to start importing." />
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead><TableHead>Description</TableHead>
-                      <TableHead>Amount</TableHead><TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((tx) => (
-                      <TableRow key={tx.id}>
-                        <TableCell className="text-muted-foreground whitespace-nowrap">
-                          {new Date(tx.transaction_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
-                        </TableCell>
-                        <TableCell className="max-w-[240px] truncate">{tx.description}</TableCell>
-                        <TableCell className={tx.amount >= 0 ? 'text-primary font-medium' : 'text-destructive font-medium'}>
-                          {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={statusVariant(tx.status)}>
-                            {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
-                          </Badge>
-                        </TableCell>
+                /* Horizontal scroll on mobile so table doesn't collapse */
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {transactions.map((tx) => (
+                        <TableRow key={tx.id}>
+                          <TableCell className="text-muted-foreground whitespace-nowrap text-xs">
+                            {new Date(tx.transaction_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
+                          </TableCell>
+                          <TableCell className="max-w-[160px] md:max-w-[240px] truncate">{tx.description}</TableCell>
+                          <TableCell className={`whitespace-nowrap font-medium ${tx.amount >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                            {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={statusVariant(tx.status)}>
+                              {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -198,7 +212,8 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-muted-foreground" />AI Anomaly Detection
+                <ShieldAlert className="w-4 h-4 text-muted-foreground" />
+                AI Anomaly Detection
               </CardTitle>
               {anomalies && (
                 <span className="text-xs text-muted-foreground">
@@ -233,6 +248,7 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
+        {/* Right — banks + P&L */}
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
@@ -287,27 +303,29 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
       </div>
     </div>
   );
 }
 
 function MetricCard({
-  label, value, icon: Icon, iconColor, iconBg, sub, sparklineData, sparklineColor,
+  label, value, icon: Icon, iconColor, iconBg, sub, sparklineData, sparklineColor, accentClass,
 }: {
   label: string; value: string; icon: React.ElementType; iconColor: string;
   iconBg: string; sub: string; sparklineData?: number[]; sparklineColor?: string;
+  accentClass?: string;
 }) {
   return (
-    <Card>
-      <CardContent className="pt-5">
+    <Card className={accentClass}>
+      <CardContent className="pt-4 pb-4">
         <div className="flex items-start justify-between mb-2">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</div>
           <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}>
             <Icon className={`w-4 h-4 ${iconColor}`} />
           </div>
         </div>
-        <div className="text-2xl font-semibold text-foreground mb-1">{value}</div>
+        <div className="text-2xl font-semibold text-foreground mb-1 tracking-tight">{value}</div>
         <div className="flex items-end justify-between">
           <div className="text-xs text-muted-foreground">{sub}</div>
           {sparklineData && sparklineData.length >= 2 && (

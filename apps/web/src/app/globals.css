@@ -1,35 +1,35 @@
 @import "tailwindcss";
 
-/* ── Ayende Bookkeeping App — Brand Theme ─────────────────────────────────── */
+/* ── Ayende Bookkeeping App – Pilot Light Theme ─────────────────────────── */
 
 @theme {
-  /* Brand primary — Ayende Teal */
-  --color-primary: #0F6E56;
+  /* Brand primary – Ayende Green */
+  --color-primary:            #0F6E56;
   --color-primary-foreground: #ffffff;
-  --color-primary-hover: #085041;
-  --color-primary-light: #E1F5EE;
+  --color-primary-hover:      #085041;
+  --color-primary-light:      #EDF7F2;
 
   /* Semantic */
-  --color-success: #0F6E56;
-  --color-success-light: #E1F5EE;
-  --color-warning: #BA7517;
-  --color-warning-light: #FAEEDA;
-  --color-danger: #993C1D;
-  --color-danger-light: #FAECE7;
-  --color-info: #185FA5;
-  --color-info-light: #E6F1FB;
+  --color-success:       #0F6E56;
+  --color-success-light: #EDF7F2;
+  --color-warning:       #92620A;
+  --color-warning-light: #FDF5E6;
+  --color-danger:        #C0392B;
+  --color-danger-light:  #FDF0EE;
+  --color-info:          #185FA5;
+  --color-info-light:    #EEF4FC;
 
-  /* Neutral grays */
-  --color-gray-50: #F9FAFB;
-  --color-gray-100: #F3F4F6;
-  --color-gray-200: #E5E7EB;
-  --color-gray-300: #D1D5DB;
-  --color-gray-400: #9CA3AF;
-  --color-gray-500: #6B7280;
-  --color-gray-600: #4B5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1F2937;
-  --color-gray-900: #111827;
+  /* Warm neutral grays – Pilot paper feel */
+  --color-gray-50:  #F9F7F4;
+  --color-gray-100: #F0EDE8;
+  --color-gray-200: #E5E1D8;
+  --color-gray-300: #CEC9BE;
+  --color-gray-400: #A8A098;
+  --color-gray-500: #888070;
+  --color-gray-600: #666050;
+  --color-gray-700: #4A4438;
+  --color-gray-800: #302C24;
+  --color-gray-900: #1A1814;
 
   /* Fonts */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -42,55 +42,58 @@
   --radius-xl: 1rem;
 }
 
-/* ── ShadCN/UI CSS Variable Layer ─────────────────────────────────────────── */
+/* ── ShadCN/UI CSS Variable Layer – Light (Pilot warm) ───────────────────── */
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 161 78% 25%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 161 78% 25%;
-  --radius: 0.5rem;
-  --sidebar-width: 220px;
+  /* Warm off-white page background, pure white cards */
+  --background:            38 20% 95%;   /* #f5f3ef */
+  --foreground:            36 13% 9%;    /* #1a1814 */
+  --card:                  0 0% 100%;    /* #ffffff */
+  --card-foreground:       36 13% 9%;
+  --popover:               0 0% 100%;
+  --popover-foreground:    36 13% 9%;
+  --primary:               161 78% 25%; /* #0F6E56 */
+  --primary-foreground:    0 0% 100%;
+  --secondary:             37 16% 93%;  /* #f0ede8 */
+  --secondary-foreground:  36 13% 9%;
+  --muted:                 37 16% 93%;  /* #f0ede8 */
+  --muted-foreground:      38 8% 48%;   /* #888070 */
+  --accent:                37 14% 90%;  /* #ebe7e0 */
+  --accent-foreground:     36 13% 9%;
+  --destructive:           4 62% 46%;   /* #c0392b */
+  --destructive-foreground: 0 0% 100%;
+  --border:                37 17% 86%;  /* #e5e1d8 */
+  --input:                 37 17% 86%;
+  --ring:                  161 78% 25%;
+  --radius:                0.5rem;
+  --sidebar-width:         210px;
 }
+
+/* ── Dark mode – warm dark (not pure black) ─────────────────────────────── */
 
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 161 78% 35%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 161 78% 35%;
+  --background:            36 13% 9%;    /* #1a1714 warm near-black */
+  --foreground:            37 16% 93%;   /* #f0ede8 warm near-white */
+  --card:                  38 12% 12%;   /* #222019 */
+  --card-foreground:       37 16% 93%;
+  --popover:               38 12% 12%;
+  --popover-foreground:    37 16% 93%;
+  --primary:               161 78% 38%; /* slightly brighter green in dark */
+  --primary-foreground:    0 0% 100%;
+  --secondary:             38 10% 17%;  /* #2a2720 */
+  --secondary-foreground:  37 16% 93%;
+  --muted:                 38 10% 17%;
+  --muted-foreground:      37 9% 57%;   /* #a09888 */
+  --accent:                38 10% 20%;  /* #333028 */
+  --accent-foreground:     37 16% 93%;
+  --destructive:           4 50% 35%;
+  --destructive-foreground: 37 16% 93%;
+  --border:                38 10% 21%;  /* #3a3730 */
+  --input:                 38 10% 21%;
+  --ring:                  161 78% 38%;
 }
 
-/* ── Base Styles ──────────────────────────────────────────────────────────── */
+/* ── Base Styles ─────────────────────────────────────────────────────────── */
 
 * {
   box-sizing: border-box;
@@ -105,19 +108,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground));
-}
+::-webkit-scrollbar        { width: 5px; height: 5px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }

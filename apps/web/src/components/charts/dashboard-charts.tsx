@@ -21,36 +21,28 @@ interface DashboardChartsProps {
 
 function formatShortDate(dateStr: string): string {
   try {
-    return new Date(dateStr).toLocaleDateString('en-CA', {
-      month: 'short',
-      day: 'numeric',
-    });
+    return new Date(dateStr).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
   } catch {
     return dateStr;
   }
 }
 
-export function DashboardCharts({
-  revenueData,
-  expensesData,
-  netData,
-}: DashboardChartsProps) {
+export function DashboardCharts({ revenueData, expensesData, netData }: DashboardChartsProps) {
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  const axisColor  = isDark ? '#9CA3AF' : '#6B7280';
-  const gridColor  = isDark ? '#374151' : '#E5E7EB';
-  const bgColor    = isDark ? '#1F2937' : '#ffffff';
-  const labelColor = isDark ? '#F9FAFB' : '#111827';
+  // Pilot warm palette — warm grays for axes and grid
+  const axisColor  = isDark ? '#a09888' : '#888070';
+  const gridColor  = isDark ? '#3a3730' : '#e5e1d8';
+  const bgColor    = isDark ? '#222019' : '#ffffff';
+  const labelColor = isDark ? '#f0ede8' : '#1a1814';
 
-  // Merge revenue + expenses by index for grouped bar chart
   const barData = revenueData.map((r, i) => ({
     date:     formatShortDate(r.date),
     Revenue:  r.value,
     Expenses: expensesData[i]?.value ?? 0,
   }));
 
-  // Net income trend for line chart
   const lineData = netData.map((n) => ({
     date:        formatShortDate(n.date),
     'Net Income': n.value,
@@ -62,9 +54,9 @@ export function DashboardCharts({
   if (!showBar && !showLine) return null;
 
   return (
-    <div className="grid grid-cols-2 gap-4 mb-6">
+    // 1 col on mobile, 2 col on md+
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
 
-      {/* Revenue vs Expenses — grouped bar */}
       {showBar && (
         <Card>
           <CardHeader className="pb-2">
@@ -75,46 +67,21 @@ export function DashboardCharts({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={barData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fill: axisColor, fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
+                  <XAxis dataKey="date" tick={{ fill: axisColor, fontSize: 10 }} axisLine={false} tickLine={false} />
                   <YAxis
                     tick={{ fill: axisColor, fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v: number) =>
-                      v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`
-                    }
+                    axisLine={false} tickLine={false}
+                    tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`}
                   />
                   <Tooltip
                     formatter={(value, name) => [formatCurrency(Number(value)), String(name)]}
-                    contentStyle={{
-                      backgroundColor: bgColor,
-                      border: `1px solid ${gridColor}`,
-                      borderRadius: 8,
-                      fontSize: 11,
-                    }}
+                    contentStyle={{ backgroundColor: bgColor, border: `1px solid ${gridColor}`, borderRadius: 8, fontSize: 11 }}
                     labelStyle={{ color: labelColor, fontWeight: 600 }}
-                    cursor={{ fill: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)' }}
+                    cursor={{ fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar
-                    dataKey="Revenue"
-                    fill="#0F6E56"
-                    radius={[3, 3, 0, 0]}
-                    maxBarSize={20}
-                    fillOpacity={isDark ? 0.85 : 1}
-                  />
-                  <Bar
-                    dataKey="Expenses"
-                    fill="#EF4444"
-                    radius={[3, 3, 0, 0]}
-                    maxBarSize={20}
-                    fillOpacity={isDark ? 0.85 : 1}
-                  />
+                  <Bar dataKey="Revenue"  fill="#0F6E56" radius={[3, 3, 0, 0]} maxBarSize={20} fillOpacity={isDark ? 0.85 : 1} />
+                  <Bar dataKey="Expenses" fill="#c0392b" radius={[3, 3, 0, 0]} maxBarSize={20} fillOpacity={isDark ? 0.85 : 1} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -122,7 +89,6 @@ export function DashboardCharts({
         </Card>
       )}
 
-      {/* Net Income Trend — line chart */}
       {showLine && (
         <Card>
           <CardHeader className="pb-2">
@@ -133,28 +99,15 @@ export function DashboardCharts({
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={lineData} margin={{ top: 4, right: 8, left: 0, bottom: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fill: axisColor, fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
+                  <XAxis dataKey="date" tick={{ fill: axisColor, fontSize: 10 }} axisLine={false} tickLine={false} />
                   <YAxis
                     tick={{ fill: axisColor, fontSize: 10 }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v: number) =>
-                      v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`
-                    }
+                    axisLine={false} tickLine={false}
+                    tickFormatter={(v: number) => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${v}`}
                   />
                   <Tooltip
                     formatter={(value) => [formatCurrency(Number(value)), 'Net Income']}
-                    contentStyle={{
-                      backgroundColor: bgColor,
-                      border: `1px solid ${gridColor}`,
-                      borderRadius: 8,
-                      fontSize: 11,
-                    }}
+                    contentStyle={{ backgroundColor: bgColor, border: `1px solid ${gridColor}`, borderRadius: 8, fontSize: 11 }}
                     labelStyle={{ color: labelColor, fontWeight: 600 }}
                   />
                   <Line
