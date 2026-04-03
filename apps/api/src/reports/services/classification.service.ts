@@ -126,6 +126,21 @@ export class ClassificationService {
     return { data, total };
   }
 
+  // ── Tag Transaction (Freelancer Mode) ────────────────────────────────
+
+  async tagTransaction(
+    businessId: string,
+    id: string,
+    isPersonal: boolean,
+  ): Promise<RawTransaction> {
+    const tx = await this.rawTxRepo.findOne({
+      where: { id, business_id: businessId },
+    });
+    if (!tx) throw new NotFoundException(`Raw transaction ${id} not found`);
+    tx.is_personal = isPersonal;
+    return this.rawTxRepo.save(tx);
+  }
+
   // ── Manual Classification ─────────────────────────────────────────
 
   async classify(dto: ClassifyTransactionDto): Promise<ClassifiedTransaction> {

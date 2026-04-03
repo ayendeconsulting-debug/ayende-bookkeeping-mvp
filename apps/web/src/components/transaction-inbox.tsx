@@ -3,10 +3,11 @@
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal } from 'lucide-react';
-import { Account, TaxCode, RawTransaction } from '@/types';
+import { Account, TaxCode, RawTransaction, BusinessMode } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
 import { AdminOnly } from '@/components/admin-only';
+import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,6 +28,7 @@ interface TransactionInboxProps {
   currentStatus: string;
   currentSearch: string;
   currentPage: number;
+  mode?: BusinessMode;
 }
 
 const STATUS_TABS = [
@@ -55,6 +57,7 @@ export function TransactionInbox({
   currentStatus,
   currentSearch,
   currentPage,
+  mode = 'business',
 }: TransactionInboxProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -65,6 +68,7 @@ export function TransactionInbox({
   const [selectedTx, setSelectedTx] = useState<RawTransaction | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
+  const isFreelancer = mode === 'freelancer';
   const LIMIT = 20;
   const totalPages = Math.ceil(totalCount / LIMIT);
 
@@ -106,6 +110,10 @@ export function TransactionInbox({
     startTransition(() => router.refresh());
   }
 
+  function handleTagToggle() {
+    startTransition(() => router.refresh());
+  }
+
   const pendingCount = initialTransactions.filter((t) => t.status === 'pending').length;
 
   return (
@@ -114,9 +122,16 @@ export function TransactionInbox({
       <div className="px-6 py-5 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Transactions</h1>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {isFreelancer ? 'Income & Expenses' : 'Transactions'}
+            </h1>
             <p className="text-sm text-gray-500 mt-0.5">
               {totalCount} total · {pendingCount} pending review
+              {isFreelancer && (
+                <span className="ml-2 text-purple-500 text-xs font-medium">
+                  · Tag each transaction as Business or Personal
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -158,7 +173,12 @@ export function TransactionInbox({
       </div>
 
       {/* Table */}
-      <div className={cn('flex-1 overflow-auto bg-white', isPending && 'opacity-60 pointer-events-none')}>
+      <div
+        className={cn(
+          'flex-1 overflow-auto bg-white',
+          isPending && 'opacity-60 pointer-events-none',
+        )}
+      >
         {initialTransactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
@@ -181,6 +201,7 @@ export function TransactionInbox({
                 <TableHead>Description</TableHead>
                 <TableHead>Source Account</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
+                {isFreelancer && <TableHead className="w-44">Type</TableHead>}
                 <TableHead>Status</TableHead>
                 <TableHead className="w-36">Actions</TableHead>
               </TableRow>
@@ -189,10 +210,15 @@ export function TransactionInbox({
               {initialTransactions.map((tx) => {
                 const amount = Number(tx.amount);
                 return (
-                  <TableRow key={tx.id}>
+                  <TableRow
+                    key={tx.id}
+                    className={cn(tx.is_personal && isFreelancer ? 'opacity-60' : '')}
+                  >
                     <TableCell className="text-gray-500 whitespace-nowrap">
                       {new Date(tx.transaction_date).toLocaleDateString('en-CA', {
-                        month: 'short', day: 'numeric', year: '2-digit',
+                        month: 'short',
+                        day: 'numeric',
+                        year: '2-digit',
                       })}
                     </TableCell>
                     <TableCell className="max-w-xs">
@@ -202,13 +228,44 @@ export function TransactionInbox({
                       )}
                     </TableCell>
                     <TableCell className="text-gray-500 text-sm">
-                      {tx.source_account_name ?? '–'}
+                      {tx.source_account_name ?? '—'}
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
-                        {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
+                      <span
+                        className={cn(
+                          'font-medium text-sm',
+                          amount >= 0 ? 'text-primary' : 'text-danger',
+                        )}
+                      >
+                        {amount >= 0 ? '+' : ''}
+                        {formatCurrency(amount)}
                       </span>
                     </TableCell>
+
+                    {/* Personal/Business toggle — Freelancer mode only, pending transactions */}
+                    {isFreelancer && (
+                      <TableCell>
+                        {tx.status === 'pending' ? (
+                          <TransactionTagToggle
+                            transactionId={tx.id}
+                            isPersonal={tx.is_personal}
+                            onToggle={handleTagToggle}
+                          />
+                        ) : (
+                          <span
+                            className={cn(
+                              'text-xs font-medium px-2 py-0.5 rounded-full',
+                              tx.is_personal
+                                ? 'bg-purple-50 text-purple-600'
+                                : 'bg-primary-light text-primary',
+                            )}
+                          >
+                            {tx.is_personal ? 'Personal' : 'Business'}
+                          </span>
+                        )}
+                      </TableCell>
+                    )}
+
                     <TableCell>
                       <Badge variant={statusVariant(tx.status)}>
                         {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
@@ -216,8 +273,8 @@ export function TransactionInbox({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        {/* Classify/Post actions — admin only */}
-                        {tx.status === 'pending' && (
+                        {/* Only show classify/post for non-personal transactions */}
+                        {tx.status === 'pending' && !tx.is_personal && (
                           <AdminOnly>
                             <Button
                               size="sm"
@@ -244,6 +301,9 @@ export function TransactionInbox({
                         {tx.status === 'posted' && (
                           <span className="text-xs text-gray-400">Posted</span>
                         )}
+                        {tx.status === 'pending' && tx.is_personal && isFreelancer && (
+                          <span className="text-xs text-gray-400 italic">Personal</span>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -261,10 +321,20 @@ export function TransactionInbox({
             Page {currentPage} of {totalPages} · {totalCount} transactions
           </span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => handlePage(currentPage - 1)}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={currentPage <= 1}
+              onClick={() => handlePage(currentPage - 1)}
+            >
               Previous
             </Button>
-            <Button size="sm" variant="outline" disabled={currentPage >= totalPages} onClick={() => handlePage(currentPage + 1)}>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={currentPage >= totalPages}
+              onClick={() => handlePage(currentPage + 1)}
+            >
               Next
             </Button>
           </div>

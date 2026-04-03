@@ -2,11 +2,22 @@
 
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
-import { auth } from '@clerk/nextjs/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+/* ── Tag a transaction as Personal or Business (Freelancer Mode) ──────────── */
+export async function tagTransaction(transactionId: string, isPersonal: boolean) {
+  try {
+    await api(`/classification/raw/${transactionId}/tag`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_personal: isPersonal }),
+    });
+    revalidatePath('/transactions');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
 
-/* ── Classify a raw transaction ──────────────────────────────────────────── */
+/* ── Classify a raw transaction ───────────────────────────────────────────── */
 export async function classifyTransaction(data: {
   rawTransactionId: string;
   accountId: string;
@@ -51,7 +62,7 @@ export async function postTransaction(data: {
   }
 }
 
-/* ── Get AI classification suggestion ───────────────────────────────────── */
+/* ── Get AI classification suggestion ────────────────────────────────────── */
 export async function getAiSuggestion(rawTransactionId: string) {
   try {
     const result = await api(`/ai/classify/${rawTransactionId}`, {

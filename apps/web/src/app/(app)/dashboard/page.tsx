@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 import { apiGet } from '@/lib/api';
-import { TrialBalance, PlaidItem, RawTransaction } from '@/types';
+import { TrialBalance, PlaidItem, RawTransaction, Business } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -31,7 +32,7 @@ import {
   Info,
 } from 'lucide-react';
 
-/* ── Types ───────────────────────────────────────────────────────────────── */
+/* ── Types ──────────────────────────────────────────────────────────────────── */
 
 interface AnomalyFlag {
   journal_entry_id: string;
@@ -46,7 +47,15 @@ interface AnomalyResult {
   summary: string;
 }
 
-/* ── Data fetchers (server-side) ─────────────────────────────────────────── */
+/* ── Data fetchers (server-side) ─────────────────────────────────────────────── */
+
+async function getMyBusiness(): Promise<Business | null> {
+  try {
+    return await apiGet<Business>('/businesses/me');
+  } catch {
+    return null;
+  }
+}
 
 async function getTrialBalance(): Promise<TrialBalance | null> {
   try {
@@ -86,7 +95,7 @@ async function getAnomalies(): Promise<AnomalyResult | null> {
   }
 }
 
-/* ── Metric card helpers ─────────────────────────────────────────────────── */
+/* ── Metric card helpers ─────────────────────────────────────────────────────── */
 
 function deriveMetrics(tb: TrialBalance | null) {
   if (!tb) return { revenue: 0, expenses: 0, netIncome: 0 };
@@ -124,17 +133,24 @@ function severityBadgeClass(severity: AnomalyFlag['severity']) {
   return 'bg-blue-50 text-blue-600 border-blue-100';
 }
 
-/* ── Page ────────────────────────────────────────────────────────────────── */
+/* ── Page ────────────────────────────────────────────────────────────────────── */
 
 export default async function DashboardPage() {
   const { orgSlug } = await auth();
 
-  const [trialBalance, transactions, banks, anomalies] = await Promise.all([
+  // Fetch business first to check mode — parallel with other calls
+  const [business, trialBalance, transactions, banks, anomalies] = await Promise.all([
+    getMyBusiness(),
     getTrialBalance(),
     getRecentTransactions(),
     getConnectedBanks(),
     getAnomalies(),
   ]);
+
+  // Redirect freelancer users to the Freelancer dashboard
+  if (business?.mode === 'freelancer') {
+    redirect('/freelancer/dashboard');
+  }
 
   const { revenue, expenses, netIncome } = deriveMetrics(trialBalance);
   const pendingCount = transactions.filter((t) => t.status === 'pending').length;
@@ -212,10 +228,7 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle>Recent Transactions</CardTitle>
-              <a
-                href="/transactions"
-                className="text-xs text-primary hover:underline font-medium"
-              >
+              <a href="/transactions" className="text-xs text-primary hover:underline font-medium">
                 View all →
               </a>
             </CardHeader>
@@ -333,20 +346,13 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle>Connected Banks</CardTitle>
-              <a
-                href="/banks"
-                className="text-xs text-primary hover:underline font-medium"
-              >
+              <a href="/banks" className="text-xs text-primary hover:underline font-medium">
                 + Add
               </a>
             </CardHeader>
             <CardContent className="pt-0">
               {banks.length === 0 ? (
-                <EmptyState
-                  icon={Building2}
-                  message="No banks connected yet."
-                  compact
-                />
+                <EmptyState icon={Building2} message="No banks connected yet." compact />
               ) : (
                 <div className="flex flex-col gap-3">
                   {banks.map((bank) => (
@@ -364,9 +370,7 @@ export default async function DashboardPage() {
                             : 'Pending sync'}
                         </div>
                       </div>
-                      <Badge
-                        variant={bank.status === 'active' ? 'classified' : 'destructive'}
-                      >
+                      <Badge variant={bank.status === 'active' ? 'classified' : 'destructive'}>
                         {bank.status === 'active' ? 'Live' : 'Error'}
                       </Badge>
                     </div>
@@ -383,16 +387,8 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="flex flex-col gap-2">
-                <SummaryRow
-                  label="Revenue"
-                  value={formatCurrency(revenue)}
-                  valueClass="text-primary"
-                />
-                <SummaryRow
-                  label="Expenses"
-                  value={formatCurrency(expenses)}
-                  valueClass="text-danger"
-                />
+                <SummaryRow label="Revenue" value={formatCurrency(revenue)} valueClass="text-primary" />
+                <SummaryRow label="Expenses" value={formatCurrency(expenses)} valueClass="text-danger" />
                 <div className="h-px bg-gray-100 my-1" />
                 <SummaryRow
                   label="Net Income"
@@ -416,30 +412,19 @@ export default async function DashboardPage() {
   );
 }
 
-/* ── Sub-components ──────────────────────────────────────────────────────── */
+/* ── Sub-components ──────────────────────────────────────────────────────────── */
 
 function MetricCard({
-  label,
-  value,
-  icon: Icon,
-  iconColor,
-  iconBg,
-  sub,
+  label, value, icon: Icon, iconColor, iconBg, sub,
 }: {
-  label: string;
-  value: string;
-  icon: React.ElementType;
-  iconColor: string;
-  iconBg: string;
-  sub: string;
+  label: string; value: string; icon: React.ElementType;
+  iconColor: string; iconBg: string; sub: string;
 }) {
   return (
     <Card>
       <CardContent className="pt-5">
         <div className="flex items-start justify-between mb-3">
-          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-            {label}
-          </div>
+          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</div>
           <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center`}>
             <Icon className={`w-4 h-4 ${iconColor}`} />
           </div>
@@ -452,34 +437,22 @@ function MetricCard({
 }
 
 function SummaryRow({
-  label,
-  value,
-  valueClass,
-  bold,
+  label, value, valueClass, bold,
 }: {
-  label: string;
-  value: string;
-  valueClass: string;
-  bold?: boolean;
+  label: string; value: string; valueClass: string; bold?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between">
-      <span className={`text-sm ${bold ? 'font-medium text-gray-900' : 'text-gray-500'}`}>
-        {label}
-      </span>
+      <span className={`text-sm ${bold ? 'font-medium text-gray-900' : 'text-gray-500'}`}>{label}</span>
       <span className={`text-sm ${valueClass}`}>{value}</span>
     </div>
   );
 }
 
 function EmptyState({
-  icon: Icon,
-  message,
-  compact,
+  icon: Icon, message, compact,
 }: {
-  icon: React.ElementType;
-  message: string;
-  compact?: boolean;
+  icon: React.ElementType; message: string; compact?: boolean;
 }) {
   return (
     <div className={`flex flex-col items-center justify-center text-center ${compact ? 'py-4' : 'py-10'}`}>

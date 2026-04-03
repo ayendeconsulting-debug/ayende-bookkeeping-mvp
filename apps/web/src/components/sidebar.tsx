@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useOrganization } from '@clerk/nextjs';
 import { cn } from '@/lib/utils';
+import { BusinessMode } from '@/types';
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -21,7 +22,14 @@ import {
   ArrowRightLeft,
   RefreshCw,
   Users,
+  Car,
+  Calculator,
+  Tag,
 } from 'lucide-react';
+
+interface SidebarProps {
+  mode?: BusinessMode;
+}
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -48,7 +56,14 @@ const settingsItems = [
   { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
-export function Sidebar() {
+const freelancerItems = [
+  { href: '/freelancer/dashboard', label: 'FL Dashboard', icon: LayoutDashboard },
+  { href: '/freelancer/mileage', label: 'Mileage Tracker', icon: Car },
+  { href: '/freelancer/tax', label: 'Tax Estimate', icon: Calculator },
+  { href: '/freelancer/categories', label: 'Categories', icon: Tag },
+];
+
+export function Sidebar({ mode = 'business' }: SidebarProps) {
   const pathname = usePathname();
   const { organization } = useOrganization();
 
@@ -63,7 +78,9 @@ export function Sidebar() {
           </div>
           <div>
             <div className="text-sm font-semibold text-gray-900 leading-tight">Ayende</div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider leading-tight">Bookkeeping</div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider leading-tight">
+              {mode === 'freelancer' ? 'Freelancer' : mode === 'personal' ? 'Personal' : 'Bookkeeping'}
+            </div>
           </div>
         </div>
       </div>
@@ -84,6 +101,21 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-2 py-3 overflow-y-auto flex flex-col gap-0.5">
+        {/* Freelancer-specific section — shown only in Freelancer mode */}
+        {mode === 'freelancer' && (
+          <>
+            <NavSection label="Freelancer" />
+            {freelancerItems.map((item) => (
+              <NavItem
+                key={item.href}
+                {...item}
+                active={pathname === item.href || pathname.startsWith(item.href + '/')}
+              />
+            ))}
+          </>
+        )}
+
+        <NavSection label="Main" />
         {navItems.map((item) => (
           <NavItem
             key={item.href}
@@ -91,10 +123,12 @@ export function Sidebar() {
             active={pathname === item.href || pathname.startsWith(item.href + '/')}
           />
         ))}
+
         <NavSection label="Reports" />
         {reportItems.map((item) => (
           <NavItem key={item.href} {...item} active={pathname === item.href} />
         ))}
+
         <NavSection label="Settings" />
         {settingsItems.map((item) => (
           <NavItem key={item.href} {...item} active={pathname === item.href} />
@@ -112,15 +146,25 @@ function NavSection({ label }: { label: string }) {
   );
 }
 
-function NavItem({ href, label, icon: Icon, active }: {
-  href: string; label: string; icon: React.ElementType; active: boolean;
+function NavItem({
+  href,
+  label,
+  icon: Icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  active: boolean;
 }) {
   return (
     <Link
       href={href}
       className={cn(
         'flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors',
-        active ? 'bg-[#E1F5EE] text-[#0F6E56] font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+        active
+          ? 'bg-[#E1F5EE] text-[#0F6E56] font-medium'
+          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
       )}
     >
       <Icon className="w-4 h-4 flex-shrink-0" />

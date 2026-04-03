@@ -1,4 +1,4 @@
-/* ── Business & Auth ─────────────────────────────────────────────────────── */
+/* ── Business & Auth ─────────────────────────────────────────────────────────── */
 
 export type BusinessMode = 'business' | 'freelancer' | 'personal';
 
@@ -15,7 +15,7 @@ export interface Business {
   created_at: string;
 }
 
-/* ── Accounts ────────────────────────────────────────────────────────────── */
+/* ── Accounts ────────────────────────────────────────────────────────────────── */
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -42,7 +42,7 @@ export interface Account {
   created_at: string;
 }
 
-/* ── Transactions ────────────────────────────────────────────────────────── */
+/* ── Transactions ────────────────────────────────────────────────────────────── */
 
 export type TransactionSource = 'plaid' | 'csv' | 'pdf' | 'manual';
 export type TransactionStatus = 'pending' | 'classified' | 'posted' | 'ignored';
@@ -65,7 +65,7 @@ export interface RawTransaction {
   created_at: string;
 }
 
-/* ── Journal Entries ────────────────────────────────────────────────────── */
+/* ── Journal Entries ─────────────────────────────────────────────────────────── */
 
 export type JournalEntryStatus = 'draft' | 'posted' | 'locked';
 
@@ -90,7 +90,7 @@ export interface JournalEntry {
   created_at: string;
 }
 
-/* ── Tax Codes ───────────────────────────────────────────────────────────── */
+/* ── Tax Codes ───────────────────────────────────────────────────────────────── */
 
 export type TaxType = 'input' | 'output';
 
@@ -105,7 +105,7 @@ export interface TaxCode {
   is_active: boolean;
 }
 
-/* ── Plaid / Bank Connections ─────────────────────────────────────────────── */
+/* ── Plaid / Bank Connections ────────────────────────────────────────────────── */
 
 export type PlaidItemStatus = 'active' | 'error' | 'disconnected';
 
@@ -133,7 +133,7 @@ export interface PlaidAccount {
   currency_code: string;
 }
 
-/* ── Reports ─────────────────────────────────────────────────────────────── */
+/* ── Reports ─────────────────────────────────────────────────────────────────── */
 
 export interface ReportLine {
   account_id: string;
@@ -183,7 +183,7 @@ export interface TrialBalance {
   is_balanced: boolean;
 }
 
-/* ── Classification ─────────────────────────────────────────────────────── */
+/* ── Classification ──────────────────────────────────────────────────────────── */
 
 export interface ClassificationRule {
   id: string;
@@ -195,7 +195,7 @@ export interface ClassificationRule {
   is_active: boolean;
 }
 
-/* ── AI ──────────────────────────────────────────────────────────────────── */
+/* ── AI ──────────────────────────────────────────────────────────────────────── */
 
 export interface AiClassificationSuggestion {
   raw_transaction_id: string;
@@ -212,7 +212,7 @@ export interface ChatMessage {
   content: string;
 }
 
-/* ── Phase 5 — Invoices ──────────────────────────────────────────────────── */
+/* ── Phase 5 — Invoices ──────────────────────────────────────────────────────── */
 
 export type InvoiceStatus =
   | 'draft'
@@ -254,7 +254,7 @@ export interface Invoice {
   created_at: string;
 }
 
-/* ── Phase 5 — AR/AP ─────────────────────────────────────────────────────── */
+/* ── Phase 5 — AR/AP ─────────────────────────────────────────────────────────── */
 
 export type ArApType = 'receivable' | 'payable';
 export type ArApStatus = 'outstanding' | 'partially_paid' | 'paid' | 'overdue' | 'void';
@@ -274,7 +274,7 @@ export interface ArApRecord {
   created_at: string;
 }
 
-/* ── Phase 5 — Recurring Transactions ───────────────────────────────────── */
+/* ── Phase 5 — Recurring Transactions ───────────────────────────────────────── */
 
 export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annually';
 export type RecurringStatus = 'active' | 'paused' | 'completed' | 'cancelled';
@@ -297,7 +297,7 @@ export interface RecurringTransaction {
   created_at: string;
 }
 
-/* ── Phase 5 — Budget Categories ────────────────────────────────────────── */
+/* ── Phase 5 — Budget Categories ────────────────────────────────────────────── */
 
 export interface BudgetCategory {
   id: string;
@@ -311,7 +311,7 @@ export interface BudgetCategory {
   sort_order: number;
 }
 
-/* ── Phase 5 — Savings Goals ─────────────────────────────────────────────── */
+/* ── Phase 5 — Savings Goals ─────────────────────────────────────────────────── */
 
 export type SavingsGoalStatus = 'active' | 'paused' | 'completed';
 
@@ -327,7 +327,7 @@ export interface SavingsGoal {
   created_at: string;
 }
 
-/* ── Phase 5 — Mileage Logs ──────────────────────────────────────────────── */
+/* ── Phase 5 — Mileage Logs ──────────────────────────────────────────────────── */
 
 export interface MileageLog {
   id: string;
@@ -344,7 +344,14 @@ export interface MileageLog {
   created_at: string;
 }
 
-/* ── Phase 5 — Payment Reminders ─────────────────────────────────────────── */
+export interface MileageLogResult {
+  data: MileageLog[];
+  total_distance: number;
+  total_deduction: number;
+  unit: string;
+}
+
+/* ── Phase 5 — Payment Reminders ────────────────────────────────────────────── */
 
 export type PaymentReminderStatus = 'pending' | 'paid' | 'dismissed' | 'snoozed';
 
@@ -360,7 +367,29 @@ export interface PaymentReminder {
   created_at: string;
 }
 
-/* ── API Responses ───────────────────────────────────────────────────────── */
+/* ── Phase 5 — Tax Estimate ──────────────────────────────────────────────────── */
+
+export interface QuarterEstimate {
+  quarter: number;
+  label: string;
+  due_date: string;
+  start_date: string;
+  end_date: string;
+  net_income: number;
+  estimated_tax: number;
+  breakdown: Record<string, number>;
+}
+
+export interface TaxEstimateResult {
+  year: number;
+  country: string;
+  annual_net_income: number;
+  annual_estimated_tax: number;
+  quarters: QuarterEstimate[];
+  disclaimer: string;
+}
+
+/* ── API Responses ───────────────────────────────────────────────────────────── */
 
 export interface ApiError {
   message: string;

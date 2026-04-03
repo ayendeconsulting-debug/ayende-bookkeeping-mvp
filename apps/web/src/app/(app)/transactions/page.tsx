@@ -1,5 +1,5 @@
 import { apiGet } from '@/lib/api';
-import { Account, TaxCode, RawTransaction } from '@/types';
+import { Account, TaxCode, RawTransaction, Business, BusinessMode } from '@/types';
 import { TransactionInbox } from '@/components/transaction-inbox';
 
 interface PageProps {
@@ -13,13 +13,12 @@ interface PageProps {
 async function getTransactions(status?: string, search?: string, page?: string) {
   try {
     const limit = 20;
-    const offset = ((parseInt(page ?? '1') - 1) * limit);
+    const offset = (parseInt(page ?? '1') - 1) * limit;
     const params = new URLSearchParams();
     if (status && status !== 'all') params.set('status', status);
     if (search) params.set('search', search);
     params.set('limit', String(limit));
     params.set('offset', String(offset));
-
     return await apiGet<{ data: RawTransaction[]; total: number }>(
       `/classification/raw?${params.toString()}`,
     );
@@ -44,14 +43,23 @@ async function getTaxCodes() {
   }
 }
 
+async function getMyBusiness() {
+  try {
+    return await apiGet<Business>('/businesses/me');
+  } catch {
+    return null;
+  }
+}
+
 export default async function TransactionsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const { status, search, page } = params;
 
-  const [txResult, accounts, taxCodes] = await Promise.all([
+  const [txResult, accounts, taxCodes, business] = await Promise.all([
     getTransactions(status, search, page),
     getAccounts(),
     getTaxCodes(),
+    getMyBusiness(),
   ]);
 
   return (
@@ -63,6 +71,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       currentStatus={status ?? 'all'}
       currentSearch={search ?? ''}
       currentPage={parseInt(page ?? '1')}
+      mode={(business?.mode ?? 'business') as BusinessMode}
     />
   );
 }

@@ -15,6 +15,7 @@ import { InvoiceModule } from './invoice/invoice.module';
 import { RecurringModule } from './recurring/recurring.module';
 import { DocumentsModule } from './documents/documents.module';
 import { CurrencyModule } from './currency/currency.module';
+import { FreelancerModule } from './freelancer/freelancer.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { HealthController } from './health.controller';
@@ -55,6 +56,7 @@ function getRedisBullMQConnection() {
     InvoiceModule,
     RecurringModule,
     DocumentsModule,
+    FreelancerModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

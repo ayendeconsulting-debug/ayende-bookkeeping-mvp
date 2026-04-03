@@ -26,11 +26,9 @@ import { Roles } from '../../auth/roles.decorator';
 export class ClassificationController {
   constructor(private readonly classificationService: ClassificationService) {}
 
-  // ── Raw Transactions — all roles ─────────────────────────────────────────
+  // ── Raw Transactions — all roles ──────────────────────────────────────
 
-  /**
-   * GET /classification/raw — all roles
-   */
+  /** GET /classification/raw — all roles */
   @Get('raw')
   getRawTransactions(
     @Req() req: Request,
@@ -51,7 +49,22 @@ export class ClassificationController {
     });
   }
 
-  // ── Rules ─────────────────────────────────────────────────────────────────
+  /** PATCH /classification/raw/:id/tag — admin only (Freelancer: tag as personal/business) */
+  @Roles('admin')
+  @Patch('raw/:id/tag')
+  tagTransaction(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() body: { is_personal: boolean },
+  ) {
+    return this.classificationService.tagTransaction(
+      req.user!.businessId,
+      id,
+      body.is_personal,
+    );
+  }
+
+  // ── Rules ──────────────────────────────────────────────────────────────
 
   /** POST /classification/rules — admin only */
   @Roles('admin')
@@ -85,7 +98,7 @@ export class ClassificationController {
     return this.classificationService.deactivateRule(req.user!.businessId, id);
   }
 
-  // ── Classification & Posting — admin only ─────────────────────────────────
+  // ── Classification & Posting — admin only ─────────────────────────────
 
   /** POST /classification/classify — admin only */
   @Roles('admin')
@@ -112,7 +125,7 @@ export class ClassificationController {
     );
   }
 
-  // ── Owner Equity — admin only ─────────────────────────────────────────────
+  // ── Owner Equity — admin only ─────────────────────────────────────────
 
   /** POST /classification/owner-contribution — admin only */
   @Roles('admin')
