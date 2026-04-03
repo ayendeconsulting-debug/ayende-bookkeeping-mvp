@@ -1,7 +1,7 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+ï»¿import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
 /**
- * Public routes — no authentication required.
+ * Public routes - no authentication required.
  * Everything else is protected by Clerk.
  */
 const isPublicRoute = createRouteMatcher([
