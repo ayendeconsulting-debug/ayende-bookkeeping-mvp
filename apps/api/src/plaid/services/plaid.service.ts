@@ -4,11 +4,14 @@ import {
   BadRequestException,
   NotFoundException,
   InternalServerErrorException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { createHash } from 'crypto';
+import { importJWK, jwtVerify, decodeProtectedHeader } from 'jose';
 import {
   Configuration,
   PlaidApi,
@@ -31,6 +34,9 @@ import { encryptToken, decryptToken } from './encryption.util';
 export class PlaidService {
   private readonly logger = new Logger(PlaidService.name);
   private readonly plaidClient: PlaidApi;
+
+  /** In-memory JWK cache — keys are rotated rarely; cache indefinitely per kid */
+  private readonly jwkCache = new Map<string, any>();
 
   constructor(
     @InjectRepository(PlaidItem)
@@ -65,12 +71,8 @@ export class PlaidService {
     this.plaidClient = new PlaidApi(config);
   }
 
-  // ─── LINK TOKEN ─────────────────────────────────────────────────────────────
+  // ─── LINK TOKEN ──────────────────────────────────────────────────────────
 
-  /**
-   * Creates a Plaid Link token for the given tenant.
-   * The frontend uses this token to open Plaid Link.
-   */
   async createLinkToken(businessId: string, userId: string): Promise<string> {
     try {
       const response = await this.plaidClient.linkTokenCreate({
@@ -88,18 +90,12 @@ export class PlaidService {
     }
   }
 
-  // ─── TOKEN EXCHANGE ──────────────────────────────────────────────────────────
+  // ─── TOKEN EXCHANGE ──────────────────────────────────────────────────────
 
-  /**
-   * Exchanges the public_token from Plaid Link for a permanent access_token.
-   * Stores the item and fetches initial accounts.
-   * Creates a sync cursor record (null cursor = full initial sync needed).
-   */
   async exchangeToken(
     businessId: string,
     dto: ExchangeTokenDto,
   ): Promise<PlaidItem> {
-    // Exchange public token
     let exchangeResponse;
     try {
       exchangeResponse = await this.plaidClient.itemPublicTokenExchange({
@@ -112,17 +108,14 @@ export class PlaidService {
 
     const { access_token, item_id } = exchangeResponse.data;
 
-    // Check for duplicate item_id (same bank already connected)
     const existing = await this.plaidItemRepo.findOne({ where: { item_id } });
     if (existing && !existing.is_deleted) {
       throw new BadRequestException('This bank account is already connected.');
     }
 
-    // Encrypt before storing — never store plaintext access_token
     const access_token_encrypted = encryptToken(access_token);
 
     return this.dataSource.transaction(async (manager) => {
-      // Save PlaidItem
       const plaidItem = manager.create(PlaidItem, {
         business_id: businessId,
         item_id,
@@ -133,17 +126,14 @@ export class PlaidService {
       });
       const savedItem = await manager.save(PlaidItem, plaidItem);
 
-      // Create sync cursor record (null cursor triggers full initial sync)
       const cursor = manager.create(PlaidSyncCursor, {
         plaid_item_id: savedItem.id,
         cursor: null,
       });
       await manager.save(PlaidSyncCursor, cursor);
 
-      // Fetch and save accounts for this item
       await this.fetchAndSaveAccounts(manager, savedItem, access_token);
 
-      // Queue initial transaction sync
       const job = await this.plaidSyncQueue.add(
         'sync-transactions',
         { plaidItemId: savedItem.id },
@@ -155,7 +145,7 @@ export class PlaidService {
     });
   }
 
-  // ─── ACCOUNTS ───────────────────────────────────────────────────────────────
+  // ─── ACCOUNTS ────────────────────────────────────────────────────────────
 
   private async fetchAndSaveAccounts(
     manager: any,
@@ -187,7 +177,6 @@ export class PlaidService {
       }
     } catch (error) {
       this.logger.error('Failed to fetch accounts', error?.response?.data);
-      // Don't throw — item is saved, accounts can be retried
     }
   }
 
@@ -207,7 +196,7 @@ export class PlaidService {
     });
   }
 
-  // ─── CONNECTED ITEMS ────────────────────────────────────────────────────────
+  // ─── CONNECTED ITEMS ─────────────────────────────────────────────────────
 
   async getItemsForBusiness(businessId: string): Promise<PlaidItem[]> {
     return this.plaidItemRepo.find({
@@ -221,26 +210,20 @@ export class PlaidService {
     const plaidItem = await this.plaidItemRepo.findOne({
       where: { id: itemId, business_id: businessId, is_deleted: false },
     });
-    if (!plaidItem) {
-      throw new NotFoundException('Plaid item not found');
-    }
+    if (!plaidItem) throw new NotFoundException('Plaid item not found');
 
-    // Revoke access token with Plaid
     try {
       const access_token = decryptToken(plaidItem.access_token_encrypted);
       await this.plaidClient.itemRemove({ access_token });
     } catch (error) {
-      // Log but don't block — still mark as deleted locally
       this.logger.warn(`Failed to revoke Plaid token for item ${itemId}`, error?.response?.data);
     }
 
-    // Soft delete
     plaidItem.is_deleted = true;
     plaidItem.deleted_at = new Date();
     plaidItem.status = PlaidItemStatus.REVOKED;
     await this.plaidItemRepo.save(plaidItem);
 
-    // Deactivate accounts
     await this.plaidAccountRepo.update(
       { plaid_item_id: itemId },
       { is_active: false },
@@ -249,21 +232,84 @@ export class PlaidService {
     this.logger.log(`Disconnected Plaid item ${itemId} for business ${businessId}`);
   }
 
-  // ─── WEBHOOK HANDLING ───────────────────────────────────────────────────────
+  // ─── WEBHOOK SIGNATURE VERIFICATION ─────────────────────────────────────
+
+  /**
+   * Verifies the Plaid-Verification JWT header.
+   *
+   * Production: always required. Sandbox: optional (Plaid omits it for
+   * manually-triggered test events but sends it for real webhook traffic).
+   *
+   * Steps:
+   *  1. Decode JWT header → extract kid + alg
+   *  2. Fetch JWK from Plaid (cached per kid)
+   *  3. Verify JWT signature using jose
+   *  4. Compare request_body_sha256 claim against SHA-256(rawBody)
+   */
+  async verifyWebhookSignature(rawBody: string, signature: string): Promise<void> {
+    const isSandbox = (process.env.PLAID_ENV || 'sandbox') === 'sandbox';
+
+    if (!signature) {
+      if (isSandbox) {
+        // Sandbox: allow through if no signature header
+        return;
+      }
+      throw new UnauthorizedException('Missing Plaid-Verification header');
+    }
+
+    try {
+      // Step 1: decode header without verifying to get key ID and algorithm
+      const header = decodeProtectedHeader(signature);
+      const kid = header.kid as string;
+      const alg = (header.alg as string) || 'ES256';
+
+      if (!kid) throw new Error('Missing kid in JWT header');
+
+      // Step 2: fetch JWK from cache or from Plaid
+      let jwk = this.jwkCache.get(kid);
+      if (!jwk) {
+        const response = await this.plaidClient.webhookVerificationKeyGet({ key_id: kid });
+        jwk = response.data.key;
+        this.jwkCache.set(kid, jwk);
+        this.logger.debug(`Cached new Plaid JWK for kid=${kid}`);
+      }
+
+      // Step 3: import JWK as CryptoKey and verify JWT signature
+      const publicKey = await importJWK(jwk, alg);
+      const { payload } = await jwtVerify(signature, publicKey);
+
+      // Step 4: verify body hash
+      const bodyHash = createHash('sha256').update(rawBody, 'utf8').digest('hex');
+      const claimedHash = (payload as any).request_body_sha256 as string;
+
+      if (!claimedHash || claimedHash !== bodyHash) {
+        throw new Error('request_body_sha256 mismatch — possible replay or tampering');
+      }
+
+    } catch (err: any) {
+      // Re-throw if already a NestJS HTTP exception
+      if (err?.status === 401) throw err;
+      this.logger.error('Webhook signature verification failed', err?.message);
+      throw new UnauthorizedException('Invalid Plaid webhook signature');
+    }
+  }
+
+  // ─── WEBHOOK HANDLING ────────────────────────────────────────────────────
 
   async handleWebhook(
     payload: Record<string, any>,
     rawBody: string,
     signature: string,
   ): Promise<void> {
+    // Verify signature before any database operations
+    await this.verifyWebhookSignature(rawBody, signature);
+
     const { webhook_type, webhook_code, item_id } = payload;
 
-    // Resolve business_id from item_id
     const plaidItem = item_id
       ? await this.plaidItemRepo.findOne({ where: { item_id } })
       : null;
 
-    // Log the webhook — always, regardless of whether we process it
     const webhookLog = this.webhookLogRepo.create({
       item_id,
       business_id: plaidItem?.business_id || null,
@@ -274,7 +320,6 @@ export class PlaidService {
     });
     const savedLog = await this.webhookLogRepo.save(webhookLog);
 
-    // Route by type
     if (webhook_type === 'TRANSACTIONS' && webhook_code === 'SYNC_UPDATES_AVAILABLE') {
       if (!plaidItem || plaidItem.is_deleted) {
         savedLog.status = WebhookProcessingStatus.IGNORED;
@@ -312,19 +357,13 @@ export class PlaidService {
       await this.webhookLogRepo.save(savedLog);
 
     } else {
-      // Unhandled webhook type — logged but not acted on
       savedLog.status = WebhookProcessingStatus.IGNORED;
       await this.webhookLogRepo.save(savedLog);
     }
   }
 
-  // ─── TRANSACTION SYNC ───────────────────────────────────────────────────────
+  // ─── TRANSACTION SYNC ────────────────────────────────────────────────────
 
-  /**
-   * Called by PlaidSyncProcessor (BullMQ worker).
-   * Fetches all new/modified/removed transactions since the last cursor.
-   * Uses /transactions/sync for incremental updates.
-   */
   async syncTransactions(plaidItemId: string): Promise<{
     added: number;
     modified: number;
@@ -333,9 +372,7 @@ export class PlaidService {
     const plaidItem = await this.plaidItemRepo.findOne({
       where: { id: plaidItemId, is_deleted: false },
     });
-    if (!plaidItem) {
-      throw new NotFoundException(`Plaid item ${plaidItemId} not found`);
-    }
+    if (!plaidItem) throw new NotFoundException(`Plaid item ${plaidItemId} not found`);
 
     const access_token = decryptToken(plaidItem.access_token_encrypted);
 
@@ -350,7 +387,6 @@ export class PlaidService {
     const allModified: Transaction[] = [];
     const allRemoved: RemovedTransaction[] = [];
 
-    // Paginate through all pages until hasMore = false
     while (hasMore) {
       const response = await this.plaidClient.transactionsSync({
         access_token,
@@ -367,9 +403,7 @@ export class PlaidService {
       hasMore = has_more;
     }
 
-    // Persist in a single transaction
     await this.dataSource.transaction(async (manager) => {
-      // Insert new transactions (skip duplicates by plaid_transaction_id)
       for (const tx of allAdded) {
         const exists = await manager.findOne(RawTransaction, {
           where: { plaid_transaction_id: tx.transaction_id },
@@ -393,7 +427,6 @@ export class PlaidService {
         await manager.save(RawTransaction, raw);
       }
 
-      // Handle modified transactions
       for (const tx of allModified) {
         await manager.update(
           RawTransaction,
@@ -407,7 +440,6 @@ export class PlaidService {
         );
       }
 
-      // Handle removed transactions (mark as ignored — never delete)
       for (const tx of allRemoved) {
         await manager.update(
           RawTransaction,
@@ -416,7 +448,6 @@ export class PlaidService {
         );
       }
 
-      // Update cursor
       if (cursorRecord) {
         cursorRecord.cursor = cursor;
         cursorRecord.last_synced_at = new Date();

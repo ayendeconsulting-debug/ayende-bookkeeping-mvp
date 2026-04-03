@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
@@ -45,6 +46,8 @@ function getRedisBullMQConnection() {
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     BullModule.forRoot({ connection: getRedisBullMQConnection() }),
+    // Rate limiting: 100 requests per IP per 60 seconds globally
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     AuthModule,
     BusinessesModule,
     CurrencyModule,
@@ -63,6 +66,7 @@ function getRedisBullMQConnection() {
     AppService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}
