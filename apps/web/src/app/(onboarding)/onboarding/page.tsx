@@ -178,7 +178,7 @@ export default function OnboardingPage() {
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#0F6E56] text-white text-xl font-bold mb-3">
             A
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome to Ayende CX</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Welcome to Ayende Bookkeeping</h1>
           <p className="text-gray-500 mt-1 text-sm">Let's set up your account in a few steps.</p>
         </div>
 
@@ -188,7 +188,7 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="flex flex-col gap-6">
             <div>
-              <h2 className="text-base font-semibold text-gray-700 mb-3">How will you use Ayende CX?</h2>
+              <h2 className="text-base font-semibold text-gray-700 mb-3">How will you use Ayende Bookkeeping?</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {MODE_CARDS.map((card) => {
                   const isSelected = selectedMode === card.id;

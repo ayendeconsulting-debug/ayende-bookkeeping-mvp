@@ -96,8 +96,8 @@ export class BusinessesService {
       const acc = this.accountRepo.create();
       Object.assign(acc, {
         business_id: businessId,
-        account_code: seed.code,
-        account_name: seed.name,
+        code: seed.code,
+        name: seed.name,
         account_type: seed.type,
         is_active: true,
         ...(seed.subtype ? { account_subtype: seed.subtype } : {}),

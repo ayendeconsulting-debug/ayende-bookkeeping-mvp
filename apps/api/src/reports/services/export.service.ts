@@ -25,7 +25,7 @@ export class ExportService {
       doc.on('error', reject);
 
       // Header
-      doc.fontSize(18).font('Helvetica-Bold').text('AYENDE CX Bookkeeping', { align: 'center' });
+      doc.fontSize(18).font('Helvetica-Bold').text('Ayende Bookkeeping Bookkeeping', { align: 'center' });
       doc.fontSize(13).font('Helvetica').text(businessName, { align: 'center' });
       doc.fontSize(11).text(this.getReportTitle(reportType), { align: 'center' });
       doc.fontSize(9).text(`Generated: ${new Date().toLocaleString('en-CA')}`, { align: 'center' });

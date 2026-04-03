@@ -1,7 +1,7 @@
 import { toast } from 'sonner';
 
 /**
- * Ayende CX toast helpers.
+ * Ayende Bookkeeping toast helpers.
  *
  * Wraps sonner with consistent duration and style so all components
  * import one function instead of configuring toast options individually.

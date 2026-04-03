@@ -119,7 +119,7 @@ export function InvoiceManager({
   }
 
   function handleDownloadPdf(invoice: Invoice) {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+    const apiUrl = process.env.API_URL || 'http://localhost:3005';
     window.open(`${apiUrl}/invoices/${invoice.id}/pdf`, '_blank');
   }
 

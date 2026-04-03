@@ -33,7 +33,7 @@ async function bootstrap() {
   // Railway injects PORT automatically — fallback to 3005 for local dev
   const port = process.env.PORT || 3005;
   await app.listen(port);
-  console.log(`Ayende CX Bookkeeping API running on port ${port}`);
+  console.log(`Ayende Bookkeeping Bookkeeping API running on port ${port}`);
 }
 
 bootstrap();

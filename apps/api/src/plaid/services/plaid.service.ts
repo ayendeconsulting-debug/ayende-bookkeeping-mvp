@@ -11,7 +11,6 @@ import { Repository, DataSource } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { createHash } from 'crypto';
-import { importJWK, jwtVerify, decodeProtectedHeader } from 'jose';
 import {
   Configuration,
   PlaidApi,
@@ -258,6 +257,9 @@ export class PlaidService {
     }
 
     try {
+      // Dynamic import — jose is ESM-only, cannot be require()'d in CommonJS
+      const { importJWK, jwtVerify, decodeProtectedHeader } = await import('jose');
+
       // Step 1: decode header without verifying to get key ID and algorithm
       const header = decodeProtectedHeader(signature);
       const kid = header.kid as string;

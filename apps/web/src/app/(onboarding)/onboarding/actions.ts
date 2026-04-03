@@ -3,7 +3,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+const API_URL = process.env.API_URL || 'http://localhost:3005';
 
 async function getAuthHeaders() {
   const { getToken } = await auth();

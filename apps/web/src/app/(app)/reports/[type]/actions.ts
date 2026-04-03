@@ -35,7 +35,7 @@ export async function downloadReport(
     const { getToken } = await auth();
     const token = await getToken();
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+    const apiUrl = process.env.API_URL || 'http://localhost:3005';
     const response = await fetch(
       `${apiUrl}/reports/export/${type}/${format}?${query}`,
       {

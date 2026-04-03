@@ -5,7 +5,7 @@ import { Sidebar } from '@/components/sidebar';
 import { AiChatWidget } from '@/components/ai-chat-widget';
 import { BusinessMode } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3005';
+const API_URL = process.env.API_URL || 'http://localhost:3005';
 
 /**
  * Provisions the business record in the DB for the Clerk org.
