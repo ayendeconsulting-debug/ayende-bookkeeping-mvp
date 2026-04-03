@@ -208,7 +208,7 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
       )}
 
       <p className="text-xs text-gray-400 text-center mt-6">
-        Bank connections are powered by Plaid. Ayende never stores your banking credentials.
+        Bank connections are powered by Plaid. Tempo never stores your banking credentials.
       </p>
     </div>
   );

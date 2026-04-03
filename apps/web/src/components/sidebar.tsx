@@ -18,7 +18,6 @@ interface SidebarProps {
   onClose?:      () => void;
 }
 
-// ── Business Mode nav ──────────────────────────────────────────────────────
 const businessNavItems = [
   { href: '/dashboard',    label: 'Dashboard',     icon: LayoutDashboard },
   { href: '/transactions', label: 'Transactions',  icon: ArrowLeftRight },
@@ -42,7 +41,6 @@ const businessSettingsItems = [
   { href: '/settings',  label: 'Settings',             icon: Settings },
 ];
 
-// ── Freelancer Mode nav ────────────────────────────────────────────────────
 const freelancerItems = [
   { href: '/freelancer/dashboard',  label: 'Dashboard',       icon: LayoutDashboard },
   { href: '/freelancer/mileage',    label: 'Mileage Tracker', icon: Car },
@@ -60,7 +58,6 @@ const freelancerSettingsItems = [
   { href: '/settings',  label: 'Settings',     icon: Settings },
 ];
 
-// ── Personal Mode nav ──────────────────────────────────────────────────────
 const personalItems = [
   { href: '/personal/dashboard',  label: 'My Dashboard',      icon: LayoutDashboard },
   { href: '/personal/budget',     label: 'Budget',             icon: PieChart },
@@ -83,7 +80,6 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
 
   return (
     <>
-      {/* Mobile backdrop */}
       {isMobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
@@ -100,22 +96,23 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
             : 'hidden md:flex',
         )}
       >
-        {/* Logo */}
+        {/* Logo — Tempo rising bars mark */}
         <div className="px-4 py-5 border-b border-border relative">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-md bg-[#0F6E56] flex items-center justify-center flex-shrink-0">
-              <svg viewBox="0 0 16 16" fill="white" className="w-4 h-4">
-                <path d="M2 12 L8 4 L14 12 Z" />
+              <svg viewBox="0 0 16 16" className="w-4 h-4">
+                <rect x="1"   y="10" width="3" height="5"  rx="0.5" fill="white" opacity="0.5"/>
+                <rect x="6.5" y="7"  width="3" height="8"  rx="0.5" fill="white" opacity="0.75"/>
+                <rect x="12"  y="3"  width="3" height="12" rx="0.5" fill="white"/>
               </svg>
             </div>
             <div>
-              <div className="text-sm font-semibold text-foreground leading-tight">Ayende</div>
+              <div className="text-sm font-semibold text-foreground leading-tight">Tempo</div>
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider leading-tight">
                 {mode === 'freelancer' ? 'Freelancer' : mode === 'personal' ? 'Personal' : 'Bookkeeping'}
               </div>
             </div>
           </div>
-          {/* Close button — mobile only */}
           <button
             onClick={onClose}
             className="md:hidden absolute top-3 right-3 w-8 h-8 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-md hover:bg-accent transition-colors"
@@ -125,10 +122,8 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
           </button>
         </div>
 
-        {/* Business switcher — replaces static org button */}
         <BusinessSwitcher />
 
-        {/* Nav */}
         <nav className="flex-1 px-2 py-3 overflow-y-auto flex flex-col gap-0.5">
 
           {mode === 'personal' && (

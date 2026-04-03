@@ -11,7 +11,7 @@ export class HealthController {
     return {
       status: 'ok',
       timestamp: new Date().toISOString(),
-      service: 'Ayende Bookkeeping API',
+      service: 'Tempo Bookkeeping API',
     };
   }
 }

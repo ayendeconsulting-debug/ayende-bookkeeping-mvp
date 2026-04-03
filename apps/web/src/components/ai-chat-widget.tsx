@@ -10,7 +10,7 @@ import { sendChatMessage } from '@/lib/ai-actions';
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
   content:
-    "Hi! I'm your Ayende AI assistant. Ask me anything about your books — transactions, reports, tax codes, or general accounting questions.",
+    "Hi! I'm your Tempo AI assistant. Ask me anything about your books — transactions, reports, tax codes, or general accounting questions.",
 };
 
 function MarkdownMessage({ content }: { content: string }) {
@@ -42,11 +42,11 @@ function MarkdownMessage({ content }: { content: string }) {
 }
 
 export function AiChatWidget() {
-  const [open, setOpen]       = useState(false);
+  const [open, setOpen]         = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
-  const [input, setInput]     = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [input, setInput]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
 
@@ -89,7 +89,6 @@ export function AiChatWidget() {
 
   return (
     <>
-      {/* FAB trigger — min touch target 44px */}
       <button
         onClick={() => setOpen((v) => !v)}
         className={cn(
@@ -106,18 +105,15 @@ export function AiChatWidget() {
 
       {open && (
         <div className={cn(
-          // Mobile: near full-width, fixed margins each side
-          // Desktop (sm+): fixed 380px width
           'fixed bottom-24 right-4 sm:right-6 z-50',
           'w-[calc(100vw-2rem)] sm:w-[380px]',
           'h-[480px] sm:h-[520px]',
           'bg-card rounded-xl border border-border flex flex-col overflow-hidden',
         )}>
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-[#0F6E56] text-white flex-shrink-0">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
-              <span className="text-sm font-semibold">AI Assistant</span>
+              <span className="text-sm font-semibold">Tempo AI</span>
             </div>
             <div className="flex items-center gap-3">
               <button
@@ -126,13 +122,15 @@ export function AiChatWidget() {
               >
                 Clear
               </button>
-              <button onClick={() => setOpen(false)} className="text-white/70 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2">
+              <button
+                onClick={() => setOpen(false)}
+                className="text-white/70 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3">
             {messages.map((msg, i) => (
               <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
@@ -161,7 +159,6 @@ export function AiChatWidget() {
             <div ref={bottomRef} />
           </div>
 
-          {/* Input */}
           <div className="px-3 py-3 border-t border-border flex-shrink-0">
             <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border border-border focus-within:border-[#0F6E56] transition-colors">
               <input

@@ -63,7 +63,7 @@ export class PlaidService {
       baseOptions: {
         headers: {
           'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
-          'PLAID-SECRET': process.env.PLAID_SECRET,
+          'PLAID-SECRET':    process.env.PLAID_SECRET,
         },
       },
     });
@@ -76,7 +76,7 @@ export class PlaidService {
     try {
       const response = await this.plaidClient.linkTokenCreate({
         user: { client_user_id: userId },
-        client_name: 'Ayende CX Bookkeeping',
+        client_name: 'Tempo Bookkeeping',
         products: [Products.Transactions],
         country_codes: [CountryCode.Us, CountryCode.Ca],
         language: 'en',
@@ -89,12 +89,9 @@ export class PlaidService {
     }
   }
 
-  // ─── TOKEN EXCHANGE ──────────────────────────────────────────────────────
+  // ─── TOKEN EXCHANGE ───────────────────────────────────────────────────────
 
-  async exchangeToken(
-    businessId: string,
-    dto: ExchangeTokenDto,
-  ): Promise<PlaidItem> {
+  async exchangeToken(businessId: string, dto: ExchangeTokenDto): Promise<PlaidItem> {
     let exchangeResponse;
     try {
       exchangeResponse = await this.plaidClient.itemPublicTokenExchange({
@@ -119,7 +116,7 @@ export class PlaidService {
         business_id: businessId,
         item_id,
         access_token_encrypted,
-        institution_id: dto.institution_id,
+        institution_id:   dto.institution_id,
         institution_name: dto.institution_name,
         status: PlaidItemStatus.ACTIVE,
       });
@@ -162,13 +159,13 @@ export class PlaidService {
         if (!existing) {
           const entity = manager.create(PlaidAccount, {
             plaid_item_id: plaidItem.id,
-            business_id: plaidItem.business_id,
-            account_id: account.account_id,
-            name: account.name,
+            business_id:   plaidItem.business_id,
+            account_id:    account.account_id,
+            name:          account.name,
             official_name: account.official_name,
-            type: account.type as any,
-            subtype: account.subtype,
-            mask: account.mask,
+            type:          account.type as any,
+            subtype:       account.subtype,
+            mask:          account.mask,
             iso_currency_code: account.balances?.iso_currency_code || 'USD',
           });
           await manager.save(PlaidAccount, entity);
@@ -186,10 +183,7 @@ export class PlaidService {
     });
   }
 
-  async getAccountsForItem(
-    plaidItemId: string,
-    businessId: string,
-  ): Promise<PlaidAccount[]> {
+  async getAccountsForItem(plaidItemId: string, businessId: string): Promise<PlaidAccount[]> {
     return this.plaidAccountRepo.find({
       where: { plaid_item_id: plaidItemId, business_id: businessId, is_active: true },
     });
@@ -220,7 +214,7 @@ export class PlaidService {
 
     plaidItem.is_deleted = true;
     plaidItem.deleted_at = new Date();
-    plaidItem.status = PlaidItemStatus.REVOKED;
+    plaidItem.status     = PlaidItemStatus.REVOKED;
     await this.plaidItemRepo.save(plaidItem);
 
     await this.plaidAccountRepo.update(
@@ -231,43 +225,25 @@ export class PlaidService {
     this.logger.log(`Disconnected Plaid item ${itemId} for business ${businessId}`);
   }
 
-  // ─── WEBHOOK SIGNATURE VERIFICATION ─────────────────────────────────────
+  // ─── WEBHOOK SIGNATURE VERIFICATION ──────────────────────────────────────
 
-  /**
-   * Verifies the Plaid-Verification JWT header.
-   *
-   * Production: always required. Sandbox: optional (Plaid omits it for
-   * manually-triggered test events but sends it for real webhook traffic).
-   *
-   * Steps:
-   *  1. Decode JWT header → extract kid + alg
-   *  2. Fetch JWK from Plaid (cached per kid)
-   *  3. Verify JWT signature using jose
-   *  4. Compare request_body_sha256 claim against SHA-256(rawBody)
-   */
   async verifyWebhookSignature(rawBody: string, signature: string): Promise<void> {
     const isSandbox = (process.env.PLAID_ENV || 'sandbox') === 'sandbox';
 
     if (!signature) {
-      if (isSandbox) {
-        // Sandbox: allow through if no signature header
-        return;
-      }
+      if (isSandbox) return;
       throw new UnauthorizedException('Missing Plaid-Verification header');
     }
 
     try {
-      // Dynamic import � jose is ESM-only, cannot be require()'d in CommonJS
       const { importJWK, jwtVerify, decodeProtectedHeader } = await import('jose');
 
-      // Step 1: decode header without verifying to get key ID and algorithm
       const header = decodeProtectedHeader(signature);
-      const kid = header.kid as string;
-      const alg = (header.alg as string) || 'ES256';
+      const kid    = header.kid as string;
+      const alg    = (header.alg as string) || 'ES256';
 
       if (!kid) throw new Error('Missing kid in JWT header');
 
-      // Step 2: fetch JWK from cache or from Plaid
       let jwk = this.jwkCache.get(kid);
       if (!jwk) {
         const response = await this.plaidClient.webhookVerificationKeyGet({ key_id: kid });
@@ -276,20 +252,15 @@ export class PlaidService {
         this.logger.debug(`Cached new Plaid JWK for kid=${kid}`);
       }
 
-      // Step 3: import JWK as CryptoKey and verify JWT signature
-      const publicKey = await importJWK(jwk, alg);
-      const { payload } = await jwtVerify(signature, publicKey);
-
-      // Step 4: verify body hash
-      const bodyHash = createHash('sha256').update(rawBody, 'utf8').digest('hex');
-      const claimedHash = (payload as any).request_body_sha256 as string;
+      const publicKey      = await importJWK(jwk, alg);
+      const { payload }    = await jwtVerify(signature, publicKey);
+      const bodyHash       = createHash('sha256').update(rawBody, 'utf8').digest('hex');
+      const claimedHash    = (payload as any).request_body_sha256 as string;
 
       if (!claimedHash || claimedHash !== bodyHash) {
         throw new Error('request_body_sha256 mismatch — possible replay or tampering');
       }
-
     } catch (err: any) {
-      // Re-throw if already a NestJS HTTP exception
       if (err?.status === 401) throw err;
       this.logger.error('Webhook signature verification failed', err?.message);
       throw new UnauthorizedException('Invalid Plaid webhook signature');
@@ -303,7 +274,6 @@ export class PlaidService {
     rawBody: string,
     signature: string,
   ): Promise<void> {
-    // Verify signature before any database operations
     await this.verifyWebhookSignature(rawBody, signature);
 
     const { webhook_type, webhook_code, item_id } = payload;
@@ -314,7 +284,7 @@ export class PlaidService {
 
     const webhookLog = this.webhookLogRepo.create({
       item_id,
-      business_id: plaidItem?.business_id || null,
+      business_id:   plaidItem?.business_id || null,
       webhook_type,
       webhook_code,
       payload,
@@ -350,8 +320,8 @@ export class PlaidService {
 
     } else if (webhook_type === 'ITEM' && webhook_code === 'ERROR') {
       if (plaidItem) {
-        plaidItem.status = PlaidItemStatus.ERROR;
-        plaidItem.error_code = payload.error?.error_code;
+        plaidItem.status        = PlaidItemStatus.ERROR;
+        plaidItem.error_code    = payload.error?.error_code;
         plaidItem.error_message = payload.error?.error_message;
         await this.plaidItemRepo.save(plaidItem);
       }
@@ -366,28 +336,20 @@ export class PlaidService {
 
   // ─── TRANSACTION SYNC ────────────────────────────────────────────────────
 
-  async syncTransactions(plaidItemId: string): Promise<{
-    added: number;
-    modified: number;
-    removed: number;
-  }> {
+  async syncTransactions(plaidItemId: string): Promise<{ added: number; modified: number; removed: number }> {
     const plaidItem = await this.plaidItemRepo.findOne({
       where: { id: plaidItemId, is_deleted: false },
     });
     if (!plaidItem) throw new NotFoundException(`Plaid item ${plaidItemId} not found`);
 
-    const access_token = decryptToken(plaidItem.access_token_encrypted);
+    const access_token  = decryptToken(plaidItem.access_token_encrypted);
+    const cursorRecord  = await this.plaidSyncCursorRepo.findOne({ where: { plaid_item_id: plaidItemId } });
+    let cursor          = cursorRecord?.cursor || undefined;
+    let hasMore         = true;
 
-    const cursorRecord = await this.plaidSyncCursorRepo.findOne({
-      where: { plaid_item_id: plaidItemId },
-    });
-
-    let cursor = cursorRecord?.cursor || undefined;
-    let hasMore = true;
-
-    const allAdded: Transaction[] = [];
-    const allModified: Transaction[] = [];
-    const allRemoved: RemovedTransaction[] = [];
+    const allAdded:    Transaction[]        = [];
+    const allModified: Transaction[]        = [];
+    const allRemoved:  RemovedTransaction[] = [];
 
     while (hasMore) {
       const response = await this.plaidClient.transactionsSync({
@@ -401,7 +363,7 @@ export class PlaidService {
       allAdded.push(...added);
       allModified.push(...modified);
       allRemoved.push(...removed);
-      cursor = next_cursor;
+      cursor  = next_cursor;
       hasMore = has_more;
     }
 
@@ -413,16 +375,16 @@ export class PlaidService {
         if (exists) continue;
 
         const raw = manager.create(RawTransaction, {
-          business_id: plaidItem.business_id,
-          transaction_date: new Date(tx.date),
-          description: tx.name || tx.merchant_name || 'Unknown',
-          amount: Math.abs(tx.amount),
-          source_account_name: tx.account_id,
-          source: RawTransactionSource.PLAID,
+          business_id:          plaidItem.business_id,
+          transaction_date:     new Date(tx.date),
+          description:          tx.name || tx.merchant_name || 'Unknown',
+          amount:               Math.abs(tx.amount),
+          source_account_name:  tx.account_id,
+          source:               RawTransactionSource.PLAID,
           plaid_transaction_id: tx.transaction_id,
-          plaid_account_id: tx.account_id,
-          plaid_category: tx.personal_finance_category?.primary || null,
-          plaid_pending: tx.pending,
+          plaid_account_id:     tx.account_id,
+          plaid_category:       tx.personal_finance_category?.primary || null,
+          plaid_pending:        tx.pending,
           plaid_pending_transaction_id: tx.pending_transaction_id || null,
           status: RawTransactionStatus.PENDING,
         });
@@ -434,10 +396,10 @@ export class PlaidService {
           RawTransaction,
           { plaid_transaction_id: tx.transaction_id },
           {
-            description: tx.name || tx.merchant_name || 'Unknown',
-            amount: Math.abs(tx.amount),
+            description:      tx.name || tx.merchant_name || 'Unknown',
+            amount:           Math.abs(tx.amount),
             transaction_date: new Date(tx.date),
-            plaid_pending: tx.pending,
+            plaid_pending:    tx.pending,
           },
         );
       }
@@ -451,11 +413,11 @@ export class PlaidService {
       }
 
       if (cursorRecord) {
-        cursorRecord.cursor = cursor;
-        cursorRecord.last_synced_at = new Date();
-        cursorRecord.last_sync_added = allAdded.length;
+        cursorRecord.cursor          = cursor;
+        cursorRecord.last_synced_at  = new Date();
+        cursorRecord.last_sync_added    = allAdded.length;
         cursorRecord.last_sync_modified = allModified.length;
-        cursorRecord.last_sync_removed = allRemoved.length;
+        cursorRecord.last_sync_removed  = allRemoved.length;
         await manager.save(PlaidSyncCursor, cursorRecord);
       }
     });
@@ -464,10 +426,6 @@ export class PlaidService {
       `Sync complete for item ${plaidItemId}: +${allAdded.length} ~${allModified.length} -${allRemoved.length}`,
     );
 
-    return {
-      added: allAdded.length,
-      modified: allModified.length,
-      removed: allRemoved.length,
-    };
+    return { added: allAdded.length, modified: allModified.length, removed: allRemoved.length };
   }
 }

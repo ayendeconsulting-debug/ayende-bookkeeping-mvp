@@ -18,8 +18,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    // Read from localStorage, fall back to OS preference on first visit
-    const stored = localStorage.getItem('ayende-theme') as Theme | null;
+    const stored = localStorage.getItem('tempo-theme') as Theme | null;
     if (stored === 'dark' || stored === 'light') {
       setTheme(stored);
       applyTheme(stored);
@@ -42,7 +41,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   function toggleTheme() {
     setTheme((prev) => {
       const next: Theme = prev === 'light' ? 'dark' : 'light';
-      localStorage.setItem('ayende-theme', next);
+      localStorage.setItem('tempo-theme', next);
       applyTheme(next);
       return next;
     });

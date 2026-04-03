@@ -10,7 +10,7 @@ import { sendChatMessage } from '@/lib/ai-actions';
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
   content:
-    "Hi! I'm your Ayende AI assistant with full context of your business finances.\n\nYou can ask me about your revenue, expenses, and net income, how to classify specific transactions, tax code guidance for Canadian and US businesses, journal entry questions, and any general bookkeeping questions.\n\nHow can I help you today?",
+    "Hi! I'm your Tempo AI assistant with full context of your business finances.\n\nYou can ask me about your revenue, expenses, and net income, how to classify specific transactions, tax code guidance for Canadian and US businesses, journal entry questions, and any general bookkeeping questions.\n\nHow can I help you today?",
 };
 
 const SUGGESTED_PROMPTS = [
@@ -24,21 +24,21 @@ function MarkdownMessage({ content, dark }: { content: string; dark?: boolean })
   return (
     <ReactMarkdown
       components={{
-        p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
-        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-        em: ({ children }) => <em className="italic">{children}</em>,
-        h1: ({ children }) => <p className="font-semibold text-base mb-1">{children}</p>,
-        h2: ({ children }) => <p className="font-semibold mb-1">{children}</p>,
-        h3: ({ children }) => <p className="font-medium mb-0.5">{children}</p>,
-        ul: ({ children }) => <ul className="mb-1.5 space-y-1">{children}</ul>,
-        ol: ({ children }) => <ol className="mb-1.5 space-y-1">{children}</ol>,
-        li: ({ children }) => (
+        p:          ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
+        strong:     ({ children }) => <strong className="font-semibold">{children}</strong>,
+        em:         ({ children }) => <em className="italic">{children}</em>,
+        h1:         ({ children }) => <p className="font-semibold text-base mb-1">{children}</p>,
+        h2:         ({ children }) => <p className="font-semibold mb-1">{children}</p>,
+        h3:         ({ children }) => <p className="font-medium mb-0.5">{children}</p>,
+        ul:         ({ children }) => <ul className="mb-1.5 space-y-1">{children}</ul>,
+        ol:         ({ children }) => <ol className="mb-1.5 space-y-1">{children}</ol>,
+        li:         ({ children }) => (
           <li className="flex gap-2">
             <span className="flex-shrink-0 mt-0.5">•</span>
             <span>{children}</span>
           </li>
         ),
-        hr: () => <div className={cn('my-3 border-t', dark ? 'border-white/20' : 'border-gray-200')} />,
+        hr:   () => <div className={cn('my-3 border-t', dark ? 'border-white/20' : 'border-gray-200')} />,
         code: ({ children }) => (
           <code className={cn('rounded px-1.5 py-0.5 text-xs font-mono', dark ? 'bg-white/20' : 'bg-gray-100')}>
             {children}
@@ -58,11 +58,11 @@ function MarkdownMessage({ content, dark }: { content: string; dark?: boolean })
 
 export default function AiPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [input, setInput]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef  = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -101,21 +101,20 @@ export default function AiPage() {
 
   return (
     <div className="flex flex-col h-full max-w-3xl mx-auto px-4">
-      {/* Header */}
       <div className="flex items-center justify-between py-5 flex-shrink-0">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-[#0F6E56]" />
             AI Assistant
           </h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <p className="text-sm text-muted-foreground mt-0.5">
             Ask questions about your business finances in plain English
           </p>
         </div>
         {!isWelcomeOnly && (
           <button
             onClick={() => { setMessages([WELCOME_MESSAGE]); setError(null); }}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <Trash2 className="w-4 h-4" />
             Clear chat
@@ -123,15 +122,13 @@ export default function AiPage() {
         )}
       </div>
 
-      {/* Disclaimer */}
-      <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 mb-4 flex-shrink-0">
+      <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2.5 mb-4 flex-shrink-0">
         <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-amber-700">
+        <p className="text-xs text-amber-700 dark:text-amber-400">
           AI responses are for guidance only and do not constitute professional accounting or tax advice. Always verify with a qualified accountant.
         </p>
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto flex flex-col gap-4 pb-4">
         {messages.map((msg, i) => (
           <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
@@ -145,14 +142,13 @@ export default function AiPage() {
                 'max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
                 msg.role === 'user'
                   ? 'bg-[#0F6E56] text-white rounded-br-sm'
-                  : 'bg-gray-100 text-gray-800 rounded-bl-sm',
+                  : 'bg-muted text-foreground rounded-bl-sm',
               )}
             >
-              {msg.role === 'assistant' ? (
-                <MarkdownMessage content={msg.content} />
-              ) : (
-                msg.content
-              )}
+              {msg.role === 'assistant'
+                ? <MarkdownMessage content={msg.content} />
+                : msg.content
+              }
             </div>
           </div>
         ))}
@@ -162,15 +158,15 @@ export default function AiPage() {
             <div className="w-7 h-7 rounded-full bg-[#0F6E56] flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
               <Sparkles className="w-3.5 h-3.5 text-white" />
             </div>
-            <div className="bg-gray-100 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
-              <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
-              <span className="text-sm text-gray-400">Thinking…</span>
+            <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
+              <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
+              <span className="text-sm text-muted-foreground">Thinking…</span>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">
             {error}
           </div>
         )}
@@ -181,7 +177,7 @@ export default function AiPage() {
               <button
                 key={prompt}
                 onClick={() => sendMessage(prompt)}
-                className="text-xs bg-white border border-gray-200 text-gray-600 rounded-full px-3 py-1.5 hover:border-[#0F6E56] hover:text-[#0F6E56] transition-colors"
+                className="text-xs bg-card border border-border text-muted-foreground rounded-full px-3 py-1.5 hover:border-[#0F6E56] hover:text-[#0F6E56] transition-colors"
               >
                 {prompt}
               </button>
@@ -192,9 +188,8 @@ export default function AiPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input bar */}
       <div className="py-4 flex-shrink-0">
-        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm focus-within:border-[#0F6E56] transition-colors">
+        <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 focus-within:border-[#0F6E56] transition-colors">
           <input
             ref={inputRef}
             type="text"
@@ -202,14 +197,14 @@ export default function AiPage() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about your books…"
-            className="flex-1 text-sm text-gray-800 placeholder:text-gray-400 outline-none bg-transparent"
+            className="flex-1 text-sm text-foreground placeholder:text-muted-foreground outline-none bg-transparent"
             disabled={loading}
             autoFocus
           />
           <button
             onClick={() => sendMessage()}
             disabled={!input.trim() || loading}
-            className="w-8 h-8 rounded-lg bg-[#0F6E56] hover:bg-[#0a5a45] disabled:bg-gray-200 flex items-center justify-center transition-colors flex-shrink-0"
+            className="w-8 h-8 rounded-lg bg-[#0F6E56] hover:bg-[#0a5a45] disabled:bg-muted flex items-center justify-center transition-colors flex-shrink-0"
           >
             <Send className="w-4 h-4 text-white" />
           </button>

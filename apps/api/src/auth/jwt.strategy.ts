@@ -13,8 +13,7 @@ import { BusinessesService } from '../businesses/businesses.service';
  * Attaches ClerkUser (with real businessId UUID) to req.user.
  *
  * Required env var:
- *   CLERK_JWKS_URL — e.g. https://<your-clerk-instance>.clerk.accounts.dev/.well-known/jwks.json
- *   Find this in: Clerk Dashboard → API Keys → Advanced → JWKS URL
+ *   CLERK_JWKS_URL — Clerk Dashboard → API Keys → Advanced → JWKS URL
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -32,17 +31,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  /**
-   * Called after JWT signature verification succeeds.
-   * Looks up the business UUID from the Clerk org_id.
-   * Return value is attached to req.user.
-   */
   async validate(payload: Record<string, any>): Promise<ClerkUser> {
     const clerkOrgId = payload.org_id as string | undefined;
 
     if (!clerkOrgId) {
       throw new UnauthorizedException(
-        'No organization context in token. Please select an organization in the Ayende Bookkeeping App.',
+        'No organization context in token. Please select an organization in Tempo.',
       );
     }
 
@@ -55,9 +49,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     return {
-      userId: payload.sub as string,
-      businessId: business.id, // real UUID — safe to use in all DB queries
-      role: (payload.org_role as string) ?? null,
+      userId:     payload.sub as string,
+      businessId: business.id,
+      role:       (payload.org_role as string) ?? null,
     };
   }
 }

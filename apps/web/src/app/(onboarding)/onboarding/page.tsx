@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CheckCircle2, ChevronRight, Loader2, Building2 } from 'lucide-react';
 
-type Mode = 'business' | 'freelancer' | 'personal';
+type Mode    = 'business' | 'freelancer' | 'personal';
 type Country = 'CA' | 'US';
 
 const TOTAL_STEPS = 5;
@@ -44,12 +44,12 @@ const MODE_CARDS = [
 ];
 
 const INDUSTRIES = [
-  { id: 'general',      label: 'General / Other',    icon: '📋', description: 'Standard chart of accounts for any business' },
-  { id: 'services',     label: 'Professional Services', icon: '💼', description: 'Consulting, legal, accounting, IT services' },
-  { id: 'retail',       label: 'Retail',              icon: '🛒', description: 'Inventory, cost of goods sold, sales' },
-  { id: 'construction', label: 'Construction',        icon: '🏗️', description: 'WIP, contract revenue, subcontractors' },
-  { id: 'restaurant',   label: 'Restaurant / Food',   icon: '🍽️', description: 'Food & beverage, kitchen labor, catering' },
-  { id: 'freelancer',   label: 'Freelancer',          icon: '🧑‍💻', description: 'Home office, tools, mileage, consulting revenue' },
+  { id: 'general',      label: 'General / Other',        icon: '📋', description: 'Standard chart of accounts for any business' },
+  { id: 'services',     label: 'Professional Services',  icon: '💼', description: 'Consulting, legal, accounting, IT services' },
+  { id: 'retail',       label: 'Retail',                 icon: '🛒', description: 'Inventory, cost of goods sold, sales' },
+  { id: 'construction', label: 'Construction',           icon: '🏗️', description: 'WIP, contract revenue, subcontractors' },
+  { id: 'restaurant',   label: 'Restaurant / Food',      icon: '🍽️', description: 'Food & beverage, kitchen labor, catering' },
+  { id: 'freelancer',   label: 'Freelancer',             icon: '🧑‍💻', description: 'Home office, tools, mileage, consulting revenue' },
 ];
 
 const TAX_PRESETS: Record<Country, { code: string; name: string; rate: number }[]> = {
@@ -62,7 +62,7 @@ const TAX_PRESETS: Record<Country, { code: string; name: string; rate: number }[
   ],
 };
 
-/* ── Progress Bar ─────────────────────────────────────────────────────── */
+/* ── Progress Bar ──────────────────────────────────────────────────────────── */
 function ProgressBar({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-2 mb-8">
@@ -70,7 +70,7 @@ function ProgressBar({ step }: { step: number }) {
         <div key={s} className="flex items-center gap-2">
           <div className={[
             'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
-            s < step  ? 'bg-[#0F6E56] text-white' :
+            s < step   ? 'bg-[#0F6E56] text-white' :
             s === step ? 'bg-[#0F6E56] text-white ring-4 ring-[#0F6E56]/20' :
             'bg-gray-200 text-gray-500',
           ].join(' ')}>
@@ -86,52 +86,41 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
-/* ── Main Wizard ──────────────────────────────────────────────────────── */
+/* ── Main Wizard ───────────────────────────────────────────────────────────── */
 export default function OnboardingPage() {
-  const [step, setStep] = useState(1);
+  const [step, setStep]             = useState(1);
   const [isPending, startTransition] = useTransition();
 
-  // Step 1 state
-  const [selectedMode, setSelectedMode] = useState<Mode | null>(null);
+  const [selectedMode,    setSelectedMode]    = useState<Mode | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const [businessName,    setBusinessName]    = useState('');
+  const [currency,        setCurrency]        = useState('');
+  const [fiscalYearEnd,   setFiscalYearEnd]   = useState('');
+  const [industry,        setIndustry]        = useState('');
+  const [accountsSeeded,  setAccountsSeeded]  = useState(false);
+  const [taxPreset,       setTaxPreset]       = useState('');
+  const [taxAccountId]                        = useState('');
+  const [error,           setError]           = useState<string | null>(null);
 
-  // Step 2 state
-  const [businessName, setBusinessName] = useState('');
-  const [currency, setCurrency] = useState('');
-  const [fiscalYearEnd, setFiscalYearEnd] = useState('');
-
-  // Step 3 state
-  const [industry, setIndustry] = useState('');
-  const [accountsSeeded, setAccountsSeeded] = useState(false);
-
-  // Step 4 state
-  const [taxPreset, setTaxPreset] = useState('');
-  const [taxAccountId] = useState(''); // Selected during tax code creation
-
-  const [error, setError] = useState<string | null>(null);
-
-  // ── Step 1: Mode + Country ────────────────────────────────────────────
   function handleStep1() {
     if (!selectedMode || !selectedCountry) { setError('Please select a mode and country.'); return; }
     setError(null);
     startTransition(async () => {
       const result = await saveModeAndCountry(selectedMode, selectedCountry);
       if (result.error) { setError(result.error); toastError('Could not save', result.error); return; }
-      // Pre-fill currency based on country
       if (!currency) setCurrency(selectedCountry === 'CA' ? 'CAD' : 'USD');
       toastSuccess('Mode selected', `${selectedMode} mode · ${selectedCountry}`);
       setStep(2);
     });
   }
 
-  // ── Step 2: Business Details ──────────────────────────────────────────
   function handleStep2() {
     if (!businessName.trim()) { setError('Business name is required.'); return; }
     setError(null);
     startTransition(async () => {
       const result = await saveBusinessDetails({
         name: businessName.trim(),
-        currency_code: currency || (selectedCountry === 'CA' ? 'CAD' : 'USD'),
+        currency_code:  currency || (selectedCountry === 'CA' ? 'CAD' : 'USD'),
         fiscal_year_end: fiscalYearEnd || undefined,
       });
       if (result.error) { setError(result.error); toastError('Could not save', result.error); return; }
@@ -140,7 +129,6 @@ export default function OnboardingPage() {
     });
   }
 
-  // ── Step 3: Seed Accounts ─────────────────────────────────────────────
   function handleStep3(chosenIndustry: string) {
     setError(null);
     startTransition(async () => {
@@ -149,37 +137,38 @@ export default function OnboardingPage() {
       setAccountsSeeded(true);
       const msg = result.skipped ? 'Accounts already set up' : `${result.seeded} accounts created`;
       toastSuccess('Chart of accounts ready', msg);
-      // Skip step 4 (tax codes) for personal mode
       setStep(selectedMode === 'personal' ? 5 : 4);
     });
   }
 
-  // ── Step 4: First Tax Code (skippable) ───────────────────────────────
   function skipStep4() {
     toastSuccess('Tax code skipped', 'You can add tax codes later in Settings.');
     setStep(5);
   }
 
-  // ── Step 5: Connect Bank / Complete ──────────────────────────────────
   function handleComplete(destination: '/dashboard' | '/banks') {
     setError(null);
     startTransition(async () => {
       await completeOnboarding(destination);
-      // completeOnboarding redirects — no further action needed
     });
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
 
         {/* Logo + Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#0F6E56] text-white text-xl font-bold mb-3">
-            A
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#0F6E56] mb-3">
+            {/* Rising bars — Tempo logo mark */}
+            <svg viewBox="0 0 16 16" className="w-7 h-7">
+              <rect x="1"   y="10" width="3" height="5"  rx="0.5" fill="white" opacity="0.5"/>
+              <rect x="6.5" y="7"  width="3" height="8"  rx="0.5" fill="white" opacity="0.75"/>
+              <rect x="12"  y="3"  width="3" height="12" rx="0.5" fill="white"/>
+            </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome to Ayende Bookkeeping</h1>
-          <p className="text-gray-500 mt-1 text-sm">Let's set up your account in a few steps.</p>
+          <h1 className="text-2xl font-bold text-foreground">Welcome to Tempo</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Let's set up your account in a few steps.</p>
         </div>
 
         <ProgressBar step={step} />
@@ -188,25 +177,29 @@ export default function OnboardingPage() {
         {step === 1 && (
           <div className="flex flex-col gap-6">
             <div>
-              <h2 className="text-base font-semibold text-gray-700 mb-3">How will you use Ayende Bookkeeping?</h2>
+              <h2 className="text-base font-semibold text-gray-700 mb-3">How will you use Tempo?</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {MODE_CARDS.map((card) => {
                   const isSelected = selectedMode === card.id;
                   return (
                     <button key={card.id} onClick={() => setSelectedMode(card.id)}
-                      className={['text-left p-5 rounded-xl border-2 transition-all bg-white hover:border-[#0F6E56]',
-                        isSelected ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-gray-200'].join(' ')}>
+                      className={['text-left p-5 rounded-xl border-2 transition-all bg-card hover:border-[#0F6E56]',
+                        isSelected ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
                       <div className="text-2xl mb-2">{card.icon}</div>
-                      <div className="font-semibold text-sm text-gray-900 mb-0.5">{card.title}</div>
-                      <div className="text-xs text-gray-500 mb-3">{card.subtitle}</div>
+                      <div className="font-semibold text-sm text-foreground mb-0.5">{card.title}</div>
+                      <div className="text-xs text-muted-foreground mb-3">{card.subtitle}</div>
                       <ul className="space-y-0.5">
                         {card.features.map((f) => (
-                          <li key={f} className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <li key={f} className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <span className={isSelected ? 'text-[#0F6E56]' : 'text-gray-300'}>✓</span>{f}
                           </li>
                         ))}
                       </ul>
-                      {isSelected && <div className="mt-3 text-xs font-medium text-[#0F6E56] flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" />Selected</div>}
+                      {isSelected && (
+                        <div className="mt-3 text-xs font-medium text-[#0F6E56] flex items-center gap-1">
+                          <CheckCircle2 className="w-3.5 h-3.5" />Selected
+                        </div>
+                      )}
                     </button>
                   );
                 })}
@@ -218,19 +211,19 @@ export default function OnboardingPage() {
               <div className="grid grid-cols-2 gap-3 max-w-xs">
                 {(['CA', 'US'] as Country[]).map((c) => (
                   <button key={c} onClick={() => setSelectedCountry(c)}
-                    className={['flex items-center gap-3 p-3 rounded-xl border-2 transition-all bg-white hover:border-[#0F6E56]',
-                      selectedCountry === c ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-gray-200'].join(' ')}>
+                    className={['flex items-center gap-3 p-3 rounded-xl border-2 transition-all bg-card hover:border-[#0F6E56]',
+                      selectedCountry === c ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
                     <span className="text-xl">{c === 'CA' ? '🇨🇦' : '🇺🇸'}</span>
                     <div className="text-left">
-                      <div className="font-semibold text-sm">{c === 'CA' ? 'Canada' : 'United States'}</div>
-                      <div className="text-xs text-gray-400">{c === 'CA' ? 'CAD · CRA' : 'USD · IRS'}</div>
+                      <div className="font-semibold text-sm text-foreground">{c === 'CA' ? 'Canada' : 'United States'}</div>
+                      <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD · CRA' : 'USD · IRS'}</div>
                     </div>
                   </button>
                 ))}
               </div>
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <div>
               <Button onClick={handleStep1} disabled={isPending || !selectedMode || !selectedCountry} className="flex items-center gap-2">
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -242,10 +235,10 @@ export default function OnboardingPage() {
 
         {/* ── Step 2: Business Details ── */}
         {step === 2 && (
-          <div className="flex flex-col gap-5 bg-white rounded-2xl border border-gray-200 p-6">
+          <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
               <Building2 className="w-5 h-5 text-[#0F6E56]" />
-              <h2 className="text-base font-semibold text-gray-900">Tell us about your business</h2>
+              <h2 className="text-base font-semibold text-foreground">Tell us about your business</h2>
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -258,22 +251,22 @@ export default function OnboardingPage() {
               <div className="flex flex-col gap-1.5">
                 <Label>Base Currency</Label>
                 <select value={currency} onChange={(e) => setCurrency(e.target.value)}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]">
-                  <option value="CAD">CAD – Canadian Dollar</option>
-                  <option value="USD">USD – US Dollar</option>
-                  <option value="EUR">EUR – Euro</option>
-                  <option value="GBP">GBP – British Pound</option>
+                  className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
+                  <option value="CAD">CAD — Canadian Dollar</option>
+                  <option value="USD">USD — US Dollar</option>
+                  <option value="EUR">EUR — Euro</option>
+                  <option value="GBP">GBP — British Pound</option>
                 </select>
               </div>
               {selectedMode !== 'personal' && (
                 <div className="flex flex-col gap-1.5">
-                  <Label>Fiscal Year End <span className="text-gray-400 font-normal">(optional)</span></Label>
+                  <Label>Fiscal Year End <span className="text-muted-foreground font-normal">(optional)</span></Label>
                   <Input type="date" value={fiscalYearEnd} onChange={(e) => setFiscalYearEnd(e.target.value)} />
                 </div>
               )}
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => setStep(1)} disabled={isPending}>Back</Button>
               <Button onClick={handleStep2} disabled={isPending} className="flex items-center gap-2">
@@ -286,10 +279,10 @@ export default function OnboardingPage() {
 
         {/* ── Step 3: Seed Accounts ── */}
         {step === 3 && (
-          <div className="flex flex-col gap-5 bg-white rounded-2xl border border-gray-200 p-6">
+          <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
-              <h2 className="text-base font-semibold text-gray-900 mb-1">Set up your chart of accounts</h2>
-              <p className="text-sm text-gray-500">We'll create the right accounts for your industry.</p>
+              <h2 className="text-base font-semibold text-foreground mb-1">Set up your chart of accounts</h2>
+              <p className="text-sm text-muted-foreground">We'll create the right accounts for your industry.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -297,18 +290,18 @@ export default function OnboardingPage() {
                 .filter((ind) => selectedMode === 'freelancer' ? ind.id !== 'retail' && ind.id !== 'restaurant' : true)
                 .map((ind) => (
                   <button key={ind.id} onClick={() => setIndustry(ind.id)}
-                    className={['flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all text-left bg-white hover:border-[#0F6E56]',
-                      industry === ind.id ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-gray-200'].join(' ')}>
+                    className={['flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all text-left bg-card hover:border-[#0F6E56]',
+                      industry === ind.id ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
                     <span className="text-xl flex-shrink-0">{ind.icon}</span>
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{ind.label}</div>
-                      <div className="text-xs text-gray-400 mt-0.5">{ind.description}</div>
+                      <div className="text-sm font-medium text-foreground">{ind.label}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{ind.description}</div>
                     </div>
                   </button>
                 ))}
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => setStep(2)} disabled={isPending}>Back</Button>
               <Button onClick={() => industry && handleStep3(industry)} disabled={isPending || !industry} className="flex items-center gap-2">
@@ -321,10 +314,10 @@ export default function OnboardingPage() {
 
         {/* ── Step 4: First Tax Code ── */}
         {step === 4 && (
-          <div className="flex flex-col gap-5 bg-white rounded-2xl border border-gray-200 p-6">
+          <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
-              <h2 className="text-base font-semibold text-gray-900 mb-1">Add your first tax code</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="text-base font-semibold text-foreground mb-1">Add your first tax code</h2>
+              <p className="text-sm text-muted-foreground">
                 {selectedCountry === 'CA'
                   ? 'Set up HST or GST to track sales tax on transactions.'
                   : 'Set up sales tax to track tax on transactions.'}
@@ -332,25 +325,25 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            <div className="rounded-lg bg-[#F0FAF6] border border-[#C3E8D8] px-4 py-3 text-sm text-[#0F6E56]">
+            <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 px-4 py-3 text-sm text-[#0F6E56] dark:text-primary">
               Tax codes are applied during transaction classification. They split the net amount and tax into separate journal lines automatically.
             </div>
 
             <div className="grid grid-cols-1 gap-2">
               {(TAX_PRESETS[selectedCountry ?? 'CA'] ?? []).map((preset) => (
                 <button key={preset.code} onClick={() => setTaxPreset(preset.code)}
-                  className={['flex items-center justify-between p-3.5 rounded-xl border-2 transition-all text-left bg-white hover:border-[#0F6E56]',
-                    taxPreset === preset.code ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-gray-200'].join(' ')}>
+                  className={['flex items-center justify-between p-3.5 rounded-xl border-2 transition-all text-left bg-card hover:border-[#0F6E56]',
+                    taxPreset === preset.code ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{preset.name}</div>
-                    <div className="text-xs text-gray-400">{preset.code} · {(preset.rate * 100).toFixed(2)}%</div>
+                    <div className="text-sm font-medium text-foreground">{preset.name}</div>
+                    <div className="text-xs text-muted-foreground">{preset.code} · {(preset.rate * 100).toFixed(2)}%</div>
                   </div>
                   {taxPreset === preset.code && <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" />}
                 </button>
               ))}
             </div>
 
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Note: Tax code creation requires a tax liability account. You can add tax codes from Settings → Tax Codes after your accounts are set up.
             </p>
 
@@ -365,19 +358,19 @@ export default function OnboardingPage() {
 
         {/* ── Step 5: Connect Bank ── */}
         {step === 5 && (
-          <div className="flex flex-col gap-5 bg-white rounded-2xl border border-gray-200 p-6">
+          <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
-              <h2 className="text-base font-semibold text-gray-900 mb-1">Connect your bank account</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="text-base font-semibold text-foreground mb-1">Connect your bank account</h2>
+              <p className="text-sm text-muted-foreground">
                 Link your bank to auto-import transactions. Powered by Plaid — secure and read-only.
               </p>
             </div>
 
-            <div className="rounded-xl border border-gray-100 bg-gray-50 p-5 flex flex-col items-center gap-3 text-center">
+            <div className="rounded-xl border border-border bg-muted p-5 flex flex-col items-center gap-3 text-center">
               <div className="text-3xl">🏦</div>
               <div>
-                <p className="text-sm font-medium text-gray-900">Secure bank connection via Plaid</p>
-                <p className="text-xs text-gray-500 mt-1">Works with 12,000+ financial institutions in Canada and the US.</p>
+                <p className="text-sm font-medium text-foreground">Secure bank connection via Plaid</p>
+                <p className="text-xs text-muted-foreground mt-1">Works with 12,000+ financial institutions in Canada and the US.</p>
               </div>
               <Button onClick={() => handleComplete('/banks')} disabled={isPending} className="flex items-center gap-2 w-full justify-center">
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
@@ -387,16 +380,16 @@ export default function OnboardingPage() {
 
             <div className="text-center">
               <button onClick={() => handleComplete('/dashboard')} disabled={isPending}
-                className="text-sm text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors disabled:opacity-50">
+                className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors disabled:opacity-50">
                 Skip for now — go to Dashboard
               </button>
             </div>
 
-            {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+            {error && <p className="text-sm text-destructive text-center">{error}</p>}
           </div>
         )}
 
-        <p className="text-center mt-6 text-xs text-gray-400">
+        <p className="text-center mt-6 text-xs text-muted-foreground">
           You can change your mode and settings at any time from the Settings page.
         </p>
       </div>

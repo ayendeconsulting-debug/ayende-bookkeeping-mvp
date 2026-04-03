@@ -15,7 +15,7 @@ import { IS_PUBLIC_KEY } from './public.decorator';
  *
  * Applied globally in app.module.ts via APP_GUARD provider.
  *
- * Public endpoints (decorated with @Public()):
+ * Public endpoints:
  *   GET  /health         — Railway healthcheck
  *   POST /plaid/webhook  — Plaid webhook (secured by signature verification)
  */
@@ -31,9 +31,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       context.getClass(),
     ]);
 
-    if (isPublic) {
-      return true;
-    }
+    if (isPublic) return true;
 
     return super.canActivate(context);
   }
@@ -43,7 +41,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       throw (
         err ||
         new UnauthorizedException(
-          'Invalid or missing authentication token. Please sign in to Ayende Bookkeeping App.',
+          'Invalid or missing authentication token. Please sign in to Tempo.',
         )
       );
     }
