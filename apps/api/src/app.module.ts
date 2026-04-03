@@ -19,6 +19,7 @@ import { CurrencyModule } from './currency/currency.module';
 import { FreelancerModule } from './freelancer/freelancer.module';
 import { PersonalModule } from './personal/personal.module';
 import { LegalModule } from './legal/legal.module';
+import { BillingModule } from './billing/billing.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { HealthController } from './health.controller';
@@ -47,7 +48,6 @@ function getRedisBullMQConnection() {
     ConfigModule.forRoot({ isGlobal: true }),
     DatabaseModule,
     BullModule.forRoot({ connection: getRedisBullMQConnection() }),
-    // Rate limiting: 100 requests per IP per 60 seconds globally
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
     AuthModule,
     BusinessesModule,
@@ -62,6 +62,7 @@ function getRedisBullMQConnection() {
     FreelancerModule,
     PersonalModule,
     LegalModule,
+    BillingModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
