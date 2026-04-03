@@ -2,13 +2,11 @@
 
 import { useState, useTransition } from 'react';
 import { Account } from '@/types';
-import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { api } from '@/lib/api';
+import { createExpenseCategory, toggleCategoryActive } from '@/app/(app)/freelancer/categories/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Plus, Tag } from 'lucide-react';
 
@@ -31,43 +29,36 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
     }
 
     startTransition(async () => {
-      try {
-        const result = await api<Account>('/accounts', {
-          method: 'POST',
-          body: JSON.stringify({
-            account_name: form.name.trim(),
-            account_code: `6${String(categories.length + 1).padStart(3, '0')}`,
-            account_type: 'expense',
-            is_active: true,
-          }),
-        });
-        setCategories((prev) => [...prev, result]);
+      const result = await createExpenseCategory({
+        account_name: form.name.trim(),
+        account_code: `6${String(categories.length + 1).padStart(3, '0')}`,
+      });
+
+      if (result.success && result.data) {
+        setCategories((prev) => [...prev, result.data as Account]);
         setForm(EMPTY_FORM);
         setShowForm(false);
         toastSuccess(`Category "${form.name}" added.`);
-      } catch (err: any) {
-        toastError(err.message ?? 'Failed to add category.');
+      } else {
+        toastError(result.error ?? 'Failed to add category.');
       }
     });
   }
 
-  async function handleToggle(account: Account) {
+  function handleToggle(account: Account) {
     startTransition(async () => {
-      try {
-        await api(`/accounts/${account.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ is_active: !account.is_active }),
-        });
+      const result = await toggleCategoryActive(account.id, !account.is_active);
+      if (result.success) {
         setCategories((prev) =>
-          prev.map((a) =>
-            a.id === account.id ? { ...a, is_active: !a.is_active } : a,
-          ),
+          prev.map((a) => (a.id === account.id ? { ...a, is_active: !a.is_active } : a)),
         );
         toastSuccess(
-          account.is_active ? `"${account.account_name}" deactivated.` : `"${account.account_name}" activated.`,
+          account.is_active
+            ? `"${account.account_name}" deactivated.`
+            : `"${account.account_name}" activated.`,
         );
-      } catch (err: any) {
-        toastError(err.message ?? 'Failed to update category.');
+      } else {
+        toastError(result.error ?? 'Failed to update category.');
       }
     });
   }
@@ -80,7 +71,8 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
       {/* Header action */}
       <div className="flex justify-between items-center">
         <p className="text-sm text-gray-500">
-          {active.length} active {active.length === 1 ? 'category' : 'categories'} · used to tag business expenses
+          {active.length} active {active.length === 1 ? 'category' : 'categories'} · used to tag
+          business expenses
         </p>
         {!showForm && (
           <Button
@@ -120,7 +112,10 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
               </Button>
               <Button
                 variant="outline"
-                onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}
+                onClick={() => {
+                  setShowForm(false);
+                  setForm(EMPTY_FORM);
+                }}
               >
                 Cancel
               </Button>
@@ -171,7 +166,7 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
         </CardContent>
       </Card>
 
-      {/* Inactive categories (collapsed) */}
+      {/* Inactive categories */}
       {inactive.length > 0 && (
         <Card className="opacity-70">
           <CardHeader className="pb-3">
