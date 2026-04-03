@@ -33,7 +33,7 @@ async function provisionBusiness(clerkOrgId: string, orgName: string): Promise<v
  */
 async function getMyBusiness(
   token: string,
-): Promise<{ settings?: Record<string, any>; mode?: string } | null> {
+): Promise<{ settings?: Record<string, unknown>; mode?: string } | null> {
   try {
     const res = await fetch(`${API_URL}/businesses/me`, {
       headers: {
@@ -64,7 +64,7 @@ export default async function AppLayout({
 
   // Step 2: Fetch business details
   const token = await getToken();
-  let business: { settings?: Record<string, any>; mode?: string } | null = null;
+  let business: { settings?: Record<string, unknown>; mode?: string } | null = null;
 
   if (token) {
     business = await getMyBusiness(token);
@@ -78,11 +78,12 @@ export default async function AppLayout({
   const mode = (business?.mode ?? 'business') as BusinessMode;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    // bg-background uses the CSS var — white in light mode, dark navy in dark mode
+    <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar mode={mode} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top bar */}
-        <header className="h-14 border-b border-gray-200 bg-white flex items-center justify-end px-6 flex-shrink-0">
+        {/* Top bar — bg-card and border-border respond to dark mode automatically */}
+        <header className="h-14 border-b border-border bg-card flex items-center justify-end px-6 flex-shrink-0">
           <UserButton
             appearance={{
               elements: {

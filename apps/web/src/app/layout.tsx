@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Toaster } from 'sonner';
+import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -15,22 +16,40 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      {/* suppressHydrationWarning prevents React warning when the dark class
+          is added to <html> by the flash-prevention script before hydration */}
+      <html lang="en" suppressHydrationWarning>
         <body>
-          {children}
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              style: {
-                fontFamily: 'inherit',
-              },
-              classNames: {
-                success: 'border-[#0F6E56]',
-              },
+          {/* Flash-prevention: runs before React hydrates, applies dark class
+              immediately so the user never sees a white flash in dark mode */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                try {
+                  var t = localStorage.getItem('ayende-theme');
+                  if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                  }
+                } catch(e) {}
+              `,
             }}
-            richColors
-            closeButton
           />
+          <ThemeProvider>
+            {children}
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  fontFamily: 'inherit',
+                },
+                classNames: {
+                  success: 'border-[#0F6E56]',
+                },
+              }}
+              richColors
+              closeButton
+            />
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

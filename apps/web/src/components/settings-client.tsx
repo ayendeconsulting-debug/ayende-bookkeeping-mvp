@@ -5,6 +5,7 @@ import { UserProfile } from '@clerk/nextjs';
 import {
   Settings, Building2, User, ShieldCheck,
   CheckCircle2, AlertCircle, Loader2, Save, RefreshCw, DollarSign,
+  Sun, Moon,
 } from 'lucide-react';
 import { AdminOnly } from '@/components/admin-only';
 import { toastSuccess, toastError } from '@/lib/toast';
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTheme } from '@/components/theme-provider';
 import {
   updateBusinessSettings,
   verifyAccountingIntegrity,
@@ -65,7 +67,7 @@ function BusinessSettingsSection({ business }: { business: Business | null }) {
   return (
     <Card>
       <CardHeader className="flex-row items-center gap-2 pb-4">
-        <Building2 className="w-4 h-4 text-gray-400" />
+        <Building2 className="w-4 h-4 text-muted-foreground" />
         <CardTitle>Business Settings</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -79,13 +81,13 @@ function BusinessSettingsSection({ business }: { business: Business | null }) {
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+              className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground"
             >
-              <option value="CAD">CAD – Canadian Dollar</option>
-              <option value="USD">USD – US Dollar</option>
-              <option value="EUR">EUR – Euro</option>
-              <option value="GBP">GBP – British Pound</option>
-              <option value="AUD">AUD – Australian Dollar</option>
+              <option value="CAD">CAD — Canadian Dollar</option>
+              <option value="USD">USD — US Dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — British Pound</option>
+              <option value="AUD">AUD — Australian Dollar</option>
             </select>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -94,14 +96,14 @@ function BusinessSettingsSection({ business }: { business: Business | null }) {
           </div>
         </div>
         {business && (
-          <div className="text-xs text-gray-400">
+          <div className="text-xs text-muted-foreground">
             Business ID: <span className="font-mono">{business.id}</span>
             <br />
             Created: {new Date(business.created_at).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         )}
         {error && (
-          <div className="flex items-center gap-1.5 text-sm text-red-500">
+          <div className="flex items-center gap-1.5 text-sm text-destructive">
             <AlertCircle className="w-4 h-4" />{error}
           </div>
         )}
@@ -118,7 +120,53 @@ function BusinessSettingsSection({ business }: { business: Business | null }) {
   );
 }
 
-/* ── Currency Rates Section ──────────────────────────────────────────────── */
+/* ── Display Section (Dark Mode Toggle) ─────────────────────────────────── */
+
+function DisplaySection() {
+  const { theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center gap-2 pb-4">
+        {isDark ? (
+          <Moon className="w-4 h-4 text-muted-foreground" />
+        ) : (
+          <Sun className="w-4 h-4 text-muted-foreground" />
+        )}
+        <CardTitle>Display</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-foreground">Theme</p>
+            <p className="text-sm text-muted-foreground">
+              {isDark ? 'Dark mode is on.' : 'Light mode is on.'} Your preference is saved automatically.
+            </p>
+          </div>
+          <button
+            onClick={toggleTheme}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground text-sm font-medium text-foreground transition-colors"
+          >
+            {isDark ? (
+              <>
+                <Sun className="w-4 h-4" />
+                Switch to Light
+              </>
+            ) : (
+              <>
+                <Moon className="w-4 h-4" />
+                Switch to Dark
+              </>
+            )}
+          </button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ── Currency Rates Section ─────────────────────────────────────────────── */
 
 function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
   const [rates, setRates] = useState<Record<string, number> | null>(null);
@@ -148,7 +196,7 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
     <Card>
       <CardHeader className="flex-row items-center justify-between pb-4">
         <div className="flex items-center gap-2">
-          <DollarSign className="w-4 h-4 text-gray-400" />
+          <DollarSign className="w-4 h-4 text-muted-foreground" />
           <CardTitle>Exchange Rates</CardTitle>
         </div>
         <Button
@@ -163,21 +211,21 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
         </Button>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           Rates relative to your base currency ({baseCurrency}).
           Refreshed on demand — cached for 24 hours. Used for automatic foreign currency conversion
           on Plaid-imported transactions.
         </p>
 
         {error && (
-          <div className="flex items-center gap-1.5 text-sm text-red-500">
+          <div className="flex items-center gap-1.5 text-sm text-destructive">
             <AlertCircle className="w-4 h-4" />{error}
           </div>
         )}
 
         {rates && (
-          <div className="rounded-lg border border-gray-100 overflow-hidden">
-            <div className="grid grid-cols-3 gap-0 divide-y divide-gray-100">
+          <div className="rounded-lg border border-border overflow-hidden">
+            <div className="grid grid-cols-3 gap-0 divide-y divide-border">
               {displayCurrencies.map((currency) => {
                 const rate = rates[currency];
                 if (!rate) return null;
@@ -186,8 +234,8 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
                     key={currency}
                     className="flex items-center justify-between px-4 py-2.5 col-span-1"
                   >
-                    <span className="text-sm font-medium text-gray-700">{currency}</span>
-                    <span className="text-sm font-mono text-gray-900">
+                    <span className="text-sm font-medium text-foreground">{currency}</span>
+                    <span className="text-sm font-mono text-foreground">
                       {rate.toFixed(4)}
                     </span>
                   </div>
@@ -195,8 +243,8 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
               })}
             </div>
             {lastFetched && (
-              <div className="px-4 py-2 bg-gray-50 border-t border-gray-100">
-                <p className="text-xs text-gray-400">
+              <div className="px-4 py-2 bg-muted border-t border-border">
+                <p className="text-xs text-muted-foreground">
                   Fetched {lastFetched.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit' })}
                   {' · '}Powered by Open Exchange Rates
                 </p>
@@ -206,8 +254,8 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
         )}
 
         {!rates && !loading && (
-          <div className="rounded-lg bg-gray-50 border border-gray-100 px-4 py-3 text-sm text-gray-500 text-center">
-            Click "Refresh Rates" to load current exchange rates.
+          <div className="rounded-lg bg-muted border border-border px-4 py-3 text-sm text-muted-foreground text-center">
+            Click &quot;Refresh Rates&quot; to load current exchange rates.
           </div>
         )}
       </CardContent>
@@ -218,7 +266,11 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
 /* ── Accounting Integrity Section ───────────────────────────────────────── */
 
 function IntegritySection() {
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{
+    is_balanced: boolean;
+    total_debits?: number;
+    total_credits?: number;
+  } | null>(null);
   const [running, startRunning] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -243,28 +295,35 @@ function IntegritySection() {
   return (
     <Card>
       <CardHeader className="flex-row items-center gap-2 pb-4">
-        <ShieldCheck className="w-4 h-4 text-gray-400" />
+        <ShieldCheck className="w-4 h-4 text-muted-foreground" />
         <CardTitle>Accounting Integrity</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           Verify all journal entries are balanced and your books are mathematically correct.
         </p>
         <Button variant="outline" onClick={handleVerify} disabled={running} className="w-fit flex items-center gap-2">
           {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
           {running ? 'Verifying…' : 'Run Integrity Check'}
         </Button>
-        {error && <div className="flex items-center gap-1.5 text-sm text-red-500"><AlertCircle className="w-4 h-4" />{error}</div>}
+        {error && (
+          <div className="flex items-center gap-1.5 text-sm text-destructive">
+            <AlertCircle className="w-4 h-4" />{error}
+          </div>
+        )}
         {result && (
-          <div className={`rounded-xl border px-4 py-3 ${result.is_balanced ? 'bg-[#F0FAF6] border-[#C3E8D8]' : 'bg-red-50 border-red-200'}`}>
+          <div className={`rounded-xl border px-4 py-3 ${result.is_balanced ? 'bg-[#F0FAF6] border-[#C3E8D8] dark:bg-primary/10 dark:border-primary/30' : 'bg-destructive/10 border-destructive/30'}`}>
             <div className="flex items-center gap-2 mb-2">
-              {result.is_balanced ? <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" /> : <AlertCircle className="w-4 h-4 text-red-500" />}
-              <span className={`text-sm font-medium ${result.is_balanced ? 'text-[#0F6E56]' : 'text-red-600'}`}>
-                {result.is_balanced ? 'Books are balanced – no issues found' : 'Books are NOT balanced – review journal entries'}
+              {result.is_balanced
+                ? <CheckCircle2 className="w-4 h-4 text-[#0F6E56] dark:text-primary" />
+                : <AlertCircle className="w-4 h-4 text-destructive" />
+              }
+              <span className={`text-sm font-medium ${result.is_balanced ? 'text-[#0F6E56] dark:text-primary' : 'text-destructive'}`}>
+                {result.is_balanced ? 'Books are balanced — no issues found' : 'Books are NOT balanced — review journal entries'}
               </span>
             </div>
             {result.total_debits !== undefined && (
-              <div className="text-xs text-gray-500 grid grid-cols-2 gap-1 mt-2">
+              <div className="text-xs text-muted-foreground grid grid-cols-2 gap-1 mt-2">
                 <span>Total Debits: <strong>${Number(result.total_debits).toFixed(2)}</strong></span>
                 <span>Total Credits: <strong>${Number(result.total_credits).toFixed(2)}</strong></span>
               </div>
@@ -284,19 +343,22 @@ export function SettingsClient({ business }: SettingsClientProps) {
   return (
     <div className="p-6 max-w-screen-md mx-auto">
       <div className="flex items-center gap-2 mb-6">
-        <Settings className="w-5 h-5 text-gray-400" />
-        <h1 className="text-xl font-semibold text-gray-900">Settings</h1>
+        <Settings className="w-5 h-5 text-muted-foreground" />
+        <h1 className="text-xl font-semibold text-foreground">Settings</h1>
       </div>
 
       <div className="flex flex-col gap-5">
         <BusinessSettingsSection business={business} />
+
+        {/* Display (Dark Mode) — new in Phase 6 */}
+        <DisplaySection />
 
         <CurrencyRatesSection baseCurrency={business?.currency_code ?? 'CAD'} />
 
         <Card>
           <CardHeader className="flex-row items-center justify-between pb-4">
             <div className="flex items-center gap-2">
-              <User className="w-4 h-4 text-gray-400" />
+              <User className="w-4 h-4 text-muted-foreground" />
               <CardTitle>User Profile</CardTitle>
             </div>
             <Button variant="outline" size="sm" onClick={() => setShowProfile((v) => !v)}>
@@ -309,8 +371,8 @@ export function SettingsClient({ business }: SettingsClientProps) {
             </CardContent>
           ) : (
             <CardContent className="pt-0">
-              <p className="text-sm text-gray-500">
-                Manage your name, email address, and password via Clerk's secure profile manager.
+              <p className="text-sm text-muted-foreground">
+                Manage your name, email address, and password via Clerk&apos;s secure profile manager.
               </p>
             </CardContent>
           )}

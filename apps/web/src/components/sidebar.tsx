@@ -16,14 +16,14 @@ interface SidebarProps {
   mode?: BusinessMode;
 }
 
-// ── Business Mode nav ─────────────────────────────────────────────────────
+// ── Business Mode nav ──────────────────────────────────────────────────────
 const businessNavItems = [
-  { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
-  { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { href: '/invoices',     label: 'Invoices',     icon: FileText },
-  { href: '/ar-ap',        label: 'AR / AP',      icon: ArrowRightLeft },
-  { href: '/recurring',    label: 'Recurring',    icon: RefreshCw },
-  { href: '/payroll',      label: 'Payroll',      icon: Users },
+  { href: '/dashboard',    label: 'Dashboard',     icon: LayoutDashboard },
+  { href: '/transactions', label: 'Transactions',  icon: ArrowLeftRight },
+  { href: '/invoices',     label: 'Invoices',      icon: FileText },
+  { href: '/ar-ap',        label: 'AR / AP',       icon: ArrowRightLeft },
+  { href: '/recurring',    label: 'Recurring',     icon: RefreshCw },
+  { href: '/payroll',      label: 'Payroll',       icon: Users },
   { href: '/banks',        label: 'Bank Accounts', icon: Building2 },
 ];
 
@@ -42,9 +42,9 @@ const businessSettingsItems = [
   { href: '/settings',  label: 'Settings',             icon: Settings },
 ];
 
-// ── Freelancer Mode nav ───────────────────────────────────────────────────
+// ── Freelancer Mode nav ────────────────────────────────────────────────────
 const freelancerItems = [
-  { href: '/freelancer/dashboard',  label: 'Dashboard',      icon: LayoutDashboard },
+  { href: '/freelancer/dashboard',  label: 'Dashboard',       icon: LayoutDashboard },
   { href: '/freelancer/mileage',    label: 'Mileage Tracker', icon: Car },
   { href: '/freelancer/tax',        label: 'Tax Estimate',    icon: Calculator },
   { href: '/freelancer/categories', label: 'Categories',      icon: Tag },
@@ -52,8 +52,8 @@ const freelancerItems = [
 
 const freelancerMainItems = [
   { href: '/transactions', label: 'Transactions',  icon: ArrowLeftRight },
-  { href: '/invoices',     label: 'Invoices',       icon: FileText },
-  { href: '/banks',        label: 'Bank Accounts',  icon: Building2 },
+  { href: '/invoices',     label: 'Invoices',      icon: FileText },
+  { href: '/banks',        label: 'Bank Accounts', icon: Building2 },
 ];
 
 const freelancerSettingsItems = [
@@ -62,7 +62,7 @@ const freelancerSettingsItems = [
   { href: '/settings',  label: 'Settings',     icon: Settings },
 ];
 
-// ── Personal Mode nav ─────────────────────────────────────────────────────
+// ── Personal Mode nav ──────────────────────────────────────────────────────
 const personalItems = [
   { href: '/personal/dashboard',  label: 'My Dashboard',      icon: LayoutDashboard },
   { href: '/personal/budget',     label: 'Budget',             icon: PieChart },
@@ -89,16 +89,18 @@ export function Sidebar({ mode = 'business' }: SidebarProps) {
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
 
   return (
-    <aside className="w-[220px] h-screen flex flex-col border-r border-gray-200 bg-white flex-shrink-0">
+    // bg-card: white in light, dark navy in dark — border-border responds automatically
+    <aside className="w-[220px] h-screen flex flex-col border-r border-border bg-card flex-shrink-0">
+
       {/* Logo */}
-      <div className="px-4 py-5 border-b border-gray-200">
+      <div className="px-4 py-5 border-b border-border">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-md bg-[#0F6E56] flex items-center justify-center flex-shrink-0">
             <svg viewBox="0 0 16 16" fill="white" className="w-4 h-4"><path d="M2 12 L8 4 L14 12 Z" /></svg>
           </div>
           <div>
-            <div className="text-sm font-semibold text-gray-900 leading-tight">Ayende</div>
-            <div className="text-[10px] text-gray-500 uppercase tracking-wider leading-tight">
+            <div className="text-sm font-semibold text-foreground leading-tight">Ayende</div>
+            <div className="text-[10px] text-muted-foreground uppercase tracking-wider leading-tight">
               {mode === 'freelancer' ? 'Freelancer' : mode === 'personal' ? 'Personal' : 'Bookkeeping'}
             </div>
           </div>
@@ -106,16 +108,18 @@ export function Sidebar({ mode = 'business' }: SidebarProps) {
       </div>
 
       {/* Org switcher */}
-      <div className="px-2 py-2 border-b border-gray-200">
-        <button className="w-full flex items-center gap-2 px-2 py-2 rounded-md hover:bg-gray-100 transition-colors text-left">
+      <div className="px-2 py-2 border-b border-border">
+        <button className="w-full flex items-center gap-2 px-2 py-2 rounded-md hover:bg-accent transition-colors text-left">
           <div className="w-6 h-6 rounded bg-[#0F6E56] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
             {organization?.name?.slice(0, 2).toUpperCase() ?? 'AB'}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-gray-900 truncate">{organization?.name ?? 'My Business'}</div>
-            <div className="text-[10px] text-gray-500">Owner</div>
+            <div className="text-xs font-medium text-foreground truncate">
+              {organization?.name ?? 'My Business'}
+            </div>
+            <div className="text-[10px] text-muted-foreground">Owner</div>
           </div>
-          <ChevronDown className="w-3 h-3 text-gray-400 flex-shrink-0" />
+          <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
         </button>
       </div>
 
@@ -183,7 +187,9 @@ export function Sidebar({ mode = 'business' }: SidebarProps) {
 function NavSection({ label }: { label: string }) {
   return (
     <div className="px-2 pt-3 pb-1">
-      <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{label}</span>
+      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+        {label}
+      </span>
     </div>
   );
 }
@@ -192,8 +198,16 @@ function NavItem({ href, label, icon: Icon, active }: {
   href: string; label: string; icon: React.ElementType; active: boolean;
 }) {
   return (
-    <Link href={href} className={cn('flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors',
-      active ? 'bg-[#E1F5EE] text-[#0F6E56] font-medium' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900')}>
+    <Link
+      href={href}
+      className={cn(
+        'flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm transition-colors',
+        active
+          // Light: teal tint bg + teal text. Dark: primary/20 tint + primary text
+          ? 'bg-[#E1F5EE] text-[#0F6E56] font-medium dark:bg-primary/20 dark:text-primary'
+          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+      )}
+    >
       <Icon className="w-4 h-4 flex-shrink-0" />
       <span className="truncate">{label}</span>
     </Link>
