@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useOrganization } from '@clerk/nextjs';
 import { cn } from '@/lib/utils';
 import { BusinessMode } from '@/types';
+import { BusinessSwitcher } from '@/components/business-switcher';
 import {
   LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
-  ClipboardList, Receipt, Filter, Sparkles, Settings, ChevronDown, FileText,
+  ClipboardList, Receipt, Filter, Sparkles, Settings, FileText,
   ArrowRightLeft, RefreshCw, Users, Car, Calculator, Tag, PieChart, Target,
   Landmark, Bell, X,
 } from 'lucide-react';
@@ -69,9 +69,7 @@ const personalItems = [
   { href: '/personal/recurring',  label: 'Recurring Payments', icon: RefreshCw },
   { href: '/personal/reminders',  label: 'Upcoming Payments',  icon: Bell },
 ];
-const personalMainItems = [
-  { href: '/banks', label: 'Bank Accounts', icon: Building2 },
-];
+const personalMainItems     = [{ href: '/banks',    label: 'Bank Accounts', icon: Building2 }];
 const personalSettingsItems = [
   { href: '/ai',       label: 'AI Assistant', icon: Sparkles },
   { href: '/settings', label: 'Settings',     icon: Settings },
@@ -79,14 +77,13 @@ const personalSettingsItems = [
 
 export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
-  const { organization } = useOrganization();
 
   const isActive = (href: string, exact = false) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
 
   return (
     <>
-      {/* Mobile backdrop — tap to close */}
+      {/* Mobile backdrop */}
       {isMobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
@@ -98,8 +95,6 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
       <aside
         className={cn(
           'w-[210px] h-screen flex flex-col border-r border-border bg-card flex-shrink-0',
-          // Desktop: always visible in normal document flow
-          // Mobile: hidden by default, fixed overlay when open
           isMobileOpen
             ? 'fixed inset-y-0 left-0 z-50 flex'
             : 'hidden md:flex',
@@ -130,26 +125,12 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
           </button>
         </div>
 
-        {/* Org switcher */}
-        <div className="px-2 py-2 border-b border-border">
-          <button className="w-full flex items-center gap-2 px-2 py-2 min-h-[44px] rounded-md hover:bg-accent transition-colors text-left">
-            <div className="w-6 h-6 rounded bg-[#0F6E56] flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">
-              {organization?.name?.slice(0, 2).toUpperCase() ?? 'AB'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs font-medium text-foreground truncate">
-                {organization?.name ?? 'My Business'}
-              </div>
-              <div className="text-[10px] text-muted-foreground">Owner</div>
-            </div>
-            <ChevronDown className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-          </button>
-        </div>
+        {/* Business switcher — replaces static org button */}
+        <BusinessSwitcher />
 
-        {/* Nav — onClick on any item closes mobile sidebar */}
+        {/* Nav */}
         <nav className="flex-1 px-2 py-3 overflow-y-auto flex flex-col gap-0.5">
 
-          {/* ── PERSONAL MODE ── */}
           {mode === 'personal' && (
             <>
               <NavSection label="Personal Finance" />
@@ -167,7 +148,6 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
             </>
           )}
 
-          {/* ── FREELANCER MODE ── */}
           {mode === 'freelancer' && (
             <>
               <NavSection label="Freelancer" />
@@ -185,7 +165,6 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
             </>
           )}
 
-          {/* ── BUSINESS MODE ── */}
           {mode === 'business' && (
             <>
               <NavSection label="Main" />
