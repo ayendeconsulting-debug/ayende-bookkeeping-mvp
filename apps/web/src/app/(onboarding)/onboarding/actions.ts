@@ -27,7 +27,7 @@ async function patchBusiness(data: Record<string, unknown>) {
   return {};
 }
 
-/* ── Step 1: Save mode + country ────────────────────────────────────────── */
+/* ── Step 1: Save mode + country ──────────────────────────────────────────── */
 export async function saveModeAndCountry(
   mode: 'business' | 'freelancer' | 'personal',
   country: 'CA' | 'US',
@@ -35,7 +35,7 @@ export async function saveModeAndCountry(
   return patchBusiness({ mode, country });
 }
 
-/* ── Step 2: Save business details ─────────────────────────────────────── */
+/* ── Step 2: Save business details ───────────────────────────────────────── */
 export async function saveBusinessDetails(data: {
   name: string;
   currency_code: string;
@@ -44,7 +44,7 @@ export async function saveBusinessDetails(data: {
   return patchBusiness(data);
 }
 
-/* ── Step 3: Seed chart of accounts ─────────────────────────────────────── */
+/* ── Step 3: Seed chart of accounts ──────────────────────────────────────── */
 export async function seedAccounts(
   industry: string,
 ): Promise<{ seeded?: number; skipped?: boolean; error?: string }> {
@@ -60,7 +60,7 @@ export async function seedAccounts(
   return res.json();
 }
 
-/* ── Step 4: Create first tax code (optional) ───────────────────────────── */
+/* ── Step 4: Create first tax code (optional) ────────────────────────────── */
 export async function createFirstTaxCode(data: {
   code: string;
   name: string;
@@ -80,7 +80,55 @@ export async function createFirstTaxCode(data: {
   return {};
 }
 
-/* ── Step 5 / Complete: Mark onboarding done and redirect ───────────────── */
+/* ── Step 5: Fetch legal acceptance status ───────────────────────────────── */
+export interface LegalStatusDocument {
+  document_type: string;
+  current_version: string;
+  accepted_version: string | null;
+  is_current: boolean;
+}
+
+export async function fetchLegalAcceptanceStatus(): Promise<{
+  all_accepted: boolean;
+  requires_reacceptance: boolean;
+  documents: LegalStatusDocument[];
+  error?: string;
+}> {
+  try {
+    const res = await fetch(`${API_URL}/legal/acceptance-status`, {
+      headers: await getAuthHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) {
+      return { all_accepted: false, requires_reacceptance: true, documents: [], error: 'Failed to fetch status' };
+    }
+    return res.json();
+  } catch {
+    return { all_accepted: false, requires_reacceptance: true, documents: [], error: 'Network error' };
+  }
+}
+
+/* ── Step 5: Accept legal documents ──────────────────────────────────────── */
+export async function acceptLegalDocuments(
+  documents: {
+    document_type: string;
+    document_version: string;
+    acceptance_source: string;
+  }[],
+): Promise<{ error?: string }> {
+  const res = await fetch(`${API_URL}/legal/accept`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ documents }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return { error: body.message ?? 'Failed to record legal acceptance' };
+  }
+  return {};
+}
+
+/* ── Step 6 / Complete: Mark onboarding done and redirect ────────────────── */
 export async function completeOnboarding(
   destination: '/dashboard' | '/banks',
 ): Promise<void> {

@@ -1,23 +1,46 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import {
   saveModeAndCountry,
   saveBusinessDetails,
   seedAccounts,
   createFirstTaxCode,
   completeOnboarding,
+  acceptLegalDocuments,
+  fetchLegalAcceptanceStatus,
 } from './actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, ChevronRight, Loader2, Building2 } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Loader2, Building2, ShieldCheck } from 'lucide-react';
+import { LEGAL_VERSIONS } from '@/lib/legal-versions';
 
 type Mode    = 'business' | 'freelancer' | 'personal';
 type Country = 'CA' | 'US';
 
-const TOTAL_STEPS = 5;
+type LegalDocType =
+  | 'terms_of_service'
+  | 'terms_of_use'
+  | 'privacy_policy'
+  | 'cookie_policy';
+
+interface LegalDoc {
+  key: LegalDocType;
+  label: string;
+  linkLabel: string;
+  href: string;
+}
+
+const LEGAL_DOCS: LegalDoc[] = [
+  { key: 'terms_of_service', label: 'I have read and agree to the',  linkLabel: 'Terms of Service', href: '/terms'        },
+  { key: 'terms_of_use',     label: 'I have read and agree to the',  linkLabel: 'Terms of Use',     href: '/terms-of-use' },
+  { key: 'privacy_policy',   label: 'I have read and reviewed the',  linkLabel: 'Privacy Policy',   href: '/privacy'      },
+  { key: 'cookie_policy',    label: 'I acknowledge the',             linkLabel: 'Cookie Policy',    href: '/cookies'      },
+];
+
+const TOTAL_STEPS = 6;
 
 const MODE_CARDS = [
   {
@@ -62,7 +85,7 @@ const TAX_PRESETS: Record<Country, { code: string; name: string; rate: number }[
   ],
 };
 
-/* ── Progress Bar ──────────────────────────────────────────────────────────── */
+/* ── Progress Bar ─────────────────────────────────────────────────────────── */
 function ProgressBar({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-2 mb-8">
@@ -77,7 +100,7 @@ function ProgressBar({ step }: { step: number }) {
             {s < step ? <CheckCircle2 className="w-4 h-4" /> : s}
           </div>
           {s < TOTAL_STEPS && (
-            <div className={`h-0.5 w-8 rounded transition-all ${s < step ? 'bg-[#0F6E56]' : 'bg-gray-200'}`} />
+            <div className={`h-0.5 w-6 rounded transition-all ${s < step ? 'bg-[#0F6E56]' : 'bg-gray-200'}`} />
           )}
         </div>
       ))}
@@ -86,9 +109,76 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
-/* ── Main Wizard ───────────────────────────────────────────────────────────── */
+/* ── Legal Checkbox ───────────────────────────────────────────────────────── */
+function LegalCheckbox({
+  doc,
+  checked,
+  preChecked,
+  onChange,
+}: {
+  doc: LegalDoc;
+  checked: boolean;
+  preChecked: boolean;
+  onChange: (val: boolean) => void;
+}) {
+  return (
+    <label
+      className={[
+        'flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none',
+        checked
+          ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-primary/10'
+          : 'border-border bg-card hover:border-[#0F6E56]/50',
+      ].join(' ')}
+    >
+      {/* Checkbox */}
+      <div className="relative flex-shrink-0 mt-0.5">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="sr-only"
+        />
+        <div
+          className={[
+            'w-5 h-5 rounded flex items-center justify-center border-2 transition-all',
+            checked ? 'bg-[#0F6E56] border-[#0F6E56]' : 'bg-background border-border',
+          ].join(' ')}
+        >
+          {checked && (
+            <svg viewBox="0 0 12 12" className="w-3 h-3 text-white" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="2,6 5,9 10,3" />
+            </svg>
+          )}
+        </div>
+      </div>
+
+      {/* Label */}
+      <div className="text-sm text-foreground leading-relaxed">
+        <span>{doc.label} </span>
+        <a
+          href={doc.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041] font-medium"
+        >
+          {doc.linkLabel}
+        </a>
+        {preChecked && (
+          <span className="ml-2 inline-flex items-center gap-1 text-xs text-[#0F6E56] font-medium">
+            <CheckCircle2 className="w-3 h-3" />
+            Previously accepted
+          </span>
+        )}
+      </div>
+    </label>
+  );
+}
+
+/* ── Main Wizard ──────────────────────────────────────────────────────────── */
 export default function OnboardingPage() {
-  const [step, setStep]             = useState(1);
+  const [step, setStep]              = useState(1);
   const [isPending, startTransition] = useTransition();
 
   const [selectedMode,    setSelectedMode]    = useState<Mode | null>(null);
@@ -101,6 +191,46 @@ export default function OnboardingPage() {
   const [taxPreset,       setTaxPreset]       = useState('');
   const [taxAccountId]                        = useState('');
   const [error,           setError]           = useState<string | null>(null);
+
+  // Legal step state
+  const [legalChecks, setLegalChecks] = useState<Record<LegalDocType, boolean>>({
+    terms_of_service: false,
+    terms_of_use:     false,
+    privacy_policy:   false,
+    cookie_policy:    false,
+  });
+  const [preChecked, setPreChecked] = useState<Record<LegalDocType, boolean>>({
+    terms_of_service: false,
+    terms_of_use:     false,
+    privacy_policy:   false,
+    cookie_policy:    false,
+  });
+  const [legalLoading, setLegalLoading] = useState(false);
+
+  const allLegalChecked = LEGAL_DOCS.every((d) => legalChecks[d.key]);
+
+  // When user reaches step 5, pre-check any already-accepted docs
+  useEffect(() => {
+    if (step !== 5) return;
+    setLegalLoading(true);
+    fetchLegalAcceptanceStatus().then((status) => {
+      if (!status.error && status.documents.length > 0) {
+        const newChecks = { ...legalChecks };
+        const newPreChecked = { ...preChecked };
+        status.documents.forEach((doc) => {
+          const key = doc.document_type as LegalDocType;
+          if (doc.is_current) {
+            newChecks[key] = true;
+            newPreChecked[key] = true;
+          }
+        });
+        setLegalChecks(newChecks);
+        setPreChecked(newPreChecked);
+      }
+      setLegalLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   function handleStep1() {
     if (!selectedMode || !selectedCountry) { setError('Please select a mode and country.'); return; }
@@ -120,7 +250,7 @@ export default function OnboardingPage() {
     startTransition(async () => {
       const result = await saveBusinessDetails({
         name: businessName.trim(),
-        currency_code:  currency || (selectedCountry === 'CA' ? 'CAD' : 'USD'),
+        currency_code:   currency || (selectedCountry === 'CA' ? 'CAD' : 'USD'),
         fiscal_year_end: fiscalYearEnd || undefined,
       });
       if (result.error) { setError(result.error); toastError('Could not save', result.error); return; }
@@ -146,6 +276,22 @@ export default function OnboardingPage() {
     setStep(5);
   }
 
+  function handleStep5() {
+    if (!allLegalChecked) { setError('Please accept all agreements to continue.'); return; }
+    setError(null);
+    startTransition(async () => {
+      const documents = LEGAL_DOCS.map((doc) => ({
+        document_type:     doc.key,
+        document_version:  LEGAL_VERSIONS[doc.key],
+        acceptance_source: 'onboarding',
+      }));
+      const result = await acceptLegalDocuments(documents);
+      if (result.error) { setError(result.error); toastError('Could not record agreements', result.error); return; }
+      toastSuccess('Agreements accepted', 'You\'re all set!');
+      setStep(6);
+    });
+  }
+
   function handleComplete(destination: '/dashboard' | '/banks') {
     setError(null);
     startTransition(async () => {
@@ -160,7 +306,6 @@ export default function OnboardingPage() {
         {/* Logo + Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#0F6E56] mb-3">
-            {/* Rising bars — Tempo logo mark */}
             <svg viewBox="0 0 16 16" className="w-7 h-7">
               <rect x="1"   y="10" width="3" height="5"  rx="0.5" fill="white" opacity="0.5"/>
               <rect x="6.5" y="7"  width="3" height="8"  rx="0.5" fill="white" opacity="0.75"/>
@@ -252,10 +397,10 @@ export default function OnboardingPage() {
                 <Label>Base Currency</Label>
                 <select value={currency} onChange={(e) => setCurrency(e.target.value)}
                   className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
-                  <option value="CAD">CAD — Canadian Dollar</option>
-                  <option value="USD">USD — US Dollar</option>
-                  <option value="EUR">EUR — Euro</option>
-                  <option value="GBP">GBP — British Pound</option>
+                  <option value="CAD">CAD – Canadian Dollar</option>
+                  <option value="USD">USD – US Dollar</option>
+                  <option value="EUR">EUR – Euro</option>
+                  <option value="GBP">GBP – British Pound</option>
                 </select>
               </div>
               {selectedMode !== 'personal' && (
@@ -356,8 +501,63 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 5: Connect Bank ── */}
+        {/* ── Step 5: Legal Agreements ── */}
         {step === 5 && (
+          <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-[#0F6E56]" />
+              <h2 className="text-base font-semibold text-foreground">Review and accept our agreements</h2>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Please read and accept the following agreements before accessing Tempo. Links open in a new tab.
+            </p>
+
+            {legalLoading ? (
+              <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Checking previous agreements…</span>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {LEGAL_DOCS.map((doc) => (
+                  <LegalCheckbox
+                    key={doc.key}
+                    doc={doc}
+                    checked={legalChecks[doc.key]}
+                    preChecked={preChecked[doc.key]}
+                    onChange={(val) => setLegalChecks((prev) => ({ ...prev, [doc.key]: val }))}
+                  />
+                ))}
+              </div>
+            )}
+
+            {!allLegalChecked && !legalLoading && (
+              <p className="text-xs text-muted-foreground">
+                All four agreements must be accepted to continue.
+              </p>
+            )}
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setStep(selectedMode === 'personal' ? 3 : 4)} disabled={isPending}>
+                Back
+              </Button>
+              <Button
+                onClick={handleStep5}
+                disabled={isPending || !allLegalChecked || legalLoading}
+                className="flex items-center gap-2"
+              >
+                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Accept & Continue <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 6: Connect Bank ── */}
+        {step === 6 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
               <h2 className="text-base font-semibold text-foreground mb-1">Connect your bank account</h2>
