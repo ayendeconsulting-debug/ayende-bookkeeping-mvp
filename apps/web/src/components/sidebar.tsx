@@ -90,7 +90,7 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
 
       <aside
         className={cn(
-          'w-[210px] h-screen flex flex-col border-r border-border bg-white dark:bg-[#1c1a17] flex-shrink-0 shadow-sm',
+          'w-[210px] h-screen flex flex-col border-r border-border bg-white dark:bg-[#2a2720] flex-shrink-0 shadow-sm',
           isMobileOpen
             ? 'fixed inset-y-0 left-0 z-50 flex shadow-2xl'
             : 'hidden md:flex',
