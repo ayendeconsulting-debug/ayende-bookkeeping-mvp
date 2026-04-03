@@ -10,9 +10,7 @@ import {
   TrendingDown,
   Calculator,
   FileText,
-  Car,
   ArrowRight,
-  AlertCircle,
 } from 'lucide-react';
 
 interface FreelancerDashboardProps {
@@ -42,34 +40,32 @@ export function FreelancerDashboard({
   );
   const outstandingTotal = outstandingInvoices.reduce((s, inv) => s + Number(inv.balance_due), 0);
 
-  const monthlyIncome = Number(monthlyStatement?.total_revenue ?? 0);
-  const monthlyExpenses = Number(monthlyStatement?.total_expenses ?? 0);
-  const ytdIncome = Number(ytdStatement?.total_revenue ?? 0);
-  const ytdExpenses = Number(ytdStatement?.total_expenses ?? 0);
-  const ytdNetProfit = ytdIncome - ytdExpenses;
+  const monthlyIncome    = Number(monthlyStatement?.total_revenue ?? 0);
+  const monthlyExpenses  = Number(monthlyStatement?.total_expenses ?? 0);
+  const ytdIncome        = Number(ytdStatement?.total_revenue ?? 0);
+  const ytdExpenses      = Number(ytdStatement?.total_expenses ?? 0);
+  const ytdNetProfit     = ytdIncome - ytdExpenses;
 
   const country = business?.country ?? 'CA';
-  const unit = country === 'US' ? 'miles' : 'km';
+  const unit    = country === 'US' ? 'miles' : 'km';
 
   return (
-    <div className="p-6 max-w-screen-xl mx-auto">
+    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
+
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-foreground">
           {business?.name ?? 'My Business'}
         </h1>
         <p className="text-sm text-gray-500 mt-0.5">
           {new Date().toLocaleDateString('en-CA', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
           })}
         </p>
       </div>
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      {/* ── Metric cards — 2 cols mobile, 4 cols desktop ────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
         <MetricCard
           label="This Month Income"
           value={formatCurrency(monthlyIncome)}
@@ -108,10 +104,11 @@ export function FreelancerDashboard({
         />
       </div>
 
-      {/* Main grid */}
-      <div className="grid grid-cols-3 gap-4">
-        {/* YTD Summary + quick links — spans 2 cols */}
-        <div className="col-span-2 flex flex-col gap-4">
+      {/* ── Main grid — 1 col mobile, 3 cols desktop ────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* Left section — spans 2 cols on desktop */}
+        <div className="col-span-1 lg:col-span-2 flex flex-col gap-4">
 
           {/* YTD summary */}
           <Card>
@@ -182,23 +179,16 @@ export function FreelancerDashboard({
                         <div className="text-xs text-gray-400">
                           {inv.invoice_number} · Due{' '}
                           {new Date(inv.due_date).toLocaleDateString('en-CA', {
-                            month: 'short',
-                            day: 'numeric',
+                            month: 'short', day: 'numeric',
                           })}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 ml-4">
+                      <div className="flex items-center gap-3 ml-4 flex-shrink-0">
                         <span className="text-sm font-semibold text-gray-900">
                           {formatCurrency(inv.balance_due)}
                         </span>
-                        <Badge
-                          variant={inv.status === 'overdue' ? 'destructive' : 'pending'}
-                        >
-                          {inv.status === 'overdue'
-                            ? 'Overdue'
-                            : inv.status === 'partially_paid'
-                            ? 'Partial'
-                            : 'Sent'}
+                        <Badge variant={inv.status === 'overdue' ? 'destructive' : 'pending'}>
+                          {inv.status === 'overdue' ? 'Overdue' : inv.status === 'partially_paid' ? 'Partial' : 'Sent'}
                         </Badge>
                       </div>
                     </div>
@@ -212,16 +202,16 @@ export function FreelancerDashboard({
         {/* Right column */}
         <div className="flex flex-col gap-4">
 
-          {/* Quick links */}
+          {/* Quick actions */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="pt-0 flex flex-col gap-2">
-              <QuickLink href="/transactions" label="Tag transactions" sub="Mark income & expenses" />
-              <QuickLink href="/invoices" label="Create invoice" sub="Bill a client" />
-              <QuickLink href="/freelancer/mileage" label="Log mileage" sub={`Track ${unit} for tax deduction`} />
-              <QuickLink href="/freelancer/tax" label="View tax estimate" sub="Q1–Q4 breakdown" />
+              <QuickLink href="/transactions"      label="Tag transactions"  sub="Mark income & expenses" />
+              <QuickLink href="/invoices"           label="Create invoice"    sub="Bill a client" />
+              <QuickLink href="/freelancer/mileage" label="Log mileage"       sub={`Track ${unit} for tax deduction`} />
+              <QuickLink href="/freelancer/tax"     label="View tax estimate" sub="Q1–Q4 breakdown" />
             </CardContent>
           </Card>
 
@@ -236,7 +226,7 @@ export function FreelancerDashboard({
               <CardContent className="pt-0">
                 <div className="flex flex-col gap-2">
                   {taxEstimate.quarters.map((q) => {
-                    const isPast = new Date(q.due_date) < new Date();
+                    const isPast    = new Date(q.due_date) < new Date();
                     const isCurrent = q.quarter === currentQ;
                     return (
                       <div
@@ -247,28 +237,20 @@ export function FreelancerDashboard({
                         )}
                       >
                         <div>
-                          <span
-                            className={cn(
-                              'text-xs font-medium',
-                              isCurrent ? 'text-amber-700' : isPast ? 'text-gray-400' : 'text-gray-700',
-                            )}
-                          >
+                          <span className={cn(
+                            'text-xs font-medium',
+                            isCurrent ? 'text-amber-700' : isPast ? 'text-gray-400' : 'text-gray-700',
+                          )}>
                             {q.label}
                           </span>
                           <span className="text-xs text-gray-400 ml-2">
-                            Due{' '}
-                            {new Date(q.due_date).toLocaleDateString('en-CA', {
-                              month: 'short',
-                              day: 'numeric',
-                            })}
+                            Due {new Date(q.due_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
                           </span>
                         </div>
-                        <span
-                          className={cn(
-                            'text-xs font-semibold',
-                            isCurrent ? 'text-amber-700' : isPast ? 'text-gray-400' : 'text-gray-700',
-                          )}
-                        >
+                        <span className={cn(
+                          'text-xs font-semibold',
+                          isCurrent ? 'text-amber-700' : isPast ? 'text-gray-400' : 'text-gray-700',
+                        )}>
                           {formatCurrency(q.estimated_tax)}
                         </span>
                       </div>
@@ -287,49 +269,38 @@ export function FreelancerDashboard({
   );
 }
 
-/* ── Sub-components ──────────────────────────────────────────────────────────── */
+/* ── Sub-components ──────────────────────────────────────────────────────── */
 
 function MetricCard({
-  label,
-  value,
-  icon: Icon,
-  iconColor,
-  iconBg,
-  sub,
+  label, value, icon: Icon, iconColor, iconBg, sub,
 }: {
-  label: string;
-  value: string;
-  icon: React.ElementType;
-  iconColor: string;
-  iconBg: string;
-  sub: string;
+  label: string; value: string; icon: React.ElementType;
+  iconColor: string; iconBg: string; sub: string;
 }) {
   return (
     <Card>
-      <CardContent className="pt-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</div>
-          <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center`}>
+      <CardContent className="pt-4 pb-4">
+        <div className="flex items-start justify-between mb-2">
+          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight pr-1">
+            {label}
+          </div>
+          <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}>
             <Icon className={`w-4 h-4 ${iconColor}`} />
           </div>
         </div>
-        <div className="text-2xl font-semibold text-gray-900 mb-1">{value}</div>
-        <div className="text-xs text-gray-400">{sub}</div>
+        <div className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-foreground mb-1 truncate">
+          {value}
+        </div>
+        <div className="text-xs text-gray-400 leading-tight">{sub}</div>
       </CardContent>
     </Card>
   );
 }
 
 function SummaryRow({
-  label,
-  value,
-  valueClass,
-  bold,
+  label, value, valueClass, bold,
 }: {
-  label: string;
-  value: string;
-  valueClass: string;
-  bold?: boolean;
+  label: string; value: string; valueClass: string; bold?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between">
@@ -341,25 +312,19 @@ function SummaryRow({
   );
 }
 
-function QuickLink({
-  href,
-  label,
-  sub,
-}: {
-  href: string;
-  label: string;
-  sub: string;
-}) {
+function QuickLink({ href, label, sub }: { href: string; label: string; sub: string }) {
   return (
     <Link
       href={href}
-      className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-100 hover:border-primary/30 hover:bg-primary-light/30 transition-colors group"
+      className="flex items-center justify-between px-3 py-3 rounded-lg border border-gray-100 hover:border-primary/30 hover:bg-primary-light/30 transition-colors group"
     >
-      <div>
-        <div className="text-sm font-medium text-gray-900 group-hover:text-primary">{label}</div>
-        <div className="text-xs text-gray-400">{sub}</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium text-gray-900 dark:text-foreground group-hover:text-primary truncate">
+          {label}
+        </div>
+        <div className="text-xs text-gray-400 truncate">{sub}</div>
       </div>
-      <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-primary transition-colors" />
+      <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-primary transition-colors flex-shrink-0 ml-2" />
     </Link>
   );
 }

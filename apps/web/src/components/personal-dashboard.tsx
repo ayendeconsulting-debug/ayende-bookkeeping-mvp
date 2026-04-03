@@ -11,26 +11,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UpcomingRemindersWidget } from '@/components/upcoming-reminders-widget';
 import {
   TrendingDown, TrendingUp, PiggyBank, Wallet,
-  AlertCircle, ArrowRight, Target, RefreshCw,
+  AlertCircle, Target, RefreshCw,
 } from 'lucide-react';
 
 interface PersonalDashboardProps {
-  budgetCategories: BudgetCategoryWithSpending[];
-  savingsGoals: SavingsGoalWithProgress[];
-  netWorth: NetWorthResult | null;
-  monthlyStatement: IncomeStatement | null;
-  business: Business | null;
+  budgetCategories:  BudgetCategoryWithSpending[];
+  savingsGoals:      SavingsGoalWithProgress[];
+  netWorth:          NetWorthResult | null;
+  monthlyStatement:  IncomeStatement | null;
+  business:          Business | null;
   confirmedRecurring: ConfirmedRecurring[];
   upcomingReminders: UpcomingRemindersResult | null;
 }
 
 function calcMonthlyEquivalent(amount: number, frequency: string): number {
   switch (frequency) {
-    case 'weekly': return amount * 4.33;
-    case 'monthly': return amount;
+    case 'weekly':    return amount * 4.33;
+    case 'monthly':   return amount;
     case 'quarterly': return amount / 3;
-    case 'annually': return amount / 12;
-    default: return amount;
+    case 'annually':  return amount / 12;
+    default:          return amount;
   }
 }
 
@@ -38,52 +38,65 @@ export function PersonalDashboard({
   budgetCategories, savingsGoals, netWorth,
   monthlyStatement, business, confirmedRecurring, upcomingReminders,
 }: PersonalDashboardProps) {
-  const moneyIn = Number(monthlyStatement?.total_revenue ?? 0);
+  const moneyIn  = Number(monthlyStatement?.total_revenue  ?? 0);
   const moneyOut = Number(monthlyStatement?.total_expenses ?? 0);
+
   const totalMonthlyTarget = budgetCategories.reduce((s, c) => s + (c.monthly_target ?? 0), 0);
-  const totalSpent = budgetCategories.reduce((s, c) => s + c.spent_this_month, 0);
-  const remainingBudget = Math.max(0, totalMonthlyTarget - totalSpent);
-  const overBudgetCount = budgetCategories.filter((c) => c.over_budget).length;
-  const activeGoals = savingsGoals.filter((g) => g.status === 'active');
+  const totalSpent         = budgetCategories.reduce((s, c) => s + c.spent_this_month, 0);
+  const remainingBudget    = Math.max(0, totalMonthlyTarget - totalSpent);
+  const overBudgetCount    = budgetCategories.filter((c) => c.over_budget).length;
+  const activeGoals        = savingsGoals.filter((g) => g.status === 'active');
   const totalMonthlyRecurring = confirmedRecurring.reduce(
     (s, c) => s + calcMonthlyEquivalent(c.amount, c.frequency), 0,
   );
   const dueSoonItems = upcomingReminders?.reminders.filter((r) => r.is_due_soon) ?? [];
-  const monthName = new Date().toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
+  const monthName    = new Date().toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="p-6 max-w-screen-xl mx-auto">
+    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
+
+      {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">{business?.name ?? 'My Finances'}</h1>
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-foreground">
+          {business?.name ?? 'My Finances'}
+        </h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          {new Date().toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          {new Date().toLocaleDateString('en-CA', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+          })}
         </p>
       </div>
 
       {/* Alerts */}
       {upcomingReminders?.balance_warning && (
-        <div className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-          <p className="text-sm font-medium text-red-700">
-            Balance may be insufficient — {formatCurrency(upcomingReminders.total_due_7_days)} due in 7 days, balance is {formatCurrency(upcomingReminders.current_balance)}.
+        <div className="mb-4 flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <p className="text-sm font-medium text-red-700 flex-1">
+            Balance may be insufficient — {formatCurrency(upcomingReminders.total_due_7_days)} due in 7 days.
           </p>
-          <Link href="/personal/reminders" className="ml-auto text-xs text-red-600 underline">Review</Link>
+          <Link href="/personal/reminders" className="text-xs text-red-600 underline flex-shrink-0">Review</Link>
         </div>
       )}
       {overBudgetCount > 0 && (
-        <div className="mb-4 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-          <p className="text-sm font-medium text-amber-700">
+        <div className="mb-4 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <p className="text-sm font-medium text-amber-700 flex-1">
             {overBudgetCount} budget {overBudgetCount === 1 ? 'category is' : 'categories are'} over target.
           </p>
-          <Link href="/personal/budget" className="ml-auto text-xs text-amber-600 underline">Review</Link>
+          <Link href="/personal/budget" className="text-xs text-amber-600 underline flex-shrink-0">Review</Link>
         </div>
       )}
 
-      {/* Metric cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <MetricCard label="Money In" value={formatCurrency(moneyIn)} icon={TrendingUp} iconColor="text-primary" iconBg="bg-primary-light" sub={monthName} />
-        <MetricCard label="Money Out" value={formatCurrency(moneyOut)} icon={TrendingDown} iconColor="text-danger" iconBg="bg-danger-light" sub={monthName} />
+      {/* ── Metric cards — 2 cols mobile, 4 cols desktop ────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
+        <MetricCard
+          label="Money In" value={formatCurrency(moneyIn)}
+          icon={TrendingUp} iconColor="text-primary" iconBg="bg-primary-light" sub={monthName}
+        />
+        <MetricCard
+          label="Money Out" value={formatCurrency(moneyOut)}
+          icon={TrendingDown} iconColor="text-danger" iconBg="bg-danger-light" sub={monthName}
+        />
         <MetricCard
           label="Remaining Budget"
           value={totalMonthlyTarget > 0 ? formatCurrency(remainingBudget) : '—'}
@@ -100,14 +113,17 @@ export function PersonalDashboard({
         />
       </div>
 
-      {/* Main grid */}
-      <div className="grid grid-cols-3 gap-4">
-        {/* Budget vs Actual */}
-        <div className="col-span-2 flex flex-col gap-4">
+      {/* ── Main grid — 1 col mobile, 3 cols desktop ────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* Left section — spans 2 cols on desktop */}
+        <div className="col-span-1 lg:col-span-2 flex flex-col gap-4">
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle>Budget vs Actual — {monthName}</CardTitle>
-              <Link href="/personal/budget" className="text-xs text-primary hover:underline font-medium">Manage →</Link>
+              <Link href="/personal/budget" className="text-xs text-primary hover:underline font-medium">
+                Manage →
+              </Link>
             </CardHeader>
             <CardContent className="pt-0">
               {budgetCategories.length === 0 ? (
@@ -116,7 +132,9 @@ export function PersonalDashboard({
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {budgetCategories.slice(0, 8).map((cat) => <BudgetBar key={cat.id} category={cat} />)}
+                  {budgetCategories.slice(0, 8).map((cat) => (
+                    <BudgetBar key={cat.id} category={cat} />
+                  ))}
                   {budgetCategories.length > 8 && (
                     <Link href="/personal/budget" className="text-xs text-gray-400 hover:text-primary text-center pt-1">
                       +{budgetCategories.length - 8} more →
@@ -130,13 +148,16 @@ export function PersonalDashboard({
 
         {/* Right column */}
         <div className="flex flex-col gap-4">
+
           {/* Savings Goals */}
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2">
                 <Target className="w-4 h-4 text-gray-400" />Savings Goals
               </CardTitle>
-              <Link href="/personal/goals" className="text-xs text-primary hover:underline font-medium">Manage →</Link>
+              <Link href="/personal/goals" className="text-xs text-primary hover:underline font-medium">
+                Manage →
+              </Link>
             </CardHeader>
             <CardContent className="pt-0">
               {activeGoals.length === 0 ? (
@@ -145,7 +166,9 @@ export function PersonalDashboard({
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
-                  {activeGoals.slice(0, 3).map((goal) => <GoalCard key={goal.id} goal={goal} />)}
+                  {activeGoals.slice(0, 3).map((goal) => (
+                    <GoalCard key={goal.id} goal={goal} />
+                  ))}
                 </div>
               )}
             </CardContent>
@@ -164,11 +187,13 @@ export function PersonalDashboard({
             <CardContent className="pt-0">
               {confirmedRecurring.length === 0 ? (
                 <div className="py-4 text-center text-sm text-gray-400">
-                  <Link href="/personal/recurring" className="text-primary underline">Detect subscriptions & bills</Link>
+                  <Link href="/personal/recurring" className="text-primary underline">
+                    Detect subscriptions & bills
+                  </Link>
                 </div>
               ) : (
                 <div>
-                  <div className="text-lg font-bold text-gray-900 mb-1">
+                  <div className="text-lg font-bold text-gray-900 dark:text-foreground mb-1">
                     {formatCurrency(totalMonthlyRecurring)}
                     <span className="text-xs font-normal text-gray-400 ml-1">/mo</span>
                   </div>
@@ -190,7 +215,7 @@ export function PersonalDashboard({
             </CardContent>
           </Card>
 
-          {/* Upcoming Reminders — replaces Quick Actions */}
+          {/* Upcoming Payments */}
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle className="flex items-center gap-2">
@@ -201,30 +226,46 @@ export function PersonalDashboard({
                   </span>
                 )}
               </CardTitle>
-              <Link href="/personal/reminders" className="text-xs text-primary hover:underline font-medium">View all →</Link>
+              <Link href="/personal/reminders" className="text-xs text-primary hover:underline font-medium">
+                View all →
+              </Link>
             </CardHeader>
             <CardContent className="pt-0">
               <UpcomingRemindersWidget data={upcomingReminders} compact />
             </CardContent>
           </Card>
+
         </div>
       </div>
     </div>
   );
 }
 
-function MetricCard({ label, value, icon: Icon, iconColor, iconBg, sub }: {
-  label: string; value: string; icon: React.ElementType; iconColor: string; iconBg: string; sub: string;
+/* ── Sub-components ──────────────────────────────────────────────────────── */
+
+function MetricCard({
+  label, value, icon: Icon, iconColor, iconBg, sub,
+}: {
+  label: string; value: string; icon: React.ElementType;
+  iconColor: string; iconBg: string; sub: string;
 }) {
   return (
-    <Card><CardContent className="pt-5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</div>
-        <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center`}><Icon className={`w-4 h-4 ${iconColor}`} /></div>
-      </div>
-      <div className="text-2xl font-semibold text-gray-900 mb-1">{value}</div>
-      <div className="text-xs text-gray-400">{sub}</div>
-    </CardContent></Card>
+    <Card>
+      <CardContent className="pt-4 pb-4">
+        <div className="flex items-start justify-between mb-2">
+          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider leading-tight pr-1">
+            {label}
+          </div>
+          <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}>
+            <Icon className={`w-4 h-4 ${iconColor}`} />
+          </div>
+        </div>
+        <div className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-foreground mb-1 truncate">
+          {value}
+        </div>
+        <div className="text-xs text-gray-400 leading-tight">{sub}</div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -234,12 +275,14 @@ function BudgetBar({ category }: { category: BudgetCategoryWithSpending }) {
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: category.color }} />
-          <span className="text-sm text-gray-700">{category.name}</span>
-          {category.over_budget && <span className="text-[10px] font-bold text-red-500 uppercase">Over</span>}
+          <span className="text-sm text-gray-700 truncate">{category.name}</span>
+          {category.over_budget && (
+            <span className="text-[10px] font-bold text-red-500 uppercase flex-shrink-0">Over</span>
+          )}
         </div>
-        <div className="text-xs text-gray-500">
+        <div className="text-xs text-gray-500 flex-shrink-0 ml-2">
           {formatCurrency(category.spent_this_month)}
           {hasTarget && <span className="text-gray-400"> / {formatCurrency(category.monthly_target!)}</span>}
         </div>
@@ -260,8 +303,10 @@ function GoalCard({ goal }: { goal: SavingsGoalWithProgress }) {
   return (
     <div>
       <div className="flex justify-between items-center mb-1.5">
-        <span className="text-sm font-medium text-gray-800">{goal.name}</span>
-        <span className="text-xs font-semibold text-primary">{goal.percentage_complete.toFixed(0)}%</span>
+        <span className="text-sm font-medium text-gray-800 dark:text-foreground truncate">{goal.name}</span>
+        <span className="text-xs font-semibold text-primary flex-shrink-0 ml-2">
+          {goal.percentage_complete.toFixed(0)}%
+        </span>
       </div>
       <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
         <div className="h-full bg-primary rounded-full" style={{ width: `${goal.percentage_complete}%` }} />
