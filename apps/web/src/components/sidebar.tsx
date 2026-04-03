@@ -6,28 +6,9 @@ import { useOrganization } from '@clerk/nextjs';
 import { cn } from '@/lib/utils';
 import { BusinessMode } from '@/types';
 import {
-  LayoutDashboard,
-  ArrowLeftRight,
-  Building2,
-  BookOpen,
-  TrendingUp,
-  Scale,
-  ClipboardList,
-  Receipt,
-  Filter,
-  Sparkles,
-  Settings,
-  ChevronDown,
-  FileText,
-  ArrowRightLeft,
-  RefreshCw,
-  Users,
-  Car,
-  Calculator,
-  Tag,
-  PieChart,
-  Target,
-  Landmark,
+  LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
+  ClipboardList, Receipt, Filter, Sparkles, Settings, ChevronDown, FileText,
+  ArrowRightLeft, RefreshCw, Users, Car, Calculator, Tag, PieChart, Target, Landmark,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -35,42 +16,43 @@ interface SidebarProps {
 }
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
-  { href: '/invoices', label: 'Invoices', icon: FileText },
-  { href: '/ar-ap', label: 'AR / AP', icon: ArrowRightLeft },
-  { href: '/recurring', label: 'Recurring', icon: RefreshCw },
-  { href: '/payroll', label: 'Payroll', icon: Users },
-  { href: '/banks', label: 'Bank Accounts', icon: Building2 },
+  { href: '/dashboard',    label: 'Dashboard',       icon: LayoutDashboard },
+  { href: '/transactions', label: 'Transactions',     icon: ArrowLeftRight },
+  { href: '/invoices',     label: 'Invoices',         icon: FileText },
+  { href: '/ar-ap',        label: 'AR / AP',          icon: ArrowRightLeft },
+  { href: '/recurring',    label: 'Recurring',        icon: RefreshCw },
+  { href: '/payroll',      label: 'Payroll',          icon: Users },
+  { href: '/banks',        label: 'Bank Accounts',    icon: Building2 },
 ];
 
 const reportItems = [
   { href: '/reports/income-statement', label: 'Income Statement', icon: TrendingUp },
-  { href: '/reports/balance-sheet', label: 'Balance Sheet', icon: Scale },
-  { href: '/reports/trial-balance', label: 'Trial Balance', icon: ClipboardList },
-  { href: '/reports/general-ledger', label: 'General Ledger', icon: BookOpen },
+  { href: '/reports/balance-sheet',    label: 'Balance Sheet',    icon: Scale },
+  { href: '/reports/trial-balance',    label: 'Trial Balance',    icon: ClipboardList },
+  { href: '/reports/general-ledger',   label: 'General Ledger',   icon: BookOpen },
 ];
 
 const settingsItems = [
-  { href: '/accounts', label: 'Chart of Accounts', icon: BookOpen },
-  { href: '/tax', label: 'Tax Codes', icon: Receipt },
-  { href: '/rules', label: 'Classification Rules', icon: Filter },
-  { href: '/ai', label: 'AI Assistant', icon: Sparkles },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/accounts',  label: 'Chart of Accounts',     icon: BookOpen },
+  { href: '/tax',       label: 'Tax Codes',              icon: Receipt },
+  { href: '/rules',     label: 'Classification Rules',   icon: Filter },
+  { href: '/ai',        label: 'AI Assistant',           icon: Sparkles },
+  { href: '/settings',  label: 'Settings',               icon: Settings },
 ];
 
 const freelancerItems = [
-  { href: '/freelancer/dashboard', label: 'FL Dashboard', icon: LayoutDashboard },
-  { href: '/freelancer/mileage', label: 'Mileage Tracker', icon: Car },
-  { href: '/freelancer/tax', label: 'Tax Estimate', icon: Calculator },
-  { href: '/freelancer/categories', label: 'Categories', icon: Tag },
+  { href: '/freelancer/dashboard',   label: 'FL Dashboard',    icon: LayoutDashboard },
+  { href: '/freelancer/mileage',     label: 'Mileage Tracker', icon: Car },
+  { href: '/freelancer/tax',         label: 'Tax Estimate',    icon: Calculator },
+  { href: '/freelancer/categories',  label: 'Categories',      icon: Tag },
 ];
 
 const personalItems = [
-  { href: '/personal/dashboard', label: 'My Dashboard', icon: LayoutDashboard },
-  { href: '/personal/budget', label: 'Budget', icon: PieChart },
-  { href: '/personal/goals', label: 'Savings Goals', icon: Target },
-  { href: '/personal/networth', label: 'Net Worth', icon: Landmark },
+  { href: '/personal/dashboard',  label: 'My Dashboard',      icon: LayoutDashboard },
+  { href: '/personal/budget',     label: 'Budget',            icon: PieChart },
+  { href: '/personal/goals',      label: 'Savings Goals',     icon: Target },
+  { href: '/personal/networth',   label: 'Net Worth',         icon: Landmark },
+  { href: '/personal/recurring',  label: 'Recurring Payments', icon: RefreshCw },
 ];
 
 export function Sidebar({ mode = 'business' }: SidebarProps) {
@@ -82,9 +64,7 @@ export function Sidebar({ mode = 'business' }: SidebarProps) {
       <div className="px-4 py-5 border-b border-gray-200">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-md bg-[#0F6E56] flex items-center justify-center flex-shrink-0">
-            <svg viewBox="0 0 16 16" fill="white" className="w-4 h-4">
-              <path d="M2 12 L8 4 L14 12 Z" />
-            </svg>
+            <svg viewBox="0 0 16 16" fill="white" className="w-4 h-4"><path d="M2 12 L8 4 L14 12 Z" /></svg>
           </div>
           <div>
             <div className="text-sm font-semibold text-gray-900 leading-tight">Ayende</div>
@@ -101,9 +81,7 @@ export function Sidebar({ mode = 'business' }: SidebarProps) {
             {organization?.name?.slice(0, 2).toUpperCase() ?? 'AB'}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-gray-900 truncate">
-              {organization?.name ?? 'My Business'}
-            </div>
+            <div className="text-xs font-medium text-gray-900 truncate">{organization?.name ?? 'My Business'}</div>
             <div className="text-[10px] text-gray-500">Owner</div>
           </div>
           <ChevronDown className="w-3 h-3 text-gray-400 flex-shrink-0" />
@@ -111,7 +89,6 @@ export function Sidebar({ mode = 'business' }: SidebarProps) {
       </div>
 
       <nav className="flex-1 px-2 py-3 overflow-y-auto flex flex-col gap-0.5">
-        {/* Freelancer section */}
         {mode === 'freelancer' && (
           <>
             <NavSection label="Freelancer" />
@@ -121,7 +98,6 @@ export function Sidebar({ mode = 'business' }: SidebarProps) {
           </>
         )}
 
-        {/* Personal section */}
         {mode === 'personal' && (
           <>
             <NavSection label="Personal Finance" />

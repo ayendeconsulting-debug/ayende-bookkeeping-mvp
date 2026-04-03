@@ -5,31 +5,23 @@ import {
   NetWorthResult,
   IncomeStatement,
   Business,
+  ConfirmedRecurring,
 } from '@/types';
 import { PersonalDashboard } from '@/components/personal-dashboard';
 
 async function getBudgetCategories(): Promise<BudgetCategoryWithSpending[]> {
-  try {
-    return await apiGet<BudgetCategoryWithSpending[]>('/personal/budget-categories');
-  } catch {
-    return [];
-  }
+  try { return await apiGet<BudgetCategoryWithSpending[]>('/personal/budget-categories'); }
+  catch { return []; }
 }
 
 async function getSavingsGoals(): Promise<SavingsGoalWithProgress[]> {
-  try {
-    return await apiGet<SavingsGoalWithProgress[]>('/personal/savings-goals');
-  } catch {
-    return [];
-  }
+  try { return await apiGet<SavingsGoalWithProgress[]>('/personal/savings-goals'); }
+  catch { return []; }
 }
 
 async function getNetWorth(): Promise<NetWorthResult | null> {
-  try {
-    return await apiGet<NetWorthResult>('/personal/net-worth');
-  } catch {
-    return null;
-  }
+  try { return await apiGet<NetWorthResult>('/personal/net-worth'); }
+  catch { return null; }
 }
 
 async function getMonthlyStatement(): Promise<IncomeStatement | null> {
@@ -40,27 +32,28 @@ async function getMonthlyStatement(): Promise<IncomeStatement | null> {
     return await apiGet<IncomeStatement>(
       `/reports/income-statement?startDate=${startDate}&endDate=${endDate}`,
     );
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 async function getMyBusiness(): Promise<Business | null> {
-  try {
-    return await apiGet<Business>('/businesses/me');
-  } catch {
-    return null;
-  }
+  try { return await apiGet<Business>('/businesses/me'); }
+  catch { return null; }
+}
+
+async function getConfirmedRecurring(): Promise<ConfirmedRecurring[]> {
+  try { return await apiGet<ConfirmedRecurring[]>('/personal/recurring-confirmed'); }
+  catch { return []; }
 }
 
 export default async function PersonalDashboardPage() {
-  const [budgetCategories, savingsGoals, netWorth, monthlyStatement, business] =
+  const [budgetCategories, savingsGoals, netWorth, monthlyStatement, business, confirmedRecurring] =
     await Promise.all([
       getBudgetCategories(),
       getSavingsGoals(),
       getNetWorth(),
       getMonthlyStatement(),
       getMyBusiness(),
+      getConfirmedRecurring(),
     ]);
 
   return (
@@ -70,6 +63,7 @@ export default async function PersonalDashboardPage() {
       netWorth={netWorth}
       monthlyStatement={monthlyStatement}
       business={business}
+      confirmedRecurring={confirmedRecurring}
     />
   );
 }

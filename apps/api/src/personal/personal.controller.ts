@@ -15,6 +15,8 @@ import {
   UpdateBudgetCategoryDto,
   CreateSavingsGoalDto,
   UpdateSavingsGoalDto,
+  ConfirmDetectionDto,
+  DismissDetectionDto,
 } from './dto/personal.dto';
 import { Roles } from '../auth/roles.decorator';
 
@@ -24,31 +26,23 @@ export class PersonalController {
 
   // ── Budget Categories ─────────────────────────────────────────────
 
-  /** GET /personal/budget-categories — all roles */
   @Get('budget-categories')
   getBudgetCategories(@Req() req: Request) {
     return this.personalService.getBudgetCategories(req.user!.businessId);
   }
 
-  /** POST /personal/budget-categories — admin only */
   @Roles('admin')
   @Post('budget-categories')
   createBudgetCategory(@Req() req: Request, @Body() dto: CreateBudgetCategoryDto) {
     return this.personalService.createBudgetCategory(req.user!.businessId, dto);
   }
 
-  /** PATCH /personal/budget-categories/:id — admin only */
   @Roles('admin')
   @Patch('budget-categories/:id')
-  updateBudgetCategory(
-    @Req() req: Request,
-    @Param('id') id: string,
-    @Body() dto: UpdateBudgetCategoryDto,
-  ) {
+  updateBudgetCategory(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateBudgetCategoryDto) {
     return this.personalService.updateBudgetCategory(req.user!.businessId, id, dto);
   }
 
-  /** DELETE /personal/budget-categories/:id — admin only */
   @Roles('admin')
   @Delete('budget-categories/:id')
   deleteBudgetCategory(@Req() req: Request, @Param('id') id: string) {
@@ -57,31 +51,23 @@ export class PersonalController {
 
   // ── Savings Goals ─────────────────────────────────────────────────
 
-  /** GET /personal/savings-goals — all roles */
   @Get('savings-goals')
   getSavingsGoals(@Req() req: Request) {
     return this.personalService.getSavingsGoals(req.user!.businessId);
   }
 
-  /** POST /personal/savings-goals — admin only */
   @Roles('admin')
   @Post('savings-goals')
   createSavingsGoal(@Req() req: Request, @Body() dto: CreateSavingsGoalDto) {
     return this.personalService.createSavingsGoal(req.user!.businessId, dto);
   }
 
-  /** PATCH /personal/savings-goals/:id — admin only */
   @Roles('admin')
   @Patch('savings-goals/:id')
-  updateSavingsGoal(
-    @Req() req: Request,
-    @Param('id') id: string,
-    @Body() dto: UpdateSavingsGoalDto,
-  ) {
+  updateSavingsGoal(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateSavingsGoalDto) {
     return this.personalService.updateSavingsGoal(req.user!.businessId, id, dto);
   }
 
-  /** DELETE /personal/savings-goals/:id — admin only */
   @Roles('admin')
   @Delete('savings-goals/:id')
   deleteSavingsGoal(@Req() req: Request, @Param('id') id: string) {
@@ -90,9 +76,36 @@ export class PersonalController {
 
   // ── Net Worth ─────────────────────────────────────────────────────
 
-  /** GET /personal/net-worth — all roles */
   @Get('net-worth')
   getNetWorth(@Req() req: Request) {
     return this.personalService.getNetWorth(req.user!.businessId);
+  }
+
+  // ── Recurring Detection ───────────────────────────────────────────
+
+  /** GET /personal/recurring-detections — run analysis, return unconfirmed candidates */
+  @Get('recurring-detections')
+  detectRecurringPayments(@Req() req: Request) {
+    return this.personalService.detectRecurringPayments(req.user!.businessId);
+  }
+
+  /** POST /personal/recurring-detections/confirm — confirm a detected pattern */
+  @Roles('admin')
+  @Post('recurring-detections/confirm')
+  confirmDetection(@Req() req: Request, @Body() dto: ConfirmDetectionDto) {
+    return this.personalService.confirmDetection(req.user!.businessId, dto);
+  }
+
+  /** POST /personal/recurring-detections/dismiss — dismiss a detected pattern */
+  @Roles('admin')
+  @Post('recurring-detections/dismiss')
+  dismissDetection(@Req() req: Request, @Body() dto: DismissDetectionDto) {
+    return this.personalService.dismissDetection(req.user!.businessId, dto.key);
+  }
+
+  /** GET /personal/recurring-confirmed — return all confirmed recurring payments */
+  @Get('recurring-confirmed')
+  getConfirmedRecurring(@Req() req: Request) {
+    return this.personalService.getConfirmedRecurring(req.user!.businessId);
   }
 }

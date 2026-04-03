@@ -87,3 +87,36 @@ export class UpdateSavingsGoalDto {
   @IsString()
   status?: string;
 }
+
+export class ConfirmDetectionDto {
+  @IsString()
+  key: string;
+
+  @IsString()
+  merchant: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  amount: number;
+
+  @IsString()
+  frequency: string;
+
+  @IsString()
+  last_date: string;
+
+  @IsString()
+  next_date: string;
+
+  @IsString()
+  type: string;
+
+  @IsNumber()
+  @Type(() => Number)
+  occurrence_count: number;
+}
+
+export class DismissDetectionDto {
+  @IsString()
+  key: string;
+}

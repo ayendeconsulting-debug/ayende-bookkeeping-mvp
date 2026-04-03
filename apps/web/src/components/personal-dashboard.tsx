@@ -7,6 +7,7 @@ import {
   NetWorthResult,
   IncomeStatement,
   Business,
+  ConfirmedRecurring,
 } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ import {
   AlertCircle,
   ArrowRight,
   Target,
+  RefreshCw,
 } from 'lucide-react';
 
 interface PersonalDashboardProps {
@@ -26,6 +28,17 @@ interface PersonalDashboardProps {
   netWorth: NetWorthResult | null;
   monthlyStatement: IncomeStatement | null;
   business: Business | null;
+  confirmedRecurring: ConfirmedRecurring[];
+}
+
+function calcMonthlyEquivalent(amount: number, frequency: string): number {
+  switch (frequency) {
+    case 'weekly':    return amount * 4.33;
+    case 'monthly':   return amount;
+    case 'quarterly': return amount / 3;
+    case 'annually':  return amount / 12;
+    default:          return amount;
+  }
 }
 
 export function PersonalDashboard({
@@ -34,85 +47,66 @@ export function PersonalDashboard({
   netWorth,
   monthlyStatement,
   business,
+  confirmedRecurring,
 }: PersonalDashboardProps) {
   const moneyIn = Number(monthlyStatement?.total_revenue ?? 0);
   const moneyOut = Number(monthlyStatement?.total_expenses ?? 0);
 
-  const totalMonthlyTarget = budgetCategories.reduce(
-    (s, c) => s + (c.monthly_target ?? 0),
-    0,
-  );
+  const totalMonthlyTarget = budgetCategories.reduce((s, c) => s + (c.monthly_target ?? 0), 0);
   const totalSpent = budgetCategories.reduce((s, c) => s + c.spent_this_month, 0);
   const remainingBudget = Math.max(0, totalMonthlyTarget - totalSpent);
-
   const overBudgetCount = budgetCategories.filter((c) => c.over_budget).length;
   const activeGoals = savingsGoals.filter((g) => g.status === 'active');
 
-  const monthName = new Date().toLocaleDateString('en-CA', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const totalMonthlyRecurring = confirmedRecurring.reduce(
+    (s, c) => s + calcMonthlyEquivalent(c.amount, c.frequency), 0,
+  );
+  const dueSoonItems = confirmedRecurring.filter((c) => c.is_due_soon);
+
+  const monthName = new Date().toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
 
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">
-          {business?.name ?? 'My Finances'}
-        </h1>
+        <h1 className="text-xl font-semibold text-gray-900">{business?.name ?? 'My Finances'}</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          {new Date().toLocaleDateString('en-CA', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })}
+          {new Date().toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
 
-      {/* Over-budget alert */}
+      {/* Alerts */}
       {overBudgetCount > 0 && (
-        <div className="mb-5 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <div className="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
           <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
           <p className="text-sm font-medium text-red-700">
-            {overBudgetCount} budget{' '}
-            {overBudgetCount === 1 ? 'category is' : 'categories are'} over target this month.
+            {overBudgetCount} budget {overBudgetCount === 1 ? 'category is' : 'categories are'} over target.
           </p>
-          <Link href="/personal/budget" className="ml-auto text-xs text-red-600 underline">
-            Review
-          </Link>
+          <Link href="/personal/budget" className="ml-auto text-xs text-red-600 underline">Review</Link>
+        </div>
+      )}
+      {dueSoonItems.length > 0 && (
+        <div className="mb-4 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <RefreshCw className="w-5 h-5 text-amber-500 flex-shrink-0" />
+          <p className="text-sm font-medium text-amber-700">
+            {dueSoonItems.length} recurring payment{dueSoonItems.length > 1 ? 's' : ''} due within 7 days:{' '}
+            {dueSoonItems.map((d) => d.merchant).join(', ')}
+          </p>
+          <Link href="/personal/recurring" className="ml-auto text-xs text-amber-600 underline">View</Link>
         </div>
       )}
 
       {/* Metric cards */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <MetricCard
-          label="Money In"
-          value={formatCurrency(moneyIn)}
-          icon={TrendingUp}
-          iconColor="text-primary"
-          iconBg="bg-primary-light"
-          sub={monthName}
-        />
-        <MetricCard
-          label="Money Out"
-          value={formatCurrency(moneyOut)}
-          icon={TrendingDown}
-          iconColor="text-danger"
-          iconBg="bg-danger-light"
-          sub={monthName}
-        />
+        <MetricCard label="Money In" value={formatCurrency(moneyIn)} icon={TrendingUp} iconColor="text-primary" iconBg="bg-primary-light" sub={monthName} />
+        <MetricCard label="Money Out" value={formatCurrency(moneyOut)} icon={TrendingDown} iconColor="text-danger" iconBg="bg-danger-light" sub={monthName} />
         <MetricCard
           label="Remaining Budget"
           value={totalMonthlyTarget > 0 ? formatCurrency(remainingBudget) : '—'}
           icon={Wallet}
           iconColor={remainingBudget > 0 ? 'text-primary' : 'text-danger'}
           iconBg={remainingBudget > 0 ? 'bg-primary-light' : 'bg-danger-light'}
-          sub={
-            totalMonthlyTarget > 0
-              ? `of ${formatCurrency(totalMonthlyTarget)} budgeted`
-              : 'Set budgets to track'
-          }
+          sub={totalMonthlyTarget > 0 ? `of ${formatCurrency(totalMonthlyTarget)} budgeted` : 'Set budgets to track'}
         />
         <MetricCard
           label="Net Worth"
@@ -120,35 +114,23 @@ export function PersonalDashboard({
           icon={PiggyBank}
           iconColor="text-blue-600"
           iconBg="bg-blue-50"
-          sub={
-            netWorth
-              ? `${formatCurrency(netWorth.total_assets)} assets`
-              : 'Connect a bank to calculate'
-          }
+          sub={netWorth ? `${formatCurrency(netWorth.total_assets)} assets` : 'Connect a bank'}
         />
       </div>
 
       {/* Main grid */}
       <div className="grid grid-cols-3 gap-4">
-        {/* Budget vs Actual — 2 cols */}
+        {/* Budget vs Actual */}
         <div className="col-span-2 flex flex-col gap-4">
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle>Budget vs Actual — {monthName}</CardTitle>
-              <Link
-                href="/personal/budget"
-                className="text-xs text-primary hover:underline font-medium"
-              >
-                Manage →
-              </Link>
+              <Link href="/personal/budget" className="text-xs text-primary hover:underline font-medium">Manage →</Link>
             </CardHeader>
             <CardContent className="pt-0">
               {budgetCategories.length === 0 ? (
                 <div className="py-8 text-center text-sm text-gray-400">
-                  No budget categories yet.{' '}
-                  <Link href="/personal/budget" className="text-primary underline">
-                    Set up your budget
-                  </Link>
+                  <Link href="/personal/budget" className="text-primary underline">Set up your budget</Link>
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
@@ -156,11 +138,8 @@ export function PersonalDashboard({
                     <BudgetBar key={cat.id} category={cat} />
                   ))}
                   {budgetCategories.length > 8 && (
-                    <Link
-                      href="/personal/budget"
-                      className="text-xs text-gray-400 hover:text-primary text-center pt-1"
-                    >
-                      +{budgetCategories.length - 8} more categories →
+                    <Link href="/personal/budget" className="text-xs text-gray-400 hover:text-primary text-center pt-1">
+                      +{budgetCategories.length - 8} more →
                     </Link>
                   )}
                 </div>
@@ -178,19 +157,12 @@ export function PersonalDashboard({
                 <Target className="w-4 h-4 text-gray-400" />
                 Savings Goals
               </CardTitle>
-              <Link
-                href="/personal/goals"
-                className="text-xs text-primary hover:underline font-medium"
-              >
-                Manage →
-              </Link>
+              <Link href="/personal/goals" className="text-xs text-primary hover:underline font-medium">Manage →</Link>
             </CardHeader>
             <CardContent className="pt-0">
               {activeGoals.length === 0 ? (
                 <div className="py-4 text-center text-sm text-gray-400">
-                  <Link href="/personal/goals" className="text-primary underline">
-                    Add a savings goal
-                  </Link>
+                  <Link href="/personal/goals" className="text-primary underline">Add a savings goal</Link>
                 </div>
               ) : (
                 <div className="flex flex-col gap-4">
@@ -202,11 +174,46 @@ export function PersonalDashboard({
             </CardContent>
           </Card>
 
+          {/* Recurring Payments widget */}
+          <Card>
+            <CardHeader className="flex-row items-center justify-between pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-gray-400" />
+                Recurring Payments
+              </CardTitle>
+              <Link href="/personal/recurring" className="text-xs text-primary hover:underline font-medium">
+                {confirmedRecurring.length === 0 ? 'Detect →' : 'Manage →'}
+              </Link>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {confirmedRecurring.length === 0 ? (
+                <div className="py-4 text-center text-sm text-gray-400">
+                  <Link href="/personal/recurring" className="text-primary underline">Detect subscriptions & bills</Link>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-lg font-bold text-gray-900 mb-1">{formatCurrency(totalMonthlyRecurring)}<span className="text-xs font-normal text-gray-400 ml-1">/mo</span></div>
+                  <div className="flex flex-col gap-1.5 mt-2">
+                    {confirmedRecurring.slice(0, 4).map((item) => (
+                      <div key={item.key} className={cn('flex justify-between text-xs', item.is_due_soon ? 'text-amber-600 font-medium' : 'text-gray-600')}>
+                        <span className="truncate">{item.merchant}</span>
+                        <span className="ml-2 flex-shrink-0">{formatCurrency(item.amount)}</span>
+                      </div>
+                    ))}
+                    {confirmedRecurring.length > 4 && (
+                      <Link href="/personal/recurring" className="text-xs text-gray-400 hover:text-primary mt-1">
+                        +{confirmedRecurring.length - 4} more →
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Quick links */}
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
+            <CardHeader className="pb-3"><CardTitle>Quick Actions</CardTitle></CardHeader>
             <CardContent className="pt-0 flex flex-col gap-2">
               <QuickLink href="/transactions" label="Review transactions" sub="See recent activity" />
               <QuickLink href="/personal/budget" label="Update budget" sub="Set monthly targets" />
@@ -222,61 +229,41 @@ export function PersonalDashboard({
 
 /* ── Sub-components ──────────────────────────────────────────────────────────── */
 
-function MetricCard({
-  label, value, icon: Icon, iconColor, iconBg, sub,
-}: {
-  label: string; value: string; icon: React.ElementType;
-  iconColor: string; iconBg: string; sub: string;
+function MetricCard({ label, value, icon: Icon, iconColor, iconBg, sub }: {
+  label: string; value: string; icon: React.ElementType; iconColor: string; iconBg: string; sub: string;
 }) {
   return (
-    <Card>
-      <CardContent className="pt-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</div>
-          <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center`}>
-            <Icon className={`w-4 h-4 ${iconColor}`} />
-          </div>
-        </div>
-        <div className="text-2xl font-semibold text-gray-900 mb-1">{value}</div>
-        <div className="text-xs text-gray-400">{sub}</div>
-      </CardContent>
-    </Card>
+    <Card><CardContent className="pt-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</div>
+        <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center`}><Icon className={`w-4 h-4 ${iconColor}`} /></div>
+      </div>
+      <div className="text-2xl font-semibold text-gray-900 mb-1">{value}</div>
+      <div className="text-xs text-gray-400">{sub}</div>
+    </CardContent></Card>
   );
 }
 
 function BudgetBar({ category }: { category: BudgetCategoryWithSpending }) {
   const pct = category.percentage_spent ?? 0;
-  const hasTarget = category.monthly_target !== null && category.monthly_target !== undefined;
-
+  const hasTarget = category.monthly_target != null;
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center gap-2">
-          <div
-            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-            style={{ backgroundColor: category.color }}
-          />
+          <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: category.color }} />
           <span className="text-sm text-gray-700">{category.name}</span>
-          {category.over_budget && (
-            <span className="text-[10px] font-bold text-red-500 uppercase tracking-wide">
-              Over
-            </span>
-          )}
+          {category.over_budget && <span className="text-[10px] font-bold text-red-500 uppercase">Over</span>}
         </div>
         <div className="text-xs text-gray-500">
           {formatCurrency(category.spent_this_month)}
-          {hasTarget && (
-            <span className="text-gray-400"> / {formatCurrency(category.monthly_target!)}</span>
-          )}
+          {hasTarget && <span className="text-gray-400"> / {formatCurrency(category.monthly_target!)}</span>}
         </div>
       </div>
       {hasTarget && (
         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
           <div
-            className={cn(
-              'h-full rounded-full transition-all',
-              category.over_budget ? 'bg-red-400' : pct >= 80 ? 'bg-amber-400' : 'bg-primary',
-            )}
+            className={cn('h-full rounded-full', category.over_budget ? 'bg-red-400' : pct >= 80 ? 'bg-amber-400' : 'bg-primary')}
             style={{ width: `${Math.min(100, pct)}%` }}
           />
         </div>
@@ -290,15 +277,10 @@ function GoalCard({ goal }: { goal: SavingsGoalWithProgress }) {
     <div>
       <div className="flex justify-between items-center mb-1.5">
         <span className="text-sm font-medium text-gray-800">{goal.name}</span>
-        <span className="text-xs font-semibold text-primary">
-          {goal.percentage_complete.toFixed(0)}%
-        </span>
+        <span className="text-xs font-semibold text-primary">{goal.percentage_complete.toFixed(0)}%</span>
       </div>
       <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-1">
-        <div
-          className="h-full bg-primary rounded-full transition-all"
-          style={{ width: `${goal.percentage_complete}%` }}
-        />
+        <div className="h-full bg-primary rounded-full" style={{ width: `${goal.percentage_complete}%` }} />
       </div>
       <div className="flex justify-between text-xs text-gray-400">
         <span>{formatCurrency(Number(goal.current_amount))}</span>
@@ -308,12 +290,9 @@ function GoalCard({ goal }: { goal: SavingsGoalWithProgress }) {
   );
 }
 
-function QuickLink({ href, label, sub }: { href: string; label: string; sub: string }) {
+function QuickLink({ href, label, sub }: { href: string; label: string; sub: string; }) {
   return (
-    <Link
-      href={href}
-      className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-100 hover:border-primary/30 hover:bg-primary-light/30 transition-colors group"
-    >
+    <Link href={href} className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-gray-100 hover:border-primary/30 hover:bg-primary-light/30 transition-colors group">
       <div>
         <div className="text-sm font-medium text-gray-900 group-hover:text-primary">{label}</div>
         <div className="text-xs text-gray-400">{sub}</div>

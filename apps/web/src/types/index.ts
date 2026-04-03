@@ -215,13 +215,7 @@ export interface ChatMessage {
 /* ── Phase 5 — Invoices ──────────────────────────────────────────────────────── */
 
 export type InvoiceStatus =
-  | 'draft'
-  | 'sent'
-  | 'viewed'
-  | 'partially_paid'
-  | 'paid'
-  | 'overdue'
-  | 'void';
+  | 'draft' | 'sent' | 'viewed' | 'partially_paid' | 'paid' | 'overdue' | 'void';
 
 export interface InvoiceLineItem {
   id: string;
@@ -427,6 +421,23 @@ export interface NetWorthResult {
   plaid_liabilities: PlaidAccountBalance[];
   coa_assets: CoaAccountBalance[];
   coa_liabilities: CoaAccountBalance[];
+}
+
+/* ── Phase 5 — Recurring Detection ──────────────────────────────────────────── */
+
+export interface RecurringDetectionCandidate {
+  key: string;
+  merchant: string;
+  amount: number;
+  frequency: 'weekly' | 'monthly' | 'quarterly' | 'annually';
+  last_date: string;
+  next_date: string;
+  occurrence_count: number;
+  type: string;
+}
+
+export interface ConfirmedRecurring extends RecurringDetectionCandidate {
+  is_due_soon: boolean;
 }
 
 /* ── API Responses ───────────────────────────────────────────────────────────── */

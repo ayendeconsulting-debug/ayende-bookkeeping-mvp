@@ -12,6 +12,7 @@ import {
   UpdateBudgetCategoryDto,
   CreateSavingsGoalDto,
   UpdateSavingsGoalDto,
+  ConfirmDetectionDto,
 } from './dto/personal.dto';
 
 const DEFAULT_CATEGORIES = [
@@ -30,6 +31,21 @@ const DEFAULT_CATEGORIES = [
   { name: 'Other',            color: '#9ca3af' },
 ];
 
+export interface RecurringCandidate {
+  key: string;
+  merchant: string;
+  amount: number;
+  frequency: string;
+  last_date: string;
+  next_date: string;
+  occurrence_count: number;
+  type: string;
+}
+
+export interface ConfirmedRecurring extends RecurringCandidate {
+  is_due_soon: boolean;
+}
+
 @Injectable()
 export class PersonalService {
   constructor(
@@ -43,21 +59,16 @@ export class PersonalService {
   // ── Budget Categories ─────────────────────────────────────────────
 
   async getBudgetCategories(businessId: string) {
-    // Auto-seed default categories if none exist
     const count = await this.budgetCategoryRepo.count({
       where: { business_id: businessId },
     });
-
-    if (count === 0) {
-      await this.seedDefaultCategories(businessId);
-    }
+    if (count === 0) await this.seedDefaultCategories(businessId);
 
     const categories = await this.budgetCategoryRepo.find({
       where: { business_id: businessId, is_active: true },
       order: { sort_order: 'ASC' },
     });
 
-    // Current month spending from raw_transactions grouped by plaid_category
     const today = new Date();
     const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
     const monthEnd = today.toISOString().split('T')[0];
@@ -82,13 +93,11 @@ export class PersonalService {
     return categories.map((cat) => {
       const catLower = cat.name.toLowerCase();
       let spent = 0;
-
       for (const [plaidCat, amount] of Object.entries(spendingMap)) {
         if (plaidCat.includes(catLower) || catLower.includes(plaidCat)) {
           spent += amount;
         }
       }
-
       const target = cat.monthly_target ? Number(cat.monthly_target) : null;
       const remaining = target !== null ? Math.max(0, target - spent) : null;
       const over_budget = target !== null && spent > target;
@@ -96,14 +105,7 @@ export class PersonalService {
         target !== null && target > 0
           ? parseFloat(Math.min(100, (spent / target) * 100).toFixed(1))
           : null;
-
-      return {
-        ...cat,
-        spent_this_month: parseFloat(spent.toFixed(2)),
-        remaining,
-        over_budget,
-        percentage_spent,
-      };
+      return { ...cat, spent_this_month: parseFloat(spent.toFixed(2)), remaining, over_budget, percentage_spent };
     });
   }
 
@@ -113,7 +115,6 @@ export class PersonalService {
       .where('bc.business_id = :businessId', { businessId })
       .select('MAX(bc.sort_order)', 'max')
       .getRawOne();
-
     const cat = this.budgetCategoryRepo.create({
       business_id: businessId,
       name: dto.name,
@@ -126,14 +127,8 @@ export class PersonalService {
     return this.budgetCategoryRepo.save(cat);
   }
 
-  async updateBudgetCategory(
-    businessId: string,
-    id: string,
-    dto: UpdateBudgetCategoryDto,
-  ) {
-    const cat = await this.budgetCategoryRepo.findOne({
-      where: { id, business_id: businessId },
-    });
+  async updateBudgetCategory(businessId: string, id: string, dto: UpdateBudgetCategoryDto) {
+    const cat = await this.budgetCategoryRepo.findOne({ where: { id, business_id: businessId } });
     if (!cat) throw new NotFoundException(`Budget category ${id} not found`);
     if (dto.name !== undefined) cat.name = dto.name;
     if (dto.monthly_target !== undefined) cat.monthly_target = dto.monthly_target ?? null;
@@ -142,13 +137,9 @@ export class PersonalService {
   }
 
   async deleteBudgetCategory(businessId: string, id: string) {
-    const cat = await this.budgetCategoryRepo.findOne({
-      where: { id, business_id: businessId },
-    });
+    const cat = await this.budgetCategoryRepo.findOne({ where: { id, business_id: businessId } });
     if (!cat) throw new NotFoundException(`Budget category ${id} not found`);
-    if (cat.is_system) {
-      throw new BadRequestException('System categories cannot be deleted — deactivate instead');
-    }
+    if (cat.is_system) throw new BadRequestException('System categories cannot be deleted');
     cat.is_active = false;
     await this.budgetCategoryRepo.save(cat);
     return { deleted: true };
@@ -161,23 +152,14 @@ export class PersonalService {
       where: { business_id: businessId },
       order: { created_at: 'DESC' },
     });
-
     return goals.map((goal) => {
       const current = Number(goal.current_amount);
       const target = Number(goal.target_amount);
-      const percentage_complete =
-        target > 0 ? parseFloat(Math.min(100, (current / target) * 100).toFixed(1)) : 0;
-
-      // Monthly contribution rate from creation date
+      const percentage_complete = target > 0 ? parseFloat(Math.min(100, (current / target) * 100).toFixed(1)) : 0;
       const createdAt = new Date(goal.created_at);
       const now = new Date();
-      const monthsElapsed = Math.max(
-        1,
-        (now.getFullYear() - createdAt.getFullYear()) * 12 +
-          (now.getMonth() - createdAt.getMonth()),
-      );
+      const monthsElapsed = Math.max(1, (now.getFullYear() - createdAt.getFullYear()) * 12 + (now.getMonth() - createdAt.getMonth()));
       const monthlyRate = current / monthsElapsed;
-
       let projected_completion_date: string | null = null;
       if (current >= target) {
         projected_completion_date = now.toISOString().split('T')[0];
@@ -187,27 +169,13 @@ export class PersonalService {
         projDate.setMonth(projDate.getMonth() + monthsToGo);
         projected_completion_date = projDate.toISOString().split('T')[0];
       }
-
-      // Required monthly contribution to reach target_date
       let required_monthly_contribution: number | null = null;
       if (goal.target_date && current < target) {
         const targetDate = new Date(goal.target_date as any);
-        const monthsRemaining = Math.max(
-          1,
-          (targetDate.getFullYear() - now.getFullYear()) * 12 +
-            (targetDate.getMonth() - now.getMonth()),
-        );
-        required_monthly_contribution = parseFloat(
-          ((target - current) / monthsRemaining).toFixed(2),
-        );
+        const monthsRemaining = Math.max(1, (targetDate.getFullYear() - now.getFullYear()) * 12 + (targetDate.getMonth() - now.getMonth()));
+        required_monthly_contribution = parseFloat(((target - current) / monthsRemaining).toFixed(2));
       }
-
-      return {
-        ...goal,
-        percentage_complete,
-        projected_completion_date,
-        required_monthly_contribution,
-      };
+      return { ...goal, percentage_complete, projected_completion_date, required_monthly_contribution };
     });
   }
 
@@ -224,14 +192,8 @@ export class PersonalService {
     return this.savingsGoalRepo.save(goal);
   }
 
-  async updateSavingsGoal(
-    businessId: string,
-    id: string,
-    dto: UpdateSavingsGoalDto,
-  ) {
-    const goal = await this.savingsGoalRepo.findOne({
-      where: { id, business_id: businessId },
-    });
+  async updateSavingsGoal(businessId: string, id: string, dto: UpdateSavingsGoalDto) {
+    const goal = await this.savingsGoalRepo.findOne({ where: { id, business_id: businessId } });
     if (!goal) throw new NotFoundException(`Savings goal ${id} not found`);
     if (dto.name !== undefined) goal.name = dto.name;
     if (dto.target_amount !== undefined) goal.target_amount = dto.target_amount;
@@ -242,9 +204,7 @@ export class PersonalService {
   }
 
   async deleteSavingsGoal(businessId: string, id: string) {
-    const goal = await this.savingsGoalRepo.findOne({
-      where: { id, business_id: businessId },
-    });
+    const goal = await this.savingsGoalRepo.findOne({ where: { id, business_id: businessId } });
     if (!goal) throw new NotFoundException(`Savings goal ${id} not found`);
     await this.savingsGoalRepo.remove(goal);
     return { deleted: true };
@@ -253,67 +213,36 @@ export class PersonalService {
   // ── Net Worth ─────────────────────────────────────────────────────
 
   async getNetWorth(businessId: string) {
-    // Plaid connected account balances
     const plaidAccounts = await this.dataSource.query(
       `SELECT pa.name, pa.type, pa.subtype,
-              COALESCE(pa.current_balance, 0) AS current_balance,
-              pa.currency_code
+              COALESCE(pa.current_balance, 0) AS current_balance, pa.currency_code
        FROM plaid_accounts pa
        INNER JOIN plaid_items pi ON pi.id = pa.plaid_item_id
-       WHERE pi.business_id = $1
-         AND pi.is_deleted = false
+       WHERE pi.business_id = $1 AND pi.is_deleted = false
        ORDER BY pa.type, pa.name`,
       [businessId],
     );
-
-    // Chart of accounts asset/liability balances
     const coaBalances = await this.dataSource.query(
       `SELECT a.account_name, a.account_type, a.account_subtype,
               COALESCE(ab.balance, 0) AS balance
        FROM accounts a
-       LEFT JOIN account_balances ab
-         ON ab.account_id = a.id AND ab.business_id = a.business_id
-       WHERE a.business_id = $1
-         AND a.account_type IN ('asset','liability')
-         AND a.is_active = true
+       LEFT JOIN account_balances ab ON ab.account_id = a.id AND ab.business_id = a.business_id
+       WHERE a.business_id = $1 AND a.account_type IN ('asset','liability') AND a.is_active = true
        ORDER BY a.account_type, a.account_name`,
       [businessId],
     );
-
     const ASSET_TYPES = ['depository', 'investment', 'other'];
     const LIABILITY_TYPES = ['credit', 'loan'];
-
-    const plaidAssets = plaidAccounts.filter((a: any) =>
-      ASSET_TYPES.includes(a.type),
-    );
-    const plaidLiabilities = plaidAccounts.filter((a: any) =>
-      LIABILITY_TYPES.includes(a.type),
-    );
-
-    const plaidAssetTotal = plaidAssets.reduce(
-      (s: number, a: any) => s + Math.max(0, Number(a.current_balance)),
-      0,
-    );
-    const plaidLiabilityTotal = plaidLiabilities.reduce(
-      (s: number, a: any) => s + Math.abs(Number(a.current_balance)),
-      0,
-    );
-
+    const plaidAssets = plaidAccounts.filter((a: any) => ASSET_TYPES.includes(a.type));
+    const plaidLiabilities = plaidAccounts.filter((a: any) => LIABILITY_TYPES.includes(a.type));
+    const plaidAssetTotal = plaidAssets.reduce((s: number, a: any) => s + Math.max(0, Number(a.current_balance)), 0);
+    const plaidLiabilityTotal = plaidLiabilities.reduce((s: number, a: any) => s + Math.abs(Number(a.current_balance)), 0);
     const coaAssets = coaBalances.filter((a: any) => a.account_type === 'asset');
     const coaLiabilities = coaBalances.filter((a: any) => a.account_type === 'liability');
-
-    const coaAssetTotal = coaAssets.reduce(
-      (s: number, a: any) => s + Math.max(0, Number(a.balance)),
-      0,
-    );
-    const coaLiabilityTotal = coaLiabilities.reduce(
-      (s: number, a: any) => s + Math.abs(Number(a.balance)),
-      0,
-    );
-
+    const coaAssetTotal = coaAssets.reduce((s: number, a: any) => s + Math.max(0, Number(a.balance)), 0);
+    const coaLiabilityTotal = coaLiabilities.reduce((s: number, a: any) => s + Math.abs(Number(a.balance)), 0);
     const totalAssets = plaidAssetTotal + coaAssetTotal;
     const totalLiabilities = plaidLiabilityTotal + coaLiabilityTotal;
-
     return {
       net_worth: parseFloat((totalAssets - totalLiabilities).toFixed(2)),
       total_assets: parseFloat(totalAssets.toFixed(2)),
@@ -325,7 +254,182 @@ export class PersonalService {
     };
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────
+  // ── Recurring Detection ───────────────────────────────────────────
+
+  async detectRecurringPayments(businessId: string): Promise<RecurringCandidate[]> {
+    const settings = await this.getSettings(businessId);
+    const confirmedKeys = new Set(
+      (settings.confirmed_detections ?? []).map((c: any) => c.key),
+    );
+    const dismissedKeys = new Set(settings.dismissed_detections ?? []);
+
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+    // Fetch last 12 months of Plaid debit transactions, capped at 1000 rows
+    const rows = await this.dataSource.query(
+      `SELECT LOWER(TRIM(description)) AS norm_desc,
+              description,
+              transaction_date::text AS transaction_date,
+              ABS(amount) AS amount
+       FROM raw_transactions
+       WHERE business_id = $1
+         AND source = 'plaid'
+         AND amount < 0
+         AND status != 'ignored'
+         AND transaction_date >= $2
+       ORDER BY LOWER(TRIM(description)), transaction_date ASC
+       LIMIT 1000`,
+      [businessId, twelveMonthsAgo.toISOString().split('T')[0]],
+    );
+
+    // Group by normalized description
+    const groups: Record<string, { desc: string; dates: string[]; amounts: number[] }> = {};
+    for (const row of rows) {
+      const key = row.norm_desc.substring(0, 80); // cap key length
+      if (!groups[key]) groups[key] = { desc: row.description, dates: [], amounts: [] };
+      groups[key].dates.push(row.transaction_date);
+      groups[key].amounts.push(Number(row.amount));
+    }
+
+    const candidates: RecurringCandidate[] = [];
+
+    for (const [key, group] of Object.entries(groups)) {
+      if (group.dates.length < 3) continue;
+      if (confirmedKeys.has(key) || dismissedKeys.has(key)) continue;
+
+      // Calculate inter-transaction intervals in days
+      const intervals: number[] = [];
+      for (let i = 1; i < group.dates.length; i++) {
+        const d1 = new Date(group.dates[i - 1]);
+        const d2 = new Date(group.dates[i]);
+        const days = Math.round((d2.getTime() - d1.getTime()) / 86400000);
+        if (days > 0) intervals.push(days);
+      }
+      if (intervals.length === 0) continue;
+
+      const avgInterval = intervals.reduce((s, v) => s + v, 0) / intervals.length;
+      const intervalStdDev = Math.sqrt(
+        intervals.reduce((s, v) => s + Math.pow(v - avgInterval, 2), 0) / intervals.length,
+      );
+      const intervalVariance = avgInterval > 0 ? intervalStdDev / avgInterval : 1;
+
+      // Amount variance check
+      const avgAmount = group.amounts.reduce((s, v) => s + v, 0) / group.amounts.length;
+      const maxAmount = Math.max(...group.amounts);
+      const minAmount = Math.min(...group.amounts);
+      const amountVariance = avgAmount > 0 ? (maxAmount - minAmount) / avgAmount : 1;
+
+      if (intervalVariance > 0.3 || amountVariance > 0.15) continue;
+
+      // Classify frequency
+      let frequency: string | null = null;
+      if (avgInterval >= 5 && avgInterval <= 9) frequency = 'weekly';
+      else if (avgInterval >= 25 && avgInterval <= 35) frequency = 'monthly';
+      else if (avgInterval >= 80 && avgInterval <= 100) frequency = 'quarterly';
+      else if (avgInterval >= 345 && avgInterval <= 385) frequency = 'annually';
+      if (!frequency) continue;
+
+      const lastDate = group.dates[group.dates.length - 1].split('T')[0];
+      const nextDate = this.calculateNextDate(lastDate, frequency);
+
+      candidates.push({
+        key,
+        merchant: group.desc,
+        amount: parseFloat(avgAmount.toFixed(2)),
+        frequency,
+        last_date: lastDate,
+        next_date: nextDate,
+        occurrence_count: group.dates.length,
+        type: this.classifyMerchantType(group.desc),
+      });
+    }
+
+    return candidates.sort((a, b) => b.amount - a.amount);
+  }
+
+  async confirmDetection(businessId: string, dto: ConfirmDetectionDto): Promise<void> {
+    const settings = await this.getSettings(businessId);
+    const confirmed: any[] = settings.confirmed_detections ?? [];
+    // Upsert by key
+    const filtered = confirmed.filter((c: any) => c.key !== dto.key);
+    filtered.push({
+      key: dto.key,
+      merchant: dto.merchant,
+      amount: dto.amount,
+      frequency: dto.frequency,
+      last_date: dto.last_date,
+      next_date: dto.next_date,
+      type: dto.type,
+      occurrence_count: dto.occurrence_count,
+    });
+    await this.mergeSettings(businessId, { confirmed_detections: filtered });
+  }
+
+  async dismissDetection(businessId: string, key: string): Promise<void> {
+    const settings = await this.getSettings(businessId);
+    const dismissed: string[] = settings.dismissed_detections ?? [];
+    if (!dismissed.includes(key)) dismissed.push(key);
+    await this.mergeSettings(businessId, { dismissed_detections: dismissed });
+  }
+
+  async getConfirmedRecurring(businessId: string): Promise<ConfirmedRecurring[]> {
+    const settings = await this.getSettings(businessId);
+    const confirmed: any[] = settings.confirmed_detections ?? [];
+    return confirmed.map((c) => ({
+      ...c,
+      next_date: this.calculateNextDate(c.last_date, c.frequency),
+      is_due_soon: this.isDueSoon(c.last_date, c.frequency),
+    }));
+  }
+
+  // ── Private helpers ───────────────────────────────────────────────
+
+  private async getSettings(businessId: string): Promise<Record<string, any>> {
+    const rows = await this.dataSource.query(
+      'SELECT settings FROM businesses WHERE id = $1 LIMIT 1',
+      [businessId],
+    );
+    return rows[0]?.settings ?? {};
+  }
+
+  private async mergeSettings(businessId: string, patch: Record<string, any>): Promise<void> {
+    await this.dataSource.query(
+      `UPDATE businesses SET settings = settings || $2::jsonb WHERE id = $1`,
+      [businessId, JSON.stringify(patch)],
+    );
+  }
+
+  private calculateNextDate(lastDate: string, frequency: string): string {
+    const date = new Date(lastDate);
+    switch (frequency) {
+      case 'weekly':    date.setDate(date.getDate() + 7); break;
+      case 'monthly':   date.setMonth(date.getMonth() + 1); break;
+      case 'quarterly': date.setMonth(date.getMonth() + 3); break;
+      case 'annually':  date.setFullYear(date.getFullYear() + 1); break;
+    }
+    return date.toISOString().split('T')[0];
+  }
+
+  private isDueSoon(lastDate: string, frequency: string): boolean {
+    const nextDate = new Date(this.calculateNextDate(lastDate, frequency));
+    const daysUntil = Math.round((nextDate.getTime() - Date.now()) / 86400000);
+    return daysUntil >= 0 && daysUntil <= 7;
+  }
+
+  private classifyMerchantType(description: string): string {
+    const d = description.toLowerCase();
+    if (d.includes('netflix') || d.includes('spotify') || d.includes('disney') ||
+        d.includes('apple') || d.includes('youtube') || d.includes('hulu') ||
+        d.includes('amazon prime') || d.includes('subscription')) return 'subscription';
+    if (d.includes('rent') || d.includes('mortgage')) return 'housing';
+    if (d.includes('insurance')) return 'insurance';
+    if (d.includes('gym') || d.includes('fitness')) return 'fitness';
+    if (d.includes('phone') || d.includes('internet') || d.includes('cable') ||
+        d.includes('hydro') || d.includes('utility') || d.includes('bell') ||
+        d.includes('rogers') || d.includes('telus')) return 'utilities';
+    return 'recurring';
+  }
 
   private async seedDefaultCategories(businessId: string): Promise<void> {
     const cats = DEFAULT_CATEGORIES.map((c, i) =>
