@@ -12,6 +12,7 @@ import { BalanceSheetService } from '../services/balance-sheet.service';
 import { TrialBalanceService } from '../services/trial-balance.service';
 import { GeneralLedgerService } from '../services/general-ledger.service';
 import { ExportService } from '../services/export.service';
+import { SparklineService } from '../services/sparkline.service';
 import { ReportFilterDto, ExportFormat } from '../dto/report-filter.dto';
 
 @Controller('reports')
@@ -22,47 +23,44 @@ export class ReportsController {
     private readonly trialBalanceService: TrialBalanceService,
     private readonly generalLedgerService: GeneralLedgerService,
     private readonly exportService: ExportService,
+    private readonly sparklineService: SparklineService,
   ) {}
 
-  // ── Report Endpoints ────────────────────────────────────────────────────
+  // ── Sparkline ────────────────────────────────────────────────────────────
+
+  /** GET /reports/sparkline — 30-day daily trend data for dashboard metric cards */
+  @Get('sparkline')
+  getSparklineData(@Req() req: Request) {
+    return this.sparklineService.getSparklineData(req.user!.businessId);
+  }
+
+  // ── Report Endpoints ──────────────────────────────────────────────────────
 
   @Get('income-statement')
-  incomeStatement(
-    @Req() req: Request,
-    @Query() filter: ReportFilterDto,
-  ) {
+  incomeStatement(@Req() req: Request, @Query() filter: ReportFilterDto) {
     filter.businessId = req.user!.businessId;
     return this.incomeStatementService.generate(filter);
   }
 
   @Get('balance-sheet')
-  balanceSheet(
-    @Req() req: Request,
-    @Query() filter: ReportFilterDto,
-  ) {
+  balanceSheet(@Req() req: Request, @Query() filter: ReportFilterDto) {
     filter.businessId = req.user!.businessId;
     return this.balanceSheetService.generate(filter);
   }
 
   @Get('trial-balance')
-  trialBalance(
-    @Req() req: Request,
-    @Query() filter: ReportFilterDto,
-  ) {
+  trialBalance(@Req() req: Request, @Query() filter: ReportFilterDto) {
     filter.businessId = req.user!.businessId;
     return this.trialBalanceService.generate(filter);
   }
 
   @Get('general-ledger')
-  generalLedger(
-    @Req() req: Request,
-    @Query() filter: ReportFilterDto,
-  ) {
+  generalLedger(@Req() req: Request, @Query() filter: ReportFilterDto) {
     filter.businessId = req.user!.businessId;
     return this.generalLedgerService.generate(filter);
   }
 
-  // ── Export Endpoints ────────────────────────────────────────────────────
+  // ── Export Endpoints ──────────────────────────────────────────────────────
 
   @Get('income-statement/export')
   async exportIncomeStatement(
@@ -112,7 +110,7 @@ export class ReportsController {
     return this.sendExport(res, 'general-ledger', data, businessName, filter.format);
   }
 
-  // ── Helper ──────────────────────────────────────────────────────────────
+  // ── Helper ────────────────────────────────────────────────────────────────
 
   private async sendExport(
     res: Response,

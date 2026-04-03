@@ -141,6 +141,54 @@ export class ClassificationService {
     return this.rawTxRepo.save(tx);
   }
 
+  // ── Bulk Classification ───────────────────────────────────────────
+
+  async bulkClassify(
+    businessId: string,
+    userId: string,
+    rawTransactionIds: string[],
+    accountId: string,
+    taxCodeId?: string,
+  ): Promise<{ classified: number; skipped: number; errors: string[] }> {
+    let classified = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (const rawTransactionId of rawTransactionIds) {
+      try {
+        const rawTx = await this.rawTxRepo.findOne({
+          where: { id: rawTransactionId, business_id: businessId },
+        });
+        if (!rawTx) { skipped++; continue; }
+
+        const existing = await this.classifiedRepo.findOne({
+          where: { raw_transaction_id: rawTransactionId, business_id: businessId },
+        });
+        if (existing) { skipped++; continue; }
+
+        const ct = this.classifiedRepo.create({
+          business_id: businessId,
+          raw_transaction_id: rawTransactionId,
+          classification_method: ClassificationMethod.MANUAL,
+          account_id: accountId,
+          tax_code_id: taxCodeId ?? null,
+          classified_by: userId,
+          is_posted: false,
+        });
+        await this.classifiedRepo.save(ct);
+
+        rawTx.status = RawTransactionStatus.CLASSIFIED;
+        await this.rawTxRepo.save(rawTx);
+
+        classified++;
+      } catch (err: any) {
+        errors.push(`${rawTransactionId}: ${err.message ?? 'Unknown error'}`);
+      }
+    }
+
+    return { classified, skipped, errors };
+  }
+
   // ── Manual Classification ─────────────────────────────────────────
 
   async classify(dto: ClassifyTransactionDto): Promise<ClassifiedTransaction> {
@@ -213,7 +261,6 @@ export class ClassificationService {
         const netAmount = parseFloat((amount / (1 + rate)).toFixed(2));
         const taxAmount = parseFloat((amount - netAmount).toFixed(2));
 
-        // Line 1: Debit expense/asset account (net)
         lines.push({
           business_id: businessId,
           journal_entry_id: savedEntry.id,
@@ -225,8 +272,6 @@ export class ClassificationService {
           is_tax_line: false,
           tax_code_id: null,
         });
-
-        // Line 2: Debit tax payable account (tax)
         lines.push({
           business_id: businessId,
           journal_entry_id: savedEntry.id,
@@ -238,8 +283,6 @@ export class ClassificationService {
           is_tax_line: true,
           tax_code_id: taxCode.id,
         });
-
-        // Line 3: Credit source (bank) account (gross)
         lines.push({
           business_id: businessId,
           journal_entry_id: savedEntry.id,
@@ -253,8 +296,6 @@ export class ClassificationService {
         });
 
         const savedLines = await manager.save(JournalLine, lines.map(l => manager.create(JournalLine, l))) as JournalLine[];
-
-        // Create tax_transaction record linked to the tax line
         const taxLine = savedLines[1];
         await manager.save(TaxTransaction, manager.create(TaxTransaction, {
           business_id: businessId,
@@ -264,9 +305,7 @@ export class ClassificationService {
           tax_amount: taxAmount,
           gross_amount: amount,
         }));
-
       } else {
-        // Simple two-line entry — no tax
         lines.push({
           business_id: businessId,
           journal_entry_id: savedEntry.id,
@@ -290,7 +329,6 @@ export class ClassificationService {
         await manager.save(JournalLine, lines.map(l => manager.create(JournalLine, l)));
       }
 
-      // Mark classified transaction as posted
       await manager.update(ClassifiedTransaction, classified.id, {
         is_posted: true,
         posted_journal_entry_id: savedEntry.id,

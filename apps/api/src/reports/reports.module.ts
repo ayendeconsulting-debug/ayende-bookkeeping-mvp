@@ -31,6 +31,7 @@ import { TrialBalanceService } from './services/trial-balance.service';
 import { GeneralLedgerService } from './services/general-ledger.service';
 import { ExportService } from './services/export.service';
 import { ArApService } from './services/ar-ap.service';
+import { SparklineService } from './services/sparkline.service';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { ArApService } from './services/ar-ap.service';
     GeneralLedgerService,
     ExportService,
     ArApService,
+    SparklineService,
   ],
   exports: [
     IncomeStatementService,

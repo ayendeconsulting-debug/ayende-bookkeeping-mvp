@@ -15,6 +15,7 @@ import {
   ClassifyTransactionDto,
   OwnerContributionDto,
   OwnerDrawDto,
+  BulkClassifyDto,
 } from '../dto/classify-transaction.dto';
 import {
   CreateClassificationRuleDto,
@@ -49,7 +50,7 @@ export class ClassificationController {
     });
   }
 
-  /** PATCH /classification/raw/:id/tag — admin only (Freelancer: tag as personal/business) */
+  /** PATCH /classification/raw/:id/tag — admin only */
   @Roles('admin')
   @Patch('raw/:id/tag')
   tagTransaction(
@@ -107,6 +108,19 @@ export class ClassificationController {
     dto.businessId = req.user!.businessId;
     dto.classifiedBy = req.user!.userId;
     return this.classificationService.classify(dto);
+  }
+
+  /** POST /classification/bulk-classify — admin only */
+  @Roles('admin')
+  @Post('bulk-classify')
+  bulkClassify(@Req() req: Request, @Body() dto: BulkClassifyDto) {
+    return this.classificationService.bulkClassify(
+      req.user!.businessId,
+      req.user!.userId,
+      dto.rawTransactionIds,
+      dto.accountId,
+      dto.taxCodeId,
+    );
   }
 
   /** POST /classification/post/:id — admin only */

@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsEnum,
   IsNotEmpty,
   IsNumber,
@@ -101,4 +102,17 @@ export class RawTransactionFilterDto {
   @IsNumber()
   @IsOptional()
   offset?: number;
+}
+
+export class BulkClassifyDto {
+  @IsArray()
+  @IsString({ each: true })
+  rawTransactionIds: string[];
+
+  @IsString()
+  accountId: string;
+
+  @IsOptional()
+  @IsString()
+  taxCodeId?: string;
 }

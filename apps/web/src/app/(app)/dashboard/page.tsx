@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { apiGet } from '@/lib/api';
 import { TrialBalance, PlaidItem, RawTransaction, Business } from '@/types';
 import { formatCurrency } from '@/lib/utils';
+import { Sparkline } from '@/components/sparkline';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -19,6 +20,14 @@ interface AnomalyFlag {
   reason: string;
 }
 interface AnomalyResult { flags: AnomalyFlag[]; summary: string; }
+
+interface SparklinePoint { date: string; value: number; }
+interface SparklineData {
+  revenue: SparklinePoint[];
+  expenses: SparklinePoint[];
+  net: SparklinePoint[];
+  pending: SparklinePoint[];
+}
 
 async function getMyBusiness(): Promise<Business | null> {
   try { return await apiGet<Business>('/businesses/me'); } catch { return null; }
@@ -40,6 +49,9 @@ async function getConnectedBanks(): Promise<PlaidItem[]> {
 }
 async function getAnomalies(): Promise<AnomalyResult | null> {
   try { return await apiGet('/ai/anomalies'); } catch { return null; }
+}
+async function getSparklineData(): Promise<SparklineData | null> {
+  try { return await apiGet<SparklineData>('/reports/sparkline'); } catch { return null; }
 }
 
 function deriveMetrics(tb: TrialBalance | null) {
@@ -63,17 +75,22 @@ function severityBadgeClass(s: AnomalyFlag['severity']) {
 }
 
 export default async function DashboardPage() {
-  const [business, trialBalance, transactions, banks, anomalies] = await Promise.all([
-    getMyBusiness(), getTrialBalance(), getRecentTransactions(), getConnectedBanks(), getAnomalies(),
+  const [business, trialBalance, transactions, banks, anomalies, sparklines] = await Promise.all([
+    getMyBusiness(), getTrialBalance(), getRecentTransactions(),
+    getConnectedBanks(), getAnomalies(), getSparklineData(),
   ]);
 
-  // Mode-based redirects
   if (business?.mode === 'freelancer') redirect('/freelancer/dashboard');
   if (business?.mode === 'personal') redirect('/personal/dashboard');
 
   const { revenue, expenses, netIncome } = deriveMetrics(trialBalance);
   const pendingCount = transactions.filter((t) => t.status === 'pending').length;
   const highAnomalies = anomalies?.flags.filter((f) => f.severity === 'high') ?? [];
+
+  const revenueSparkline = sparklines?.revenue.map((p) => p.value) ?? [];
+  const expensesSparkline = sparklines?.expenses.map((p) => p.value) ?? [];
+  const netSparkline = sparklines?.net.map((p) => p.value) ?? [];
+  const pendingSparkline = sparklines?.pending.map((p) => p.value) ?? [];
 
   return (
     <div className="p-6 max-w-screen-xl mx-auto">
@@ -94,13 +111,51 @@ export default async function DashboardPage() {
         </div>
       )}
 
+      {/* Metric cards with sparklines */}
       <div className="grid grid-cols-4 gap-4 mb-6">
-        <MetricCard label="Total Revenue" value={formatCurrency(revenue)} icon={TrendingUp} iconColor="text-primary" iconBg="bg-primary-light" sub={`YTD ${new Date().getFullYear()}`} />
-        <MetricCard label="Total Expenses" value={formatCurrency(expenses)} icon={TrendingDown} iconColor="text-danger" iconBg="bg-danger-light" sub={`YTD ${new Date().getFullYear()}`} />
-        <MetricCard label="Net Income" value={formatCurrency(netIncome)} icon={DollarSign} iconColor={netIncome >= 0 ? 'text-primary' : 'text-danger'} iconBg={netIncome >= 0 ? 'bg-primary-light' : 'bg-danger-light'} sub={netIncome >= 0 ? 'Profitable' : 'Loss'} />
-        <MetricCard label="Pending Review" value={pendingCount.toString()} icon={Clock} iconColor="text-warning" iconBg="bg-warning-light" sub={pendingCount > 0 ? 'Needs classification' : 'All clear'} />
+        <MetricCard
+          label="Total Revenue"
+          value={formatCurrency(revenue)}
+          icon={TrendingUp}
+          iconColor="text-primary"
+          iconBg="bg-primary-light"
+          sub={`YTD ${new Date().getFullYear()}`}
+          sparklineData={revenueSparkline}
+          sparklineColor="#0F6E56"
+        />
+        <MetricCard
+          label="Total Expenses"
+          value={formatCurrency(expenses)}
+          icon={TrendingDown}
+          iconColor="text-danger"
+          iconBg="bg-danger-light"
+          sub={`YTD ${new Date().getFullYear()}`}
+          sparklineData={expensesSparkline}
+          sparklineColor="#ef4444"
+        />
+        <MetricCard
+          label="Net Income"
+          value={formatCurrency(netIncome)}
+          icon={DollarSign}
+          iconColor={netIncome >= 0 ? 'text-primary' : 'text-danger'}
+          iconBg={netIncome >= 0 ? 'bg-primary-light' : 'bg-danger-light'}
+          sub={netIncome >= 0 ? 'Profitable' : 'Loss'}
+          sparklineData={netSparkline}
+          sparklineColor={netIncome >= 0 ? '#0F6E56' : '#ef4444'}
+        />
+        <MetricCard
+          label="Pending Review"
+          value={pendingCount.toString()}
+          icon={Clock}
+          iconColor="text-warning"
+          iconBg="bg-warning-light"
+          sub={pendingCount > 0 ? 'Needs classification' : 'All clear'}
+          sparklineData={pendingSparkline}
+          sparklineColor="#f59e0b"
+        />
       </div>
 
+      {/* Main content grid */}
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2 flex flex-col gap-4">
           <Card>
@@ -121,7 +176,9 @@ export default async function DashboardPage() {
                       <TableRow key={tx.id}>
                         <TableCell className="text-gray-500 whitespace-nowrap">{new Date(tx.transaction_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}</TableCell>
                         <TableCell className="max-w-[240px] truncate">{tx.description}</TableCell>
-                        <TableCell className={tx.amount >= 0 ? 'text-primary font-medium' : 'text-danger font-medium'}>{tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}</TableCell>
+                        <TableCell className={tx.amount >= 0 ? 'text-primary font-medium' : 'text-danger font-medium'}>
+                          {tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                        </TableCell>
                         <TableCell><Badge variant={statusVariant(tx.status)}>{tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}</Badge></TableCell>
                       </TableRow>
                     ))}
@@ -137,8 +194,13 @@ export default async function DashboardPage() {
               {anomalies && <span className="text-xs text-gray-400">{anomalies.flags.length} flag{anomalies.flags.length !== 1 ? 's' : ''}</span>}
             </CardHeader>
             <CardContent className="pt-0">
-              {!anomalies && <EmptyState icon={ShieldAlert} message="Anomaly detection unavailable — check AI configuration." compact />}
-              {anomalies?.flags.length === 0 && <div className="flex items-center gap-2 py-3 text-sm text-primary"><div className="w-5 h-5 rounded-full bg-primary-light flex items-center justify-center"><TrendingUp className="w-3 h-3 text-primary" /></div>No anomalies detected.</div>}
+              {!anomalies && <EmptyState icon={ShieldAlert} message="Anomaly detection unavailable." compact />}
+              {anomalies?.flags.length === 0 && (
+                <div className="flex items-center gap-2 py-3 text-sm text-primary">
+                  <div className="w-5 h-5 rounded-full bg-primary-light flex items-center justify-center"><TrendingUp className="w-3 h-3 text-primary" /></div>
+                  No anomalies detected — your books look clean.
+                </div>
+              )}
               {anomalies && anomalies.flags.length > 0 && (
                 <div className="flex flex-col gap-2">
                   {anomalies.flags.slice(0, 5).map((flag, i) => (
@@ -200,16 +262,30 @@ export default async function DashboardPage() {
   );
 }
 
-function MetricCard({ label, value, icon: Icon, iconColor, iconBg, sub }: { label: string; value: string; icon: React.ElementType; iconColor: string; iconBg: string; sub: string; }) {
+function MetricCard({
+  label, value, icon: Icon, iconColor, iconBg, sub, sparklineData, sparklineColor,
+}: {
+  label: string; value: string; icon: React.ElementType; iconColor: string;
+  iconBg: string; sub: string; sparklineData?: number[]; sparklineColor?: string;
+}) {
   return (
-    <Card><CardContent className="pt-5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</div>
-        <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center`}><Icon className={`w-4 h-4 ${iconColor}`} /></div>
-      </div>
-      <div className="text-2xl font-semibold text-gray-900 mb-1">{value}</div>
-      <div className="text-xs text-gray-400">{sub}</div>
-    </CardContent></Card>
+    <Card>
+      <CardContent className="pt-5">
+        <div className="flex items-start justify-between mb-2">
+          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">{label}</div>
+          <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}>
+            <Icon className={`w-4 h-4 ${iconColor}`} />
+          </div>
+        </div>
+        <div className="text-2xl font-semibold text-gray-900 mb-1">{value}</div>
+        <div className="flex items-end justify-between">
+          <div className="text-xs text-gray-400">{sub}</div>
+          {sparklineData && sparklineData.length >= 2 && (
+            <Sparkline data={sparklineData} color={sparklineColor} width={72} height={22} />
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 function SummaryRow({ label, value, valueClass, bold }: { label: string; value: string; valueClass: string; bold?: boolean; }) {

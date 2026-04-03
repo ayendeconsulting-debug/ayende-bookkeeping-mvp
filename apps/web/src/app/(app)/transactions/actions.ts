@@ -3,6 +3,28 @@
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
 
+/* ── Bulk classify ───────────────────────────────────────────────────────── */
+export async function bulkClassifyTransactions(data: {
+  rawTransactionIds: string[];
+  accountId: string;
+  taxCodeId?: string;
+}) {
+  try {
+    const result = await api<{ classified: number; skipped: number; errors: string[] }>(
+      '/classification/bulk-classify',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      },
+    );
+    revalidatePath('/transactions');
+    revalidatePath('/dashboard');
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 /* ── Tag a transaction as Personal or Business (Freelancer Mode) ──────────── */
 export async function tagTransaction(transactionId: string, isPersonal: boolean) {
   try {
@@ -75,7 +97,7 @@ export async function getAiSuggestion(rawTransactionId: string) {
   }
 }
 
-/* ── Get pre-signed S3 upload URL ────────────────────────────────────────── */
+/* ── Document actions ────────────────────────────────────────────────────── */
 export async function getDocumentUploadUrl(data: {
   rawTransactionId: string;
   fileName: string;
@@ -83,26 +105,24 @@ export async function getDocumentUploadUrl(data: {
   fileSizeBytes: number;
 }) {
   try {
-    const result = await api<{
-      upload_url: string;
-      s3_key: string;
-      s3_bucket: string;
-    }>('/documents/upload', {
-      method: 'POST',
-      body: JSON.stringify({
-        raw_transaction_id: data.rawTransactionId,
-        file_name: data.fileName,
-        file_type: data.fileType,
-        file_size_bytes: data.fileSizeBytes,
-      }),
-    });
+    const result = await api<{ upload_url: string; s3_key: string; s3_bucket: string }>(
+      '/documents/upload',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          raw_transaction_id: data.rawTransactionId,
+          file_name: data.fileName,
+          file_type: data.fileType,
+          file_size_bytes: data.fileSizeBytes,
+        }),
+      },
+    );
     return { success: true, data: result };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
 
-/* ── Save document record after S3 upload completes ─────────────────────── */
 export async function saveDocumentRecord(data: {
   rawTransactionId: string;
   s3Key: string;
@@ -129,7 +149,6 @@ export async function saveDocumentRecord(data: {
   }
 }
 
-/* ── Get pre-signed download URL ─────────────────────────────────────────── */
 export async function getDocumentDownloadUrl(documentId: string) {
   try {
     const result = await api<{ url: string; expires_in: number }>(
@@ -141,7 +160,6 @@ export async function getDocumentDownloadUrl(documentId: string) {
   }
 }
 
-/* ── Delete a document ───────────────────────────────────────────────────── */
 export async function deleteDocument(documentId: string) {
   try {
     await api(`/documents/${documentId}`, { method: 'DELETE' });
