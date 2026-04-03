@@ -38,7 +38,8 @@ async function getTaxEstimate(): Promise<TaxEstimateResult | null> {
 
 async function getInvoices(): Promise<Invoice[]> {
   try {
-    return await apiGet<Invoice[]>('/invoices');
+    const res = await apiGet<{ data: Invoice[]; total: number }>('/invoices');
+    return res?.data ?? [];
   } catch {
     return [];
   }
