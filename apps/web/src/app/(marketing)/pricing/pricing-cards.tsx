@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { CheckCircle2, ArrowRight, Sparkles, Zap } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Zap, Sparkles } from 'lucide-react';
 
 const REGULAR_PRICES = { starter: 19, pro: 49, accountant: 99 };
 
@@ -11,9 +11,9 @@ const PLANS = [
     name: 'Starter',
     description: 'For freelancers and solo founders',
     monthly: 10,
-    annual: 100,   // 10 x 10 months
+    annual: 100,
     annualPerMonth: 8.33,
-    annualSaving: 20,
+    annualSaving: 128,   // (19*12) - 100
     limit: 'Up to 500 transactions/mo',
     highlight: false,
     features: [
@@ -33,7 +33,7 @@ const PLANS = [
     monthly: 25,
     annual: 250,
     annualPerMonth: 20.83,
-    annualSaving: 50,
+    annualSaving: 338,   // (49*12) - 250
     limit: 'Up to 2,500 transactions/mo',
     highlight: true,
     features: [
@@ -53,7 +53,7 @@ const PLANS = [
     monthly: 50,
     annual: 500,
     annualPerMonth: 41.67,
-    annualSaving: 100,
+    annualSaving: 688,   // (99*12) - 500
     limit: 'Unlimited transactions',
     highlight: false,
     features: [
@@ -70,18 +70,18 @@ const PLANS = [
 ];
 
 const COMPARISON_ROWS = [
-  { label: 'Transactions/month',           starter: '500',       pro: '2,500',     accountant: 'Unlimited' },
-  { label: 'Financial reports',            starter: '✓',         pro: '✓',         accountant: '✓'         },
-  { label: 'Bank connectivity (Plaid)',     starter: '✓',         pro: '✓',         accountant: '✓'         },
-  { label: 'CSV & PDF import',             starter: '✓',         pro: '✓',         accountant: '✓'         },
-  { label: 'Tax code engine (HST/GST/US)', starter: '✓',         pro: '✓',         accountant: '✓'         },
-  { label: 'AI bookkeeping assistant',     starter: '✓',         pro: '✓',         accountant: '✓'         },
-  { label: 'Multi-user access',            starter: '—',         pro: '✓',         accountant: '✓'         },
-  { label: 'Owner draws & contributions',  starter: '—',         pro: '✓',         accountant: '✓'         },
-  { label: 'Invoicing & AP/AR',            starter: '—',         pro: '✓',         accountant: '✓'         },
-  { label: 'Multiple businesses',          starter: '—',         pro: '—',         accountant: '✓'         },
-  { label: 'Accountant role',              starter: '—',         pro: '—',         accountant: '✓'         },
-  { label: 'Dedicated support',            starter: '—',         pro: '—',         accountant: '✓'         },
+  { label: 'Transactions/month',           starter: '500',   pro: '2,500',   accountant: 'Unlimited' },
+  { label: 'Financial reports',            starter: '✓',     pro: '✓',       accountant: '✓'         },
+  { label: 'Bank connectivity (Plaid)',     starter: '✓',     pro: '✓',       accountant: '✓'         },
+  { label: 'CSV & PDF import',             starter: '✓',     pro: '✓',       accountant: '✓'         },
+  { label: 'Tax code engine (HST/GST/US)', starter: '✓',     pro: '✓',       accountant: '✓'         },
+  { label: 'AI bookkeeping assistant',     starter: '✓',     pro: '✓',       accountant: '✓'         },
+  { label: 'Multi-user access',            starter: '—',     pro: '✓',       accountant: '✓'         },
+  { label: 'Owner draws & contributions',  starter: '—',     pro: '✓',       accountant: '✓'         },
+  { label: 'Invoicing & AP/AR',            starter: '—',     pro: '✓',       accountant: '✓'         },
+  { label: 'Multiple businesses',          starter: '—',     pro: '—',       accountant: '✓'         },
+  { label: 'Accountant role',              starter: '—',     pro: '—',       accountant: '✓'         },
+  { label: 'Dedicated support',            starter: '—',     pro: '—',       accountant: '✓'         },
 ];
 
 export function PricingCards() {
@@ -90,44 +90,48 @@ export function PricingCards() {
   return (
     <div>
 
-      {/* ── Launch discount banner ─────────────────────────────────────── */}
-      <div className="flex items-center justify-center gap-2 bg-[#0F6E56] text-white text-sm font-medium px-5 py-3 rounded-xl mb-8">
+      {/* ── Launch discount banner — red ──────────────────────────────── */}
+      <div className="flex items-center justify-center gap-2 bg-red-600 text-white text-sm font-medium px-5 py-3 rounded-xl mb-8">
         <Zap className="w-4 h-4 flex-shrink-0" />
-        <span>Launch offer: <strong>50% off all plans</strong> — limited time. Original prices shown for reference.</span>
+        <span>Launch sale: <strong>50% off all plans</strong> — limited time only. Original prices shown struck through.</span>
       </div>
 
-      {/* ── Toggle ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-center gap-3 mb-10">
-        <span className={`text-sm font-medium transition-colors ${!annual ? 'text-foreground' : 'text-muted-foreground'}`}>
-          Monthly
-        </span>
-        <button
-          onClick={() => setAnnual(!annual)}
-          className={[
-            'relative w-12 h-6 rounded-full transition-colors focus:outline-none',
-            annual ? 'bg-[#0F6E56]' : 'bg-border',
-          ].join(' ')}
-          aria-label="Toggle annual billing"
-        >
-          <span className={[
-            'absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform',
-            annual ? 'translate-x-6' : 'translate-x-0',
-          ].join(' ')} />
-        </button>
-        <span className={`text-sm font-medium transition-colors ${annual ? 'text-foreground' : 'text-muted-foreground'}`}>
-          Annual
-        </span>
-        {annual && (
-          <span className="bg-[#EDF7F2] dark:bg-primary/10 text-[#0F6E56] text-xs font-semibold px-2.5 py-1 rounded-full">
-            2 months free
-          </span>
-        )}
+      {/* ── Billing period pill selector ──────────────────────────────── */}
+      <div className="flex items-center justify-center mb-10">
+        <div className="inline-flex items-center bg-muted rounded-xl p-1 gap-1">
+          <button
+            onClick={() => setAnnual(false)}
+            className={[
+              'px-5 py-2 rounded-lg text-sm font-semibold transition-all',
+              !annual
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            ].join(' ')}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setAnnual(true)}
+            className={[
+              'px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2',
+              annual
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            ].join(' ')}
+          >
+            Annual
+            <span className="bg-[#EDF7F2] text-[#0F6E56] text-xs font-semibold px-2 py-0.5 rounded-full">
+              2 months free
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* ── Plan cards ─────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {PLANS.map((plan) => {
           const regularMonthly = REGULAR_PRICES[plan.name.toLowerCase() as keyof typeof REGULAR_PRICES];
+          const regularAnnual  = regularMonthly * 12;
 
           return (
             <div
@@ -154,34 +158,32 @@ export function PricingCards() {
 
                 {annual ? (
                   <>
+                    {/* Annual pricing */}
                     <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-4xl font-bold text-foreground">
-                        ${plan.annual.toFixed(0)}
-                        <span className="text-base font-normal text-muted-foreground">&nbsp;CAD/yr</span>
-                      </span>
+                      <span className="text-4xl font-bold text-foreground">${plan.annual}</span>
+                      <span className="text-sm text-muted-foreground"> CAD/yr</span>
                     </div>
                     <p className="text-sm text-[#0F6E56] font-medium">
-                      ${plan.annualPerMonth.toFixed(2)}/mo · 2 months free
+                      ${plan.annualPerMonth.toFixed(2)} CAD/mo — 2 months free
                     </p>
                     <p className="text-xs text-muted-foreground mt-1 line-through">
-                      Normally ${regularMonthly * 12} CAD/yr
+                      Normally ${regularAnnual} CAD/yr
                     </p>
-                    <p className="text-xs text-[#0F6E56] font-medium mt-0.5">
-                      You save ${(regularMonthly * 12 - plan.annual).toFixed(0)} CAD/yr
+                    <p className="text-xs font-medium text-red-600 mt-0.5">
+                      You save ${(regularAnnual - plan.annual).toFixed(0)} CAD/yr
                     </p>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-4xl font-bold text-foreground">
-                        ${plan.monthly}
-                        <span className="text-base font-normal text-muted-foreground">&nbsp;CAD/mo</span>
-                      </span>
+                    {/* Monthly pricing */}
+                    <div className="flex items-baseline gap-1 mb-1">
+                      <span className="text-4xl font-bold text-foreground">${plan.monthly}</span>
+                      <span className="text-sm text-muted-foreground"> CAD/mo</span>
                     </div>
                     <p className="text-xs text-muted-foreground line-through">
                       Normally ${regularMonthly} CAD/mo
                     </p>
-                    <p className="text-xs text-[#0F6E56] font-medium mt-0.5">
+                    <p className="text-xs font-medium text-red-600 mt-0.5">
                       50% launch discount applied
                     </p>
                   </>
@@ -219,17 +221,17 @@ export function PricingCards() {
         })}
       </div>
 
-      {/* Trial note */}
+      {/* Trial note — no emoji */}
       <div className="text-center space-y-1">
         <p className="text-sm text-muted-foreground">
-          🎉 All plans include a <strong className="text-foreground">60-day free trial</strong>. Card required to start — no charge during trial.
+          All plans include a <strong className="text-foreground">60-day free trial</strong>. Card required to start — no charge during trial.
         </p>
         <p className="text-xs text-muted-foreground">
-          No action needed after trial — you'll automatically continue on Starter. Cancel anytime.
+          No action needed after trial — you will automatically continue on Starter. Cancel anytime.
         </p>
       </div>
 
-      {/* ── AI Value prop callout ─────────────────────────────────────── */}
+      {/* ── AI Value prop callout ──────────────────────────────────────── */}
       <div className="mt-10 rounded-2xl border-2 border-[#0F6E56]/30 bg-[#EDF7F2] dark:bg-primary/10 p-6">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-[#0F6E56] flex items-center justify-center flex-shrink-0">
@@ -240,7 +242,7 @@ export function PricingCards() {
               AI bookkeeping assistant — included on every plan
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Ask anything about your books in plain English. "What was my net margin last quarter?", "Show me my top 5 expense categories", "Am I on track for my revenue target?" — get instant answers from your actual data, powered by Claude AI.
+              Ask anything about your books in plain English. "What was my net margin last quarter?", "Show me my top 5 expense categories", "Am I on track for my revenue target?" — instant answers from your actual data, powered by Claude AI.
             </p>
           </div>
         </div>
@@ -263,13 +265,13 @@ export function PricingCards() {
               {COMPARISON_ROWS.map((row, i) => (
                 <tr key={row.label} className={`border-b border-border/50 ${i % 2 === 0 ? 'bg-card/50' : ''}`}>
                   <td className="py-3 pr-4 text-muted-foreground">{row.label}</td>
-                  <td className="py-3 px-4 text-center text-muted-foreground">
+                  <td className="py-3 px-4 text-center">
                     {row.starter === '✓' ? <CheckCircle2 className="w-4 h-4 text-[#0F6E56] mx-auto" /> : row.starter === '—' ? <span className="text-border">—</span> : row.starter}
                   </td>
                   <td className="py-3 px-4 text-center">
                     {row.pro === '✓' ? <CheckCircle2 className="w-4 h-4 text-[#0F6E56] mx-auto" /> : row.pro === '—' ? <span className="text-border">—</span> : <span className="font-medium text-foreground">{row.pro}</span>}
                   </td>
-                  <td className="py-3 px-4 text-center text-muted-foreground">
+                  <td className="py-3 px-4 text-center">
                     {row.accountant === '✓' ? <CheckCircle2 className="w-4 h-4 text-[#0F6E56] mx-auto" /> : row.accountant === '—' ? <span className="text-border">—</span> : row.accountant}
                   </td>
                 </tr>
