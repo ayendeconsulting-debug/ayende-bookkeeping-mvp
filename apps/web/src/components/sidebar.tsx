@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -82,7 +82,7 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
     <>
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
@@ -90,13 +90,13 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
 
       <aside
         className={cn(
-          'w-[210px] h-screen flex flex-col border-r border-border bg-card flex-shrink-0',
+          'w-[210px] h-screen flex flex-col border-r border-border bg-white dark:bg-[#1c1a17] flex-shrink-0 shadow-sm',
           isMobileOpen
-            ? 'fixed inset-y-0 left-0 z-50 flex'
+            ? 'fixed inset-y-0 left-0 z-50 flex shadow-2xl'
             : 'hidden md:flex',
         )}
       >
-        {/* Logo — Tempo rising bars mark */}
+        {/* Logo â€” Tempo rising bars mark */}
         <div className="px-4 py-5 border-b border-border relative">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-md bg-[#0F6E56] flex items-center justify-center flex-shrink-0">
