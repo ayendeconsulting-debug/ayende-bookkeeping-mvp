@@ -3,9 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Subscription } from '../entities/subscription.entity';
 import { BillingService } from './billing.service';
 import { BillingController } from './billing.controller';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Subscription])],
+  imports: [TypeOrmModule.forFeature([Subscription]), EmailModule],
   controllers: [BillingController],
   providers: [BillingService],
   exports: [BillingService],

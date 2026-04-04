@@ -4,9 +4,10 @@ import { Business } from '../entities/business.entity';
 import { Account } from '../entities/account.entity';
 import { BusinessesController } from './businesses.controller';
 import { BusinessesService } from './businesses.service';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Business, Account])],
+  imports: [TypeOrmModule.forFeature([Business, Account]), EmailModule],
   controllers: [BusinessesController],
   providers: [BusinessesService],
   exports: [BusinessesService],

@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Business, BusinessMode } from '../entities/business.entity';
 import { Account } from '../entities/account.entity';
+import { EmailService } from '../email/email.service';
+import { ConfigService } from '@nestjs/config';
 
 type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -21,6 +23,8 @@ export class BusinessesService {
     private readonly businessRepo: Repository<Business>,
     @InjectRepository(Account)
     private readonly accountRepo: Repository<Account>,
+    private readonly emailService: EmailService,
+    private readonly config: ConfigService,
   ) {}
 
   async findByClerkOrgId(clerkOrgId: string): Promise<Business | null> {
@@ -62,7 +66,12 @@ export class BusinessesService {
     return this.businessRepo.save(business);
   }
 
-  async provision(clerkOrgId: string, name: string): Promise<Business> {
+  async provision(
+    clerkOrgId: string,
+    name: string,
+    ownerEmail?: string,
+    ownerFirstName?: string,
+  ): Promise<Business> {
     const existing = await this.findByClerkOrgId(clerkOrgId);
     if (existing) return existing;
 
@@ -71,10 +80,30 @@ export class BusinessesService {
       clerk_org_id: clerkOrgId,
     });
 
-    return this.businessRepo.save(business);
+    const saved = await this.businessRepo.save(business);
+
+    // Send welcome email — fire-and-forget, never blocks provision()
+    if (ownerEmail) {
+      const appUrl = this.config.get<string>('APP_URL') ?? 'https://gettempo.ca';
+      const trialEndDate = new Date();
+      trialEndDate.setDate(trialEndDate.getDate() + 60);
+      const formattedDate = trialEndDate.toLocaleDateString('en-CA', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+
+      void this.emailService.sendWelcome(ownerEmail, {
+        firstName: ownerFirstName ?? 'there',
+        trialEndDate: formattedDate,
+        dashboardUrl: `${appUrl}/dashboard`,
+      });
+    }
+
+    return saved;
   }
 
-  // ── Seed Chart of Accounts ────────────────────────────────────────────────
+  // ── Seed Chart of Accounts ────────────────────────────────────────────
 
   async seedAccounts(
     businessId: string,
@@ -92,7 +121,6 @@ export class BusinessesService {
     const seeds = this.buildAccountSeeds(country, industry);
 
     const accounts = seeds.map((seed) => {
-      // Object.assign bypasses DeepPartial<Account> type constraints
       const acc = this.accountRepo.create();
       Object.assign(acc, {
         business_id: businessId,
@@ -109,7 +137,7 @@ export class BusinessesService {
     return { seeded: accounts.length, skipped: false };
   }
 
-  // ── Account seed templates ─────────────────────────────────────────────────
+  // ── Account seed templates ────────────────────────────────────────────
 
   private buildAccountSeeds(country: string, industry: string): AccountSeed[] {
     const isCA = country === 'CA';
