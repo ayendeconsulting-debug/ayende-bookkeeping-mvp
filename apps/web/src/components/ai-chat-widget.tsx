@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -10,7 +10,7 @@ import { sendChatMessage } from '@/lib/ai-actions';
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
   content:
-    "Hi! I'm your Tempo AI assistant. Ask me anything about your books — transactions, reports, tax codes, or general accounting questions.",
+    "Hi! I'm your Tempo AI assistant. Ask me anything about your books â€” transactions, reports, tax codes, or general accounting questions.",
 };
 
 function MarkdownMessage({ content }: { content: string }) {
@@ -27,7 +27,7 @@ function MarkdownMessage({ content }: { content: string }) {
         ol:         ({ children }) => <ol className="mb-1 space-y-0.5">{children}</ol>,
         li:         ({ children }) => (
           <li className="flex gap-1.5">
-            <span className="flex-shrink-0 mt-0.5">•</span>
+            <span className="flex-shrink-0 mt-0.5">â€¢</span>
             <span>{children}</span>
           </li>
         ),
@@ -108,7 +108,7 @@ export function AiChatWidget() {
           'fixed bottom-24 right-4 sm:right-6 z-50',
           'w-[calc(100vw-2rem)] sm:w-[380px]',
           'h-[480px] sm:h-[520px]',
-          'bg-card rounded-xl border border-border flex flex-col overflow-hidden',
+          'rounded-xl border flex flex-col overflow-hidden bg-white dark:bg-[#242220] border-[#e5e1d8] dark:border-[#3a3730]',
         )}>
           <div className="flex items-center justify-between px-4 py-3 bg-[#0F6E56] text-white flex-shrink-0">
             <div className="flex items-center gap-2">
@@ -138,7 +138,7 @@ export function AiChatWidget() {
                   'max-w-[85%] rounded-xl px-3 py-2 text-sm leading-relaxed',
                   msg.role === 'user'
                     ? 'bg-[#0F6E56] text-white rounded-br-sm'
-                    : 'bg-muted text-foreground rounded-bl-sm',
+                    : 'rounded-bl-sm bg-[#f0ede8] dark:bg-[#2e2c28] text-[#1a1814] dark:text-[#f0ede8]',
                 )}>
                   {msg.role === 'assistant'
                     ? <MarkdownMessage content={msg.content} />
@@ -151,7 +151,7 @@ export function AiChatWidget() {
               <div className="flex justify-start">
                 <div className="bg-muted rounded-xl rounded-bl-sm px-3 py-2 flex items-center gap-1.5">
                   <Loader2 className="w-3.5 h-3.5 text-muted-foreground animate-spin" />
-                  <span className="text-xs text-muted-foreground">Thinking…</span>
+                  <span className="text-xs text-muted-foreground">Thinkingâ€¦</span>
                 </div>
               </div>
             )}
@@ -167,7 +167,7 @@ export function AiChatWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about your books…"
+                placeholder="Ask about your booksâ€¦"
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                 disabled={loading}
               />
@@ -180,7 +180,7 @@ export function AiChatWidget() {
               </button>
             </div>
             <p className="text-[10px] text-muted-foreground text-center mt-1.5">
-              AI suggestions are for guidance only — always verify
+              AI suggestions are for guidance only â€” always verify
             </p>
           </div>
         </div>
