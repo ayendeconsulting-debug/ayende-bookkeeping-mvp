@@ -41,9 +41,17 @@ async function getMyBusiness(
       },
       cache: 'no-store',
     });
+
+    // 451 — legal re-acceptance required
+    if (res.status === 451) {
+      redirect('/legal/update');
+    }
+
     if (!res.ok) return null;
     return res.json();
-  } catch {
+  } catch (err: any) {
+    // redirect() throws internally in Next.js — re-throw so it propagates
+    if (err?.digest?.startsWith('NEXT_REDIRECT')) throw err;
     return null;
   }
 }
@@ -86,15 +94,12 @@ export default async function AppLayout({
       getSubscriptionStatus(token),
     ]);
 
-    // ── Onboarding gate ─────────────────────────────────────────────────
+    // ── Onboarding gate ───────────────────────────────────────────────────
     if (business && !business.settings?.mode_selected) {
       redirect('/onboarding');
     }
 
-    // ── Subscription gate ────────────────────────────────────────────────
-    // After onboarding is complete, require a subscription (trial or active).
-    // Exempt billing/success, billing/cancel, and settings so users can
-    // complete checkout and manage their account without being looped.
+    // ── Subscription gate ─────────────────────────────────────────────────
     const headersList = await headers();
     const pathname    = headersList.get('x-pathname') ?? '';
     const isExempt    = BILLING_EXEMPT_PATHS.some((p) => pathname.startsWith(p));

@@ -5,7 +5,7 @@ import { UserProfile } from '@clerk/nextjs';
 import {
   Settings, Building2, User, ShieldCheck,
   CheckCircle2, AlertCircle, Loader2, Save, RefreshCw, DollarSign,
-  Sun, Moon,
+  Sun, Moon, CreditCard, ExternalLink,
 } from 'lucide-react';
 import { AdminOnly } from '@/components/admin-only';
 import { toastSuccess, toastError } from '@/lib/toast';
@@ -18,6 +18,7 @@ import {
   updateBusinessSettings,
   verifyAccountingIntegrity,
   getCurrencyRates,
+  createPortalSession,
 } from '@/app/(app)/settings/actions';
 
 interface Business {
@@ -30,11 +31,165 @@ interface Business {
   created_at: string;
 }
 
-interface SettingsClientProps {
-  business: Business | null;
+interface Subscription {
+  status: 'trialing' | 'active' | 'past_due' | 'cancelled' | 'none';
+  plan: 'starter' | 'pro' | 'accountant' | null;
+  billing_cycle: 'monthly' | 'annual' | null;
+  trial_ends_at: string | null;
+  current_period_end: string | null;
+  days_remaining: number | null;
 }
 
-/* ── Business Settings Section ──────────────────────────────────────────── */
+interface SettingsClientProps {
+  business: Business | null;
+  subscription: Subscription | null;
+}
+
+// ── Status badge ──────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: Subscription['status'] }) {
+  const config: Record<string, { label: string; className: string }> = {
+    trialing:  { label: 'Trial',     className: 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 border-blue-200 dark:border-blue-800' },
+    active:    { label: 'Active',    className: 'bg-[#EDF7F2] text-[#0F6E56] dark:bg-[#0F6E56]/10 dark:text-emerald-400 border-[#C3E8D8] dark:border-[#0F6E56]/30' },
+    past_due:  { label: 'Past Due',  className: 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
+    cancelled: { label: 'Cancelled', className: 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400 border-red-200 dark:border-red-800' },
+    none:      { label: 'No plan',   className: 'bg-muted text-muted-foreground border-border' },
+  };
+  const { label, className } = config[status] ?? config.none;
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${className}`}>
+      {label}
+    </span>
+  );
+}
+
+// ── Billing Section ───────────────────────────────────────────────────────────
+
+function BillingSection({ subscription }: { subscription: Subscription | null }) {
+  const [loading, startLoading] = useTransition();
+  const [error, setError]       = useState<string | null>(null);
+
+  function handleManage() {
+    setError(null);
+    startLoading(async () => {
+      const result = await createPortalSession();
+      if (result.success && result.url) {
+        window.open(result.url, '_blank', 'noopener,noreferrer');
+      } else {
+        const msg = result.error ?? 'Could not open billing portal.';
+        setError(msg);
+        toastError('Billing portal error', msg);
+      }
+    });
+  }
+
+  const planLabel: Record<string, string> = {
+    starter:    'Starter',
+    pro:        'Pro',
+    accountant: 'Accountant',
+  };
+
+  const formatDate = (iso: string | null) => {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('en-CA', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+  };
+
+  const status       = subscription?.status ?? 'none';
+  const plan         = subscription?.plan ?? null;
+  const billingCycle = subscription?.billing_cycle ?? null;
+  const trialEndsAt  = subscription?.trial_ends_at ?? null;
+  const periodEnd    = subscription?.current_period_end ?? null;
+  const daysLeft     = subscription?.days_remaining ?? null;
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center justify-between pb-4">
+        <div className="flex items-center gap-2">
+          <CreditCard className="w-4 h-4 text-muted-foreground" />
+          <CardTitle>Billing</CardTitle>
+        </div>
+        <StatusBadge status={status} />
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {/* Plan details grid */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-muted rounded-lg px-4 py-3">
+            <p className="text-xs text-muted-foreground mb-1">Plan</p>
+            <p className="text-sm font-medium text-foreground">
+              {plan ? `${planLabel[plan]} — ${billingCycle === 'annual' ? 'Annual' : 'Monthly'}` : '—'}
+            </p>
+          </div>
+          <div className="bg-muted rounded-lg px-4 py-3">
+            <p className="text-xs text-muted-foreground mb-1">Status</p>
+            <p className="text-sm font-medium text-foreground capitalize">
+              {status === 'none' ? 'No active plan' : status.replace('_', ' ')}
+            </p>
+          </div>
+          {status === 'trialing' && trialEndsAt && (
+            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3 col-span-2">
+              <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Trial ends</p>
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                {formatDate(trialEndsAt)}
+                {daysLeft !== null && (
+                  <span className="text-xs font-normal ml-2">({daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining)</span>
+                )}
+              </p>
+            </div>
+          )}
+          {status === 'active' && periodEnd && (
+            <div className="bg-muted rounded-lg px-4 py-3 col-span-2">
+              <p className="text-xs text-muted-foreground mb-1">Next billing date</p>
+              <p className="text-sm font-medium text-foreground">{formatDate(periodEnd)}</p>
+            </div>
+          )}
+          {status === 'past_due' && (
+            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3 col-span-2">
+              <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">
+                ⚠️ Payment past due — update your payment method to avoid losing access.
+              </p>
+            </div>
+          )}
+          {status === 'cancelled' && (
+            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 col-span-2">
+              <p className="text-xs text-red-700 dark:text-red-400 font-medium">
+                Your subscription has been cancelled. Reactivate below to restore access.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-1.5 text-sm text-destructive">
+            <AlertCircle className="w-4 h-4" />{error}
+          </div>
+        )}
+
+        {/* Manage button */}
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            onClick={handleManage}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            {loading
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <ExternalLink className="w-4 h-4" />}
+            {loading ? 'Opening…' : 'Manage Subscription'}
+          </Button>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          Manage your plan, update payment methods, and download invoices via the Stripe billing portal.
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ── Business Settings Section ───────────────────────────────────────────── */
 
 function BusinessSettingsSection({ business }: { business: Business | null }) {
   const [name, setName] = useState(business?.name ?? '');
@@ -42,8 +197,8 @@ function BusinessSettingsSection({ business }: { business: Business | null }) {
     business?.fiscal_year_end ? String(business.fiscal_year_end).slice(0, 10) : '',
   );
   const [currency, setCurrency] = useState(business?.currency_code ?? 'CAD');
-  const [saving, startSaving] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [saving, startSaving]   = useTransition();
+  const [error, setError]       = useState<string | null>(null);
 
   function handleSave() {
     setError(null);
@@ -120,20 +275,15 @@ function BusinessSettingsSection({ business }: { business: Business | null }) {
   );
 }
 
-/* ── Display Section (Dark Mode Toggle) ─────────────────────────────────── */
+/* ── Display Section ─────────────────────────────────────────────────────── */
 
 function DisplaySection() {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
-
   return (
     <Card>
       <CardHeader className="flex-row items-center gap-2 pb-4">
-        {isDark ? (
-          <Moon className="w-4 h-4 text-muted-foreground" />
-        ) : (
-          <Sun className="w-4 h-4 text-muted-foreground" />
-        )}
+        {isDark ? <Moon className="w-4 h-4 text-muted-foreground" /> : <Sun className="w-4 h-4 text-muted-foreground" />}
         <CardTitle>Display</CardTitle>
       </CardHeader>
       <CardContent>
@@ -148,17 +298,7 @@ function DisplaySection() {
             onClick={toggleTheme}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-accent hover:text-accent-foreground text-sm font-medium text-foreground transition-colors"
           >
-            {isDark ? (
-              <>
-                <Sun className="w-4 h-4" />
-                Switch to Light
-              </>
-            ) : (
-              <>
-                <Moon className="w-4 h-4" />
-                Switch to Dark
-              </>
-            )}
+            {isDark ? <><Sun className="w-4 h-4" />Switch to Light</> : <><Moon className="w-4 h-4" />Switch to Dark</>}
           </button>
         </div>
       </CardContent>
@@ -166,12 +306,12 @@ function DisplaySection() {
   );
 }
 
-/* ── Currency Rates Section ─────────────────────────────────────────────── */
+/* ── Currency Rates Section ──────────────────────────────────────────────── */
 
 function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
-  const [rates, setRates] = useState<Record<string, number> | null>(null);
+  const [rates, setRates]       = useState<Record<string, number> | null>(null);
   const [loading, startLoading] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]       = useState<string | null>(null);
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
   function handleFetch() {
@@ -199,30 +339,16 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
           <DollarSign className="w-4 h-4 text-muted-foreground" />
           <CardTitle>Exchange Rates</CardTitle>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleFetch}
-          disabled={loading}
-          className="flex items-center gap-1.5"
-        >
+        <Button variant="outline" size="sm" onClick={handleFetch} disabled={loading} className="flex items-center gap-1.5">
           {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
           {loading ? 'Fetching…' : 'Refresh Rates'}
         </Button>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <p className="text-sm text-muted-foreground">
-          Rates relative to your base currency ({baseCurrency}).
-          Refreshed on demand — cached for 24 hours. Used for automatic foreign currency conversion
-          on Plaid-imported transactions.
+          Rates relative to your base currency ({baseCurrency}). Refreshed on demand — cached for 24 hours.
         </p>
-
-        {error && (
-          <div className="flex items-center gap-1.5 text-sm text-destructive">
-            <AlertCircle className="w-4 h-4" />{error}
-          </div>
-        )}
-
+        {error && <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />{error}</div>}
         {rates && (
           <div className="rounded-lg border border-border overflow-hidden">
             <div className="grid grid-cols-3 gap-0 divide-y divide-border">
@@ -230,14 +356,9 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
                 const rate = rates[currency];
                 if (!rate) return null;
                 return (
-                  <div
-                    key={currency}
-                    className="flex items-center justify-between px-4 py-2.5 col-span-1"
-                  >
+                  <div key={currency} className="flex items-center justify-between px-4 py-2.5 col-span-1">
                     <span className="text-sm font-medium text-foreground">{currency}</span>
-                    <span className="text-sm font-mono text-foreground">
-                      {rate.toFixed(4)}
-                    </span>
+                    <span className="text-sm font-mono text-foreground">{rate.toFixed(4)}</span>
                   </div>
                 );
               })}
@@ -252,7 +373,6 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
             )}
           </div>
         )}
-
         {!rates && !loading && (
           <div className="rounded-lg bg-muted border border-border px-4 py-3 text-sm text-muted-foreground text-center">
             Click &quot;Refresh Rates&quot; to load current exchange rates.
@@ -263,7 +383,7 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
   );
 }
 
-/* ── Accounting Integrity Section ───────────────────────────────────────── */
+/* ── Accounting Integrity Section ────────────────────────────────────────── */
 
 function IntegritySection() {
   const [result, setResult] = useState<{
@@ -272,7 +392,7 @@ function IntegritySection() {
     total_credits?: number;
   } | null>(null);
   const [running, startRunning] = useTransition();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]       = useState<string | null>(null);
 
   function handleVerify() {
     setError(null); setResult(null);
@@ -306,18 +426,13 @@ function IntegritySection() {
           {running ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
           {running ? 'Verifying…' : 'Run Integrity Check'}
         </Button>
-        {error && (
-          <div className="flex items-center gap-1.5 text-sm text-destructive">
-            <AlertCircle className="w-4 h-4" />{error}
-          </div>
-        )}
+        {error && <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />{error}</div>}
         {result && (
           <div className={`rounded-xl border px-4 py-3 ${result.is_balanced ? 'bg-[#F0FAF6] border-[#C3E8D8] dark:bg-primary/10 dark:border-primary/30' : 'bg-destructive/10 border-destructive/30'}`}>
             <div className="flex items-center gap-2 mb-2">
               {result.is_balanced
                 ? <CheckCircle2 className="w-4 h-4 text-[#0F6E56] dark:text-primary" />
-                : <AlertCircle className="w-4 h-4 text-destructive" />
-              }
+                : <AlertCircle className="w-4 h-4 text-destructive" />}
               <span className={`text-sm font-medium ${result.is_balanced ? 'text-[#0F6E56] dark:text-primary' : 'text-destructive'}`}>
                 {result.is_balanced ? 'Books are balanced — no issues found' : 'Books are NOT balanced — review journal entries'}
               </span>
@@ -335,9 +450,9 @@ function IntegritySection() {
   );
 }
 
-/* ── Main Settings Client ───────────────────────────────────────────────── */
+/* ── Main Settings Client ────────────────────────────────────────────────── */
 
-export function SettingsClient({ business }: SettingsClientProps) {
+export function SettingsClient({ business, subscription }: SettingsClientProps) {
   const [showProfile, setShowProfile] = useState(false);
 
   return (
@@ -349,10 +464,8 @@ export function SettingsClient({ business }: SettingsClientProps) {
 
       <div className="flex flex-col gap-5">
         <BusinessSettingsSection business={business} />
-
-        {/* Display (Dark Mode) — new in Phase 6 */}
+        <BillingSection subscription={subscription} />
         <DisplaySection />
-
         <CurrencyRatesSection baseCurrency={business?.currency_code ?? 'CAD'} />
 
         <Card>

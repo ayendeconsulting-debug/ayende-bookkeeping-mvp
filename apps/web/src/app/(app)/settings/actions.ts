@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 export async function getBusinessSettings() {
   try {
     return await api('/businesses/me', { method: 'GET' });
-  } catch (error: any) {
+  } catch {
     return null;
   }
 }
@@ -42,6 +42,27 @@ export async function getCurrencyRates(base: string) {
       supported_currencies: string[];
     }>(`/currency/rates?base=${base}`);
     return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getSubscriptionStatus() {
+  try {
+    const result = await api('/billing/subscription', { method: 'GET' });
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function createPortalSession() {
+  try {
+    const result = await api<{ url: string }>('/billing/portal', {
+      method: 'POST',
+      body: JSON.stringify({ return_url: 'https://gettempo.ca/settings' }),
+    });
+    return { success: true, url: result.url };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
