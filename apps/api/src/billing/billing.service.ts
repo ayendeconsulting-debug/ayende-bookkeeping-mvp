@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   BadRequestException,
   InternalServerErrorException,
@@ -13,8 +13,9 @@ import {
   SubscriptionStatus,
 } from '../entities/subscription.entity';
 import { CreateCheckoutSessionDto } from './dto/billing.dto';
+import { EmailService } from '../email/email.service';
 
-// â”€â”€ Price ID helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Price ID helpers ─────────────────────────────────────────────────────────
 function getPriceId(
   plan: 'starter' | 'pro' | 'accountant',
   cycle: 'monthly' | 'annual',
@@ -56,7 +57,44 @@ function planFromPriceId(priceId: string): SubscriptionPlan {
   return 'starter';
 }
 
-// â”€â”€ Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Billing cycle detection from price ID ────────────────────────────────────
+function billingCycleFromPriceId(priceId: string): 'monthly' | 'annual' {
+  const annualIds = [
+    process.env.STRIPE_STARTER_ANNUAL_PRICE_ID,
+    process.env.STRIPE_PRO_ANNUAL_PRICE_ID,
+    process.env.STRIPE_ACCOUNTANT_ANNUAL_PRICE_ID,
+  ];
+  return annualIds.includes(priceId) ? 'annual' : 'monthly';
+}
+
+// ── Format a Stripe unit_amount (cents) as a currency string ────────────────
+function formatAmount(unitAmount: number | null, currency: string): string {
+  if (unitAmount === null) return 'your plan rate';
+  const dollars = unitAmount / 100;
+  const currencyUpper = (currency || 'cad').toUpperCase();
+  return `$${dollars.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currencyUpper}`;
+}
+
+// ── Format a date nicely ─────────────────────────────────────────────────────
+function formatDate(date: Date): string {
+  return date.toLocaleDateString('en-CA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+// ── Plan label ───────────────────────────────────────────────────────────────
+function planLabel(plan: SubscriptionPlan): string {
+  const labels: Record<SubscriptionPlan, string> = {
+    starter:    'Starter',
+    pro:        'Pro',
+    accountant: 'Accountant',
+  };
+  return labels[plan] ?? 'Starter';
+}
+
+// ── Service ──────────────────────────────────────────────────────────────────
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
@@ -65,10 +103,11 @@ export class BillingService {
   constructor(
     @InjectRepository(Subscription)
     private readonly subscriptionRepo: Repository<Subscription>,
+    private readonly emailService: EmailService,
   ) {
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
-      this.logger.warn('STRIPE_SECRET_KEY not set â€” billing features disabled');
+      this.logger.warn('STRIPE_SECRET_KEY not set — billing features disabled');
     }
     this.stripe = new Stripe(secretKey ?? 'sk_test_placeholder', {
       apiVersion: '2023-10-16',
@@ -77,8 +116,7 @@ export class BillingService {
 
   /**
    * Create a Stripe Checkout session for a new subscription trial.
-   * Card is collected upfront â€” no charge during 60-day trial.
-   * After trial, Stripe auto-charges the Starter plan unless cancelled.
+   * Card is collected upfront — no charge during 60-day trial.
    */
   async createCheckoutSession(
     businessId: string,
@@ -89,7 +127,6 @@ export class BillingService {
     const priceId     = getPriceId(dto.plan, dto.billing_cycle);
     const couponId    = process.env.STRIPE_LAUNCH_COUPON_ID;
 
-    // Get or create Stripe customer
     let customerId: string | undefined;
     const existing = await this.subscriptionRepo.findOne({
       where: { business_id: businessId },
@@ -200,7 +237,6 @@ export class BillingService {
 
   /**
    * Handle incoming Stripe webhook events.
-   * Validates Stripe-Signature header before processing.
    */
   async handleWebhook(rawBody: Buffer, signature: string): Promise<void> {
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -220,6 +256,11 @@ export class BillingService {
     switch (event.type) {
       case 'checkout.session.completed':
         await this.handleCheckoutCompleted(
+          event.data.object as Stripe.Checkout.Session,
+        );
+        break;
+      case 'checkout.session.expired':
+        await this.handleCheckoutExpired(
           event.data.object as Stripe.Checkout.Session,
         );
         break;
@@ -248,7 +289,7 @@ export class BillingService {
     }
   }
 
-  // â”€â”€ Webhook handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Webhook handlers ─────────────────────────────────────────────────────
 
   private async handleCheckoutCompleted(
     session: Stripe.Checkout.Session,
@@ -308,7 +349,49 @@ export class BillingService {
       );
     }
 
-    this.logger.log(`Subscription created â€” business: ${businessId} plan: ${plan}`);
+    this.logger.log(`Subscription created — business: ${businessId} plan: ${plan}`);
+  }
+
+  private async handleCheckoutExpired(
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    // Only send abandoned cart emails in production to avoid test noise
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.log('checkout.session.expired — skipping abandoned cart email in non-production');
+      return;
+    }
+
+    const customerEmail = session.customer_details?.email ?? session.customer_email;
+    if (!customerEmail) {
+      this.logger.warn('checkout.session.expired — no customer email, skipping abandoned cart');
+      return;
+    }
+
+    const originalPriceId = session.line_items?.data?.[0]?.price?.id
+      ?? process.env.STRIPE_STARTER_ANNUAL_PRICE_ID;
+
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'https://gettempo.ca';
+      const newSession  = await this.stripe.checkout.sessions.create({
+        mode: 'subscription',
+        payment_method_collection: 'always',
+        line_items: [{ price: originalPriceId, quantity: 1 }],
+        subscription_data: { trial_period_days: 60 },
+        success_url: `${frontendUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url:  `${frontendUrl}/pricing`,
+        currency:    'cad',
+        expires_at:  Math.floor(Date.now() / 1000) + 86400, // 24 hours
+      });
+
+      if (newSession.url) {
+        void this.emailService.sendAbandonedCart(customerEmail, {
+          checkoutUrl: newSession.url,
+        });
+        this.logger.log(`Abandoned cart email sent → ${customerEmail}`);
+      }
+    } catch (err) {
+      this.logger.error('Failed to create abandoned cart checkout session', err);
+    }
   }
 
   private async handleSubscriptionUpdated(
@@ -328,7 +411,7 @@ export class BillingService {
       { plan, status, trial_ends_at: trialEnd, current_period_end: periodEnd },
     );
 
-    this.logger.log(`Subscription updated â€” business: ${businessId} plan: ${plan} status: ${status}`);
+    this.logger.log(`Subscription updated — business: ${businessId} plan: ${plan} status: ${status}`);
   }
 
   private async handleSubscriptionDeleted(
@@ -342,7 +425,7 @@ export class BillingService {
       { status: 'cancelled' },
     );
 
-    this.logger.log(`Subscription cancelled â€” business: ${businessId}`);
+    this.logger.log(`Subscription cancelled — business: ${businessId}`);
   }
 
   private async handlePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
@@ -354,7 +437,41 @@ export class BillingService {
       { status: 'past_due' },
     );
 
-    this.logger.log(`Payment failed â€” Stripe customer: ${customerId}`);
+    this.logger.log(`Payment failed — Stripe customer: ${customerId}`);
+
+    // Retrieve customer email — fire-and-forget email
+    try {
+      const customer = await this.stripe.customers.retrieve(customerId);
+      if (customer.deleted) return;
+
+      const email = (customer as Stripe.Customer).email;
+      if (!email) return;
+
+      const subscription = await this.subscriptionRepo.findOne({
+        where: { stripe_customer_id: customerId },
+      });
+
+      const frontendUrl  = process.env.FRONTEND_URL || 'https://gettempo.ca';
+      const portalUrl    = `${frontendUrl}/settings/billing`;
+
+      // Amount from invoice — already the locked-in price in cents
+      const amountStr = formatAmount(invoice.amount_due, invoice.currency ?? 'cad');
+
+      // Next retry date from next_payment_attempt
+      const nextRetryDate = invoice.next_payment_attempt
+        ? formatDate(new Date(invoice.next_payment_attempt * 1000))
+        : undefined;
+
+      void this.emailService.sendPaymentFailed(email, {
+        firstName:     'there',
+        amount:        amountStr,
+        planName:      planLabel(subscription?.plan ?? 'starter'),
+        nextRetryDate,
+        portalUrl,
+      });
+    } catch (err) {
+      this.logger.error('Failed to send payment failed email', err);
+    }
   }
 
   private async handleTrialWillEnd(
@@ -362,15 +479,73 @@ export class BillingService {
   ): Promise<void> {
     const businessId = stripeSub.metadata?.business_id;
     const trialEnd   = stripeSub.trial_end
-      ? new Date(stripeSub.trial_end * 1000).toISOString()
-      : 'unknown';
+      ? new Date(stripeSub.trial_end * 1000)
+      : null;
+
     this.logger.log(
-      `Trial ending soon â€” business: ${businessId ?? 'unknown'} ends: ${trialEnd}`,
+      `Trial ending soon — business: ${businessId ?? 'unknown'} ends: ${trialEnd?.toISOString() ?? 'unknown'}`,
     );
-    // TODO Phase 8: trigger engagement email
+
+    if (!trialEnd) return;
+
+    // Calculate days remaining
+    const msRemaining   = trialEnd.getTime() - Date.now();
+    const daysRemaining = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
+
+    // Only send for 14d, 3d, and 0d thresholds
+    const validThresholds = [14, 3, 0];
+    if (!validThresholds.includes(daysRemaining)) {
+      this.logger.log(`Trial ending in ${daysRemaining} days — no email threshold matched, skipping`);
+      return;
+    }
+
+    try {
+      const customerId = stripeSub.customer as string;
+      const customer   = await this.stripe.customers.retrieve(customerId);
+      if (customer.deleted) return;
+
+      const email = (customer as Stripe.Customer).email;
+      if (!email) return;
+
+      // Read locked-in price directly from the Stripe subscription item
+      const priceItem    = stripeSub.items.data[0];
+      const priceId      = priceItem?.price?.id ?? '';
+      const unitAmount   = priceItem?.price?.unit_amount ?? null;
+      const currency     = priceItem?.price?.currency ?? 'cad';
+      const billingCycle = billingCycleFromPriceId(priceId);
+      const plan         = planFromPriceId(priceId);
+
+      const frontendUrl = process.env.FRONTEND_URL || 'https://gettempo.ca';
+
+      // Build portal URL for subscription management
+      let portalUrl = `${frontendUrl}/settings/billing`;
+      try {
+        const portalSession = await this.stripe.billingPortal.sessions.create({
+          customer:   customerId,
+          return_url: `${frontendUrl}/settings/billing`,
+        });
+        portalUrl = portalSession.url;
+      } catch (err) {
+        this.logger.warn('Could not create portal session for trial email, using fallback URL');
+      }
+
+      void this.emailService.sendTrialEnding(email, {
+        firstName:     'there',
+        daysRemaining,
+        trialEndDate:  formatDate(trialEnd),
+        planName:      planLabel(plan),
+        planPrice:     formatAmount(unitAmount, currency),
+        billingCycle,
+        portalUrl,
+      });
+
+      this.logger.log(`Trial ending email (${daysRemaining}d) sent → ${email}`);
+    } catch (err) {
+      this.logger.error('Failed to send trial ending email', err);
+    }
   }
 
-  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
   private mapStripeStatus(
     stripeStatus: Stripe.Subscription.Status,
@@ -387,4 +562,3 @@ export class BillingService {
     }
   }
 }
-
