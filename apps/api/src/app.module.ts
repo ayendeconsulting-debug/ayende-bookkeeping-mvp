@@ -22,6 +22,7 @@ import { LegalModule } from './legal/legal.module';
 import { BillingModule } from './billing/billing.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
+import { LegalAcceptanceGuard } from './legal/legal-acceptance.guard';
 import { HealthController } from './health.controller';
 
 function getRedisBullMQConnection() {
@@ -69,6 +70,7 @@ function getRedisBullMQConnection() {
     AppService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: LegalAcceptanceGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

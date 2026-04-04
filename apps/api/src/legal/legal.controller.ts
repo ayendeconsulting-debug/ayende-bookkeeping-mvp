@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { LegalService } from './legal.service';
 import { AcceptLegalDto } from './dto/accept-legal.dto';
+import { SkipLegalCheck } from './skip-legal-check.decorator';
 
 @Controller('legal')
 export class LegalController {
@@ -20,9 +21,11 @@ export class LegalController {
    * Body: { documents: [{ document_type, document_version, acceptance_source }] }
    *
    * Idempotent — re-posting the same document+version has no effect.
+   * @SkipLegalCheck — must be accessible even when re-acceptance is required.
    */
   @Post('accept')
   @HttpCode(HttpStatus.OK)
+  @SkipLegalCheck()
   async accept(@Body() body: AcceptLegalDto, @Req() req: any) {
     const userId: string = req.user?.sub ?? req.user?.userId ?? req.user?.id;
     const result = await this.legalService.accept(userId, body.documents);
@@ -41,6 +44,8 @@ export class LegalController {
    * Return the current acceptance status for the authenticated user.
    * Used by the frontend and the LegalAcceptanceGuard to check for re-acceptance.
    *
+   * @SkipLegalCheck — frontend needs this to render the re-acceptance page.
+   *
    * Response shape:
    * {
    *   all_accepted: boolean,
@@ -49,6 +54,7 @@ export class LegalController {
    * }
    */
   @Get('acceptance-status')
+  @SkipLegalCheck()
   async getAcceptanceStatus(@Req() req: any) {
     const userId: string = req.user?.sub ?? req.user?.userId ?? req.user?.id;
     return this.legalService.getAcceptanceStatus(userId);
