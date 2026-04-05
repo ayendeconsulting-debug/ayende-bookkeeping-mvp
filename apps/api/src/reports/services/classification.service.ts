@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, ILike, Between } from 'typeorm';
@@ -20,6 +21,8 @@ import {
   OwnerDrawDto,
 } from '../dto/classify-transaction.dto';
 import { CreateClassificationRuleDto, UpdateClassificationRuleDto } from '../dto/create-classification-rule.dto';
+// Phase 9: HST period lock check
+import { HstPeriodService } from './hst-period.service';
 
 @Injectable()
 export class ClassificationService {
@@ -43,9 +46,11 @@ export class ClassificationService {
     @InjectRepository(FiscalYear)
     private readonly fiscalYearRepo: Repository<FiscalYear>,
     private readonly dataSource: DataSource,
+    // Phase 9
+    private readonly hstPeriodService: HstPeriodService,
   ) {}
 
-  // ── Classification Rules ──────────────────────────────────────────
+  // ── Classification Rules ──────────────────────────────────────────────────
 
   async createRule(dto: CreateClassificationRuleDto): Promise<ClassificationRule> {
     const rule = this.ruleRepo.create({
@@ -84,7 +89,7 @@ export class ClassificationService {
     return this.ruleRepo.save(rule);
   }
 
-  // ── Raw Transactions ──────────────────────────────────────────────
+  // ── Raw Transactions ──────────────────────────────────────────────────────
 
   async getRawTransactions(
     businessId: string,
@@ -126,7 +131,7 @@ export class ClassificationService {
     return { data, total };
   }
 
-  // ── Tag Transaction (Freelancer Mode) ────────────────────────────────
+  // ── Tag Transaction (Freelancer Mode) ────────────────────────────────────
 
   async tagTransaction(
     businessId: string,
@@ -141,7 +146,7 @@ export class ClassificationService {
     return this.rawTxRepo.save(tx);
   }
 
-  // ── Bulk Classification ───────────────────────────────────────────
+  // ── Bulk Classification ───────────────────────────────────────────────────
 
   async bulkClassify(
     businessId: string,
@@ -189,7 +194,7 @@ export class ClassificationService {
     return { classified, skipped, errors };
   }
 
-  // ── Manual Classification ─────────────────────────────────────────
+  // ── Manual Classification ─────────────────────────────────────────────────
 
   async classify(dto: ClassifyTransactionDto): Promise<ClassifiedTransaction> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -217,7 +222,7 @@ export class ClassificationService {
     return this.classifiedRepo.save(classified);
   }
 
-  // ── Post to General Ledger ────────────────────────────────────────
+  // ── Post to General Ledger ────────────────────────────────────────────────
 
   async postClassifiedTransaction(
     businessId: string,
@@ -236,6 +241,8 @@ export class ClassificationService {
 
     const amount = Number(classified.override_amount ?? rawTx.amount);
     await this.checkFiscalYearLock(businessId, rawTx.transaction_date);
+    // Phase 9: reject if date falls within a locked HST period
+    await this.checkHstPeriodLock(businessId, rawTx.transaction_date);
 
     return this.dataSource.transaction(async (manager) => {
       const entry = manager.create(JournalEntry, {
@@ -338,7 +345,7 @@ export class ClassificationService {
     });
   }
 
-  // ── Owner Contribution ────────────────────────────────────────────
+  // ── Owner Contribution ────────────────────────────────────────────────────
 
   async postOwnerContribution(dto: OwnerContributionDto): Promise<JournalEntry> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -352,10 +359,11 @@ export class ClassificationService {
     if (!ownerContribAccount) {
       throw new NotFoundException('No owner_contribution equity account found for this business');
     }
-
     await this.checkFiscalYearLock(dto.businessId, rawTx.transaction_date);
-    const amount = Number(rawTx.amount);
+    // Phase 9: reject if date falls within a locked HST period
+    await this.checkHstPeriodLock(dto.businessId, rawTx.transaction_date);
 
+    const amount = Number(rawTx.amount);
     return this.dataSource.transaction(async (manager) => {
       const entry = manager.create(JournalEntry, {
         business_id: dto.businessId,
@@ -369,7 +377,6 @@ export class ClassificationService {
         posted_at: new Date(),
       });
       const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
-
       await manager.save(JournalLine, [
         manager.create(JournalLine, {
           business_id: dto.businessId,
@@ -390,12 +397,11 @@ export class ClassificationService {
           description: `Owner Contribution: ${rawTx.description}`,
         }),
       ]);
-
       return savedEntry;
     });
   }
 
-  // ── Owner Draw ────────────────────────────────────────────────────
+  // ── Owner Draw ────────────────────────────────────────────────────────────
 
   async postOwnerDraw(dto: OwnerDrawDto): Promise<JournalEntry> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -409,10 +415,11 @@ export class ClassificationService {
     if (!ownerDrawAccount) {
       throw new NotFoundException('No owner_draw equity account found for this business');
     }
-
     await this.checkFiscalYearLock(dto.businessId, rawTx.transaction_date);
-    const amount = Number(rawTx.amount);
+    // Phase 9: reject if date falls within a locked HST period
+    await this.checkHstPeriodLock(dto.businessId, rawTx.transaction_date);
 
+    const amount = Number(rawTx.amount);
     return this.dataSource.transaction(async (manager) => {
       const entry = manager.create(JournalEntry, {
         business_id: dto.businessId,
@@ -426,7 +433,6 @@ export class ClassificationService {
         posted_at: new Date(),
       });
       const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
-
       await manager.save(JournalLine, [
         manager.create(JournalLine, {
           business_id: dto.businessId,
@@ -447,12 +453,11 @@ export class ClassificationService {
           description: rawTx.description,
         }),
       ]);
-
       return savedEntry;
     });
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   private async checkFiscalYearLock(businessId: string, date: Date): Promise<void> {
     const fiscalYear = await this.fiscalYearRepo
@@ -460,10 +465,29 @@ export class ClassificationService {
       .where('fy.business_id = :businessId', { businessId })
       .andWhere(':date BETWEEN fy.start_date AND fy.end_date', { date })
       .getOne();
-
     if (fiscalYear?.is_locked) {
       throw new BadRequestException(
         `Fiscal year ${fiscalYear.year_number} is locked. Cannot post transactions.`,
+      );
+    }
+  }
+
+  // Phase 9: check if the transaction date falls within a locked HST period
+  private async checkHstPeriodLock(businessId: string, date: Date): Promise<void> {
+    const dateStr = date instanceof Date
+      ? date.toISOString().split('T')[0]
+      : String(date).split('T')[0];
+
+    const lockedPeriod = await this.hstPeriodService.isDateInLockedPeriod(
+      businessId,
+      dateStr,
+    );
+
+    if (lockedPeriod) {
+      throw new UnprocessableEntityException(
+        `Cannot post transaction dated ${dateStr} — it falls within a locked HST period ` +
+        `(${lockedPeriod.period_start} to ${lockedPeriod.period_end}). ` +
+        `Locked periods cannot accept new journal entries.`,
       );
     }
   }
