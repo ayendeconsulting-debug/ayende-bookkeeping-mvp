@@ -15,12 +15,17 @@ import { JournalEntry } from '../entities/journal-entry.entity';
 import { JournalLine } from '../entities/journal-line.entity';
 import { RawTransaction } from '../entities/raw-transaction.entity';
 import { ArApRecord } from '../entities/ar-ap-record.entity';
+// Phase 9: Canadian Tax Engine
+import { ProvincialTaxConfig } from '../entities/provincial-tax-config.entity';
+import { HstPeriod } from '../entities/hst-period.entity';
 
 // Controllers
 import { TaxController } from './controllers/tax.controller';
 import { ClassificationController } from './controllers/classification.controller';
 import { ReportsController } from './controllers/reports.controller';
 import { ArApController } from './controllers/ar-ap.controller';
+// Phase 9
+import { HstController } from './controllers/hst.controller';
 
 // Services
 import { TaxService } from './services/tax.service';
@@ -32,6 +37,8 @@ import { GeneralLedgerService } from './services/general-ledger.service';
 import { ExportService } from './services/export.service';
 import { ArApService } from './services/ar-ap.service';
 import { SparklineService } from './services/sparkline.service';
+// Phase 9
+import { ProvinceConfigService } from './services/province-config.service';
 
 @Module({
   imports: [
@@ -49,9 +56,19 @@ import { SparklineService } from './services/sparkline.service';
       JournalLine,
       RawTransaction,
       ArApRecord,
+      // Phase 9
+      ProvincialTaxConfig,
+      HstPeriod,
     ]),
   ],
-  controllers: [TaxController, ClassificationController, ReportsController, ArApController],
+  controllers: [
+    TaxController,
+    ClassificationController,
+    ReportsController,
+    ArApController,
+    // Phase 9
+    HstController,
+  ],
   providers: [
     TaxService,
     ClassificationService,
@@ -62,12 +79,16 @@ import { SparklineService } from './services/sparkline.service';
     ExportService,
     ArApService,
     SparklineService,
+    // Phase 9
+    ProvinceConfigService,
   ],
   exports: [
     IncomeStatementService,
     BalanceSheetService,
     TrialBalanceService,
     GeneralLedgerService,
+    // Phase 9 — exported for use in BusinessesModule (tax seeding)
+    ProvinceConfigService,
   ],
 })
 export class ReportsModule {}

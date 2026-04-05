@@ -15,6 +15,12 @@ export enum BusinessMode {
   PERSONAL = 'personal',
 }
 
+export enum HstReportingFrequency {
+  MONTHLY = 'monthly',
+  QUARTERLY = 'quarterly',
+  ANNUAL = 'annual',
+}
+
 @Entity('businesses')
 export class Business {
   @PrimaryGeneratedColumn('uuid')
@@ -63,6 +69,26 @@ export class Business {
 
   @Column({ type: 'jsonb', default: {} })
   settings: Record<string, any>;
+
+  // ── Phase 9: Canadian Tax Settings ───────────────────────────────────────
+
+  // Province/territory where the business operates (ISO 3166-2 CA code: ON, BC, AB, etc.)
+  @Column({ type: 'varchar', length: 2, nullable: true })
+  province_code: string | null;
+
+  // CRA-issued HST/GST registration number (9-digit BN + RT0001)
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  hst_registration_number: string | null;
+
+  // HST/GST reporting frequency — determines default period length
+  @Column({
+    type: 'enum',
+    enum: HstReportingFrequency,
+    enumName: 'hst_reporting_frequency',
+    default: HstReportingFrequency.QUARTERLY,
+    nullable: true,
+  })
+  hst_reporting_frequency: HstReportingFrequency | null;
 
   // Relationships
   @OneToMany(() => BusinessUser, (businessUser) => businessUser.business)
