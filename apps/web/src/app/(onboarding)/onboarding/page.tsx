@@ -4,6 +4,8 @@ import { useState, useTransition, useEffect } from 'react';
 import {
   saveModeAndCountry,
   saveBusinessDetails,
+  saveTaxSettings,
+  getProvincesForOnboarding,
   seedAccounts,
   createFirstTaxCode,
   completeOnboarding,
@@ -14,7 +16,7 @@ import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, ChevronRight, Loader2, Building2, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Loader2, Building2, ShieldCheck, Receipt } from 'lucide-react';
 import { LEGAL_VERSIONS } from '@/lib/legal-versions';
 
 type Mode    = 'business' | 'freelancer' | 'personal';
@@ -31,6 +33,14 @@ interface LegalDoc {
   label: string;
   linkLabel: string;
   href: string;
+}
+
+interface Province {
+  province_code: string;
+  province_name: string;
+  hst_rate: number | null;
+  gst_rate: number;
+  is_hst_province: boolean;
 }
 
 const LEGAL_DOCS: LegalDoc[] = [
@@ -85,7 +95,7 @@ const TAX_PRESETS: Record<Country, { code: string; name: string; rate: number }[
   ],
 };
 
-/* ── Progress Bar ─────────────────────────────────────────────────────────── */
+/* ── Progress Bar ──────────────────────────────────────────────────────────── */
 function ProgressBar({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-2 mb-8">
@@ -109,7 +119,7 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
-/* ── Legal Checkbox ───────────────────────────────────────────────────────── */
+/* ── Legal Checkbox ────────────────────────────────────────────────────────── */
 function LegalCheckbox({
   doc,
   checked,
@@ -130,7 +140,6 @@ function LegalCheckbox({
           : 'border-border bg-card hover:border-[#0F6E56]/50',
       ].join(' ')}
     >
-      {/* Checkbox */}
       <div className="relative flex-shrink-0 mt-0.5">
         <input
           type="checkbox"
@@ -153,7 +162,6 @@ function LegalCheckbox({
         </div>
       </div>
 
-      {/* Label */}
       <div className="text-sm text-foreground leading-relaxed">
         <span>{doc.label} </span>
         <a
@@ -176,7 +184,7 @@ function LegalCheckbox({
   );
 }
 
-/* ── Main Wizard ──────────────────────────────────────────────────────────── */
+/* ── Main Wizard ───────────────────────────────────────────────────────────── */
 export default function OnboardingPage() {
   const [step, setStep]              = useState(1);
   const [isPending, startTransition] = useTransition();
@@ -191,6 +199,13 @@ export default function OnboardingPage() {
   const [taxPreset,       setTaxPreset]       = useState('');
   const [taxAccountId]                        = useState('');
   const [error,           setError]           = useState<string | null>(null);
+
+  // Phase 9: Tax settings state
+  const [provinces,       setProvinces]       = useState<Province[]>([]);
+  const [provinceCode,    setProvinceCode]    = useState('');
+  const [hstNumber,       setHstNumber]       = useState('');
+  const [hstFrequency,    setHstFrequency]    = useState<'monthly' | 'quarterly' | 'annual'>('quarterly');
+  const [provincesLoaded, setProvincesLoaded] = useState(false);
 
   // Legal step state
   const [legalChecks, setLegalChecks] = useState<Record<LegalDocType, boolean>>({
@@ -208,6 +223,15 @@ export default function OnboardingPage() {
   const [legalLoading, setLegalLoading] = useState(false);
 
   const allLegalChecked = LEGAL_DOCS.every((d) => legalChecks[d.key]);
+
+  // Load provinces when user reaches step 2 and is in CA
+  useEffect(() => {
+    if (step !== 2 || selectedCountry !== 'CA' || provincesLoaded) return;
+    getProvincesForOnboarding().then((result) => {
+      if (result.data) setProvinces(result.data);
+      setProvincesLoaded(true);
+    });
+  }, [step, selectedCountry, provincesLoaded]);
 
   // When user reaches step 5, pre-check any already-accepted docs
   useEffect(() => {
@@ -244,16 +268,34 @@ export default function OnboardingPage() {
     });
   }
 
+  // Phase 9: Step 2 saves business details + tax settings (if province selected)
   function handleStep2() {
     if (!businessName.trim()) { setError('Business name is required.'); return; }
     setError(null);
     startTransition(async () => {
+      // Save business details
       const result = await saveBusinessDetails({
         name: businessName.trim(),
         currency_code:   currency || (selectedCountry === 'CA' ? 'CAD' : 'USD'),
         fiscal_year_end: fiscalYearEnd || undefined,
       });
       if (result.error) { setError(result.error); toastError('Could not save', result.error); return; }
+
+      // Save tax settings if province selected (CA only) — fire-and-forget on error
+      if (selectedCountry === 'CA' && provinceCode) {
+        const taxResult = await saveTaxSettings({
+          province_code: provinceCode,
+          hst_registration_number: hstNumber.trim() || undefined,
+          hst_reporting_frequency: hstFrequency,
+        });
+        if (taxResult.error) {
+          // Non-blocking — warn but don't stop onboarding
+          toastError('Tax settings not saved', taxResult.error + ' — you can update these in Settings.');
+        } else {
+          toastSuccess('Tax settings saved', `Province: ${provinceCode} — default tax codes created`);
+        }
+      }
+
       toastSuccess('Business details saved');
       setStep(3);
     });
@@ -299,6 +341,14 @@ export default function OnboardingPage() {
     });
   }
 
+  // Derived: province tax label for display
+  const selectedProvince = provinces.find((p) => p.province_code === provinceCode);
+  const taxLabel = selectedProvince
+    ? selectedProvince.is_hst_province
+      ? `HST ${Math.round((selectedProvince.hst_rate ?? 0) * 100)}%`
+      : `GST ${Math.round(selectedProvince.gst_rate * 100)}%`
+    : null;
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
@@ -313,7 +363,7 @@ export default function OnboardingPage() {
             </svg>
           </div>
           <h1 className="text-2xl font-bold text-foreground">Welcome to Tempo</h1>
-          <p className="text-muted-foreground mt-1 text-sm">Let's set up your account in a few steps.</p>
+          <p className="text-muted-foreground mt-1 text-sm">Let&apos;s set up your account in a few steps.</p>
         </div>
 
         <ProgressBar step={step} />
@@ -378,7 +428,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 2: Business Details ── */}
+        {/* ── Step 2: Business Details + Phase 9 Tax Settings ── */}
         {step === 2 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
@@ -397,10 +447,10 @@ export default function OnboardingPage() {
                 <Label>Base Currency</Label>
                 <select value={currency} onChange={(e) => setCurrency(e.target.value)}
                   className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
-                  <option value="CAD">CAD – Canadian Dollar</option>
-                  <option value="USD">USD – US Dollar</option>
-                  <option value="EUR">EUR – Euro</option>
-                  <option value="GBP">GBP – British Pound</option>
+                  <option value="CAD">CAD — Canadian Dollar</option>
+                  <option value="USD">USD — US Dollar</option>
+                  <option value="EUR">EUR — Euro</option>
+                  <option value="GBP">GBP — British Pound</option>
                 </select>
               </div>
               {selectedMode !== 'personal' && (
@@ -410,6 +460,74 @@ export default function OnboardingPage() {
                 </div>
               )}
             </div>
+
+            {/* Phase 9: Canadian tax settings — only shown for CA businesses */}
+            {selectedCountry === 'CA' && (
+              <div className="flex flex-col gap-4 pt-2 border-t border-border">
+                <div className="flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-[#0F6E56]" />
+                  <h3 className="text-sm font-semibold text-foreground">Canadian Tax Settings</h3>
+                </div>
+
+                {/* Province */}
+                <div className="flex flex-col gap-1.5">
+                  <Label>Province / Territory <span className="text-muted-foreground font-normal">(recommended)</span></Label>
+                  <select
+                    value={provinceCode}
+                    onChange={(e) => setProvinceCode(e.target.value)}
+                    className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground"
+                  >
+                    <option value="">— Select province —</option>
+                    {provinces.map((p) => (
+                      <option key={p.province_code} value={p.province_code}>
+                        {p.province_name} ({p.province_code})
+                      </option>
+                    ))}
+                  </select>
+                  {taxLabel && (
+                    <p className="text-xs text-[#0F6E56] font-medium">
+                      ✓ Default tax rate: {taxLabel} — tax codes will be created automatically
+                    </p>
+                  )}
+                  {!provinceCode && (
+                    <p className="text-xs text-muted-foreground">
+                      Selecting your province enables automatic HST/GST tax code setup.
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {/* HST number */}
+                  <div className="flex flex-col gap-1.5">
+                    <Label>
+                      HST / GST Number{' '}
+                      <span className="text-muted-foreground font-normal">(optional)</span>
+                    </Label>
+                    <Input
+                      value={hstNumber}
+                      onChange={(e) => setHstNumber(e.target.value)}
+                      placeholder="123456789RT0001"
+                      maxLength={20}
+                    />
+                    <p className="text-xs text-muted-foreground">You can add this later in Settings.</p>
+                  </div>
+
+                  {/* Reporting frequency */}
+                  <div className="flex flex-col gap-1.5">
+                    <Label>HST / GST Filing Frequency</Label>
+                    <select
+                      value={hstFrequency}
+                      onChange={(e) => setHstFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
+                      className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground"
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly (most common)</option>
+                      <option value="annual">Annual</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex items-center gap-2">
@@ -427,7 +545,7 @@ export default function OnboardingPage() {
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
               <h2 className="text-base font-semibold text-foreground mb-1">Set up your chart of accounts</h2>
-              <p className="text-sm text-muted-foreground">We'll create the right accounts for your industry.</p>
+              <p className="text-sm text-muted-foreground">We&apos;ll create the right accounts for your industry.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -470,27 +588,41 @@ export default function OnboardingPage() {
               </p>
             </div>
 
-            <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 px-4 py-3 text-sm text-[#0F6E56] dark:text-primary">
-              Tax codes are applied during transaction classification. They split the net amount and tax into separate journal lines automatically.
-            </div>
-
-            <div className="grid grid-cols-1 gap-2">
-              {(TAX_PRESETS[selectedCountry ?? 'CA'] ?? []).map((preset) => (
-                <button key={preset.code} onClick={() => setTaxPreset(preset.code)}
-                  className={['flex items-center justify-between p-3.5 rounded-xl border-2 transition-all text-left bg-card hover:border-[#0F6E56]',
-                    taxPreset === preset.code ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
-                  <div>
-                    <div className="text-sm font-medium text-foreground">{preset.name}</div>
-                    <div className="text-xs text-muted-foreground">{preset.code} · {(preset.rate * 100).toFixed(2)}%</div>
-                  </div>
-                  {taxPreset === preset.code && <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" />}
-                </button>
-              ))}
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Note: Tax code creation requires a tax liability account. You can add tax codes from Settings → Tax Codes after your accounts are set up.
-            </p>
+            {/* If province was set in Step 2, show confirmation instead of presets */}
+            {selectedCountry === 'CA' && provinceCode ? (
+              <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 px-4 py-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" />
+                  <span className="text-sm font-medium text-[#0F6E56]">Tax codes already created</span>
+                </div>
+                <p className="text-xs text-[#085041] dark:text-primary/80">
+                  Default HST/GST tax codes for {provinceCode} were set up in the previous step.
+                  You can manage them in Settings → Tax Codes.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 px-4 py-3 text-sm text-[#0F6E56] dark:text-primary">
+                  Tax codes are applied during transaction classification. They split the net amount and tax into separate journal lines automatically.
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {(TAX_PRESETS[selectedCountry ?? 'CA'] ?? []).map((preset) => (
+                    <button key={preset.code} onClick={() => setTaxPreset(preset.code)}
+                      className={['flex items-center justify-between p-3.5 rounded-xl border-2 transition-all text-left bg-card hover:border-[#0F6E56]',
+                        taxPreset === preset.code ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
+                      <div>
+                        <div className="text-sm font-medium text-foreground">{preset.name}</div>
+                        <div className="text-xs text-muted-foreground">{preset.code} · {(preset.rate * 100).toFixed(2)}%</div>
+                      </div>
+                      {taxPreset === preset.code && <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" />}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Note: Tax code creation requires a tax liability account. You can add tax codes from Settings → Tax Codes after your accounts are set up.
+                </p>
+              </>
+            )}
 
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={skipStep4} disabled={isPending}>Skip for now</Button>

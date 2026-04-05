@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   TrendingUp, TrendingDown, DollarSign, Clock, Building2, RefreshCw,
-  AlertCircle, ShieldAlert, AlertTriangle, Info,
+  AlertCircle, ShieldAlert, AlertTriangle, Info, Receipt, ExternalLink,
 } from 'lucide-react';
 
 interface AnomalyFlag {
@@ -28,6 +28,17 @@ interface SparklineData {
   expenses: SparklinePoint[];
   net:      SparklinePoint[];
   pending:  SparklinePoint[];
+}
+
+// Phase 9: HST Position
+interface HstPosition {
+  period_start: string;
+  period_end: string;
+  total_output_tax: number;
+  total_itc_eligible: number;
+  net_tax_owing: number;
+  position_indicator: 'owing' | 'refund' | 'nil';
+  unposted_transaction_count: number;
 }
 
 async function getMyBusiness(): Promise<Business | null> {
@@ -54,6 +65,10 @@ async function getAnomalies(): Promise<AnomalyResult | null> {
 async function getSparklineData(): Promise<SparklineData | null> {
   try { return await apiGet<SparklineData>('/reports/sparkline'); } catch { return null; }
 }
+// Phase 9: fetch current quarter HST position
+async function getHstPosition(): Promise<HstPosition | null> {
+  try { return await apiGet<HstPosition>('/tax/hst/position'); } catch { return null; }
+}
 
 function deriveMetrics(tb: TrialBalance | null) {
   if (!tb) return { revenue: 0, expenses: 0, netIncome: 0 };
@@ -76,9 +91,9 @@ function severityBadgeClass(s: AnomalyFlag['severity']) {
 }
 
 export default async function DashboardPage() {
-  const [business, trialBalance, transactions, banks, anomalies, sparklines] = await Promise.all([
+  const [business, trialBalance, transactions, banks, anomalies, sparklines, hstPosition] = await Promise.all([
     getMyBusiness(), getTrialBalance(), getRecentTransactions(),
-    getConnectedBanks(), getAnomalies(), getSparklineData(),
+    getConnectedBanks(), getAnomalies(), getSparklineData(), getHstPosition(),
   ]);
 
   if (business?.mode === 'freelancer') redirect('/freelancer/dashboard');
@@ -92,6 +107,13 @@ export default async function DashboardPage() {
   const expensesSparkline = sparklines?.expenses.map((p) => p.value) ?? [];
   const netSparkline      = sparklines?.net.map((p) => p.value)      ?? [];
   const pendingSparkline  = sparklines?.pending.map((p) => p.value)  ?? [];
+
+  // Only show HST card for Canadian businesses with province configured
+  const showHstCard = !!(
+    (business as any)?.country === 'CA' &&
+    (business as any)?.province_code &&
+    hstPosition
+  );
 
   return (
     <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
@@ -117,8 +139,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* KPI cards — 1 col mobile, 2 col sm, 4 col lg
-          Pilot light signature: colour-coded top border per metric type */}
+      {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
         <MetricCard
           label="Total Revenue" value={formatCurrency(revenue)}
@@ -153,14 +174,14 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Dashboard charts — 1 col mobile, 2 col md+ */}
+      {/* Dashboard charts */}
       <DashboardCharts
         revenueData={sparklines?.revenue   ?? []}
         expensesData={sparklines?.expenses ?? []}
         netData={sparklines?.net           ?? []}
       />
 
-      {/* Main content — 1 col mobile, 3 col lg */}
+      {/* Main content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Left/main — transactions + anomalies */}
@@ -174,7 +195,6 @@ export default async function DashboardPage() {
               {transactions.length === 0 ? (
                 <EmptyState icon={RefreshCw} message="No transactions yet. Connect a bank to start importing." />
               ) : (
-                /* Horizontal scroll on mobile so table doesn't collapse */
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -248,7 +268,7 @@ export default async function DashboardPage() {
           </Card>
         </div>
 
-        {/* Right — banks + P&L */}
+        {/* Right — banks + P&L + HST Position */}
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
@@ -302,12 +322,111 @@ export default async function DashboardPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Phase 9: HST Position Card — CA businesses only */}
+          {showHstCard && hstPosition && (
+            <HstPositionCard position={hstPosition} />
+          )}
         </div>
 
       </div>
     </div>
   );
 }
+
+// ── Phase 9: HST Position Card ────────────────────────────────────────────────
+
+function HstPositionCard({ position }: { position: HstPosition }) {
+  const isOwing  = position.position_indicator === 'owing';
+  const isRefund = position.position_indicator === 'refund';
+
+  const accentClass = isOwing
+    ? 'border-t-2 border-t-amber-500'
+    : isRefund
+    ? 'border-t-2 border-t-[#0F6E56]'
+    : 'border-t-2 border-t-border';
+
+  const amountColor = isOwing
+    ? 'text-amber-600 dark:text-amber-400'
+    : isRefund
+    ? 'text-[#0F6E56] dark:text-emerald-400'
+    : 'text-foreground';
+
+  const badgeClass = isOwing
+    ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800'
+    : isRefund
+    ? 'bg-[#EDF7F2] text-[#0F6E56] border-[#C3E8D8] dark:bg-[#0F6E56]/10 dark:text-emerald-400 dark:border-[#0F6E56]/30'
+    : 'bg-muted text-muted-foreground border-border';
+
+  const badgeLabel = isOwing ? 'Owing' : isRefund ? 'Refund' : 'Nil';
+
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
+
+  return (
+    <Card className={accentClass}>
+      <CardHeader className="flex-row items-center justify-between pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <Receipt className="w-4 h-4 text-muted-foreground" />
+          HST / GST Position
+        </CardTitle>
+        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${badgeClass}`}>
+          {badgeLabel}
+        </span>
+      </CardHeader>
+      <CardContent className="pt-0 flex flex-col gap-3">
+        {/* Current quarter */}
+        <p className="text-xs text-muted-foreground">
+          {formatDate(position.period_start)} — {formatDate(position.period_end)}
+        </p>
+
+        {/* Key figures */}
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">HST Collected (L103)</span>
+            <span className="text-xs font-medium text-foreground">
+              ${position.total_output_tax.toFixed(2)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">ITC Eligible (L106)</span>
+            <span className="text-xs font-medium text-[#0F6E56]">
+              −${position.total_itc_eligible.toFixed(2)}
+            </span>
+          </div>
+          <div className="h-px bg-border" />
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-foreground">Net Tax (L109)</span>
+            <span className={`text-sm font-semibold ${amountColor}`}>
+              ${Math.abs(position.net_tax_owing).toFixed(2)}
+              {isRefund && <span className="text-xs font-normal ml-1">CR</span>}
+            </span>
+          </div>
+        </div>
+
+        {/* Unposted warning */}
+        {position.unposted_transaction_count > 0 && (
+          <div className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+            <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+            <span>
+              {position.unposted_transaction_count} unposted transaction{position.unposted_transaction_count > 1 ? 's' : ''} — report may be incomplete
+            </span>
+          </div>
+        )}
+
+        {/* Link to full report */}
+        <a
+          href="/tax"
+          className="flex items-center gap-1 text-xs text-primary hover:underline font-medium w-fit"
+        >
+          View full CRA report <ExternalLink className="w-3 h-3" />
+        </a>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Shared sub-components ─────────────────────────────────────────────────────
 
 function MetricCard({
   label, value, icon: Icon, iconColor, iconBg, sub, sparklineData, sparklineColor, accentClass,

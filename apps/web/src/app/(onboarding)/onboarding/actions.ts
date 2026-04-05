@@ -27,7 +27,7 @@ async function patchBusiness(data: Record<string, unknown>) {
   return {};
 }
 
-/* ── Step 1: Save mode + country ──────────────────────────────────────────── */
+/* ── Step 1: Save mode + country ─────────────────────────────────────────── */
 export async function saveModeAndCountry(
   mode: 'business' | 'freelancer' | 'personal',
   country: 'CA' | 'US',
@@ -35,13 +35,58 @@ export async function saveModeAndCountry(
   return patchBusiness({ mode, country });
 }
 
-/* ── Step 2: Save business details ───────────────────────────────────────── */
+/* ── Step 2: Save business details ──────────────────────────────────────── */
 export async function saveBusinessDetails(data: {
   name: string;
   currency_code: string;
   fiscal_year_end?: string;
 }): Promise<{ error?: string }> {
   return patchBusiness(data);
+}
+
+/* ── Phase 9: Get provinces for onboarding dropdown ─────────────────────── */
+export async function getProvincesForOnboarding(): Promise<{
+  data?: Array<{
+    province_code: string;
+    province_name: string;
+    hst_rate: number | null;
+    gst_rate: number;
+    is_hst_province: boolean;
+  }>;
+  error?: string;
+}> {
+  try {
+    const res = await fetch(`${API_URL}/tax/provinces`, {
+      headers: await getAuthHeaders(),
+      cache: 'no-store',
+    });
+    if (!res.ok) return { error: 'Failed to load provinces' };
+    const data = await res.json();
+    return { data };
+  } catch {
+    return { error: 'Network error loading provinces' };
+  }
+}
+
+/* ── Phase 9: Save tax settings (province, HST number, frequency) ────────── */
+export async function saveTaxSettings(data: {
+  province_code?: string;
+  hst_registration_number?: string;
+  hst_reporting_frequency?: 'monthly' | 'quarterly' | 'annual';
+}): Promise<{ error?: string }> {
+  // Only call API if at least province_code is provided
+  if (!data.province_code) return {};
+
+  const res = await fetch(`${API_URL}/businesses/me/tax-settings`, {
+    method: 'PATCH',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return { error: body.message ?? 'Failed to save tax settings' };
+  }
+  return {};
 }
 
 /* ── Step 3: Seed chart of accounts ──────────────────────────────────────── */
@@ -108,7 +153,7 @@ export async function fetchLegalAcceptanceStatus(): Promise<{
   }
 }
 
-/* ── Step 5: Accept legal documents ──────────────────────────────────────── */
+/* ── Step 5: Accept legal documents ─────────────────────────────────────── */
 export async function acceptLegalDocuments(
   documents: {
     document_type: string;
