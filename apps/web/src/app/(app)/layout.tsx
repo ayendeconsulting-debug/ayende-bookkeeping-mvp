@@ -12,6 +12,7 @@ const BILLING_EXEMPT_PATHS = [
   '/billing/success',
   '/billing/cancel',
   '/settings',
+  '/dashboard',   // always reachable — gate must never lock out existing users
 ];
 
 async function provisionBusiness(clerkOrgId: string, orgName: string): Promise<void> {
@@ -94,12 +95,16 @@ export default async function AppLayout({
       getSubscriptionStatus(token),
     ]);
 
-    // ── Onboarding gate ───────────────────────────────────────────────────
+    // ── Onboarding gate ───────────────────────────────────────────────────────
     if (business && !business.settings?.mode_selected) {
       redirect('/onboarding');
     }
 
-    // ── Subscription gate ─────────────────────────────────────────────────
+    // ── Subscription gate ─────────────────────────────────────────────────────
+    // Only redirect to pricing when we have CONFIRMED proof there is no
+    // subscription (status === 'none'). If the subscription lookup failed
+    // (null), we pass through — this prevents locking out existing users
+    // whose Stripe webhook may have been delayed or whose lookup timed out.
     const headersList = await headers();
     const pathname    = headersList.get('x-pathname') ?? '';
     const isExempt    = BILLING_EXEMPT_PATHS.some((p) => pathname.startsWith(p));
@@ -107,7 +112,8 @@ export default async function AppLayout({
     if (
       !isExempt &&
       business?.settings?.mode_selected &&
-      subscription?.status === 'none'
+      subscription !== null &&          // pass through if lookup failed
+      subscription?.status === 'none'   // only block confirmed no-subscription
     ) {
       redirect('/pricing?start=1');
     }

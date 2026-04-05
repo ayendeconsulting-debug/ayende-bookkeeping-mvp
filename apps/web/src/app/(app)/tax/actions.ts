@@ -1,5 +1,4 @@
 'use server';
-
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
 
@@ -9,6 +8,10 @@ export async function createTaxCode(data: {
   rate: number;
   tax_type: string;
   tax_account_id: string;
+  // Phase 9: ITC fields
+  itc_eligible?: boolean;
+  itc_rate?: number;
+  tax_category?: string | null;
 }) {
   try {
     await api('/tax/codes', { method: 'POST', body: JSON.stringify(data) });
@@ -23,6 +26,10 @@ export async function updateTaxCode(id: string, data: {
   name?: string;
   rate?: number;
   is_active?: boolean;
+  // Phase 9: ITC fields
+  itc_eligible?: boolean;
+  itc_rate?: number;
+  tax_category?: string | null;
 }) {
   try {
     await api(`/tax/codes/${id}`, { method: 'PATCH', body: JSON.stringify(data) });

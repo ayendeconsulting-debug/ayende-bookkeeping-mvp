@@ -1,8 +1,7 @@
 'use client';
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Pencil, PowerOff, Percent } from 'lucide-react';
+import { Plus, Pencil, PowerOff, Percent, Info } from 'lucide-react';
 import { TaxCode, Account } from '@/types';
 import { createTaxCode, updateTaxCode, deactivateTaxCode } from '@/app/(app)/tax/actions';
 import { AdminOnly } from '@/components/admin-only';
@@ -22,10 +21,38 @@ interface TaxCodesManagerProps {
 }
 
 interface TaxFormData {
-  code: string; name: string; rate: string; tax_type: string; tax_account_id: string;
+  code: string;
+  name: string;
+  rate: string;
+  tax_type: string;
+  tax_account_id: string;
+  // Phase 9: ITC fields
+  itc_eligible: boolean;
+  itc_rate: string;         // percentage string e.g. "100", "50"
+  tax_category: string;
 }
 
-const EMPTY_FORM: TaxFormData = { code: '', name: '', rate: '', tax_type: 'output', tax_account_id: '' };
+const EMPTY_FORM: TaxFormData = {
+  code: '', name: '', rate: '', tax_type: 'output', tax_account_id: '',
+  itc_eligible: true, itc_rate: '100', tax_category: 'standard',
+};
+
+const TAX_CATEGORIES = [
+  { value: 'standard',             label: 'Standard (100% ITC)' },
+  { value: 'meals_entertainment',  label: 'Meals & Entertainment (50% ITC)' },
+  { value: 'personal_use',         label: 'Personal Use (0% ITC)' },
+  { value: 'exempt',               label: 'Exempt Supply' },
+  { value: 'zero_rated',           label: 'Zero-Rated Supply' },
+];
+
+// ITC rate presets tied to category
+const CATEGORY_ITC_RATE: Record<string, string> = {
+  standard:            '100',
+  meals_entertainment: '50',
+  personal_use:        '0',
+  exempt:              '0',
+  zero_rated:          '0',
+};
 
 export function TaxCodesManager({ initialTaxCodes, taxAccounts }: TaxCodesManagerProps) {
   const router = useRouter();
@@ -36,12 +63,37 @@ export function TaxCodesManager({ initialTaxCodes, taxAccounts }: TaxCodesManage
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function openCreate() { setEditingCode(null); setForm(EMPTY_FORM); setError(null); setDialogOpen(true); }
-  function openEdit(code: TaxCode) {
-    setEditingCode(code);
-    setForm({ code: code.code, name: code.name, rate: String(code.rate), tax_type: code.tax_type, tax_account_id: code.tax_account_id });
+  function openCreate() {
+    setEditingCode(null);
+    setForm(EMPTY_FORM);
     setError(null);
     setDialogOpen(true);
+  }
+
+  function openEdit(code: TaxCode) {
+    setEditingCode(code);
+    setForm({
+      code: code.code,
+      name: code.name,
+      rate: String(code.rate),
+      tax_type: code.tax_type,
+      tax_account_id: code.tax_account_id,
+      // Phase 9 — fallback gracefully if fields not present
+      itc_eligible: (code as any).itc_eligible ?? true,
+      itc_rate: String(Math.round(((code as any).itc_rate ?? 1) * 100)),
+      tax_category: (code as any).tax_category ?? 'standard',
+    });
+    setError(null);
+    setDialogOpen(true);
+  }
+
+  function handleCategoryChange(category: string) {
+    setForm((f) => ({
+      ...f,
+      tax_category: category,
+      itc_rate: CATEGORY_ITC_RATE[category] ?? '100',
+      itc_eligible: category !== 'personal_use' && category !== 'exempt',
+    }));
   }
 
   async function handleSave() {
@@ -51,19 +103,37 @@ export function TaxCodesManager({ initialTaxCodes, taxAccounts }: TaxCodesManage
     const rate = parseFloat(form.rate);
     if (isNaN(rate) || rate < 0 || rate > 100) { setError('Rate must be between 0 and 100.'); return; }
 
-    setSaving(true); setError(null);
-    const result = editingCode
-      ? await updateTaxCode(editingCode.id, { name: form.name, rate })
-      : await createTaxCode({ code: form.code, name: form.name, rate, tax_type: form.tax_type, tax_account_id: form.tax_account_id });
-    setSaving(false);
+    const itcRatePct = parseFloat(form.itc_rate);
+    if (form.tax_type === 'input' && (isNaN(itcRatePct) || itcRatePct < 0 || itcRatePct > 100)) {
+      setError('ITC rate must be between 0 and 100.'); return;
+    }
 
+    setSaving(true); setError(null);
+
+    // Only pass ITC fields for input-type codes
+    const itcPayload = form.tax_type === 'input'
+      ? {
+          itc_eligible: form.itc_eligible,
+          itc_rate: itcRatePct / 100,  // convert % → decimal for API
+          tax_category: form.tax_category || null,
+        }
+      : {};
+
+    const result = editingCode
+      ? await updateTaxCode(editingCode.id, { name: form.name, rate, ...itcPayload })
+      : await createTaxCode({
+          code: form.code, name: form.name, rate,
+          tax_type: form.tax_type, tax_account_id: form.tax_account_id,
+          ...itcPayload,
+        });
+
+    setSaving(false);
     if (!result.success) {
       const msg = result.error ?? 'Operation failed.';
       setError(msg);
       toastError(editingCode ? 'Failed to update tax code' : 'Failed to create tax code', msg);
       return;
     }
-
     toastSuccess(editingCode ? 'Tax code updated' : 'Tax code created', form.name);
     setDialogOpen(false);
     router.refresh();
@@ -79,12 +149,14 @@ export function TaxCodesManager({ initialTaxCodes, taxAccounts }: TaxCodesManage
     }
   }
 
+  const isInputType = form.tax_type === 'input';
+
   return (
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Tax Codes</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Manage GST, HST, PST and other tax rates</p>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-foreground">Tax Codes</h1>
+          <p className="text-sm text-gray-500 dark:text-muted-foreground mt-0.5">Manage GST, HST, PST and other tax rates</p>
         </div>
         <AdminOnly>
           <Button onClick={openCreate} className="flex items-center gap-2">
@@ -110,104 +182,217 @@ export function TaxCodesManager({ initialTaxCodes, taxAccounts }: TaxCodesManage
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Code</TableHead><TableHead>Name</TableHead>
-                  <TableHead>Rate</TableHead><TableHead>Type</TableHead>
-                  <TableHead>Status</TableHead><TableHead className="w-20" />
+                  <TableHead>Code</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Rate</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>ITC</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {taxCodes.map((code) => (
-                  <TableRow key={code.id}>
-                    <TableCell className="font-mono font-medium">{code.code}</TableCell>
-                    <TableCell>{code.name}</TableCell>
-                    <TableCell className="font-medium">{code.rate}%</TableCell>
-                    <TableCell>
-                      <Badge variant={code.tax_type === 'output' ? 'classified' : 'pending'}>
-                        {code.tax_type === 'output' ? 'Output (collected)' : 'Input (paid)'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {code.is_active ? <Badge variant="posted">Active</Badge> : <Badge variant="review">Inactive</Badge>}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <AdminOnly>
-                          <Button variant="ghost" size="sm" onClick={() => openEdit(code)} className="text-gray-400 hover:text-gray-600">
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                        </AdminOnly>
-                        {code.is_active && (
-                          <AdminOnly>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500">
-                                  <PowerOff className="w-3.5 h-3.5" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Deactivate {code.code}?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This tax code will be deactivated. Existing tax transactions are not affected.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeactivate(code)} className="bg-red-500 hover:bg-red-600 text-white">
-                                    Deactivate
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </AdminOnly>
+                {taxCodes.map((code) => {
+                  const itcRate    = (code as any).itc_rate;
+                  const itcEligible = (code as any).itc_eligible;
+                  const taxCategory = (code as any).tax_category;
+                  return (
+                    <TableRow key={code.id}>
+                      <TableCell className="font-mono font-medium">{code.code}</TableCell>
+                      <TableCell>{code.name}</TableCell>
+                      <TableCell className="font-medium">{code.rate}%</TableCell>
+                      <TableCell>
+                        <Badge variant={code.tax_type === 'output' ? 'classified' : 'pending'}>
+                          {code.tax_type === 'output' ? 'Output' : 'Input'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {code.tax_type === 'input' ? (
+                          <span className="text-xs text-muted-foreground">
+                            {itcEligible === false
+                              ? <span className="text-red-500">None</span>
+                              : itcRate != null
+                              ? `${Math.round(itcRate * 100)}%${taxCategory === 'meals_entertainment' ? ' (M&E)' : ''}`
+                              : '100%'}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
                         )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell>
+                        {code.is_active
+                          ? <Badge variant="posted">Active</Badge>
+                          : <Badge variant="review">Inactive</Badge>}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <AdminOnly>
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(code)} className="text-gray-400 hover:text-gray-600">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                          </AdminOnly>
+                          {code.is_active && (
+                            <AdminOnly>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500">
+                                    <PowerOff className="w-3.5 h-3.5" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Deactivate {code.code}?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This tax code will be deactivated. Existing tax transactions are not affected.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeactivate(code)} className="bg-red-500 hover:bg-red-600 text-white">
+                                      Deactivate
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </AdminOnly>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
 
+      {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingCode ? 'Edit Tax Code' : 'New Tax Code'}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 mt-2">
+
+            {/* Code + Rate */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Code</Label>
-                <Input value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))} placeholder="e.g. HST" disabled={!!editingCode} />
+                <Input
+                  value={form.code}
+                  onChange={(e) => setForm((f) => ({ ...f, code: e.target.value.toUpperCase() }))}
+                  placeholder="e.g. HST"
+                  disabled={!!editingCode}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Rate (%)</Label>
-                <Input type="number" value={form.rate} onChange={(e) => setForm((f) => ({ ...f, rate: e.target.value }))} placeholder="e.g. 13" min="0" max="100" step="0.01" />
+                <Input
+                  type="number" value={form.rate}
+                  onChange={(e) => setForm((f) => ({ ...f, rate: e.target.value }))}
+                  placeholder="e.g. 13" min="0" max="100" step="0.01"
+                />
               </div>
             </div>
+
+            {/* Name */}
             <div className="flex flex-col gap-1.5">
               <Label>Name</Label>
-              <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Harmonized Sales Tax" />
+              <Input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="e.g. Harmonized Sales Tax"
+              />
             </div>
+
+            {/* Type + Account */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Type</Label>
-                <select value={form.tax_type} onChange={(e) => setForm((f) => ({ ...f, tax_type: e.target.value }))} disabled={!!editingCode} className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50">
+                <select
+                  value={form.tax_type}
+                  onChange={(e) => setForm((f) => ({ ...f, tax_type: e.target.value }))}
+                  disabled={!!editingCode}
+                  className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-muted bg-background text-foreground"
+                >
                   <option value="output">Output (collected from customers)</option>
                   <option value="input">Input (paid to suppliers)</option>
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Tax Liability Account</Label>
-                <select value={form.tax_account_id} onChange={(e) => setForm((f) => ({ ...f, tax_account_id: e.target.value }))} disabled={!!editingCode} className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50">
+                <select
+                  value={form.tax_account_id}
+                  onChange={(e) => setForm((f) => ({ ...f, tax_account_id: e.target.value }))}
+                  disabled={!!editingCode}
+                  className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-muted bg-background text-foreground"
+                >
                   <option value="">Select account…</option>
-                  {taxAccounts.map((a) => <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>)}
+                  {taxAccounts.map((a) => (
+                    <option key={a.id} value={a.id}>{a.account_code} — {a.account_name}</option>
+                  ))}
                 </select>
               </div>
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
+
+            {/* Phase 9: ITC fields — input type only */}
+            {isInputType && (
+              <div className="flex flex-col gap-3 pt-2 border-t border-border">
+                <div className="flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span className="text-xs font-medium text-foreground">Input Tax Credit (ITC) Settings</span>
+                </div>
+
+                {/* Tax category */}
+                <div className="flex flex-col gap-1.5">
+                  <Label>Tax Category</Label>
+                  <select
+                    value={form.tax_category}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground"
+                  >
+                    {TAX_CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    CRA rules limit ITCs on certain expense types (e.g. meals & entertainment are 50% recoverable).
+                  </p>
+                </div>
+
+                {/* ITC eligible + rate */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label>ITC Eligible</Label>
+                    <select
+                      value={form.itc_eligible ? 'true' : 'false'}
+                      onChange={(e) => setForm((f) => ({ ...f, itc_eligible: e.target.value === 'true' }))}
+                      className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground"
+                    >
+                      <option value="true">Yes — ITC may be claimed</option>
+                      <option value="false">No — not recoverable</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label>ITC Recovery Rate (%)</Label>
+                    <Input
+                      type="number" min="0" max="100" step="1"
+                      value={form.itc_rate}
+                      onChange={(e) => setForm((f) => ({ ...f, itc_rate: e.target.value }))}
+                      disabled={!form.itc_eligible}
+                      placeholder="100"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      100% = fully recoverable · 50% = M&E · 0% = none
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
             <div className="flex justify-end gap-2 mt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleSave} disabled={saving}>
