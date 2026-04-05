@@ -40,6 +40,7 @@ import { SparklineService } from './services/sparkline.service';
 // Phase 9
 import { ProvinceConfigService } from './services/province-config.service';
 import { HstPeriodService } from './services/hst-period.service';
+import { ItcService } from './services/itc.service';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { HstPeriodService } from './services/hst-period.service';
     // Phase 9
     ProvinceConfigService,
     HstPeriodService,
+    ItcService,
   ],
   exports: [
     IncomeStatementService,
@@ -92,6 +94,7 @@ import { HstPeriodService } from './services/hst-period.service';
     // Phase 9
     ProvinceConfigService,
     HstPeriodService,
+    ItcService,
   ],
 })
 export class ReportsModule {}
