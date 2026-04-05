@@ -5,7 +5,7 @@ import { UserProfile } from '@clerk/nextjs';
 import {
   Settings, Building2, User, ShieldCheck,
   CheckCircle2, AlertCircle, Loader2, Save, RefreshCw, DollarSign,
-  Sun, Moon, CreditCard, ExternalLink,
+  Sun, Moon, CreditCard, ExternalLink, Receipt,
 } from 'lucide-react';
 import { AdminOnly } from '@/components/admin-only';
 import { toastSuccess, toastError } from '@/lib/toast';
@@ -19,7 +19,17 @@ import {
   verifyAccountingIntegrity,
   getCurrencyRates,
   createPortalSession,
+  updateTaxSettings,
 } from '@/app/(app)/settings/actions';
+
+interface Province {
+  id: string;
+  province_code: string;
+  province_name: string;
+  hst_rate: number | null;
+  gst_rate: number;
+  is_hst_province: boolean;
+}
 
 interface Business {
   id: string;
@@ -29,6 +39,10 @@ interface Business {
   currency_code: string;
   fiscal_year_end: string;
   created_at: string;
+  // Phase 9
+  province_code?: string | null;
+  hst_registration_number?: string | null;
+  hst_reporting_frequency?: 'monthly' | 'quarterly' | 'annual' | null;
 }
 
 interface Subscription {
@@ -43,6 +57,7 @@ interface Subscription {
 interface SettingsClientProps {
   business: Business | null;
   subscription: Subscription | null;
+  provinces: Province[];
 }
 
 // ── Status badge ──────────────────────────────────────────────────────────────
@@ -113,7 +128,6 @@ function BillingSection({ subscription }: { subscription: Subscription | null })
         <StatusBadge status={status} />
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* Plan details grid */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-muted rounded-lg px-4 py-3">
             <p className="text-xs text-muted-foreground mb-1">Plan</p>
@@ -159,14 +173,11 @@ function BillingSection({ subscription }: { subscription: Subscription | null })
             </div>
           )}
         </div>
-
         {error && (
           <div className="flex items-center gap-1.5 text-sm text-destructive">
             <AlertCircle className="w-4 h-4" />{error}
           </div>
         )}
-
-        {/* Manage button */}
         <div className="flex justify-end">
           <Button
             variant="outline"
@@ -180,7 +191,6 @@ function BillingSection({ subscription }: { subscription: Subscription | null })
             {loading ? 'Opening…' : 'Manage Subscription'}
           </Button>
         </div>
-
         <p className="text-xs text-muted-foreground">
           Manage your plan, update payment methods, and download invoices via the Stripe billing portal.
         </p>
@@ -189,7 +199,150 @@ function BillingSection({ subscription }: { subscription: Subscription | null })
   );
 }
 
-/* ── Business Settings Section ───────────────────────────────────────────── */
+// ── Tax Settings Section (Phase 9) ────────────────────────────────────────────
+
+function TaxSettingsSection({
+  business,
+  provinces,
+}: {
+  business: Business | null;
+  provinces: Province[];
+}) {
+  const [provinceCode, setProvinceCode]   = useState(business?.province_code ?? '');
+  const [hstNumber, setHstNumber]         = useState(business?.hst_registration_number ?? '');
+  const [frequency, setFrequency]         = useState<'monthly' | 'quarterly' | 'annual'>(
+    business?.hst_reporting_frequency ?? 'quarterly',
+  );
+  const [saving, startSaving] = useTransition();
+  const [error, setError]     = useState<string | null>(null);
+
+  const selectedProvince = provinces.find((p) => p.province_code === provinceCode);
+  const taxLabel = selectedProvince
+    ? selectedProvince.is_hst_province
+      ? `HST ${Math.round((selectedProvince.hst_rate ?? 0) * 100)}%`
+      : `GST ${Math.round(selectedProvince.gst_rate * 100)}%`
+    : null;
+
+  function handleSave() {
+    setError(null);
+    startSaving(async () => {
+      const result = await updateTaxSettings({
+        province_code: provinceCode || undefined,
+        hst_registration_number: hstNumber.trim() || undefined,
+        hst_reporting_frequency: frequency,
+      });
+      if (result.success) {
+        toastSuccess('Tax settings saved', 'Your Canadian tax settings have been updated.');
+      } else {
+        const msg = result.error ?? 'Failed to save tax settings.';
+        setError(msg);
+        toastError('Failed to save tax settings', msg);
+      }
+    });
+  }
+
+  const missingHstNumber = !business?.hst_registration_number;
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center gap-2 pb-4">
+        <Receipt className="w-4 h-4 text-muted-foreground" />
+        <CardTitle>Canadian Tax Settings</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+
+        {/* HST number missing banner */}
+        {missingHstNumber && (
+          <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 px-4 py-3">
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              Add your HST/GST registration number to enable full CRA remittance reporting.
+            </p>
+          </div>
+        )}
+
+        {/* Province */}
+        <div className="flex flex-col gap-1.5">
+          <Label>Province / Territory</Label>
+          <select
+            value={provinceCode}
+            onChange={(e) => setProvinceCode(e.target.value)}
+            className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground"
+          >
+            <option value="">— Select province —</option>
+            {provinces.map((p) => (
+              <option key={p.province_code} value={p.province_code}>
+                {p.province_name} ({p.province_code})
+              </option>
+            ))}
+          </select>
+          {taxLabel && (
+            <p className="text-xs text-muted-foreground">
+              Default tax rate: <span className="font-medium text-[#0F6E56]">{taxLabel}</span>
+              {selectedProvince?.is_hst_province ? ' (harmonised)' : ' federal only'}
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* HST registration number */}
+          <div className="flex flex-col gap-1.5">
+            <Label>HST / GST Registration Number</Label>
+            <Input
+              value={hstNumber}
+              onChange={(e) => setHstNumber(e.target.value)}
+              placeholder="123456789RT0001"
+              maxLength={20}
+            />
+            <p className="text-xs text-muted-foreground">
+              Your CRA Business Number (BN). Shown on CRA reports.
+            </p>
+          </div>
+
+          {/* Reporting frequency */}
+          <div className="flex flex-col gap-1.5">
+            <Label>HST / GST Reporting Frequency</Label>
+            <select
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
+              className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground"
+            >
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly (most common)</option>
+              <option value="annual">Annual</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              How often you file with CRA. Used as default when creating HST periods.
+            </p>
+          </div>
+        </div>
+
+        {error && (
+          <div className="flex items-center gap-1.5 text-sm text-destructive">
+            <AlertCircle className="w-4 h-4" />{error}
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <AdminOnly
+            fallback={
+              <Button disabled className="flex items-center gap-2">
+                <Save className="w-4 h-4" />Save Tax Settings
+              </Button>
+            }
+          >
+            <Button onClick={handleSave} disabled={saving} className="flex items-center gap-2">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {saving ? 'Saving…' : 'Save Tax Settings'}
+            </Button>
+          </AdminOnly>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Business Settings Section ─────────────────────────────────────────────────
 
 function BusinessSettingsSection({ business }: { business: Business | null }) {
   const [name, setName] = useState(business?.name ?? '');
@@ -275,7 +428,7 @@ function BusinessSettingsSection({ business }: { business: Business | null }) {
   );
 }
 
-/* ── Display Section ─────────────────────────────────────────────────────── */
+// ── Display Section ───────────────────────────────────────────────────────────
 
 function DisplaySection() {
   const { theme, toggleTheme } = useTheme();
@@ -306,7 +459,7 @@ function DisplaySection() {
   );
 }
 
-/* ── Currency Rates Section ──────────────────────────────────────────────── */
+// ── Currency Rates Section ────────────────────────────────────────────────────
 
 function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
   const [rates, setRates]       = useState<Record<string, number> | null>(null);
@@ -383,7 +536,7 @@ function CurrencyRatesSection({ baseCurrency }: { baseCurrency: string }) {
   );
 }
 
-/* ── Accounting Integrity Section ────────────────────────────────────────── */
+// ── Accounting Integrity Section ──────────────────────────────────────────────
 
 function IntegritySection() {
   const [result, setResult] = useState<{
@@ -450,9 +603,9 @@ function IntegritySection() {
   );
 }
 
-/* ── Main Settings Client ────────────────────────────────────────────────── */
+// ── Main Settings Client ──────────────────────────────────────────────────────
 
-export function SettingsClient({ business, subscription }: SettingsClientProps) {
+export function SettingsClient({ business, subscription, provinces }: SettingsClientProps) {
   const [showProfile, setShowProfile] = useState(false);
 
   return (
@@ -464,6 +617,7 @@ export function SettingsClient({ business, subscription }: SettingsClientProps) 
 
       <div className="flex flex-col gap-5">
         <BusinessSettingsSection business={business} />
+        <TaxSettingsSection business={business} provinces={provinces} />
         <BillingSection subscription={subscription} />
         <DisplaySection />
         <CurrencyRatesSection baseCurrency={business?.currency_code ?? 'CAD'} />

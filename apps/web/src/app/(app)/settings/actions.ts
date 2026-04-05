@@ -67,3 +67,38 @@ export async function createPortalSession() {
     return { success: false, error: error.message };
   }
 }
+
+// ── Phase 9: Tax Settings ─────────────────────────────────────────────────────
+
+export async function getProvinces() {
+  try {
+    const result = await api<Array<{
+      id: string;
+      province_code: string;
+      province_name: string;
+      hst_rate: number | null;
+      gst_rate: number;
+      is_hst_province: boolean;
+    }>>('/tax/provinces');
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateTaxSettings(data: {
+  province_code?: string;
+  hst_registration_number?: string;
+  hst_reporting_frequency?: 'monthly' | 'quarterly' | 'annual';
+}) {
+  try {
+    await api('/businesses/me/tax-settings', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    revalidatePath('/settings');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
