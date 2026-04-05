@@ -1,10 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Business, BusinessMode } from '../entities/business.entity';
 import { Account } from '../entities/account.entity';
 import { EmailService } from '../email/email.service';
 import { ConfigService } from '@nestjs/config';
+import { UpdateTaxSettingsDto } from '../reports/dto/update-tax-settings.dto';
+import { TaxSeedService } from '../reports/services/tax-seed.service';
+import { ProvinceConfigService } from '../reports/services/province-config.service';
 
 type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -25,6 +28,8 @@ export class BusinessesService {
     private readonly accountRepo: Repository<Account>,
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
+    private readonly taxSeedService: TaxSeedService,
+    private readonly provinceConfigService: ProvinceConfigService,
   ) {}
 
   async findByClerkOrgId(clerkOrgId: string): Promise<Business | null> {
@@ -61,6 +66,45 @@ export class BusinessesService {
         ...(business.settings ?? {}),
         ...updates.settings,
       };
+    }
+
+    return this.businessRepo.save(business);
+  }
+
+  // ── Phase 9: Update Canadian tax settings ────────────────────────────────
+  async updateTaxSettings(
+    id: string,
+    dto: UpdateTaxSettingsDto,
+  ): Promise<Business> {
+    const business = await this.findById(id);
+
+    const isFirstProvinceSet =
+      dto.province_code !== undefined && business.province_code === null;
+
+    if (dto.province_code !== undefined) {
+      // Validate province code exists in our config
+      const provinceConfig = await this.provinceConfigService.getProvinceConfig(
+        dto.province_code,
+      );
+      if (!provinceConfig) {
+        throw new BadRequestException(
+          `Invalid province code: ${dto.province_code}. Must be a valid Canadian province or territory code.`,
+        );
+      }
+      business.province_code = dto.province_code;
+
+      // Auto-seed default tax codes on first province set — idempotent
+      if (isFirstProvinceSet) {
+        await this.taxSeedService.seedDefaultTaxCodes(id, provinceConfig);
+      }
+    }
+
+    if (dto.hst_registration_number !== undefined) {
+      business.hst_registration_number = dto.hst_registration_number;
+    }
+
+    if (dto.hst_reporting_frequency !== undefined) {
+      business.hst_reporting_frequency = dto.hst_reporting_frequency;
     }
 
     return this.businessRepo.save(business);
@@ -103,7 +147,7 @@ export class BusinessesService {
     return saved;
   }
 
-  // ── Seed Chart of Accounts ────────────────────────────────────────────
+  // ── Seed Chart of Accounts ────────────────────────────────────────────────
 
   async seedAccounts(
     businessId: string,
@@ -111,7 +155,6 @@ export class BusinessesService {
   ): Promise<{ seeded: number; skipped: boolean }> {
     const business = await this.findById(businessId);
 
-    // Check if accounts already exist — idempotent
     const existingCount = await this.accountRepo.count({ where: { business_id: businessId } });
     if (existingCount > 0) {
       return { seeded: 0, skipped: true };
@@ -137,7 +180,7 @@ export class BusinessesService {
     return { seeded: accounts.length, skipped: false };
   }
 
-  // ── Account seed templates ────────────────────────────────────────────
+  // ── Account seed templates ────────────────────────────────────────────────
 
   private buildAccountSeeds(country: string, industry: string): AccountSeed[] {
     const isCA = country === 'CA';

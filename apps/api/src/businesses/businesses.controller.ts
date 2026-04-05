@@ -5,6 +5,7 @@ import { BusinessesService } from './businesses.service';
 import { Public } from '../auth/public.decorator';
 import { Roles } from '../auth/roles.decorator';
 import { BusinessMode } from '../entities/business.entity';
+import { UpdateTaxSettingsDto } from '../reports/dto/update-tax-settings.dto';
 
 export class ProvisionBusinessDto {
   @IsString()
@@ -72,6 +73,7 @@ export class BusinessesController {
 
   /**
    * GET /businesses/me — all roles
+   * Now includes Phase 9 tax settings fields.
    */
   @Get('me')
   async getMe(@Req() req: Request) {
@@ -87,6 +89,10 @@ export class BusinessesController {
       country: business.country,
       settings: business.settings,
       created_at: business.created_at,
+      // Phase 9: Canadian tax settings
+      province_code: business.province_code,
+      hst_registration_number: business.hst_registration_number,
+      hst_reporting_frequency: business.hst_reporting_frequency,
     };
   }
 
@@ -105,6 +111,26 @@ export class BusinessesController {
       mode: business.mode,
       country: business.country,
       settings: business.settings,
+    };
+  }
+
+  /**
+   * PATCH /businesses/me/tax-settings — admin only
+   * Phase 9: Sets province, HST registration number, reporting frequency.
+   * Auto-seeds default tax codes on first province set.
+   */
+  @Roles('admin')
+  @Patch('me/tax-settings')
+  async updateTaxSettings(@Req() req: Request, @Body() dto: UpdateTaxSettingsDto) {
+    const business = await this.businessesService.updateTaxSettings(
+      req.user!.businessId,
+      dto,
+    );
+    return {
+      id: business.id,
+      province_code: business.province_code,
+      hst_registration_number: business.hst_registration_number,
+      hst_reporting_frequency: business.hst_reporting_frequency,
     };
   }
 
