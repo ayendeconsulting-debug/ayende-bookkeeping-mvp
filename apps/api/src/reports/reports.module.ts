@@ -15,7 +15,7 @@ import { JournalEntry } from '../entities/journal-entry.entity';
 import { JournalLine } from '../entities/journal-line.entity';
 import { RawTransaction } from '../entities/raw-transaction.entity';
 import { ArApRecord } from '../entities/ar-ap-record.entity';
-// Phase 9: Canadian Tax Engine
+// Phase 9
 import { ProvincialTaxConfig } from '../entities/provincial-tax-config.entity';
 import { HstPeriod } from '../entities/hst-period.entity';
 
@@ -39,6 +39,7 @@ import { ArApService } from './services/ar-ap.service';
 import { SparklineService } from './services/sparkline.service';
 // Phase 9
 import { ProvinceConfigService } from './services/province-config.service';
+import { HstPeriodService } from './services/hst-period.service';
 
 @Module({
   imports: [
@@ -81,14 +82,16 @@ import { ProvinceConfigService } from './services/province-config.service';
     SparklineService,
     // Phase 9
     ProvinceConfigService,
+    HstPeriodService,
   ],
   exports: [
     IncomeStatementService,
     BalanceSheetService,
     TrialBalanceService,
     GeneralLedgerService,
-    // Phase 9 — exported for use in BusinessesModule (tax seeding)
+    // Phase 9
     ProvinceConfigService,
+    HstPeriodService,
   ],
 })
 export class ReportsModule {}
