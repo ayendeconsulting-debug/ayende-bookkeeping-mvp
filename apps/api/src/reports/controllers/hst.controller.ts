@@ -6,10 +6,12 @@ import {
   Param,
   Body,
   Req,
+  Query,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ProvinceConfigService } from '../services/province-config.service';
 import { HstPeriodService } from '../services/hst-period.service';
+import { HstReportService } from '../services/hst-report.service';
 import { CreateHSTPeriodDto } from '../dto/hst-period.dto';
 import { Roles } from '../../auth/roles.decorator';
 
@@ -18,9 +20,10 @@ export class HstController {
   constructor(
     private readonly provinceConfigService: ProvinceConfigService,
     private readonly hstPeriodService: HstPeriodService,
+    private readonly hstReportService: HstReportService,
   ) {}
 
-  // ── Province endpoints (Step 2 — unchanged) ───────────────────────────────
+  // ── Province endpoints ────────────────────────────────────────────────────
 
   /**
    * GET /tax/provinces
@@ -40,12 +43,10 @@ export class HstController {
     return this.provinceConfigService.findByCode(code);
   }
 
-  // ── HST Period endpoints (Step 4) ─────────────────────────────────────────
+  // ── HST Period endpoints ──────────────────────────────────────────────────
 
   /**
    * POST /tax/hst/periods
-   * Creates a new HST reporting period.
-   * Validates no overlap with existing periods for this business.
    */
   @Roles('admin')
   @Post('hst/periods')
@@ -55,7 +56,6 @@ export class HstController {
 
   /**
    * GET /tax/hst/periods
-   * Lists all HST periods for the business, newest first.
    */
   @Get('hst/periods')
   findAllPeriods(@Req() req: Request) {
@@ -64,7 +64,6 @@ export class HstController {
 
   /**
    * GET /tax/hst/periods/:id
-   * Returns a single HST period.
    */
   @Get('hst/periods/:id')
   findOnePeriod(@Req() req: Request, @Param('id') id: string) {
@@ -73,8 +72,6 @@ export class HstController {
 
   /**
    * PATCH /tax/hst/periods/:id/file
-   * Transitions period from open → filed.
-   * Rejects with 422 if unposted transactions exist in the period date range.
    */
   @Roles('admin')
   @Patch('hst/periods/:id/file')
@@ -88,12 +85,42 @@ export class HstController {
 
   /**
    * PATCH /tax/hst/periods/:id/lock
-   * Transitions period from filed → locked.
-   * Locked periods prevent journal entries from being posted within their date range.
    */
   @Roles('admin')
   @Patch('hst/periods/:id/lock')
   lockPeriod(@Req() req: Request, @Param('id') id: string) {
     return this.hstPeriodService.lock(req.user!.businessId, id);
+  }
+
+  // ── HST Position endpoint (Step 6) ───────────────────────────────────────
+
+  /**
+   * GET /tax/hst/position
+   * Returns the current HST/GST position for the business.
+   * Defaults to current calendar quarter when no dates supplied.
+   *
+   * Query params (optional):
+   *   start_date: YYYY-MM-DD
+   *   end_date:   YYYY-MM-DD
+   *
+   * Response includes:
+   *   - total_output_tax   (HST collected — Line 103)
+   *   - total_itc_eligible (recoverable input tax — Line 106)
+   *   - net_tax_owing      (Line 109: output - itc)
+   *   - position_indicator ('owing' | 'refund' | 'nil')
+   *   - unposted_transaction_count (warning if > 0)
+   *   - breakdown by tax_category
+   */
+  @Get('hst/position')
+  getPosition(
+    @Req() req: Request,
+    @Query('start_date') startDate?: string,
+    @Query('end_date') endDate?: string,
+  ) {
+    return this.hstReportService.getPosition(
+      req.user!.businessId,
+      startDate,
+      endDate,
+    );
   }
 }
