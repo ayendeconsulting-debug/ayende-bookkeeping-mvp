@@ -12,7 +12,7 @@ const BILLING_EXEMPT_PATHS = [
   '/billing/success',
   '/billing/cancel',
   '/settings',
-  '/dashboard',   // always reachable — gate must never lock out existing users
+  '/dashboard',
 ];
 
 async function provisionBusiness(clerkOrgId: string, orgName: string): Promise<void> {
@@ -51,7 +51,6 @@ async function getMyBusiness(
     if (!res.ok) return null;
     return res.json();
   } catch (err: any) {
-    // redirect() throws internally in Next.js — re-throw so it propagates
     if (err?.digest?.startsWith('NEXT_REDIRECT')) throw err;
     return null;
   }
@@ -101,10 +100,9 @@ export default async function AppLayout({
     }
 
     // ── Subscription gate ─────────────────────────────────────────────────────
-    // Only redirect to pricing when we have CONFIRMED proof there is no
-    // subscription (status === 'none'). If the subscription lookup failed
-    // (null), we pass through — this prevents locking out existing users
-    // whose Stripe webhook may have been delayed or whose lookup timed out.
+    // Only hard-redirect on 'cancelled' — an unambiguous signal that the user
+    // explicitly cancelled their subscription. 'none' is ambiguous (webhook
+    // delay, lookup failure) and must never lock out existing users.
     const headersList = await headers();
     const pathname    = headersList.get('x-pathname') ?? '';
     const isExempt    = BILLING_EXEMPT_PATHS.some((p) => pathname.startsWith(p));
@@ -112,8 +110,7 @@ export default async function AppLayout({
     if (
       !isExempt &&
       business?.settings?.mode_selected &&
-      subscription !== null &&          // pass through if lookup failed
-      subscription?.status === 'none'   // only block confirmed no-subscription
+      subscription?.status === 'cancelled'
     ) {
       redirect('/pricing?start=1');
     }

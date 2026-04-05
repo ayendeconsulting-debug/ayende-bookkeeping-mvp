@@ -58,7 +58,8 @@ export async function getSubscriptionStatus() {
 
 export async function createPortalSession() {
   try {
-    const result = await api<{ url: string }>('/billing/portal', {
+    // Correct endpoint: /billing/create-portal-session (not /billing/portal)
+    const result = await api<{ url: string }>('/billing/create-portal-session', {
       method: 'POST',
       body: JSON.stringify({ return_url: 'https://gettempo.ca/settings' }),
     });
