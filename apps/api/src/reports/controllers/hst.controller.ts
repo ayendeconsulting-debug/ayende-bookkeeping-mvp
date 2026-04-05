@@ -25,19 +25,11 @@ export class HstController {
 
   // ── Province endpoints ────────────────────────────────────────────────────
 
-  /**
-   * GET /tax/provinces
-   * Returns all 13 Canadian provinces/territories ordered by province_name.
-   */
   @Get('provinces')
   findAllProvinces() {
     return this.provinceConfigService.findAll();
   }
 
-  /**
-   * GET /tax/provinces/:code
-   * Returns the provincial tax config for a single province code.
-   */
   @Get('provinces/:code')
   findProvinceByCode(@Param('code') code: string) {
     return this.provinceConfigService.findByCode(code);
@@ -45,34 +37,22 @@ export class HstController {
 
   // ── HST Period endpoints ──────────────────────────────────────────────────
 
-  /**
-   * POST /tax/hst/periods
-   */
   @Roles('admin')
   @Post('hst/periods')
   createPeriod(@Req() req: Request, @Body() dto: CreateHSTPeriodDto) {
     return this.hstPeriodService.create(req.user!.businessId, dto);
   }
 
-  /**
-   * GET /tax/hst/periods
-   */
   @Get('hst/periods')
   findAllPeriods(@Req() req: Request) {
     return this.hstPeriodService.findAll(req.user!.businessId);
   }
 
-  /**
-   * GET /tax/hst/periods/:id
-   */
   @Get('hst/periods/:id')
   findOnePeriod(@Req() req: Request, @Param('id') id: string) {
     return this.hstPeriodService.findOne(req.user!.businessId, id);
   }
 
-  /**
-   * PATCH /tax/hst/periods/:id/file
-   */
   @Roles('admin')
   @Patch('hst/periods/:id/file')
   filePeriod(@Req() req: Request, @Param('id') id: string) {
@@ -83,33 +63,18 @@ export class HstController {
     );
   }
 
-  /**
-   * PATCH /tax/hst/periods/:id/lock
-   */
   @Roles('admin')
   @Patch('hst/periods/:id/lock')
   lockPeriod(@Req() req: Request, @Param('id') id: string) {
     return this.hstPeriodService.lock(req.user!.businessId, id);
   }
 
-  // ── HST Position endpoint (Step 6) ───────────────────────────────────────
+  // ── HST Position (dashboard widget) ──────────────────────────────────────
 
   /**
    * GET /tax/hst/position
-   * Returns the current HST/GST position for the business.
-   * Defaults to current calendar quarter when no dates supplied.
-   *
-   * Query params (optional):
-   *   start_date: YYYY-MM-DD
-   *   end_date:   YYYY-MM-DD
-   *
-   * Response includes:
-   *   - total_output_tax   (HST collected — Line 103)
-   *   - total_itc_eligible (recoverable input tax — Line 106)
-   *   - net_tax_owing      (Line 109: output - itc)
-   *   - position_indicator ('owing' | 'refund' | 'nil')
-   *   - unposted_transaction_count (warning if > 0)
-   *   - breakdown by tax_category
+   * Optional query: start_date, end_date (YYYY-MM-DD)
+   * Defaults to current calendar quarter.
    */
   @Get('hst/position')
   getPosition(
@@ -121,6 +86,35 @@ export class HstController {
       req.user!.businessId,
       startDate,
       endDate,
+    );
+  }
+
+  // ── CRA Remittance Report (Step 7) ────────────────────────────────────────
+
+  /**
+   * GET /tax/hst/report?period_id=<uuid>&instalments_paid=<number>
+   *
+   * Returns GST34-aligned CRA Remittance Report for the given HST period:
+   *   Line 101 — Total sales and revenue (from Income Statement)
+   *   Line 103 — HST/GST collected (output tax)
+   *   Line 106 — Input tax credits (ITC eligible)
+   *   Line 109 — Net tax (Line 103 - Line 106)
+   *   Line 111 — Instalments paid (user-supplied, default 0)
+   *   Line 113 — Balance owing or refund (Line 109 - Line 111)
+   *
+   * Also returns full transaction-level breakdown and mandatory disclaimer.
+   */
+  @Get('hst/report')
+  getCraReport(
+    @Req() req: Request,
+    @Query('period_id') periodId: string,
+    @Query('instalments_paid') instalmentsPaid?: string,
+  ) {
+    const instalments = instalmentsPaid ? parseFloat(instalmentsPaid) : 0;
+    return this.hstReportService.getCraReport(
+      req.user!.businessId,
+      periodId,
+      instalments,
     );
   }
 }
