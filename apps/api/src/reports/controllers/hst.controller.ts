@@ -6,12 +6,17 @@ import {
   Param,
   Body,
   Req,
+  Res,
   Query,
 } from '@nestjs/common';
-import { Request } from 'express';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Request, Response } from 'express';
 import { ProvinceConfigService } from '../services/province-config.service';
 import { HstPeriodService } from '../services/hst-period.service';
 import { HstReportService } from '../services/hst-report.service';
+import { HstExportService } from '../services/hst-export.service';
+import { Business } from '../../entities/business.entity';
 import { CreateHSTPeriodDto } from '../dto/hst-period.dto';
 import { Roles } from '../../auth/roles.decorator';
 
@@ -21,6 +26,9 @@ export class HstController {
     private readonly provinceConfigService: ProvinceConfigService,
     private readonly hstPeriodService: HstPeriodService,
     private readonly hstReportService: HstReportService,
+    private readonly hstExportService: HstExportService,
+    @InjectRepository(Business)
+    private readonly businessRepo: Repository<Business>,
   ) {}
 
   // ── Province endpoints ────────────────────────────────────────────────────
@@ -69,13 +77,8 @@ export class HstController {
     return this.hstPeriodService.lock(req.user!.businessId, id);
   }
 
-  // ── HST Position (dashboard widget) ──────────────────────────────────────
+  // ── HST Position ──────────────────────────────────────────────────────────
 
-  /**
-   * GET /tax/hst/position
-   * Optional query: start_date, end_date (YYYY-MM-DD)
-   * Defaults to current calendar quarter.
-   */
   @Get('hst/position')
   getPosition(
     @Req() req: Request,
@@ -89,21 +92,8 @@ export class HstController {
     );
   }
 
-  // ── CRA Remittance Report (Step 7) ────────────────────────────────────────
+  // ── CRA Remittance Report ─────────────────────────────────────────────────
 
-  /**
-   * GET /tax/hst/report?period_id=<uuid>&instalments_paid=<number>
-   *
-   * Returns GST34-aligned CRA Remittance Report for the given HST period:
-   *   Line 101 — Total sales and revenue (from Income Statement)
-   *   Line 103 — HST/GST collected (output tax)
-   *   Line 106 — Input tax credits (ITC eligible)
-   *   Line 109 — Net tax (Line 103 - Line 106)
-   *   Line 111 — Instalments paid (user-supplied, default 0)
-   *   Line 113 — Balance owing or refund (Line 109 - Line 111)
-   *
-   * Also returns full transaction-level breakdown and mandatory disclaimer.
-   */
   @Get('hst/report')
   getCraReport(
     @Req() req: Request,
@@ -116,5 +106,72 @@ export class HstController {
       periodId,
       instalments,
     );
+  }
+
+  // ── CRA Report Exports ────────────────────────────────────────────────────
+
+  /**
+   * GET /tax/hst/report/export/pdf?period_id=<uuid>&instalments_paid=<number>
+   */
+  @Get('hst/report/export/pdf')
+  async exportCraPdf(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('period_id') periodId: string,
+    @Query('instalments_paid') instalmentsPaid?: string,
+  ) {
+    const businessId = req.user!.businessId;
+    const instalments = instalmentsPaid ? parseFloat(instalmentsPaid) : 0;
+
+    const [report, business] = await Promise.all([
+      this.hstReportService.getCraReport(businessId, periodId, instalments),
+      this.businessRepo.findOne({ where: { id: businessId } }),
+    ]);
+
+    const pdfBuffer = await this.hstExportService.generatePdf(
+      report,
+      business?.name ?? 'Unknown Business',
+      business?.hst_registration_number ?? null,
+    );
+
+    const filename = `hst-report-${report.period.period_start}-to-${report.period.period_end}.pdf`;
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdfBuffer.length,
+    });
+    res.end(pdfBuffer);
+  }
+
+  /**
+   * GET /tax/hst/report/export/csv?period_id=<uuid>&instalments_paid=<number>
+   */
+  @Get('hst/report/export/csv')
+  async exportCraCsv(
+    @Req() req: Request,
+    @Res() res: Response,
+    @Query('period_id') periodId: string,
+    @Query('instalments_paid') instalmentsPaid?: string,
+  ) {
+    const businessId = req.user!.businessId;
+    const instalments = instalmentsPaid ? parseFloat(instalmentsPaid) : 0;
+
+    const [report, business] = await Promise.all([
+      this.hstReportService.getCraReport(businessId, periodId, instalments),
+      this.businessRepo.findOne({ where: { id: businessId } }),
+    ]);
+
+    const csv = this.hstExportService.generateCsv(
+      report,
+      business?.name ?? 'Unknown Business',
+      business?.hst_registration_number ?? null,
+    );
+
+    const filename = `hst-report-${report.period.period_start}-to-${report.period.period_end}.csv`;
+    res.set({
+      'Content-Type': 'text/csv',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+    res.end(csv);
   }
 }

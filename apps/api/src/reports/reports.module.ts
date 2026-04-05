@@ -18,13 +18,13 @@ import { ArApRecord } from '../entities/ar-ap-record.entity';
 // Phase 9
 import { ProvincialTaxConfig } from '../entities/provincial-tax-config.entity';
 import { HstPeriod } from '../entities/hst-period.entity';
+import { Business } from '../entities/business.entity';
 
 // Controllers
 import { TaxController } from './controllers/tax.controller';
 import { ClassificationController } from './controllers/classification.controller';
 import { ReportsController } from './controllers/reports.controller';
 import { ArApController } from './controllers/ar-ap.controller';
-// Phase 9
 import { HstController } from './controllers/hst.controller';
 
 // Services
@@ -42,6 +42,7 @@ import { ProvinceConfigService } from './services/province-config.service';
 import { HstPeriodService } from './services/hst-period.service';
 import { ItcService } from './services/itc.service';
 import { HstReportService } from './services/hst-report.service';
+import { HstExportService } from './services/hst-export.service';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { HstReportService } from './services/hst-report.service';
       // Phase 9
       ProvincialTaxConfig,
       HstPeriod,
+      Business, // needed by HstController for export business name/HST number
     ]),
   ],
   controllers: [
@@ -69,7 +71,6 @@ import { HstReportService } from './services/hst-report.service';
     ClassificationController,
     ReportsController,
     ArApController,
-    // Phase 9
     HstController,
   ],
   providers: [
@@ -87,6 +88,7 @@ import { HstReportService } from './services/hst-report.service';
     HstPeriodService,
     ItcService,
     HstReportService,
+    HstExportService,
   ],
   exports: [
     IncomeStatementService,
@@ -98,6 +100,7 @@ import { HstReportService } from './services/hst-report.service';
     HstPeriodService,
     ItcService,
     HstReportService,
+    HstExportService,
   ],
 })
 export class ReportsModule {}
