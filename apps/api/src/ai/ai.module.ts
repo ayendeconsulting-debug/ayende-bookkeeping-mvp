@@ -7,6 +7,7 @@ import { Account } from '../entities/account.entity';
 import { TaxCode } from '../entities/tax-code.entity';
 import { JournalLine } from '../entities/journal-line.entity';
 import { AiUsageLog } from '../entities/ai-usage-log.entity';
+import { Subscription } from '../entities/subscription.entity';
 // Controller
 import { AiController } from './controllers/ai.controller';
 // Services
@@ -18,6 +19,8 @@ import { ChatService } from './services/chat.service';
 // Async jobs
 import { AiJobsProcessor, AI_JOBS_QUEUE } from './ai-jobs.processor';
 import { AiJobsService } from './ai-jobs.service';
+// Guard
+import { AiUsageGuard } from './ai-usage.guard';
 // NarrativeService depends on report services — import from ReportsModule exports
 import { ReportsModule } from '../reports/reports.module';
 
@@ -29,6 +32,7 @@ import { ReportsModule } from '../reports/reports.module';
       TaxCode,
       JournalLine,
       AiUsageLog,
+      Subscription,
     ]),
     BullModule.registerQueue({ name: AI_JOBS_QUEUE }),
     ReportsModule, // provides IncomeStatementService + BalanceSheetService
@@ -42,7 +46,8 @@ import { ReportsModule } from '../reports/reports.module';
     ChatService,
     AiJobsProcessor,
     AiJobsService,
+    AiUsageGuard,
   ],
-  exports: [AiJobsService], // exported so AiUsageGuard (Step 2) can use it
+  exports: [AiJobsService, AiUsageGuard],
 })
 export class AiModule {}

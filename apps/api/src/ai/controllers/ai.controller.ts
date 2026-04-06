@@ -8,6 +8,7 @@ import {
   Req,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ClassificationAiService } from '../services/classification-ai.service';
@@ -16,6 +17,9 @@ import { NarrativeService } from '../services/narrative.service';
 import { ChatService } from '../services/chat.service';
 import { AiJobsService } from '../ai-jobs.service';
 import { AiChatDto, AiAnomalyDto } from '../dto/ai.dto';
+import { AiUsageGuard } from '../ai-usage.guard';
+import { AiFeatureType } from '../decorators/ai-feature.decorator';
+import { AiFeature } from '../../entities/ai-usage-log.entity';
 
 @Controller('ai')
 export class AiController {
@@ -34,6 +38,8 @@ export class AiController {
    */
   @Post('classify/:rawTransactionId')
   @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(AiUsageGuard)
+  @AiFeatureType(AiFeature.CLASSIFY)
   async classify(
     @Param('rawTransactionId') rawTransactionId: string,
     @Req() req: Request,
@@ -51,6 +57,8 @@ export class AiController {
    */
   @Post('anomalies')
   @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(AiUsageGuard)
+  @AiFeatureType(AiFeature.ANOMALY)
   async detectAnomalies(
     @Req() req: Request,
     @Body() dto: AiAnomalyDto,
@@ -110,9 +118,11 @@ export class AiController {
   /**
    * POST /ai/chat
    * Plain English bookkeeping assistant — synchronous.
+   * Not guarded — chat does not count against AI usage cap.
    */
   @Post('chat')
   chat(@Req() req: Request, @Body() dto: AiChatDto) {
-    dto.businessId = req.user!.businessId; return this.chatService.chat(dto);
+    dto.businessId = req.user!.businessId;
+    return this.chatService.chat(dto);
   }
 }
