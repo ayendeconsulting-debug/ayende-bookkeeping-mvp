@@ -17,6 +17,6 @@ import { TaxSeedService } from '../reports/services/tax-seed.service';
   ],
   controllers: [BusinessesController],
   providers: [BusinessesService, TaxSeedService],
-  exports: [BusinessesService],
+  exports: [BusinessesService, TaxSeedService],
 })
 export class BusinessesModule {}
