@@ -21,6 +21,7 @@ import {
   OwnerDrawDto,
 } from '../dto/classify-transaction.dto';
 import { CreateClassificationRuleDto, UpdateClassificationRuleDto } from '../dto/create-classification-rule.dto';
+import { LearnClassificationRuleDto } from '../dto/learn-classification-rule.dto';
 // Phase 9: HST period lock check
 import { HstPeriodService } from './hst-period.service';
 
@@ -457,6 +458,41 @@ export class ClassificationService {
     });
   }
 
+  // -- Classification Learning ---------------------------------------------
+
+  async learnRule(dto: LearnClassificationRuleDto): Promise<ClassificationRule> {
+    const rawTx = await this.rawTxRepo.findOne({
+      where: { id: dto.rawTransactionId, business_id: dto.businessId },
+    });
+    if (!rawTx) throw new NotFoundException(`Raw transaction ${dto.rawTransactionId} not found`);
+
+    const account = await this.accountRepo.findOne({
+      where: { id: dto.targetAccountId, business_id: dto.businessId },
+    });
+    if (!account) throw new NotFoundException(`Account ${dto.targetAccountId} not found`);
+
+    const matchValue = rawTx.description.toLowerCase().replace(/[^a-z0-9 ]/g, '').substring(0, 40).trim();
+    if (!matchValue) throw new BadRequestException('Transaction description is too short to create a meaningful rule.');
+
+    const existing = await this.ruleRepo.findOne({
+      where: { business_id: dto.businessId, match_value: matchValue, target_account_id: dto.targetAccountId, is_active: true },
+    });
+    if (existing) return existing;
+
+    const rule = this.ruleRepo.create({
+      business_id: dto.businessId,
+      name: `Auto: ${rawTx.description.substring(0, 60)}`,
+      match_type: 'keyword',
+      match_value: matchValue,
+      target_account_id: dto.targetAccountId,
+      tax_code_id: dto.taxCodeId ?? null,
+      priority: 50,
+      source: 'user_learned',
+      is_active: true,
+    });
+    return this.ruleRepo.save(rule);
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────────────
 
   private async checkFiscalYearLock(businessId: string, date: Date): Promise<void> {
@@ -492,3 +528,5 @@ export class ClassificationService {
     }
   }
 }
+
+

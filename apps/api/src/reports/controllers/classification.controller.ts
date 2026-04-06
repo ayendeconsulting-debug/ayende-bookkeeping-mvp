@@ -21,13 +21,14 @@ import {
   CreateClassificationRuleDto,
   UpdateClassificationRuleDto,
 } from '../dto/create-classification-rule.dto';
+import { LearnClassificationRuleDto } from '../dto/learn-classification-rule.dto';
 import { Roles } from '../../auth/roles.decorator';
 
 @Controller('classification')
 export class ClassificationController {
   constructor(private readonly classificationService: ClassificationService) {}
 
-  // ── Raw Transactions — all roles ──────────────────────────────────────
+  // ── Raw Transactions — all roles ─────────────────────────────────────────
 
   /** GET /classification/raw — all roles */
   @Get('raw')
@@ -65,7 +66,7 @@ export class ClassificationController {
     );
   }
 
-  // ── Rules ──────────────────────────────────────────────────────────────
+  // ── Rules ─────────────────────────────────────────────────────────────────
 
   /** POST /classification/rules — admin only */
   @Roles('admin')
@@ -99,7 +100,20 @@ export class ClassificationController {
     return this.classificationService.deactivateRule(req.user!.businessId, id);
   }
 
-  // ── Classification & Posting — admin only ─────────────────────────────
+  /**
+   * POST /classification/rules/learn — admin only
+   * Promotes a manual classification override into a reusable keyword rule.
+   * Called when the user confirms the "Save as rule for future transactions?" prompt.
+   * Body: { rawTransactionId, targetAccountId, taxCodeId? }
+   */
+  @Roles('admin')
+  @Post('rules/learn')
+  learnRule(@Req() req: Request, @Body() dto: LearnClassificationRuleDto) {
+    dto.businessId = req.user!.businessId;
+    return this.classificationService.learnRule(dto);
+  }
+
+  // ── Classification & Posting — admin only ─────────────────────────────────
 
   /** POST /classification/classify — admin only */
   @Roles('admin')
@@ -139,7 +153,7 @@ export class ClassificationController {
     );
   }
 
-  // ── Owner Equity — admin only ─────────────────────────────────────────
+  // ── Owner Equity — admin only ─────────────────────────────────────────────
 
   /** POST /classification/owner-contribution — admin only */
   @Roles('admin')

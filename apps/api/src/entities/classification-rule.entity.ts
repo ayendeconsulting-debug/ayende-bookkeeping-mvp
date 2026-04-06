@@ -12,6 +12,8 @@ import { Business } from './business.entity';
 import { Account } from './account.entity';
 import { TaxCode } from './tax-code.entity';
 
+export type ClassificationRuleSource = 'manual' | 'user_learned';
+
 @Entity('classification_rules')
 @Index(['business_id', 'priority'])
 export class ClassificationRule {
@@ -49,6 +51,19 @@ export class ClassificationRule {
 
   @Column({ type: 'boolean', default: true })
   is_active: boolean;
+
+  /**
+   * Source of the rule:
+   *   manual       — created explicitly by the user in Settings
+   *   user_learned — promoted from a manual classification override via
+   *                  the Classification Learning confirmation prompt (Phase 11)
+   */
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: 'manual',
+  })
+  source: ClassificationRuleSource;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
