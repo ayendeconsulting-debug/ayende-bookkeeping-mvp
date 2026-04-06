@@ -1,5 +1,5 @@
-import { AccountantAccessSection } from '@/components/accountant-access-section';
 'use client';
+import { AccountantAccessSection } from '@/components/accountant-access-section';
 
 import { useState, useTransition } from 'react';
 import { UserProfile } from '@clerk/nextjs';
@@ -652,4 +652,5 @@ export function SettingsClient({ business, subscription, provinces }: SettingsCl
     </div>
   );
 }
+
 
