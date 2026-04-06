@@ -6,12 +6,15 @@ import {
   Param,
   Query,
   Req,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ClassificationAiService } from '../services/classification-ai.service';
 import { AnomalyService } from '../services/anomaly.service';
 import { NarrativeService } from '../services/narrative.service';
 import { ChatService } from '../services/chat.service';
+import { AiJobsService } from '../ai-jobs.service';
 import { AiChatDto, AiAnomalyDto } from '../dto/ai.dto';
 
 @Controller('ai')
@@ -21,31 +24,38 @@ export class AiController {
     private readonly anomalyService: AnomalyService,
     private readonly narrativeService: NarrativeService,
     private readonly chatService: ChatService,
+    private readonly aiJobsService: AiJobsService,
   ) {}
 
   /**
    * POST /ai/classify/:rawTransactionId
-   * AI suggests account + tax code for a raw transaction.
-   * Returns a suggestion — human must still confirm before posting.
+   * Enqueues an AI classification job.
+   * Returns HTTP 202 + { job_id } — poll GET /ai/jobs/:id for result.
    */
   @Post('classify/:rawTransactionId')
-  classify(
+  @HttpCode(HttpStatus.ACCEPTED)
+  async classify(
     @Param('rawTransactionId') rawTransactionId: string,
     @Req() req: Request,
   ) {
-    return this.classificationAiService.suggest(req.user!.businessId, rawTransactionId);
+    return this.aiJobsService.enqueueClassify(
+      req.user!.businessId,
+      rawTransactionId,
+    );
   }
 
   /**
    * POST /ai/anomalies
-   * Scan posted journal entries and flag unusual patterns.
+   * Enqueues an anomaly detection job.
+   * Returns HTTP 202 + { job_id } — poll GET /ai/jobs/:id for result.
    */
   @Post('anomalies')
-  detectAnomalies(
+  @HttpCode(HttpStatus.ACCEPTED)
+  async detectAnomalies(
     @Req() req: Request,
     @Body() dto: AiAnomalyDto,
   ) {
-    return this.anomalyService.detect(
+    return this.aiJobsService.enqueueAnomalies(
       req.user!.businessId,
       dto.startDate,
       dto.endDate,
@@ -53,8 +63,19 @@ export class AiController {
   }
 
   /**
+   * GET /ai/jobs/:id
+   * Poll for the status and result of an AI job.
+   * Returns { job_id, status: queued|processing|complete|failed, result?, error? }
+   */
+  @Get('jobs/:id')
+  getJobStatus(@Param('id') jobId: string) {
+    return this.aiJobsService.getJobStatus(jobId);
+  }
+
+  /**
    * GET /ai/narrative/income-statement?startDate=&endDate=&businessName=
    * Returns Income Statement data + plain English narrative.
+   * Synchronous — fast enough to not need queueing.
    */
   @Get('narrative/income-statement')
   incomeStatementNarrative(
@@ -72,6 +93,7 @@ export class AiController {
   /**
    * GET /ai/narrative/balance-sheet?asOfDate=&businessName=
    * Returns Balance Sheet data + plain English narrative.
+   * Synchronous — fast enough to not need queueing.
    */
   @Get('narrative/balance-sheet')
   balanceSheetNarrative(
@@ -87,15 +109,10 @@ export class AiController {
 
   /**
    * POST /ai/chat
-   * Natural language Q&A about the business's financials.
-   * Stateless — client sends full message history each call.
+   * Plain English bookkeeping assistant — synchronous.
    */
   @Post('chat')
-  chat(
-    @Req() req: Request,
-    @Body() dto: AiChatDto,
-  ) {
-    dto.businessId = req.user!.businessId;
-    return this.chatService.chat(dto);
+  chat(@Req() req: Request, @Body() dto: AiChatDto) {
+    dto.businessId = req.user!.businessId; return this.chatService.chat(dto);
   }
 }
