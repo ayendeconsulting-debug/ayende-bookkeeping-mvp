@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import {
   ArrowLeftRight, BarChart2, Receipt,
@@ -9,32 +9,29 @@ import {
 
 interface ClientQuickActionsProps {
   businessId: string;
-  // Step 7b will enable navigation — for now buttons are placeholders
   contextReady?: boolean;
 }
 
 export function ClientQuickActions({ businessId, contextReady = false }: ClientQuickActionsProps) {
-  const router = useRouter();
-
   const actions = [
     {
       label: 'Transactions',
       icon: ArrowLeftRight,
-      href: `/transactions`,
+      href: '/transactions',
       enabled: contextReady,
       description: 'View and classify transactions',
     },
     {
       label: 'Reports',
       icon: BarChart2,
-      href: `/reports`,
+      href: '/reports',
       enabled: contextReady,
       description: 'Income Statement & Balance Sheet',
     },
     {
       label: 'HST Report',
       icon: Receipt,
-      href: `/tax`,
+      href: '/tax',
       enabled: contextReady,
       description: 'CRA remittance summary',
     },
@@ -43,37 +40,53 @@ export function ClientQuickActions({ businessId, contextReady = false }: ClientQ
       icon: AlertTriangle,
       href: null,
       enabled: false,
-      description: 'Run AI anomaly detection',
+      description: 'Run AI anomaly detection (Step 8)',
     },
     {
       label: 'Year-End',
       icon: Sparkles,
       href: null,
       enabled: false,
-      description: 'AI year-end assistant',
+      description: 'AI year-end assistant (Step 8)',
     },
   ];
 
   return (
     <div className="flex flex-wrap gap-2">
-      {actions.map((action) => (
-        <Button
-          key={action.label}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-1.5"
-          disabled={!action.enabled}
-          title={action.enabled ? action.description : 'Coming in Step 7b'}
-          onClick={() => {
-            if (action.href && action.enabled) {
-              router.push(action.href);
-            }
-          }}
-        >
-          <action.icon className="w-3.5 h-3.5" />
-          {action.label}
-        </Button>
-      ))}
+      {actions.map((action) => {
+        const Icon = action.icon;
+
+        if (action.enabled && action.href) {
+          return (
+            <Button
+              key={action.label}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1.5"
+              asChild
+            >
+              <Link href={action.href}>
+                <Icon className="w-3.5 h-3.5" />
+                {action.label}
+              </Link>
+            </Button>
+          );
+        }
+
+        return (
+          <Button
+            key={action.label}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1.5"
+            disabled
+            title={action.enabled ? action.description : action.description}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {action.label}
+          </Button>
+        );
+      })}
     </div>
   );
 }

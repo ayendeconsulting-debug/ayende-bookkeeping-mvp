@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ClientQuickActions } from '@/components/client-quick-actions';
+import { ClientContextSetter } from '@/components/client-context-setter';
 import { ShieldCheck, Activity, LayoutDashboard } from 'lucide-react';
 
 type Tab = 'overview' | 'access' | 'activity';
@@ -23,6 +24,10 @@ export function ClientDashboardTabs({ businessId }: ClientDashboardTabsProps) {
 
   return (
     <div>
+      {/* Sets client-business-id cookie for the duration of this view */}
+      <ClientContextSetter businessId={businessId} />
+
+      {/* Tab bar */}
       <div className="flex gap-1 border-b mb-4">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -45,20 +50,25 @@ export function ClientDashboardTabs({ businessId }: ClientDashboardTabsProps) {
         })}
       </div>
 
+      {/* Tab: Quick Actions */}
       {activeTab === 'overview' && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <ClientQuickActions businessId={businessId} contextReady={false} />
+            {/* contextReady=true — cookie is set, header will be forwarded */}
+            <ClientQuickActions businessId={businessId} contextReady={true} />
             <p className="text-xs text-muted-foreground mt-3">
-              Full cross-business navigation (transactions, reports, HST) will be enabled in the next update.
+              Navigating to Transactions, Reports, or HST will show this
+              client&apos;s data. Click &ldquo;Back to Clients&rdquo; in the
+              banner to return to your firm portal.
             </p>
           </CardContent>
         </Card>
       )}
 
+      {/* Tab: Edit Access */}
       {activeTab === 'access' && (
         <Card>
           <CardHeader className="pb-3">
@@ -69,19 +79,23 @@ export function ClientDashboardTabs({ businessId }: ClientDashboardTabsProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              You currently have read-only access to this client's books. Request edit access to classify transactions, post journal entries, and run year-end adjustments on their behalf.
+              You currently have read-only access to this client&apos;s books.
+              Request edit access to classify transactions, post journal entries,
+              and run year-end adjustments on their behalf.
             </p>
             <div className="flex flex-col items-center justify-center py-6 text-center border-2 border-dashed rounded-lg">
               <ShieldCheck className="w-8 h-8 text-muted-foreground mb-3" />
               <Badge variant="outline" className="mb-2 text-xs">Coming in Step 8</Badge>
               <p className="text-sm text-muted-foreground max-w-sm">
-                The edit access request flow including client approval, time-bound access, and automatic expiry will be implemented in the next step.
+                The edit access request flow including client approval, time-bound
+                access, and automatic expiry will be implemented in the next step.
               </p>
             </div>
           </CardContent>
         </Card>
       )}
 
+      {/* Tab: Activity Log */}
       {activeTab === 'activity' && (
         <Card>
           <CardHeader className="pb-3">
@@ -92,7 +106,9 @@ export function ClientDashboardTabs({ businessId }: ClientDashboardTabsProps) {
               <Activity className="w-8 h-8 text-muted-foreground mb-3" />
               <Badge variant="outline" className="mb-2 text-xs">Coming in Step 8</Badge>
               <p className="text-sm text-muted-foreground max-w-sm">
-                A full audit log of all changes made by your firm on this client's books will be visible here once edit access is implemented.
+                A full audit log of all changes made by your firm on this
+                client&apos;s books will be visible here once edit access is
+                implemented.
               </p>
             </div>
           </CardContent>

@@ -1,14 +1,18 @@
 import { auth } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
 
 const API_URL = process.env.API_URL || 'http://localhost:3005';
 
 /**
- * Server-side API client for the Tempo Bookkeeping API.
+ * Server-side API client for the Tempo Books API.
  *
  * Automatically attaches the Clerk JWT from the current session.
  * Use in Server Components and Server Actions only.
  *
- * For client-side calls, use the useApi hook instead.
+ * When an accountant is viewing a client's books, the Next.js frontend
+ * sets a `client-business-id` cookie. This function reads that cookie and
+ * forwards it as X-Client-Business-Id so the NestJS ClientContextMiddleware
+ * can transparently switch the business context server-side.
  */
 export async function api<T = any>(
   path: string,
@@ -17,11 +21,17 @@ export async function api<T = any>(
   const { getToken } = await auth();
   const token = await getToken();
 
+  // Read client context cookie (set when accountant opens client books)
+  const cookieStore = await cookies();
+  const clientBusinessId = cookieStore.get('client-business-id')?.value;
+
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // Forward client context header when in accountant mode
+      ...(clientBusinessId ? { 'X-Client-Business-Id': clientBusinessId } : {}),
       ...(options.headers ?? {}),
     },
   });
