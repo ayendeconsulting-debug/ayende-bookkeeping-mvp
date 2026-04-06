@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+ï»¿import type { Metadata } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -6,7 +6,7 @@ import { BrandingProvider } from '@/components/branding-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Tempo Books — AI-Assisted Bookkeeping for Canadian & US Small Businesses',
+  title: 'Tempo Books - AI-Assisted Bookkeeping for Canadian and US Small Businesses',
   description: 'Double-entry accounting, bank sync, AI transaction classification, HST/GST filing, and a dedicated Accountant Portal. 60-day free trial.',
 };
 
@@ -50,4 +50,5 @@ export default function RootLayout({
     </ClerkProvider>
   );
 }
+
 
