@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Patch,
   Post,
   Req,
@@ -10,14 +12,18 @@ import {
   IsString,
   IsNotEmpty,
   IsOptional,
+  IsIn,
+  IsEmail,
   Matches,
   MaxLength,
 } from 'class-validator';
 import { Request } from 'express';
 import { FirmsService } from './firms.service';
+import { FirmClientService } from './firm-client.service';
+import { HstReportingFrequency } from '../entities/business.entity';
 import { Public } from '../auth/public.decorator';
 
-// ── DTOs ────────────────────────────────────────────────────────────────────
+// ── Firm DTOs ────────────────────────────────────────────────────────────────
 
 export class CreateFirmDto {
   @IsString()
@@ -28,7 +34,6 @@ export class CreateFirmDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
-  // Only lowercase letters, numbers, hyphens
   @Matches(/^[a-z0-9-]+$/, {
     message: 'Subdomain may only contain lowercase letters, numbers, and hyphens.',
   })
@@ -62,16 +67,62 @@ export class UpdateFirmDto {
   brand_colour?: string;
 }
 
-// ── Controller ───────────────────────────────────────────────────────────────
+// ── Client DTOs ───────────────────────────────────────────────────────────────
+
+export class CreateClientDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  name: string;
+
+  @IsString()
+  @IsIn(['sole_prop', 'corp', 'partnership'])
+  businessType: 'sole_prop' | 'corp' | 'partnership';
+
+  @IsString()
+  @IsIn(['CA', 'US'])
+  country: 'CA' | 'US';
+
+  @IsString()
+  @IsOptional()
+  province_code?: string;
+
+  @IsString()
+  @IsOptional()
+  hst_registration_number?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['monthly', 'quarterly', 'annual'])
+  hst_reporting_frequency?: HstReportingFrequency;
+
+  @IsString()
+  @IsIn(['standard_ca', 'standard_us', 'blank'])
+  seedTemplate: 'standard_ca' | 'standard_us' | 'blank';
+
+  @IsEmail()
+  @IsOptional()
+  clientEmail?: string;
+
+  @IsString()
+  @IsOptional()
+  clientFirstName?: string;
+}
+
+// ── Controller ────────────────────────────────────────────────────────────────
 
 @Controller('firms')
 export class FirmsController {
-  constructor(private readonly firmsService: FirmsService) {}
+  constructor(
+    private readonly firmsService: FirmsService,
+    private readonly firmClientService: FirmClientService,
+  ) {}
+
+  // ── Firm endpoints ──────────────────────────────────────────────────────────
 
   /**
    * GET /firms/me
    * Returns the authenticated user's firm (as owner or staff member).
-   * Returns 404 if the user has no firm.
    */
   @Get('me')
   async getMyFirm(@Req() req: Request) {
@@ -81,9 +132,7 @@ export class FirmsController {
 
   /**
    * POST /firms
-   * Creates a new firm for the authenticated user.
-   * Automatically creates a firm_owner staff row.
-   * Returns 409 if the user already owns a firm or subdomain is taken.
+   * Creates a new firm + firm_owner staff row atomically.
    */
   @Post()
   async createFirm(@Req() req: Request, @Body() dto: CreateFirmDto) {
@@ -93,8 +142,7 @@ export class FirmsController {
 
   /**
    * PATCH /firms/me
-   * Updates firm settings. Only the firm_owner may call this.
-   * Accepts: name, subdomain, logo_url, brand_colour.
+   * Updates firm settings. Only firm_owner may call this.
    */
   @Patch('me')
   async updateFirm(@Req() req: Request, @Body() dto: UpdateFirmDto) {
@@ -104,10 +152,7 @@ export class FirmsController {
 
   /**
    * GET /firms/branding/:subdomain
-   * Public endpoint — returns branding config for a given subdomain.
-   * Used by Next.js middleware for white-label injection.
-   * Returns null (200) if subdomain is not found — not a 404, to avoid
-   * leaking subdomain existence to unauthenticated callers.
+   * Public — returns branding config for white-label middleware.
    */
   @Public()
   @Get('branding/:subdomain')
@@ -115,5 +160,40 @@ export class FirmsController {
     const subdomain = req.params.subdomain as string;
     const branding = await this.firmsService.getBranding(subdomain);
     return branding ?? { name: null, logo_url: null, brand_colour: null };
+  }
+
+  // ── Client endpoints ────────────────────────────────────────────────────────
+
+  /**
+   * GET /firms/me/clients
+   * Lists all client businesses linked to the authenticated user's firm.
+   */
+  @Get('me/clients')
+  async listClients(@Req() req: Request) {
+    const clerkUserId = (req as any).auth?.userId;
+    return this.firmClientService.listClients(clerkUserId);
+  }
+
+  /**
+   * POST /firms/me/clients
+   * Creates a new client business + links to firm atomically.
+   * Runs account seed + tax code seed post-transaction.
+   * Optionally sends client invite email.
+   */
+  @Post('me/clients')
+  async createClient(@Req() req: Request, @Body() dto: CreateClientDto) {
+    const clerkUserId = (req as any).auth?.userId;
+    return this.firmClientService.createClient(clerkUserId, dto);
+  }
+
+  /**
+   * DELETE /firms/me/clients/:id
+   * Soft-deletes (archives) a firm_client link. Business data is retained.
+   */
+  @Delete('me/clients/:id')
+  async archiveClient(@Req() req: Request, @Param('id') firmClientId: string) {
+    const clerkUserId = (req as any).auth?.userId;
+    await this.firmClientService.archiveClient(clerkUserId, firmClientId);
+    return { success: true };
   }
 }
