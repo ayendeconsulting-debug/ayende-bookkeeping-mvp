@@ -50,6 +50,9 @@ import { HstExportService } from './services/hst-export.service';
 import { PdfJobsProcessor, PDF_JOBS_QUEUE } from '../reports/pdf-jobs.processor';
 import { PdfJobsService } from '../reports/pdf-jobs.service';
 
+// Phase 11: Year-End PDF export (lives here to avoid circular dep with AiModule)
+import { YearEndExportService } from '../ai/services/year-end-export.service';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -99,6 +102,8 @@ import { PdfJobsService } from '../reports/pdf-jobs.service';
     // Phase 10
     PdfJobsProcessor,
     PdfJobsService,
+    // Phase 11
+    YearEndExportService,
   ],
   exports: [
     IncomeStatementService,
@@ -113,6 +118,8 @@ import { PdfJobsService } from '../reports/pdf-jobs.service';
     HstExportService,
     // Phase 10 — exported so AiModule can inject PdfJobsService
     PdfJobsService,
+    // Phase 11
+    YearEndExportService,
   ],
 })
 export class ReportsModule {}

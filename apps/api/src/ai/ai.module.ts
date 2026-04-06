@@ -21,13 +21,12 @@ import { NarrativeService } from './services/narrative.service';
 import { ChatService } from './services/chat.service';
 import { ExplainerService } from './services/explainer.service';
 import { YearEndService } from './services/year-end.service';
-import { YearEndExportService } from './services/year-end-export.service';
 // Async jobs
 import { AiJobsProcessor, AI_JOBS_QUEUE } from './ai-jobs.processor';
 import { AiJobsService } from './ai-jobs.service';
 // Guard
 import { AiUsageGuard } from './ai-usage.guard';
-// NarrativeService depends on report services — import from ReportsModule exports
+// ReportsModule provides PdfJobsService + YearEndExportService — no circular dep
 import { ReportsModule } from '../reports/reports.module';
 
 @Module({
@@ -44,7 +43,7 @@ import { ReportsModule } from '../reports/reports.module';
       Subscription,
     ]),
     BullModule.registerQueue({ name: AI_JOBS_QUEUE }),
-    ReportsModule, // provides IncomeStatementService + BalanceSheetService + PdfJobsService
+    ReportsModule,
   ],
   controllers: [AiController],
   providers: [
@@ -55,11 +54,10 @@ import { ReportsModule } from '../reports/reports.module';
     ChatService,
     ExplainerService,
     YearEndService,
-    YearEndExportService,
     AiJobsProcessor,
     AiJobsService,
     AiUsageGuard,
   ],
-  exports: [AiJobsService, AiUsageGuard, YearEndExportService],
+  exports: [AiJobsService, AiUsageGuard],
 })
 export class AiModule {}
