@@ -8,6 +8,7 @@ import { Account } from '../entities/account.entity';
 import { FirmsController } from './firms.controller';
 import { FirmsService } from './firms.service';
 import { FirmClientService } from './firm-client.service';
+import { FirmStaffService } from './firm-staff.service';
 import { BusinessesModule } from '../businesses/businesses.module';
 import { ReportsModule } from '../reports/reports.module';
 import { EmailModule } from '../email/email.module';
@@ -21,12 +22,12 @@ import { EmailModule } from '../email/email.module';
       Business,
       Account,
     ]),
-    BusinessesModule, // provides BusinessesService (seedAccounts)
-    ReportsModule,    // provides TaxSeedService + ProvinceConfigService
-    EmailModule,      // provides EmailService (client invite)
+    BusinessesModule, // provides BusinessesService + TaxSeedService
+    ReportsModule,    // provides ProvinceConfigService
+    EmailModule,      // provides EmailService
   ],
   controllers: [FirmsController],
-  providers: [FirmsService, FirmClientService],
-  exports: [FirmsService, FirmClientService],
+  providers: [FirmsService, FirmClientService, FirmStaffService],
+  exports: [FirmsService, FirmClientService, FirmStaffService],
 })
 export class FirmsModule {}

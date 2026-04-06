@@ -20,6 +20,7 @@ import {
 import { Request } from 'express';
 import { FirmsService } from './firms.service';
 import { FirmClientService } from './firm-client.service';
+import { FirmStaffService } from './firm-staff.service';
 import { HstReportingFrequency } from '../entities/business.entity';
 import { Public } from '../auth/public.decorator';
 
@@ -109,6 +110,24 @@ export class CreateClientDto {
   clientFirstName?: string;
 }
 
+// ── Staff DTOs ────────────────────────────────────────────────────────────────
+
+export class InviteStaffDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+
+  @IsString()
+  @IsOptional()
+  firstName?: string;
+}
+
+export class AcceptInviteDto {
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
 // ── Controller ────────────────────────────────────────────────────────────────
 
 @Controller('firms')
@@ -116,6 +135,7 @@ export class FirmsController {
   constructor(
     private readonly firmsService: FirmsService,
     private readonly firmClientService: FirmClientService,
+    private readonly firmStaffService: FirmStaffService,
   ) {}
 
   // ── Firm endpoints ──────────────────────────────────────────────────────────
@@ -177,8 +197,6 @@ export class FirmsController {
   /**
    * POST /firms/me/clients
    * Creates a new client business + links to firm atomically.
-   * Runs account seed + tax code seed post-transaction.
-   * Optionally sends client invite email.
    */
   @Post('me/clients')
   async createClient(@Req() req: Request, @Body() dto: CreateClientDto) {
@@ -188,12 +206,59 @@ export class FirmsController {
 
   /**
    * DELETE /firms/me/clients/:id
-   * Soft-deletes (archives) a firm_client link. Business data is retained.
+   * Soft-deletes (archives) a firm_client link.
    */
   @Delete('me/clients/:id')
   async archiveClient(@Req() req: Request, @Param('id') firmClientId: string) {
     const clerkUserId = (req as any).auth?.userId;
     await this.firmClientService.archiveClient(clerkUserId, firmClientId);
+    return { success: true };
+  }
+
+  // ── Staff endpoints ─────────────────────────────────────────────────────────
+
+  /**
+   * GET /firms/me/staff
+   * Lists all staff members of the authenticated user's firm.
+   */
+  @Get('me/staff')
+  async listStaff(@Req() req: Request) {
+    const clerkUserId = (req as any).auth?.userId;
+    return this.firmStaffService.listStaff(clerkUserId);
+  }
+
+  /**
+   * POST /firms/me/staff/invite
+   * Invites a staff member by email. Only firm_owner may call this.
+   * Sends Resend invite email. Creates pending firm_staff row.
+   */
+  @Post('me/staff/invite')
+  async inviteStaff(@Req() req: Request, @Body() dto: InviteStaffDto) {
+    const clerkUserId = (req as any).auth?.userId;
+    return this.firmStaffService.inviteStaff(clerkUserId, dto);
+  }
+
+  /**
+   * PATCH /firms/me/staff/accept-invite
+   * Called by the frontend on first login when a pending invite is detected.
+   * Matches on email, sets accepted_at and the real clerk_user_id.
+   */
+  @Patch('me/staff/accept-invite')
+  async acceptInvite(@Req() req: Request, @Body() dto: AcceptInviteDto) {
+    const clerkUserId = (req as any).auth?.userId;
+    const result = await this.firmStaffService.acceptInvite(clerkUserId, dto.email);
+    return result ?? { message: 'No pending invite found for this email.' };
+  }
+
+  /**
+   * DELETE /firms/me/staff/:id
+   * Removes a staff member. Only firm_owner may call this.
+   * firm_owner cannot remove themselves.
+   */
+  @Delete('me/staff/:id')
+  async removeStaff(@Req() req: Request, @Param('id') staffRowId: string) {
+    const clerkUserId = (req as any).auth?.userId;
+    await this.firmStaffService.removeStaff(clerkUserId, staffRowId);
     return { success: true };
   }
 }
