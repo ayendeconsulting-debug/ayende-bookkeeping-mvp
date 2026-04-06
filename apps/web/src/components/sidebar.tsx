@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { BusinessMode } from '@/types';
 import { BusinessSwitcher } from '@/components/business-switcher';
+import { FirmPortalLink } from '@/components/firm-portal-link';
 import {
   LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
   ClipboardList, Receipt, Filter, Sparkles, Settings, FileText,
@@ -138,6 +139,7 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
             {businessSettingsItems.map((i) => <NavItem key={i.href} {...i} active={isActive(i.href)} onClose={onClose} />)}
           </>)}
         </nav>
+        <FirmPortalLink onClose={onClose} />
       </aside>
     </>
   );
