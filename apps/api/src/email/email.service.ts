@@ -102,4 +102,65 @@ export class EmailService {
       html,
     );
   }
+
+  // ── Phase 11: Access request notification ──────────────────────────────────
+  async sendAccessRequest(to: string, vars: {
+    firmName: string; accountantName: string; accessNote: string;
+    requestedExpiry: string; approveUrl: string; denyUrl: string;
+  }): Promise<void> {
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;">
+        <tr><td style="background:#1B3A5C;padding:32px 40px;"><p style="margin:0;color:#fff;font-size:22px;font-weight:bold;">Tempo Books</p></td></tr>
+        <tr><td style="padding:40px;">
+          <p style="margin:0 0 16px;font-size:16px;color:#374151;"><strong>${vars.firmName}</strong> has requested edit access to your Tempo Books account.</p>
+          <table cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:16px;margin:0 0 24px;width:100%;"><tr><td>
+            <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">REASON</p>
+            <p style="margin:0 0 16px;font-size:15px;color:#111827;">${vars.accessNote}</p>
+            <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">REQUESTED UNTIL</p>
+            <p style="margin:0;font-size:15px;color:#111827;">${vars.requestedExpiry}</p>
+          </td></tr></table>
+          <table cellpadding="0" cellspacing="0"><tr>
+            <td style="padding-right:12px;"><a href="${vars.approveUrl}" style="display:inline-block;background:#0F6E56;color:#fff;font-size:14px;font-weight:bold;text-decoration:none;padding:12px 24px;border-radius:6px;">Approve Access</a></td>
+            <td><a href="${vars.denyUrl}" style="display:inline-block;background:#ef4444;color:#fff;font-size:14px;font-weight:bold;text-decoration:none;padding:12px 24px;border-radius:6px;">Deny</a></td>
+          </tr></table>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+    await this.send(to, `${vars.firmName} has requested edit access to your books`, html);
+  }
+
+  // ── Phase 11: Access response notification ─────────────────────────────────
+  async sendAccessResponse(to: string, vars: {
+    firmName: string; decision: 'approved' | 'denied';
+    businessName: string; expiresAt?: string;
+  }): Promise<void> {
+    const approved = vars.decision === 'approved';
+    const colour = approved ? '#0F6E56' : '#ef4444';
+    const statusText = approved ? 'Approved' : 'Denied';
+    const bodyText = approved
+      ? `Your edit access request has been approved. Access is valid until ${vars.expiresAt ?? 'further notice'}.`
+      : 'Your edit access request has been denied by the client.';
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;">
+        <tr><td style="background:#1B3A5C;padding:32px 40px;"><p style="margin:0;color:#fff;font-size:22px;font-weight:bold;">Tempo Books</p></td></tr>
+        <tr><td style="padding:40px;">
+          <p style="margin:0 0 16px;font-size:16px;color:#111827;">Access Request — <strong style="color:${colour};">${statusText}</strong></p>
+          <p style="margin:0 0 24px;font-size:16px;color:#374151;">${bodyText}</p>
+          <p style="margin:0;font-size:13px;color:#6b7280;">Log in to Tempo Books to view your firm portal.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+    await this.send(to, `Edit access request ${statusText.toLowerCase()} — Tempo Books`, html);
+  }
+
 }

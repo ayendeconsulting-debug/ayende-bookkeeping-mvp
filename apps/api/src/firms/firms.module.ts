@@ -14,6 +14,8 @@ import { FirmsController } from './firms.controller';
 import { FirmsService } from './firms.service';
 import { FirmClientService } from './firm-client.service';
 import { FirmStaffService } from './firm-staff.service';
+import { AccessRequestService } from './access-request.service';
+import { AuditLogService } from './audit-log.service';
 import { SubdomainMiddleware } from './subdomain.middleware';
 import { ClientContextMiddleware } from './client-context.middleware';
 import { BusinessesModule } from '../businesses/businesses.module';
@@ -43,18 +45,22 @@ import { EmailModule } from '../email/email.module';
     FirmsService,
     FirmClientService,
     FirmStaffService,
+    AccessRequestService,
+    AuditLogService,
     SubdomainMiddleware,
     ClientContextMiddleware,
   ],
-  exports: [FirmsService, FirmClientService, FirmStaffService],
+  exports: [
+    FirmsService,
+    FirmClientService,
+    FirmStaffService,
+    AccessRequestService,
+    AuditLogService,
+  ],
 })
 export class FirmsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // SubdomainMiddleware — all routes (white-label branding)
     consumer.apply(SubdomainMiddleware).forRoutes('*');
-
-    // ClientContextMiddleware — all routes except /firms/* (those operate on
-    // firm context, not business context) and public routes
     consumer
       .apply(ClientContextMiddleware)
       .exclude(

@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import {
@@ -21,111 +22,68 @@ import { Request } from 'express';
 import { FirmsService } from './firms.service';
 import { FirmClientService } from './firm-client.service';
 import { FirmStaffService } from './firm-staff.service';
+import { AccessRequestService } from './access-request.service';
+import { AuditLogService } from './audit-log.service';
 import { HstReportingFrequency } from '../entities/business.entity';
 import { Public } from '../auth/public.decorator';
 
 // ── Firm DTOs ─────────────────────────────────────────────────────────────
 
 export class CreateFirmDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  name: string;
-
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  @Matches(/^[a-z0-9-]+$/, {
-    message: 'Subdomain may only contain lowercase letters, numbers, and hyphens.',
-  })
+  @IsString() @IsNotEmpty() @MaxLength(255) name: string;
+  @IsString() @IsNotEmpty() @MaxLength(100)
+  @Matches(/^[a-z0-9-]+$/, { message: 'Subdomain may only contain lowercase letters, numbers, and hyphens.' })
   subdomain: string;
 }
 
 export class UpdateFirmDto {
-  @IsString()
-  @IsOptional()
-  @MaxLength(255)
-  name?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  @Matches(/^[a-z0-9-]+$/, {
-    message: 'Subdomain may only contain lowercase letters, numbers, and hyphens.',
-  })
+  @IsString() @IsOptional() @MaxLength(255) name?: string;
+  @IsString() @IsOptional() @MaxLength(100)
+  @Matches(/^[a-z0-9-]+$/, { message: 'Subdomain may only contain lowercase letters, numbers, and hyphens.' })
   subdomain?: string;
-
-  @IsString()
-  @IsOptional()
-  @MaxLength(500)
-  logo_url?: string;
-
-  @IsString()
-  @IsOptional()
-  @Matches(/^#[0-9A-Fa-f]{6}$/, {
-    message: 'brand_colour must be a valid hex colour (e.g. #2C4A8C).',
-  })
+  @IsString() @IsOptional() @MaxLength(500) logo_url?: string;
+  @IsString() @IsOptional()
+  @Matches(/^#[0-9A-Fa-f]{6}$/, { message: 'brand_colour must be a valid hex colour (e.g. #2C4A8C).' })
   brand_colour?: string;
 }
 
 // ── Client DTOs ───────────────────────────────────────────────────────────
 
 export class CreateClientDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(255)
-  name: string;
+  @IsString() @IsNotEmpty() @MaxLength(255) name: string;
+  @IsString() @IsIn(['sole_prop', 'corp', 'partnership']) businessType: 'sole_prop' | 'corp' | 'partnership';
+  @IsString() @IsIn(['CA', 'US']) country: 'CA' | 'US';
+  @IsString() @IsOptional() province_code?: string;
+  @IsString() @IsOptional() hst_registration_number?: string;
+  @IsString() @IsOptional() @IsIn(['monthly', 'quarterly', 'annual']) hst_reporting_frequency?: HstReportingFrequency;
+  @IsString() @IsIn(['standard_ca', 'standard_us', 'blank']) seedTemplate: 'standard_ca' | 'standard_us' | 'blank';
+  @IsEmail() @IsOptional() clientEmail?: string;
+  @IsString() @IsOptional() clientFirstName?: string;
+}
 
-  @IsString()
-  @IsIn(['sole_prop', 'corp', 'partnership'])
-  businessType: 'sole_prop' | 'corp' | 'partnership';
+// ── Access Request DTOs ───────────────────────────────────────────────────
 
-  @IsString()
-  @IsIn(['CA', 'US'])
-  country: 'CA' | 'US';
+export class CreateAccessRequestDto {
+  @IsString() @IsNotEmpty() businessId: string;
+  @IsString() @IsNotEmpty() @MaxLength(500) accessNote: string;
+  @IsString() @IsIn(['90_days', 'year_end', 'custom']) durationType: '90_days' | 'year_end' | 'custom';
+  @IsString() @IsOptional() customExpiresAt?: string;
+}
 
-  @IsString()
-  @IsOptional()
-  province_code?: string;
-
-  @IsString()
-  @IsOptional()
-  hst_registration_number?: string;
-
-  @IsString()
-  @IsOptional()
-  @IsIn(['monthly', 'quarterly', 'annual'])
-  hst_reporting_frequency?: HstReportingFrequency;
-
-  @IsString()
-  @IsIn(['standard_ca', 'standard_us', 'blank'])
-  seedTemplate: 'standard_ca' | 'standard_us' | 'blank';
-
-  @IsEmail()
-  @IsOptional()
-  clientEmail?: string;
-
-  @IsString()
-  @IsOptional()
-  clientFirstName?: string;
+export class RespondToAccessRequestDto {
+  @IsString() @IsIn(['approved', 'denied']) decision: 'approved' | 'denied';
+  @IsString() @IsOptional() customExpiresAt?: string;
 }
 
 // ── Staff DTOs ────────────────────────────────────────────────────────────
 
 export class InviteStaffDto {
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
-
-  @IsString()
-  @IsOptional()
-  firstName?: string;
+  @IsEmail() @IsNotEmpty() email: string;
+  @IsString() @IsOptional() firstName?: string;
 }
 
 export class AcceptInviteDto {
-  @IsEmail()
-  @IsNotEmpty()
-  email: string;
+  @IsEmail() @IsNotEmpty() email: string;
 }
 
 // ── Controller ────────────────────────────────────────────────────────────
@@ -136,6 +94,8 @@ export class FirmsController {
     private readonly firmsService: FirmsService,
     private readonly firmClientService: FirmClientService,
     private readonly firmStaffService: FirmStaffService,
+    private readonly accessRequestService: AccessRequestService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   // ── Firm endpoints ────────────────────────────────────────────────────────
@@ -180,12 +140,6 @@ export class FirmsController {
     return this.firmClientService.createClient(clerkUserId, dto);
   }
 
-  /**
-   * GET /firms/me/clients/:businessId/overview
-   * Returns 6 summary cards for the accountant client dashboard.
-   * Requires the requesting user to be a staff member of the firm
-   * that owns the client relationship.
-   */
   @Get('me/clients/:businessId/overview')
   async getClientOverview(
     @Req() req: Request,
@@ -206,6 +160,71 @@ export class FirmsController {
   async getBillingSummary(@Req() req: Request) {
     const clerkUserId = (req as any).auth?.userId;
     return this.firmClientService.getBillingSummary(clerkUserId);
+  }
+
+  // ── Access Request endpoints ──────────────────────────────────────────────
+
+  /**
+   * POST /firms/me/clients/access-request
+   * Accountant requests edit access for a client business.
+   */
+  @Post('me/clients/access-request')
+  async createAccessRequest(
+    @Req() req: Request,
+    @Body() dto: CreateAccessRequestDto,
+  ) {
+    const clerkUserId = (req as any).auth?.userId;
+    return this.accessRequestService.createRequest(clerkUserId, dto);
+  }
+
+  /**
+   * GET /firms/me/clients/:businessId/access-requests
+   * Accountant lists all access requests for a client.
+   */
+  @Get('me/clients/:businessId/access-requests')
+  async listAccessRequests(
+    @Req() req: Request,
+    @Param('businessId') businessId: string,
+  ) {
+    const clerkUserId = (req as any).auth?.userId;
+    return this.accessRequestService.listRequestsForClient(clerkUserId, businessId);
+  }
+
+  /**
+   * DELETE /firms/me/clients/access-request/:requestId
+   * Accountant self-revokes an approved access request.
+   */
+  @Delete('me/clients/access-request/:requestId')
+  async revokeAccessRequest(
+    @Req() req: Request,
+    @Param('requestId') requestId: string,
+  ) {
+    const clerkUserId = (req as any).auth?.userId;
+    await this.accessRequestService.revokeRequest(clerkUserId, requestId);
+    return { success: true };
+  }
+
+  /**
+   * GET /firms/me/clients/:businessId/audit-log
+   * Accountant views audit log for a client.
+   */
+  @Get('me/clients/:businessId/audit-log')
+  async getClientAuditLog(
+    @Req() req: Request,
+    @Param('businessId') businessId: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    const clerkUserId = (req as any).auth?.userId;
+    const firm = await this.firmsService.getMyFirm(clerkUserId);
+    return this.auditLogService.listForClient(firm.id, businessId, {
+      startDate,
+      endDate,
+      limit: limit ? parseInt(limit, 10) : 50,
+      offset: offset ? parseInt(offset, 10) : 0,
+    });
   }
 
   // ── Staff endpoints ───────────────────────────────────────────────────────
