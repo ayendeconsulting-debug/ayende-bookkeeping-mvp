@@ -16,10 +16,10 @@ import { JournalEntry } from '../entities/journal-entry.entity';
 import { JournalLine } from '../entities/journal-line.entity';
 import { RawTransaction } from '../entities/raw-transaction.entity';
 import { ArApRecord } from '../entities/ar-ap-record.entity';
+import { Business } from '../entities/business.entity';
 // Phase 9
 import { ProvincialTaxConfig } from '../entities/provincial-tax-config.entity';
 import { HstPeriod } from '../entities/hst-period.entity';
-import { Business } from '../entities/business.entity';
 
 // Controllers
 import { TaxController } from './controllers/tax.controller';
@@ -66,10 +66,10 @@ import { PdfJobsService } from '../reports/pdf-jobs.service';
       JournalLine,
       RawTransaction,
       ArApRecord,
+      Business,
       // Phase 9
       ProvincialTaxConfig,
       HstPeriod,
-      Business,
     ]),
     BullModule.registerQueue({ name: PDF_JOBS_QUEUE }),
   ],
@@ -111,6 +111,8 @@ import { PdfJobsService } from '../reports/pdf-jobs.service';
     ItcService,
     HstReportService,
     HstExportService,
+    // Phase 10 — exported so AiModule can inject PdfJobsService
+    PdfJobsService,
   ],
 })
 export class ReportsModule {}

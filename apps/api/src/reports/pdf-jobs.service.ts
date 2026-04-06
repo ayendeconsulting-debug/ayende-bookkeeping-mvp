@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PDF_JOBS_QUEUE, PdfJobData, PdfJobResult } from './pdf-jobs.processor';
+import { YearEndReport } from '../ai/services/year-end.service';
 
 export interface PdfJobStatusResponse {
   job_id: string;
@@ -18,6 +19,8 @@ export class PdfJobsService {
     private readonly pdfQueue: Queue<PdfJobData>,
   ) {}
 
+  // ── HST PDF ───────────────────────────────────────────────────────────────
+
   async enqueuePdfExport(
     businessId: string,
     periodId: string,
@@ -31,7 +34,26 @@ export class PdfJobsService {
     return { job_id: job.id! };
   }
 
-  async getPdfJobStatus(jobId: string): Promise<PdfJobStatusResponse> {
+  // ── Year-End PDF ──────────────────────────────────────────────────────────
+
+  async enqueueYearEndPdf(
+    businessId: string,
+    report: YearEndReport,
+  ): Promise<{ job_id: string }> {
+    const job = await this.pdfQueue.add(
+      'year-end-pdf',
+      { type: 'year-end-pdf', businessId, report },
+      { removeOnComplete: 20, removeOnFail: 10 },
+    );
+    return { job_id: job.id! };
+  }
+
+  // ── Poll ──────────────────────────────────────────────────────────────────
+
+  async getPdfJobStatus(
+    jobId: string,
+    downloadBaseUrl: string = '/tax/hst/report/download',
+  ): Promise<PdfJobStatusResponse> {
     const job = await this.pdfQueue.getJob(jobId);
 
     if (!job) {
@@ -45,11 +67,15 @@ export class PdfJobsService {
     switch (state) {
       case 'completed': {
         const result = job.returnvalue as PdfJobResult;
+        // Determine download URL by job type
+        const isYearEnd = (job.data as PdfJobData).type === 'year-end-pdf';
+        const downloadUrl = isYearEnd
+          ? `/ai/year-end/download/${jobId}`
+          : `/tax/hst/report/download/${jobId}`;
         return {
           job_id: jobId,
           status: 'complete',
-          // Download URL — authenticated endpoint that streams the temp file
-          download_url: `/tax/hst/report/download/${jobId}`,
+          download_url: downloadUrl,
           filename: result.filename,
         };
       }

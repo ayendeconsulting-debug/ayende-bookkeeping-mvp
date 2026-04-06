@@ -4,10 +4,11 @@ import { Job } from 'bullmq';
 import { ClassificationAiService } from './services/classification-ai.service';
 import { AnomalyService } from './services/anomaly.service';
 import { ExplainerService } from './services/explainer.service';
+import { YearEndService } from './services/year-end.service';
 
 export const AI_JOBS_QUEUE = 'ai-jobs';
 
-export type AiJobType = 'classify' | 'anomalies' | 'explain';
+export type AiJobType = 'classify' | 'anomalies' | 'explain' | 'year_end';
 
 export interface ClassifyJobData {
   type: 'classify';
@@ -28,7 +29,17 @@ export interface ExplainJobData {
   rawTransactionId: string;
 }
 
-export type AiJobData = ClassifyJobData | AnomaliesJobData | ExplainJobData;
+export interface YearEndJobData {
+  type: 'year_end';
+  businessId: string;
+  fiscalYearEnd: string;
+}
+
+export type AiJobData =
+  | ClassifyJobData
+  | AnomaliesJobData
+  | ExplainJobData
+  | YearEndJobData;
 
 @Processor(AI_JOBS_QUEUE)
 export class AiJobsProcessor extends WorkerHost {
@@ -38,6 +49,7 @@ export class AiJobsProcessor extends WorkerHost {
     private readonly classificationAiService: ClassificationAiService,
     private readonly anomalyService: AnomalyService,
     private readonly explainerService: ExplainerService,
+    private readonly yearEndService: YearEndService,
   ) {
     super();
   }
@@ -74,6 +86,16 @@ export class AiJobsProcessor extends WorkerHost {
           rawTransactionId,
         );
         this.logger.log(`AI explain job ${job.id} complete`);
+        return result;
+      }
+
+      case 'year_end': {
+        const { businessId, fiscalYearEnd } = job.data;
+        const result = await this.yearEndService.generate(
+          businessId,
+          fiscalYearEnd,
+        );
+        this.logger.log(`AI year-end job ${job.id} complete`);
         return result;
       }
 

@@ -56,6 +56,18 @@ export class AiJobsService {
     return { job_id: job.id! };
   }
 
+  async enqueueYearEnd(
+    businessId: string,
+    fiscalYearEnd: string,
+  ): Promise<{ job_id: string }> {
+    const job = await this.aiQueue.add(
+      'year_end',
+      { type: 'year_end', businessId, fiscalYearEnd },
+      { removeOnComplete: 50, removeOnFail: 20 },
+    );
+    return { job_id: job.id! };
+  }
+
   // ── Poll ──────────────────────────────────────────────────────────────────
 
   async getJobStatus(jobId: string): Promise<JobStatusResponse> {
@@ -88,7 +100,6 @@ export class AiJobsService {
         return { job_id: jobId, status: 'processing' };
 
       default:
-        // waiting, delayed, paused
         return { job_id: jobId, status: 'queued' };
     }
   }

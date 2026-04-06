@@ -7,6 +7,8 @@ import { ClassifiedTransaction } from '../entities/classified-transaction.entity
 import { Account } from '../entities/account.entity';
 import { TaxCode } from '../entities/tax-code.entity';
 import { JournalLine } from '../entities/journal-line.entity';
+import { JournalEntry } from '../entities/journal-entry.entity';
+import { Business } from '../entities/business.entity';
 import { AiUsageLog } from '../entities/ai-usage-log.entity';
 import { Subscription } from '../entities/subscription.entity';
 // Controller
@@ -18,6 +20,8 @@ import { AnomalyService } from './services/anomaly.service';
 import { NarrativeService } from './services/narrative.service';
 import { ChatService } from './services/chat.service';
 import { ExplainerService } from './services/explainer.service';
+import { YearEndService } from './services/year-end.service';
+import { YearEndExportService } from './services/year-end-export.service';
 // Async jobs
 import { AiJobsProcessor, AI_JOBS_QUEUE } from './ai-jobs.processor';
 import { AiJobsService } from './ai-jobs.service';
@@ -34,11 +38,13 @@ import { ReportsModule } from '../reports/reports.module';
       Account,
       TaxCode,
       JournalLine,
+      JournalEntry,
+      Business,
       AiUsageLog,
       Subscription,
     ]),
     BullModule.registerQueue({ name: AI_JOBS_QUEUE }),
-    ReportsModule, // provides IncomeStatementService + BalanceSheetService
+    ReportsModule, // provides IncomeStatementService + BalanceSheetService + PdfJobsService
   ],
   controllers: [AiController],
   providers: [
@@ -48,10 +54,12 @@ import { ReportsModule } from '../reports/reports.module';
     NarrativeService,
     ChatService,
     ExplainerService,
+    YearEndService,
+    YearEndExportService,
     AiJobsProcessor,
     AiJobsService,
     AiUsageGuard,
   ],
-  exports: [AiJobsService, AiUsageGuard],
+  exports: [AiJobsService, AiUsageGuard, YearEndExportService],
 })
 export class AiModule {}
