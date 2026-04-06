@@ -3,10 +3,11 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { ClassificationAiService } from './services/classification-ai.service';
 import { AnomalyService } from './services/anomaly.service';
+import { ExplainerService } from './services/explainer.service';
 
 export const AI_JOBS_QUEUE = 'ai-jobs';
 
-export type AiJobType = 'classify' | 'anomalies';
+export type AiJobType = 'classify' | 'anomalies' | 'explain';
 
 export interface ClassifyJobData {
   type: 'classify';
@@ -21,7 +22,13 @@ export interface AnomaliesJobData {
   endDate: string;
 }
 
-export type AiJobData = ClassifyJobData | AnomaliesJobData;
+export interface ExplainJobData {
+  type: 'explain';
+  businessId: string;
+  rawTransactionId: string;
+}
+
+export type AiJobData = ClassifyJobData | AnomaliesJobData | ExplainJobData;
 
 @Processor(AI_JOBS_QUEUE)
 export class AiJobsProcessor extends WorkerHost {
@@ -30,6 +37,7 @@ export class AiJobsProcessor extends WorkerHost {
   constructor(
     private readonly classificationAiService: ClassificationAiService,
     private readonly anomalyService: AnomalyService,
+    private readonly explainerService: ExplainerService,
   ) {
     super();
   }
@@ -56,6 +64,16 @@ export class AiJobsProcessor extends WorkerHost {
           endDate,
         );
         this.logger.log(`AI anomalies job ${job.id} complete`);
+        return result;
+      }
+
+      case 'explain': {
+        const { businessId, rawTransactionId } = job.data;
+        const result = await this.explainerService.explain(
+          businessId,
+          rawTransactionId,
+        );
+        this.logger.log(`AI explain job ${job.id} complete`);
         return result;
       }
 

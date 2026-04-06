@@ -71,6 +71,26 @@ export class AiController {
   }
 
   /**
+   * POST /ai/explain/:rawTransactionId
+   * Enqueues a transaction explainer job.
+   * Returns HTTP 202 + { job_id } — poll GET /ai/jobs/:id for result.
+   * Result: { transaction_id, explanation, accounting_treatment, suggested_category? }
+   */
+  @Post('explain/:rawTransactionId')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(AiUsageGuard)
+  @AiFeatureType(AiFeature.EXPLAINER)
+  async explain(
+    @Param('rawTransactionId') rawTransactionId: string,
+    @Req() req: Request,
+  ) {
+    return this.aiJobsService.enqueueExplain(
+      req.user!.businessId,
+      rawTransactionId,
+    );
+  }
+
+  /**
    * GET /ai/jobs/:id
    * Poll for the status and result of an AI job.
    * Returns { job_id, status: queued|processing|complete|failed, result?, error? }

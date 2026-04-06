@@ -44,6 +44,18 @@ export class AiJobsService {
     return { job_id: job.id! };
   }
 
+  async enqueueExplain(
+    businessId: string,
+    rawTransactionId: string,
+  ): Promise<{ job_id: string }> {
+    const job = await this.aiQueue.add(
+      'explain',
+      { type: 'explain', businessId, rawTransactionId },
+      { removeOnComplete: 50, removeOnFail: 20 },
+    );
+    return { job_id: job.id! };
+  }
+
   // ── Poll ──────────────────────────────────────────────────────────────────
 
   async getJobStatus(jobId: string): Promise<JobStatusResponse> {
