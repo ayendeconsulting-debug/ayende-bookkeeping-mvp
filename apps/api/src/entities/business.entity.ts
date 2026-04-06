@@ -70,7 +70,7 @@ export class Business {
   @Column({ type: 'jsonb', default: {} })
   settings: Record<string, any>;
 
-  // ── Phase 9: Canadian Tax Settings ───────────────────────────────────────
+  // ── Phase 9: Canadian Tax Settings ──────────────────────────────────────
 
   // Province/territory where the business operates (ISO 3166-2 CA code: ON, BC, AB, etc.)
   @Column({ type: 'varchar', length: 2, nullable: true })
@@ -89,6 +89,14 @@ export class Business {
     nullable: true,
   })
   hst_reporting_frequency: HstReportingFrequency | null;
+
+  // ── Phase 10: Accountant Portal ─────────────────────────────────────────
+
+  // Soft reference to the accountant firm that created this business.
+  // Null for self-onboarded businesses. Used by metered billing job to
+  // count active client businesses per firm.
+  @Column({ type: 'uuid', nullable: true })
+  created_by_firm_id: string | null;
 
   // Relationships
   @OneToMany(() => BusinessUser, (businessUser) => businessUser.business)
