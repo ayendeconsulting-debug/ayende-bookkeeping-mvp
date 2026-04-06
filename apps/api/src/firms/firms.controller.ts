@@ -140,40 +140,24 @@ export class FirmsController {
 
   // ── Firm endpoints ──────────────────────────────────────────────────────────
 
-  /**
-   * GET /firms/me
-   * Returns the authenticated user's firm (as owner or staff member).
-   */
   @Get('me')
   async getMyFirm(@Req() req: Request) {
     const clerkUserId = (req as any).auth?.userId;
     return this.firmsService.getMyFirm(clerkUserId);
   }
 
-  /**
-   * POST /firms
-   * Creates a new firm + firm_owner staff row atomically.
-   */
   @Post()
   async createFirm(@Req() req: Request, @Body() dto: CreateFirmDto) {
     const clerkUserId = (req as any).auth?.userId;
     return this.firmsService.createFirm(clerkUserId, dto);
   }
 
-  /**
-   * PATCH /firms/me
-   * Updates firm settings. Only firm_owner may call this.
-   */
   @Patch('me')
   async updateFirm(@Req() req: Request, @Body() dto: UpdateFirmDto) {
     const clerkUserId = (req as any).auth?.userId;
     return this.firmsService.updateFirm(clerkUserId, dto);
   }
 
-  /**
-   * GET /firms/branding/:subdomain
-   * Public — returns branding config for white-label middleware.
-   */
   @Public()
   @Get('branding/:subdomain')
   async getBranding(@Req() req: Request) {
@@ -184,30 +168,18 @@ export class FirmsController {
 
   // ── Client endpoints ────────────────────────────────────────────────────────
 
-  /**
-   * GET /firms/me/clients
-   * Lists all client businesses linked to the authenticated user's firm.
-   */
   @Get('me/clients')
   async listClients(@Req() req: Request) {
     const clerkUserId = (req as any).auth?.userId;
     return this.firmClientService.listClients(clerkUserId);
   }
 
-  /**
-   * POST /firms/me/clients
-   * Creates a new client business + links to firm atomically.
-   */
   @Post('me/clients')
   async createClient(@Req() req: Request, @Body() dto: CreateClientDto) {
     const clerkUserId = (req as any).auth?.userId;
     return this.firmClientService.createClient(clerkUserId, dto);
   }
 
-  /**
-   * DELETE /firms/me/clients/:id
-   * Soft-deletes (archives) a firm_client link.
-   */
   @Delete('me/clients/:id')
   async archiveClient(@Req() req: Request, @Param('id') firmClientId: string) {
     const clerkUserId = (req as any).auth?.userId;
@@ -215,34 +187,26 @@ export class FirmsController {
     return { success: true };
   }
 
+  @Get('me/billing-summary')
+  async getBillingSummary(@Req() req: Request) {
+    const clerkUserId = (req as any).auth?.userId;
+    return this.firmClientService.getBillingSummary(clerkUserId);
+  }
+
   // ── Staff endpoints ─────────────────────────────────────────────────────────
 
-  /**
-   * GET /firms/me/staff
-   * Lists all staff members of the authenticated user's firm.
-   */
   @Get('me/staff')
   async listStaff(@Req() req: Request) {
     const clerkUserId = (req as any).auth?.userId;
     return this.firmStaffService.listStaff(clerkUserId);
   }
 
-  /**
-   * POST /firms/me/staff/invite
-   * Invites a staff member by email. Only firm_owner may call this.
-   * Sends Resend invite email. Creates pending firm_staff row.
-   */
   @Post('me/staff/invite')
   async inviteStaff(@Req() req: Request, @Body() dto: InviteStaffDto) {
     const clerkUserId = (req as any).auth?.userId;
     return this.firmStaffService.inviteStaff(clerkUserId, dto);
   }
 
-  /**
-   * PATCH /firms/me/staff/accept-invite
-   * Called by the frontend on first login when a pending invite is detected.
-   * Matches on email, sets accepted_at and the real clerk_user_id.
-   */
   @Patch('me/staff/accept-invite')
   async acceptInvite(@Req() req: Request, @Body() dto: AcceptInviteDto) {
     const clerkUserId = (req as any).auth?.userId;
@@ -250,11 +214,6 @@ export class FirmsController {
     return result ?? { message: 'No pending invite found for this email.' };
   }
 
-  /**
-   * DELETE /firms/me/staff/:id
-   * Removes a staff member. Only firm_owner may call this.
-   * firm_owner cannot remove themselves.
-   */
   @Delete('me/staff/:id')
   async removeStaff(@Req() req: Request, @Param('id') staffRowId: string) {
     const clerkUserId = (req as any).auth?.userId;

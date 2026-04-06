@@ -1,7 +1,6 @@
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,6 +8,7 @@ import { Repository, DataSource } from 'typeorm';
 import { Business, BusinessMode, HstReportingFrequency } from '../entities/business.entity';
 import { Account } from '../entities/account.entity';
 import { FirmClient, FirmClientStatus } from '../entities/firm-client.entity';
+import { FirmStaff } from '../entities/firm-staff.entity';
 import { AccountantFirm } from '../entities/accountant-firm.entity';
 import { FirmsService } from './firms.service';
 import { BusinessesService } from '../businesses/businesses.service';
@@ -18,17 +18,13 @@ import { EmailService } from '../email/email.service';
 import { ConfigService } from '@nestjs/config';
 
 export interface CreateClientDto {
-  // Step 1 — Business details
   name: string;
   businessType: 'sole_prop' | 'corp' | 'partnership';
   country: 'CA' | 'US';
-  // Step 2 — Tax settings (CA only, all optional)
   province_code?: string;
   hst_registration_number?: string;
   hst_reporting_frequency?: HstReportingFrequency;
-  // Step 3 — Chart of accounts seed template
   seedTemplate: 'standard_ca' | 'standard_us' | 'blank';
-  // Step 4 — Optional client invite
   clientEmail?: string;
   clientFirstName?: string;
 }
@@ -44,6 +40,17 @@ export interface ClientListItem {
   added_at: Date;
 }
 
+export interface FirmBillingSummary {
+  activeClients: number;
+  billableClients: number;
+  staffCount: number;
+  billableSeats: number;
+  baseMonthly: number;
+  clientsMonthly: number;
+  seatsMonthly: number;
+  estimatedMonthly: number;
+}
+
 @Injectable()
 export class FirmClientService {
   constructor(
@@ -53,6 +60,8 @@ export class FirmClientService {
     private readonly accountRepo: Repository<Account>,
     @InjectRepository(FirmClient)
     private readonly firmClientRepo: Repository<FirmClient>,
+    @InjectRepository(FirmStaff)
+    private readonly firmStaffRepo: Repository<FirmStaff>,
     @InjectRepository(AccountantFirm)
     private readonly firmRepo: Repository<AccountantFirm>,
     private readonly firmsService: FirmsService,
@@ -89,18 +98,12 @@ export class FirmClientService {
 
   // ── Create ─────────────────────────────────────────────────────────────────
 
-  /**
-   * Creates a new client business and links it to the firm atomically.
-   * Account seed and tax seed run after the transaction (idempotent).
-   * Optionally sends a client invite email via Resend.
-   */
   async createClient(
     clerkUserId: string,
     dto: CreateClientDto,
   ): Promise<{ business: Business; firmClient: FirmClient }> {
     const firm = await this.firmsService.getMyFirm(clerkUserId);
 
-    // Validate province if provided
     if (dto.province_code) {
       const provinceConfig = await this.provinceConfigService.getProvinceConfig(
         dto.province_code,
@@ -112,14 +115,12 @@ export class FirmClientService {
       }
     }
 
-    // Map businessType to BusinessMode
     const modeMap: Record<string, BusinessMode> = {
       sole_prop: BusinessMode.FREELANCER,
       corp: BusinessMode.BUSINESS,
       partnership: BusinessMode.BUSINESS,
     };
 
-    // ── Atomic: create business + firm_client link ──────────────────────────
     const { business, firmClient } = await this.dataSource.transaction(
       async (manager) => {
         const business = manager.create(Business, {
@@ -127,7 +128,7 @@ export class FirmClientService {
           country: dto.country,
           currency_code: dto.country === 'CA' ? 'CAD' : 'USD',
           mode: modeMap[dto.businessType] ?? BusinessMode.BUSINESS,
-          clerk_org_id: null, // accountant-created — no Clerk org
+          clerk_org_id: null,
           created_by_firm_id: firm.id,
           province_code: dto.province_code ?? null,
           hst_registration_number: dto.hst_registration_number ?? null,
@@ -148,14 +149,10 @@ export class FirmClientService {
       },
     );
 
-    // ── Post-transaction: seed accounts ────────────────────────────────────
     if (dto.seedTemplate !== 'blank') {
-      const industry =
-        dto.country === 'CA' ? 'services' : 'services'; // default — wizard Step 3 can refine
-      await this.businessesService.seedAccounts(business.id, industry);
+      await this.businessesService.seedAccounts(business.id, 'services');
     }
 
-    // ── Post-transaction: seed tax codes (CA only, if province set) ─────────
     if (dto.country === 'CA' && dto.province_code) {
       const provinceConfig = await this.provinceConfigService.getProvinceConfig(
         dto.province_code,
@@ -165,7 +162,6 @@ export class FirmClientService {
       }
     }
 
-    // ── Optional: send client invite email ──────────────────────────────────
     if (dto.clientEmail) {
       const appUrl = this.config.get<string>('APP_URL') ?? 'https://gettempo.ca';
       const trialEndDate = new Date();
@@ -175,7 +171,6 @@ export class FirmClientService {
         month: 'long',
         day: 'numeric',
       });
-
       void this.emailService.sendWelcome(dto.clientEmail, {
         firstName: dto.clientFirstName ?? 'there',
         trialEndDate: formattedDate,
@@ -188,10 +183,6 @@ export class FirmClientService {
 
   // ── Archive ────────────────────────────────────────────────────────────────
 
-  /**
-   * Soft-deletes a firm_client link (sets status = archived).
-   * Business data is retained and unaffected.
-   */
   async archiveClient(clerkUserId: string, firmClientId: string): Promise<void> {
     const firm = await this.firmsService.getMyFirm(clerkUserId);
 
@@ -211,5 +202,40 @@ export class FirmClientService {
 
     firmClient.status = FirmClientStatus.ARCHIVED;
     await this.firmClientRepo.save(firmClient);
+  }
+
+  // ── Billing summary ────────────────────────────────────────────────────────
+
+  async getBillingSummary(clerkUserId: string): Promise<FirmBillingSummary> {
+    const firm = await this.firmsService.getMyFirm(clerkUserId);
+
+    const [activeClients, staffCount] = await Promise.all([
+      this.firmClientRepo.count({
+        where: { firm_id: firm.id, status: FirmClientStatus.ACTIVE },
+      }),
+      this.firmStaffRepo.count({
+        where: { firm_id: firm.id },
+      }),
+    ]);
+
+    const billableClients  = Math.max(0, activeClients - 5);
+    const billableSeats    = Math.max(0, staffCount - 3);
+    const BASE_MONTHLY     = 149;
+    const PER_CLIENT       = 15;
+    const PER_SEAT         = 25;
+    const clientsMonthly   = billableClients * PER_CLIENT;
+    const seatsMonthly     = billableSeats * PER_SEAT;
+    const estimatedMonthly = BASE_MONTHLY + clientsMonthly + seatsMonthly;
+
+    return {
+      activeClients,
+      billableClients,
+      staffCount,
+      billableSeats,
+      baseMonthly: BASE_MONTHLY,
+      clientsMonthly,
+      seatsMonthly,
+      estimatedMonthly,
+    };
   }
 }

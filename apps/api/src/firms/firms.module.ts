@@ -23,9 +23,9 @@ import { EmailModule } from '../email/email.module';
       Business,
       Account,
     ]),
-    BusinessesModule, // provides BusinessesService + TaxSeedService
-    ReportsModule,    // provides ProvinceConfigService
-    EmailModule,      // provides EmailService
+    BusinessesModule,
+    ReportsModule,
+    EmailModule,
   ],
   controllers: [FirmsController],
   providers: [FirmsService, FirmClientService, FirmStaffService, SubdomainMiddleware],
@@ -33,7 +33,6 @@ import { EmailModule } from '../email/email.module';
 })
 export class FirmsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // Apply subdomain middleware globally — passes through silently on non-subdomain requests
     consumer.apply(SubdomainMiddleware).forRoutes('*');
   }
 }
