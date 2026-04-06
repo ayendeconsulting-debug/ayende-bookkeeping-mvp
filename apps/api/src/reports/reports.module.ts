@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
 
 // Entities
 import { TaxCode } from '../entities/tax-code.entity';
@@ -37,12 +38,17 @@ import { GeneralLedgerService } from './services/general-ledger.service';
 import { ExportService } from './services/export.service';
 import { ArApService } from './services/ar-ap.service';
 import { SparklineService } from './services/sparkline.service';
+
 // Phase 9
 import { ProvinceConfigService } from './services/province-config.service';
 import { HstPeriodService } from './services/hst-period.service';
 import { ItcService } from './services/itc.service';
 import { HstReportService } from './services/hst-report.service';
 import { HstExportService } from './services/hst-export.service';
+
+// Phase 10: Async PDF export
+import { PdfJobsProcessor, PDF_JOBS_QUEUE } from '../reports/pdf-jobs.processor';
+import { PdfJobsService } from '../reports/pdf-jobs.service';
 
 @Module({
   imports: [
@@ -63,8 +69,9 @@ import { HstExportService } from './services/hst-export.service';
       // Phase 9
       ProvincialTaxConfig,
       HstPeriod,
-      Business, // needed by HstController for export business name/HST number
+      Business,
     ]),
+    BullModule.registerQueue({ name: PDF_JOBS_QUEUE }),
   ],
   controllers: [
     TaxController,
@@ -89,6 +96,9 @@ import { HstExportService } from './services/hst-export.service';
     ItcService,
     HstReportService,
     HstExportService,
+    // Phase 10
+    PdfJobsProcessor,
+    PdfJobsService,
   ],
   exports: [
     IncomeStatementService,
