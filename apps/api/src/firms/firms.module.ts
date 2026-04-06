@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccountantFirm } from '../entities/accountant-firm.entity';
 import { FirmStaff } from '../entities/firm-staff.entity';
@@ -9,6 +9,7 @@ import { FirmsController } from './firms.controller';
 import { FirmsService } from './firms.service';
 import { FirmClientService } from './firm-client.service';
 import { FirmStaffService } from './firm-staff.service';
+import { SubdomainMiddleware } from './subdomain.middleware';
 import { BusinessesModule } from '../businesses/businesses.module';
 import { ReportsModule } from '../reports/reports.module';
 import { EmailModule } from '../email/email.module';
@@ -27,7 +28,12 @@ import { EmailModule } from '../email/email.module';
     EmailModule,      // provides EmailService
   ],
   controllers: [FirmsController],
-  providers: [FirmsService, FirmClientService, FirmStaffService],
+  providers: [FirmsService, FirmClientService, FirmStaffService, SubdomainMiddleware],
   exports: [FirmsService, FirmClientService, FirmStaffService],
 })
-export class FirmsModule {}
+export class FirmsModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Apply subdomain middleware globally — passes through silently on non-subdomain requests
+    consumer.apply(SubdomainMiddleware).forRoutes('*');
+  }
+}

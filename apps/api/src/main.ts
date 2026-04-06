@@ -23,6 +23,8 @@ async function bootstrap() {
     origin: allowedOrigins,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    // Expose X-Firm-Branding so Next.js middleware can read it cross-origin
+    exposedHeaders: ['X-Firm-Branding'],
     credentials: true,
   });
 
