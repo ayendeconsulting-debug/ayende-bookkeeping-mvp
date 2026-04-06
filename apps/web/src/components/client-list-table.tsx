@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { archiveClient, ClientListItem } from '@/app/(accountant)/clients/actions';
+import { archiveClient, ClientListItem } from '@/app/(accountant)/accountant/clients/actions';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {

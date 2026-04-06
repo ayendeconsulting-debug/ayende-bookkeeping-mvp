@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { updateFirm, checkSubdomainAvailability, FirmSettings } from '@/app/(accountant)/settings/actions';
+import { updateFirm, checkSubdomainAvailability, FirmSettings } from '@/app/(accountant)/accountant/settings/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

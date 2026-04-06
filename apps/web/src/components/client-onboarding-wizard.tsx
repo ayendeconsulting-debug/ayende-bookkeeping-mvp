@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient, Province } from '@/app/(accountant)/clients/new/actions';
+import { createClient, Province } from '@/app/(accountant)/accountant/clients/new/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

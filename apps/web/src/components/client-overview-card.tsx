@@ -1,4 +1,4 @@
-import { ClientListItem } from '@/app/(accountant)/clients/actions';
+import { ClientListItem } from '@/app/(accountant)/accountant/clients/actions';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Building2, MapPin, Receipt, Calendar } from 'lucide-react';
