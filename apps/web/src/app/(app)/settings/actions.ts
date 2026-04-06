@@ -58,7 +58,6 @@ export async function getSubscriptionStatus() {
 
 export async function createPortalSession() {
   try {
-    // Correct endpoint: /billing/create-portal-session (not /billing/portal)
     const result = await api<{ url: string }>('/billing/create-portal-session', {
       method: 'POST',
       body: JSON.stringify({ return_url: 'https://gettempo.ca/settings' }),
@@ -69,7 +68,7 @@ export async function createPortalSession() {
   }
 }
 
-// ── Phase 9: Tax Settings ─────────────────────────────────────────────────────
+// ── Phase 9: Tax Settings ─────────────────────────────────────────────────
 
 export async function getProvinces() {
   try {
@@ -101,5 +100,76 @@ export async function updateTaxSettings(data: {
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+// ── Phase 11: Accountant Access ───────────────────────────────────────────
+
+export interface AccessRequest {
+  id: string;
+  firm_id: string;
+  business_id: string;
+  requested_by_clerk_id: string;
+  access_type: string;
+  status: 'pending' | 'approved' | 'denied' | 'expired';
+  access_note: string | null;
+  requested_at: string;
+  responded_at: string | null;
+  expires_at: string | null;
+  firm?: { id: string; name: string; logo_url: string | null; brand_colour: string | null };
+}
+
+export interface AuditLogEntry {
+  id: string;
+  business_id: string;
+  firm_id: string;
+  actor_clerk_id: string;
+  actor_name: string;
+  action: string;
+  entity_type: string;
+  entity_id: string;
+  before_snapshot: Record<string, unknown> | null;
+  after_snapshot: Record<string, unknown> | null;
+  performed_at: string;
+}
+
+export async function getAccessRequests(): Promise<AccessRequest[]> {
+  try {
+    return await api<AccessRequest[]>('/businesses/me/access-requests');
+  } catch {
+    return [];
+  }
+}
+
+export async function respondToAccessRequest(
+  requestId: string,
+  decision: 'approved' | 'denied',
+  customExpiresAt?: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await api(`/businesses/me/access-requests/${requestId}/respond`, {
+      method: 'PATCH',
+      body: JSON.stringify({ decision, customExpiresAt }),
+    });
+    revalidatePath('/settings');
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getAccountantActivity(
+  startDate?: string,
+  endDate?: string,
+): Promise<{ data: AuditLogEntry[]; total: number }> {
+  try {
+    const params = new URLSearchParams();
+    if (startDate) params.set('startDate', startDate);
+    if (endDate) params.set('endDate', endDate);
+    params.set('limit', '50');
+    return await api(`/businesses/me/accountant-activity?${params.toString()}`);
+  } catch {
+    return { data: [], total: 0 };
   }
 }

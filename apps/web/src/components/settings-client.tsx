@@ -1,3 +1,4 @@
+import { AccountantAccessSection } from '@/components/accountant-access-section';
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -619,6 +620,7 @@ export function SettingsClient({ business, subscription, provinces }: SettingsCl
         <BusinessSettingsSection business={business} />
         <TaxSettingsSection business={business} provinces={provinces} />
         <BillingSection subscription={subscription} />
+        <AccountantAccessSection />
         <DisplaySection />
         <CurrencyRatesSection baseCurrency={business?.currency_code ?? 'CAD'} />
 
@@ -650,3 +652,4 @@ export function SettingsClient({ business, subscription, provinces }: SettingsCl
     </div>
   );
 }
+

@@ -1,3 +1,5 @@
+import { AccessRequestBanner } from '@/components/access-request-banner';
+import { getAccessRequests } from '@/app/(app)/settings/actions';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { apiGet } from '@/lib/api';
@@ -91,9 +93,9 @@ function severityBadgeClass(s: AnomalyFlag['severity']) {
 }
 
 export default async function DashboardPage() {
-  const [business, trialBalance, transactions, banks, anomalies, sparklines, hstPosition] = await Promise.all([
+  const [business, trialBalance, transactions, banks, anomalies, sparklines, hstPosition, accessRequests] = await Promise.all([
     getMyBusiness(), getTrialBalance(), getRecentTransactions(),
-    getConnectedBanks(), getAnomalies(), getSparklineData(), getHstPosition(),
+    getConnectedBanks(), getAnomalies(), getSparklineData(), getHstPosition(), getAccessRequests(),
   ]);
 
   if (business?.mode === 'freelancer') redirect('/freelancer/dashboard');
@@ -138,6 +140,11 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Pending accountant access request banner */}
+      {accessRequests.filter((r: any) => r.status === 'pending').map((r: any) => (
+        <AccessRequestBanner key={r.id} request={r} />
+      ))}
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
@@ -477,3 +484,5 @@ function EmptyState({ icon: Icon, message, compact }: {
     </div>
   );
 }
+
+
