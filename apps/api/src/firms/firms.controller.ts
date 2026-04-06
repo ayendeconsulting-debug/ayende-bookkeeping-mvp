@@ -24,7 +24,7 @@ import { FirmStaffService } from './firm-staff.service';
 import { HstReportingFrequency } from '../entities/business.entity';
 import { Public } from '../auth/public.decorator';
 
-// ── Firm DTOs ────────────────────────────────────────────────────────────────
+// ── Firm DTOs ─────────────────────────────────────────────────────────────
 
 export class CreateFirmDto {
   @IsString()
@@ -68,7 +68,7 @@ export class UpdateFirmDto {
   brand_colour?: string;
 }
 
-// ── Client DTOs ───────────────────────────────────────────────────────────────
+// ── Client DTOs ───────────────────────────────────────────────────────────
 
 export class CreateClientDto {
   @IsString()
@@ -110,7 +110,7 @@ export class CreateClientDto {
   clientFirstName?: string;
 }
 
-// ── Staff DTOs ────────────────────────────────────────────────────────────────
+// ── Staff DTOs ────────────────────────────────────────────────────────────
 
 export class InviteStaffDto {
   @IsEmail()
@@ -128,7 +128,7 @@ export class AcceptInviteDto {
   email: string;
 }
 
-// ── Controller ────────────────────────────────────────────────────────────────
+// ── Controller ────────────────────────────────────────────────────────────
 
 @Controller('firms')
 export class FirmsController {
@@ -138,7 +138,7 @@ export class FirmsController {
     private readonly firmStaffService: FirmStaffService,
   ) {}
 
-  // ── Firm endpoints ──────────────────────────────────────────────────────────
+  // ── Firm endpoints ────────────────────────────────────────────────────────
 
   @Get('me')
   async getMyFirm(@Req() req: Request) {
@@ -166,7 +166,7 @@ export class FirmsController {
     return branding ?? { name: null, logo_url: null, brand_colour: null };
   }
 
-  // ── Client endpoints ────────────────────────────────────────────────────────
+  // ── Client endpoints ──────────────────────────────────────────────────────
 
   @Get('me/clients')
   async listClients(@Req() req: Request) {
@@ -178,6 +178,21 @@ export class FirmsController {
   async createClient(@Req() req: Request, @Body() dto: CreateClientDto) {
     const clerkUserId = (req as any).auth?.userId;
     return this.firmClientService.createClient(clerkUserId, dto);
+  }
+
+  /**
+   * GET /firms/me/clients/:businessId/overview
+   * Returns 6 summary cards for the accountant client dashboard.
+   * Requires the requesting user to be a staff member of the firm
+   * that owns the client relationship.
+   */
+  @Get('me/clients/:businessId/overview')
+  async getClientOverview(
+    @Req() req: Request,
+    @Param('businessId') businessId: string,
+  ) {
+    const clerkUserId = (req as any).auth?.userId;
+    return this.firmClientService.getClientOverview(clerkUserId, businessId);
   }
 
   @Delete('me/clients/:id')
@@ -193,7 +208,7 @@ export class FirmsController {
     return this.firmClientService.getBillingSummary(clerkUserId);
   }
 
-  // ── Staff endpoints ─────────────────────────────────────────────────────────
+  // ── Staff endpoints ───────────────────────────────────────────────────────
 
   @Get('me/staff')
   async listStaff(@Req() req: Request) {

@@ -10,6 +10,9 @@ import { Account } from '../entities/account.entity';
 import { FirmClient, FirmClientStatus } from '../entities/firm-client.entity';
 import { FirmStaff } from '../entities/firm-staff.entity';
 import { AccountantFirm } from '../entities/accountant-firm.entity';
+import { JournalLine } from '../entities/journal-line.entity';
+import { JournalEntry } from '../entities/journal-entry.entity';
+import { RawTransaction, RawTransactionStatus } from '../entities/raw-transaction.entity';
 import { FirmsService } from './firms.service';
 import { BusinessesService } from '../businesses/businesses.service';
 import { TaxSeedService } from '../reports/services/tax-seed.service';
@@ -40,6 +43,17 @@ export interface ClientListItem {
   added_at: Date;
 }
 
+export interface ClientOverview {
+  businessId: string;
+  businessName: string;
+  revenueMtd: number;
+  expensesMtd: number;
+  netIncomeMtd: number;
+  uncategorisedCount: number;
+  outstandingHst: number;
+  lastTransactionDate: string | null;
+}
+
 export interface FirmBillingSummary {
   activeClients: number;
   billableClients: number;
@@ -64,6 +78,12 @@ export class FirmClientService {
     private readonly firmStaffRepo: Repository<FirmStaff>,
     @InjectRepository(AccountantFirm)
     private readonly firmRepo: Repository<AccountantFirm>,
+    @InjectRepository(JournalLine)
+    private readonly journalLineRepo: Repository<JournalLine>,
+    @InjectRepository(JournalEntry)
+    private readonly journalEntryRepo: Repository<JournalEntry>,
+    @InjectRepository(RawTransaction)
+    private readonly rawTransactionRepo: Repository<RawTransaction>,
     private readonly firmsService: FirmsService,
     private readonly businessesService: BusinessesService,
     private readonly taxSeedService: TaxSeedService,
@@ -73,7 +93,7 @@ export class FirmClientService {
     private readonly dataSource: DataSource,
   ) {}
 
-  // ── List ───────────────────────────────────────────────────────────────────
+  // ── List ──────────────────────────────────────────────────────────────────
 
   async listClients(clerkUserId: string): Promise<ClientListItem[]> {
     const firm = await this.firmsService.getMyFirm(clerkUserId);
@@ -96,7 +116,102 @@ export class FirmClientService {
     }));
   }
 
-  // ── Create ─────────────────────────────────────────────────────────────────
+  // ── Client Overview (6 summary cards for accountant dashboard) ────────────
+
+  async getClientOverview(
+    clerkUserId: string,
+    businessId: string,
+  ): Promise<ClientOverview> {
+    const firm = await this.firmsService.getMyFirm(clerkUserId);
+
+    // Verify this business belongs to the firm
+    const firmClient = await this.firmClientRepo.findOne({
+      where: { firm_id: firm.id, business_id: businessId },
+      relations: ['business'],
+    });
+
+    if (!firmClient) {
+      throw new NotFoundException(
+        'Client not found or does not belong to your firm.',
+      );
+    }
+
+    const business = firmClient.business;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split('T')[0];
+    const today = now.toISOString().split('T')[0];
+
+    // ── Revenue + Expenses MTD ──────────────────────────────────────────────
+    const accountTotals = await this.journalLineRepo
+      .createQueryBuilder('jl')
+      .select('a.account_type', 'account_type')
+      .addSelect('SUM(jl.debit_amount - jl.credit_amount)', 'net')
+      .innerJoin('jl.journalEntry', 'je')
+      .innerJoin('jl.account', 'a')
+      .where('jl.business_id = :businessId', { businessId })
+      .andWhere("je.status = 'posted'")
+      .andWhere('je.entry_date >= :monthStart', { monthStart })
+      .andWhere('je.entry_date <= :today', { today })
+      .groupBy('a.account_type')
+      .getRawMany();
+
+    let revenueMtd = 0;
+    let expensesMtd = 0;
+    for (const row of accountTotals) {
+      const net = parseFloat(row.net ?? '0');
+      if (row.account_type === 'revenue') revenueMtd += Math.abs(net);
+      if (row.account_type === 'expense') expensesMtd += Math.abs(net);
+    }
+
+    // ── Uncategorised count ─────────────────────────────────────────────────
+    const uncategorisedCount = await this.rawTransactionRepo.count({
+      where: {
+        business_id: businessId,
+        status: RawTransactionStatus.PENDING,
+      },
+    });
+
+    // ── Outstanding HST ─────────────────────────────────────────────────────
+    // Sum of tax journal lines (is_tax_line = true) as a simple net balance
+    const hstRow = await this.journalLineRepo
+      .createQueryBuilder('jl')
+      .select(
+        'SUM(jl.debit_amount - jl.credit_amount)',
+        'hst_net',
+      )
+      .innerJoin('jl.journalEntry', 'je')
+      .where('jl.business_id = :businessId', { businessId })
+      .andWhere('jl.is_tax_line = true')
+      .andWhere("je.status = 'posted'")
+      .getRawOne();
+
+    const outstandingHst = Math.abs(parseFloat(hstRow?.hst_net ?? '0'));
+
+    // ── Last transaction date ───────────────────────────────────────────────
+    const lastTx = await this.rawTransactionRepo.findOne({
+      where: { business_id: businessId },
+      order: { transaction_date: 'DESC' },
+    });
+
+    const lastTransactionDate = lastTx
+      ? new Date(lastTx.transaction_date).toISOString().split('T')[0]
+      : null;
+
+    return {
+      businessId,
+      businessName: business?.name ?? '—',
+      revenueMtd,
+      expensesMtd,
+      netIncomeMtd: revenueMtd - expensesMtd,
+      uncategorisedCount,
+      outstandingHst,
+      lastTransactionDate,
+    };
+  }
+
+  // ── Create ────────────────────────────────────────────────────────────────
 
   async createClient(
     clerkUserId: string,
@@ -181,7 +296,7 @@ export class FirmClientService {
     return { business, firmClient };
   }
 
-  // ── Archive ────────────────────────────────────────────────────────────────
+  // ── Archive ───────────────────────────────────────────────────────────────
 
   async archiveClient(clerkUserId: string, firmClientId: string): Promise<void> {
     const firm = await this.firmsService.getMyFirm(clerkUserId);
@@ -204,7 +319,7 @@ export class FirmClientService {
     await this.firmClientRepo.save(firmClient);
   }
 
-  // ── Billing summary ────────────────────────────────────────────────────────
+  // ── Billing summary ───────────────────────────────────────────────────────
 
   async getBillingSummary(clerkUserId: string): Promise<FirmBillingSummary> {
     const firm = await this.firmsService.getMyFirm(clerkUserId);

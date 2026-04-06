@@ -7,6 +7,9 @@ import { FirmClientAccessRequest } from '../entities/firm-client-access-request.
 import { AccountantAuditLog } from '../entities/accountant-audit-log.entity';
 import { Business } from '../entities/business.entity';
 import { Account } from '../entities/account.entity';
+import { JournalLine } from '../entities/journal-line.entity';
+import { JournalEntry } from '../entities/journal-entry.entity';
+import { RawTransaction } from '../entities/raw-transaction.entity';
 import { FirmsController } from './firms.controller';
 import { FirmsService } from './firms.service';
 import { FirmClientService } from './firm-client.service';
@@ -26,6 +29,9 @@ import { EmailModule } from '../email/email.module';
       AccountantAuditLog,
       Business,
       Account,
+      JournalLine,
+      JournalEntry,
+      RawTransaction,
     ]),
     BusinessesModule,
     ReportsModule,
