@@ -5,27 +5,46 @@ import { FaqAccordion } from './(marketing)/faq-accordion';
 import { DashboardCarousel } from './(marketing)/dashboard-carousel';
 import {
   BarChart3, FileText, Shield, Zap, Users, Globe, Sparkles,
-  CheckCircle2, ArrowRight,
+  CheckCircle2, ArrowRight, BookOpen, Building2,
 } from 'lucide-react';
 
-/* ── Stats ───────────────────────────────────────────────────────────────── */
+// ── Stats ─────────────────────────────────────────────────────────────────
 const STATS = [
-  { value: '12,000+', label: 'Banks connected via Plaid', sub: 'Canada & United States' },
-  { value: '60',      label: 'Day free trial',            sub: 'Card required · No charge' },
-  { value: '100%',    label: 'Double-entry accounting',   sub: 'Every transaction balanced' },
-  { value: '4',       label: 'Financial reports',         sub: 'IS, BS, TB, General Ledger' },
+  { value: '12,000+', label: 'Banks connected via Plaid',   sub: 'Canada & United States' },
+  { value: '60',      label: 'Day free trial',              sub: 'No charge · Cancel anytime' },
+  { value: '100%',    label: 'Tax-ready documentation',     sub: 'Every transaction balanced' },
+  { value: '5',       label: 'AI-powered features',         sub: 'Included on every plan' },
 ];
 
-/* ── Features ─────────────────────────────────────────────────────────────── */
+// ── Features ──────────────────────────────────────────────────────────────
 const FEATURES = [
   {
     category: 'AI',
     icon: Sparkles,
-    title: 'AI bookkeeping assistant',
+    title: 'AI that works on your actual numbers',
     description:
-      'Ask your books anything in plain English. Get instant answers about margins, expenses, revenue trends, and tax — powered by Claude AI on your actual financial data.',
-    points: ['Ad hoc financial questions', 'Trend analysis', 'Expense breakdowns', 'Included on every plan'],
+      'Classify transactions, detect anomalies, explain charges in plain language, and generate a year-end summary — all powered by Claude AI on your real financial data.',
+    points: [
+      'Transaction Explainer — plain-language breakdowns',
+      'Anomaly detection (amount, frequency, category)',
+      'Year-End Assistant with PDF export',
+      'Classification learning from your overrides',
+    ],
     highlight: true,
+  },
+  {
+    category: 'Tax Ready',
+    icon: Shield,
+    title: 'Tax-ready books, all year round',
+    description:
+      'Every transaction is posted to the correct account with HST/GST split automatically. Your Income Statement, Balance Sheet, and CRA remittance report are always current — no scramble at filing time.',
+    points: [
+      'Automatic HST/GST splitting per transaction',
+      'CRA remittance report (GST34 lines 101–113)',
+      'Locked fiscal years prevent retroactive edits',
+      'Year-End AI assistant for filing prep',
+    ],
+    highlight: false,
   },
   {
     category: 'Accounting',
@@ -33,7 +52,12 @@ const FEATURES = [
     title: 'Real double-entry accounting',
     description:
       'Every transaction creates balanced journal entries automatically. Your books are always accurate — no spreadsheet hacks, no single-entry workarounds.',
-    points: ['Automated journal entries', 'Debit/credit validation', 'Owner contributions & draws', 'Fiscal year locking'],
+    points: [
+      'Automated journal entries',
+      'Debit/credit validation',
+      'Owner contributions & draws',
+      'Fiscal year locking',
+    ],
     highlight: false,
   },
   {
@@ -42,7 +66,12 @@ const FEATURES = [
     title: 'Connect your bank in seconds',
     description:
       'Link your business bank account via Plaid for automatic transaction import. Transactions are classified, deduplicated, and posted to your ledger — zero manual entry.',
-    points: ['12,000+ institutions', 'Real-time sync', 'Duplicate detection', 'Secure read-only access'],
+    points: [
+      '12,000+ institutions',
+      'Real-time sync',
+      'Duplicate detection',
+      'Secure read-only access',
+    ],
     highlight: false,
   },
   {
@@ -51,61 +80,90 @@ const FEATURES = [
     title: 'Tax-ready financial reports',
     description:
       'Generate an Income Statement, Balance Sheet, Trial Balance, and General Ledger with one click. Filter by date range, export as PDF or CSV.',
-    points: ['Income Statement', 'Balance Sheet', 'CRA & IRS compatible', 'PDF & CSV export'],
+    points: [
+      'Income Statement & Balance Sheet',
+      'Trial Balance & General Ledger',
+      'CRA & IRS compatible',
+      'PDF & CSV export',
+    ],
     highlight: false,
   },
   {
-    category: 'Tax',
-    icon: Shield,
-    title: 'HST, GST, and sales tax built in',
+    category: 'Firms',
+    icon: Building2,
+    title: 'A dedicated portal for accounting firms',
     description:
-      'Set up your tax codes once. Tempo automatically splits the net and tax amounts into the right accounts when you classify a transaction.',
-    points: ['HST & GST support', 'US sales tax', 'Automatic tax splitting', 'Tax liability tracking'],
-    highlight: false,
-  },
-  {
-    category: 'Coverage',
-    icon: Globe,
-    title: 'Built for Canada and the US',
-    description:
-      'Purpose-built for North American small businesses. CAD and USD currencies, CRA and IRS reporting, and bank connectivity across both countries.',
-    points: ['CAD & USD', 'CRA & IRS ready', 'Canadian & US banks', 'HST, GST, sales tax'],
+      'Manage multiple clients from one dashboard. White-label with your firm\'s brand, onboard clients in minutes, and request edit access with a full audit trail of every change made.',
+    points: [
+      'Multi-client dashboard with KPI cards',
+      'White-label subdomain (yourfirm.gettempo.ca)',
+      'Client edit access + dual audit log',
+      'AI anomaly detection across all clients',
+    ],
     highlight: false,
   },
 ];
 
-/* ── Pricing preview ─────────────────────────────────────────────────────── */
+// ── Pricing ───────────────────────────────────────────────────────────────
 const PLANS = [
   {
     name: 'Starter',
     regular: '$19',
     price: '$10',
     period: ' CAD/mo',
+    annualNote: '2 months free on annual',
     description: 'For freelancers and solo founders',
-    features: ['Up to 500 transactions/mo', '4 financial reports', 'Bank connectivity', 'AI assistant', 'Email support'],
+    features: [
+      'Up to 500 transactions/mo',
+      '4 financial reports',
+      'Bank connectivity via Plaid',
+      'AI assistant (50 calls/mo)',
+      'HST/GST tracking',
+      'Email support',
+    ],
     highlight: false,
+    cta: 'Start free trial',
   },
   {
     name: 'Pro',
     regular: '$49',
     price: '$25',
     period: ' CAD/mo',
+    annualNote: '2 months free on annual',
     description: 'For growing small businesses',
-    features: ['Up to 2,500 transactions/mo', 'Everything in Starter', 'Multi-user access', 'Invoicing & AP/AR', 'Priority support'],
+    features: [
+      'Up to 2,500 transactions/mo',
+      'Everything in Starter',
+      'Multi-user access',
+      'Invoicing & AP/AR',
+      'AI assistant (200 calls/mo)',
+      'Priority support',
+    ],
     highlight: true,
+    cta: 'Start free trial',
   },
   {
     name: 'Accountant',
-    regular: '$99',
-    price: '$50',
-    period: ' CAD/mo',
-    description: 'For accounting firms & multi-client',
-    features: ['Unlimited transactions', 'Everything in Pro', 'Multiple businesses', 'Accountant role access', 'Dedicated support'],
+    regular: null,
+    price: '$149',
+    period: ' CAD/mo base',
+    annualNote: '$1,490/yr · see full pricing',
+    description: 'For bookkeeping firms & multi-client',
+    features: [
+      '5 client businesses included',
+      '3 staff seats included',
+      'White-label subdomain',
+      'Full firm portal + audit log',
+      'AI (500 calls/mo · unlimited add-on)',
+      '+$15/mo per additional client',
+    ],
     highlight: false,
+    cta: 'See Accountant pricing',
+    ctaHref: '/pricing',
   },
 ];
 
-/* ── Page ─────────────────────────────────────────────────────────────────── */
+// ── Page ──────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -113,14 +171,13 @@ export default function LandingPage() {
 
       <main className="flex-1">
 
-        {/* ── Hero ──────────────────────────────────────────────────────── */}
+        {/* ── Hero ───────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-[#EDF7F2] via-background to-background pointer-events-none" />
           <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
 
-            {/* Launch offer badge */}
             <div className="inline-flex items-center gap-2 bg-[#0F6E56] text-white text-xs font-semibold px-4 py-1.5 rounded-full mb-4">
-              <Zap className="w-3 h-3" /> Launch offer: 50% off all plans
+              <Zap className="w-3 h-3" /> Launch offer: 50% off Starter & Pro
             </div>
 
             <div className="inline-flex items-center gap-2 bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 text-[#0F6E56] text-xs font-medium px-4 py-1.5 rounded-full mb-6 ml-2">
@@ -129,13 +186,12 @@ export default function LandingPage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground leading-tight tracking-tight mb-6 max-w-4xl mx-auto">
-              Bookkeeping that{' '}
-              <span className="text-[#0F6E56]">works as hard</span>
-              {' '}as you do
+              AI-assisted bookkeeping{' '}
+              <span className="text-[#0F6E56]">built for tax time</span>
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-              Double-entry accounting, automatic bank sync, AI-powered ad hoc reporting, and tax-ready financial reports — all in one platform for North American small businesses.
+              Tempo Books handles double-entry accounting, bank sync, AI transaction classification, and HST/GST tracking — so when tax season arrives, your books are already ready.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
@@ -154,15 +210,14 @@ export default function LandingPage() {
             </div>
 
             <p className="text-xs text-muted-foreground mb-12">
-              60-day free trial · Card required · No charge during trial · Auto-continues on Starter after trial
+              60-day free trial · No charge during trial · Auto-continues on Starter after trial
             </p>
 
-            {/* Dashboard carousel */}
             <DashboardCarousel />
           </div>
         </section>
 
-        {/* ── Stats ─────────────────────────────────────────────────────── */}
+        {/* ── Stats ──────────────────────────────────────────────────── */}
         <section className="border-y border-border bg-card">
           <div className="max-w-6xl mx-auto px-6 py-14">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -177,7 +232,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── AI Feature highlight ───────────────────────────────────────── */}
+        {/* ── AI Feature highlight ────────────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-6 py-16">
           <div className="rounded-2xl bg-gradient-to-r from-[#EDF7F2] to-[#f5f3ef] dark:from-primary/10 dark:to-background border border-[#C3E8D8] dark:border-primary/30 p-8 md:p-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -189,14 +244,14 @@ export default function LandingPage() {
                   Ask your books anything
                 </h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  Get instant ad hoc answers from your actual financial data. No more waiting for your accountant to run a custom report — just ask.
+                  Get instant ad hoc answers from your actual financial data. Explain any transaction in plain language, detect anomalies before they become problems, and generate a year-end summary ready for your accountant.
                 </p>
                 <ul className="space-y-2 mb-6">
                   {[
-                    '"What was my net profit margin in Q1?"',
-                    '"Show me my top 5 expense categories"',
-                    '"Am I on track for my annual revenue target?"',
-                    '"Which clients owe me money right now?"',
+                    'Explain this charge in plain language',
+                    'Flag unusual transactions automatically',
+                    'Generate a year-end review PDF',
+                    'Learn your classification patterns over time',
                   ].map((q) => (
                     <li key={q} className="flex items-start gap-2 text-sm text-foreground">
                       <CheckCircle2 className="w-4 h-4 text-[#0F6E56] flex-shrink-0 mt-0.5" />
@@ -223,17 +278,17 @@ export default function LandingPage() {
                   </div>
                   <div className="flex justify-start">
                     <div className="bg-muted text-foreground text-xs px-3 py-2 rounded-xl rounded-tl-sm max-w-[85%] leading-relaxed">
-                      Your Q1 net profit margin was <strong>34.1%</strong> — net income of $16,480 on revenue of $48,320. This is up from 29.8% in Q4 2025, driven by lower software costs. 📈
+                      Your Q1 net profit margin was <strong>34.1%</strong> — net income of $16,480 on revenue of $48,320. Up from 29.8% in Q4, driven by lower software costs. 📈
                     </div>
                   </div>
                   <div className="flex justify-end">
                     <div className="bg-[#0F6E56] text-white text-xs px-3 py-2 rounded-xl rounded-tr-sm max-w-[80%]">
-                      Which clients still owe me money?
+                      Explain the $2,400 charge from AWS last month
                     </div>
                   </div>
                   <div className="flex justify-start">
                     <div className="bg-muted text-foreground text-xs px-3 py-2 rounded-xl rounded-tl-sm max-w-[85%] leading-relaxed">
-                      3 outstanding invoices: <strong>Northern Labs</strong> $5,400 (15 days overdue), <strong>Acme Corp</strong> $3,200 (due Apr 15), <strong>Peak Solutions</strong> $2,100 (due Apr 20).
+                      This is your monthly AWS cloud hosting bill. It&apos;s classified as a <strong>Cloud Infrastructure</strong> expense and is 18% higher than your prior 3-month average — worth reviewing if usage changed.
                     </div>
                   </div>
                 </div>
@@ -242,7 +297,58 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Features ──────────────────────────────────────────────────── */}
+        {/* ── Tax Filing callout ──────────────────────────────────────── */}
+        <section className="max-w-6xl mx-auto px-6 pb-6">
+          <div className="rounded-2xl bg-card border border-border p-8 md:p-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 bg-[#EDF7F2] dark:bg-primary/10 text-[#0F6E56] text-xs font-semibold px-3 py-1 rounded-full mb-4 border border-[#C3E8D8] dark:border-primary/30">
+                  <BookOpen className="w-3 h-3" /> Tax Filing Simplified
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
+                  Your books are always filing-ready
+                </h2>
+                <p className="text-muted-foreground leading-relaxed mb-6">
+                  Thorough documentation and accurate account balances aren&apos;t something you scramble for at year-end — they&apos;re built into every transaction Tempo processes. HST/GST is split automatically, every journal entry is balanced, and your CRA remittance report is always one click away.
+                </p>
+                <ul className="space-y-2 mb-6">
+                  {[
+                    'Every transaction documented with debit/credit entries',
+                    'HST/GST automatically split into the correct liability accounts',
+                    'CRA remittance report with GST34 lines 101–113',
+                    'Fiscal year locking prevents retroactive changes',
+                    'Year-End AI assistant summarises your books for your accountant',
+                  ].map((point) => (
+                    <li key={point} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-[#0F6E56] flex-shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-muted/50 rounded-xl p-6 space-y-4">
+                <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider">At tax time you have</p>
+                {[
+                  { label: 'Income Statement', desc: 'Revenue, expenses, net income by period' },
+                  { label: 'Balance Sheet', desc: 'Assets, liabilities, and equity snapshot' },
+                  { label: 'CRA Remittance Report', desc: 'GST34 lines pre-calculated, export ready' },
+                  { label: 'General Ledger', desc: 'Every transaction with full audit trail' },
+                  { label: 'Year-End AI Summary', desc: 'Observations, adjustments, and checklist PDF' },
+                ].map((item) => (
+                  <div key={item.label} className="flex items-start gap-3">
+                    <CheckCircle2 className="w-4 h-4 text-[#0F6E56] flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{item.label}</p>
+                      <p className="text-xs text-muted-foreground">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Features ───────────────────────────────────────────────── */}
         <section id="features" className="max-w-6xl mx-auto px-6 py-10 pb-20">
           <div className="text-center mb-14">
             <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">Features</p>
@@ -250,7 +356,7 @@ export default function LandingPage() {
               Everything you need to run your books
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              From bank import to AI reporting — Tempo handles the full bookkeeping workflow.
+              From bank import to AI-powered year-end filing — Tempo handles the full bookkeeping workflow.
             </p>
           </div>
 
@@ -296,7 +402,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Pricing preview ───────────────────────────────────────────── */}
+        {/* ── Pricing preview ─────────────────────────────────────────── */}
         <section id="pricing" className="bg-card border-y border-border">
           <div className="max-w-6xl mx-auto px-6 py-20">
             <div className="text-center mb-6">
@@ -305,14 +411,14 @@ export default function LandingPage() {
                 Simple, transparent pricing
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                50% off all plans at launch. 60-day free trial. Card required — no charge during trial.
+                60-day free trial on all plans. Starter &amp; Pro at 50% off for launch.
+                The Accountant plan includes a full firm portal with white-label branding, client onboarding, and metered per-client billing.
               </p>
             </div>
 
-            {/* Launch discount callout */}
             <div className="flex items-center justify-center gap-2 bg-[#0F6E56] text-white text-sm font-medium px-5 py-2.5 rounded-xl mb-10 max-w-lg mx-auto">
               <Zap className="w-4 h-4 flex-shrink-0" />
-              Launch offer: 50% off — prices shown already discounted
+              Launch offer: Starter &amp; Pro 50% off — prices shown already discounted
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -339,7 +445,10 @@ export default function LandingPage() {
                       <span className="text-3xl font-bold text-foreground">{plan.price}</span>
                       <span className="text-sm text-muted-foreground">{plan.period}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground line-through">was {plan.regular} CAD/mo</p>
+                    {plan.regular && (
+                      <p className="text-xs text-muted-foreground line-through">was {plan.regular} CAD/mo</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-0.5">{plan.annualNote}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">{plan.description}</p>
                   </div>
                   <ul className="space-y-2 mb-6 flex-1">
@@ -351,7 +460,7 @@ export default function LandingPage() {
                     ))}
                   </ul>
                   <Link
-                    href="/sign-up"
+                    href={(plan as any).ctaHref ?? '/sign-up'}
                     className={[
                       'text-center text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors',
                       plan.highlight
@@ -359,14 +468,14 @@ export default function LandingPage() {
                         : 'border border-border hover:border-[#0F6E56] hover:text-[#0F6E56]',
                     ].join(' ')}
                   >
-                    Start free trial
+                    {plan.cta}
                   </Link>
                 </div>
               ))}
             </div>
 
             <p className="text-center text-xs text-muted-foreground mt-6">
-              Annual plans get 2 months free.{' '}
+              Starter &amp; Pro: annual plans get 2 months free.{' '}
               <Link href="/pricing" className="text-[#0F6E56] hover:underline underline-offset-2">
                 See full pricing details →
               </Link>
@@ -374,13 +483,13 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── FAQ ───────────────────────────────────────────────────────── */}
+        {/* ── FAQ ─────────────────────────────────────────────────────── */}
         <section id="faq" className="max-w-3xl mx-auto px-6 py-20">
           <div className="text-center mb-12">
             <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">FAQ</p>
             <h2 className="text-3xl font-bold text-foreground mb-4">Common questions</h2>
             <p className="text-muted-foreground">
-              Can't find the answer?{' '}
+              Can&apos;t find the answer?{' '}
               <a href="mailto:hello@gettempo.ca" className="text-[#0F6E56] hover:underline underline-offset-2">
                 Email us.
               </a>
@@ -389,14 +498,14 @@ export default function LandingPage() {
           <FaqAccordion />
         </section>
 
-        {/* ── CTA Banner ────────────────────────────────────────────────── */}
+        {/* ── CTA Banner ──────────────────────────────────────────────── */}
         <section className="bg-[#0F6E56] dark:bg-[#085041]">
           <div className="max-w-4xl mx-auto px-6 py-16 text-center">
             <h2 className="text-3xl font-bold text-white mb-4">
               Start your free trial today
             </h2>
             <p className="text-[#C3E8D8] mb-8 max-w-xl mx-auto">
-              60 days free, card required, no charge during trial. Auto-continues on Starter — cancel anytime.
+              60 days free, no charge during trial. Your books will be tax-ready before the trial ends — or your accountant will be very impressed.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
