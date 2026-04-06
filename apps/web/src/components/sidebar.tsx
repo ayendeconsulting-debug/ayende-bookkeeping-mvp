@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -32,6 +32,7 @@ const reportItems = [
   { href: '/reports/balance-sheet',    label: 'Balance Sheet',    icon: Scale },
   { href: '/reports/trial-balance',    label: 'Trial Balance',    icon: ClipboardList },
   { href: '/reports/general-ledger',   label: 'General Ledger',   icon: BookOpen },
+  { href: '/reports/hst',              label: 'HST / GST Report', icon: Receipt },
 ];
 const businessSettingsItems = [
   { href: '/accounts', label: 'Chart of Accounts',   icon: BookOpen },
