@@ -3,6 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AccountantFirm } from '../entities/accountant-firm.entity';
 import { FirmStaff } from '../entities/firm-staff.entity';
 import { FirmClient } from '../entities/firm-client.entity';
+import { FirmClientAccessRequest } from '../entities/firm-client-access-request.entity';
+import { AccountantAuditLog } from '../entities/accountant-audit-log.entity';
 import { Business } from '../entities/business.entity';
 import { Account } from '../entities/account.entity';
 import { FirmsController } from './firms.controller';
@@ -20,6 +22,8 @@ import { EmailModule } from '../email/email.module';
       AccountantFirm,
       FirmStaff,
       FirmClient,
+      FirmClientAccessRequest,
+      AccountantAuditLog,
       Business,
       Account,
     ]),
