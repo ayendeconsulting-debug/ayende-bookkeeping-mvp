@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight } from 'lucide-react';
+import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight, AlertTriangle } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, BusinessMode } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
@@ -333,7 +333,23 @@ export function TransactionInbox({
                       })}
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      <span className="block truncate text-gray-900">{tx.description}</span>
+                      <div className="flex items-center gap-1.5">
+                        {tx.anomaly_flags && tx.anomaly_flags.length > 0 && (
+                          <div
+                            className="flex-shrink-0 relative group"
+                            title={tx.anomaly_flags.join('\n')}
+                          >
+                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 cursor-help" />
+                            <div className="absolute left-0 top-5 z-20 hidden group-hover:block w-56 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl pointer-events-none">
+                              <p className="font-medium mb-1 text-amber-300">Anomaly flags:</p>
+                              {tx.anomaly_flags.map((flag, i) => (
+                                <p key={i} className="leading-snug">{flag}</p>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <span className="block truncate text-gray-900">{tx.description}</span>
+                      </div>
                       {tx.plaid_category && (
                         <span className="text-xs text-gray-400">{tx.plaid_category}</span>
                       )}

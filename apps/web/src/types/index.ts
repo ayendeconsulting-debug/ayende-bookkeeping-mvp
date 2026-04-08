@@ -62,6 +62,7 @@ export interface RawTransaction {
   source_account_name?: string;
   plaid_account_id?: string;
   plaid_category?: string;
+  anomaly_flags?: string[] | null; // Phase 15 — persisted from AI explain job
   created_at: string;
 }
 
