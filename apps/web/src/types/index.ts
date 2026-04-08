@@ -199,11 +199,13 @@ export interface TrialBalance {
 export interface ClassificationRule {
   id: string;
   business_id: string;
+  name?: string;
   match_type: 'keyword' | 'vendor' | 'account';
   match_value: string;
   target_account_id: string;
   priority: number;
   is_active: boolean;
+  source?: string; // 'user_learned' | 'manual' | undefined
 }
 
 /* ── AI ───────────────────────────────────────────────────────────────────────────── */

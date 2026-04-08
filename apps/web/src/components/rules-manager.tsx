@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Pencil, Trash2, Filter } from 'lucide-react';
+import { Plus, Pencil, Trash2, Filter, Wand2 } from 'lucide-react';
 import { ClassificationRule, Account } from '@/types';
 import { createRule, updateRule, deleteRule } from '@/app/(app)/rules/actions';
 import { AdminOnly } from '@/components/admin-only';
@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { cn } from '@/lib/utils';
 
 interface RulesManagerProps {
   initialRules: ClassificationRule[];
@@ -27,6 +28,22 @@ interface RuleFormData {
 
 const EMPTY_FORM: RuleFormData = { match_type: 'keyword', match_value: '', target_account_id: '', priority: '10' };
 const MATCH_TYPE_LABELS: Record<string, string> = { keyword: 'Keyword', vendor: 'Vendor', account: 'Account' };
+
+function SourceBadge({ source }: { source?: string }) {
+  if (source === 'user_learned') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+        <Wand2 className="w-3 h-3" />
+        Learned
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+      Manual
+    </span>
+  );
+}
 
 export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
   const router = useRouter();
@@ -88,12 +105,22 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
 
   const accountMap = Object.fromEntries(accounts.map((a) => [a.id, a]));
 
+  const learnedCount = rules.filter((r) => r.source === 'user_learned').length;
+  const manualCount  = rules.filter((r) => r.source !== 'user_learned').length;
+
   return (
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-semibold text-gray-900">Classification Rules</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Auto-classify transactions by keyword, vendor, or account match</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            Auto-classify transactions by keyword, vendor, or account match
+            {rules.length > 0 && (
+              <span className="ml-2 text-gray-400">
+                · {manualCount} manual{learnedCount > 0 ? `, ${learnedCount} learned` : ''}
+              </span>
+            )}
+          </p>
         </div>
         <AdminOnly>
           <Button onClick={openCreate} className="flex items-center gap-2">
@@ -104,6 +131,10 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
 
       <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700">
         Rules are applied in priority order (lowest number first). The first matching rule wins.
+        <span className="ml-2 text-blue-500">
+          <Wand2 className="inline w-3.5 h-3.5 mr-0.5" />
+          Learned rules are created automatically when you classify a transaction and confirm the suggestion.
+        </span>
       </div>
 
       <Card>
@@ -118,6 +149,7 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-16">Priority</TableHead>
+                  <TableHead className="w-28">Source</TableHead>
                   <TableHead>Match Type</TableHead>
                   <TableHead>Match Value</TableHead>
                   <TableHead>Target Account</TableHead>
@@ -128,12 +160,19 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
                 {rules.map((rule) => {
                   const account = accountMap[rule.target_account_id];
                   return (
-                    <TableRow key={rule.id}>
+                    <TableRow key={rule.id} className={cn(rule.source === 'user_learned' && 'bg-amber-50/30')}>
                       <TableCell className="font-mono text-sm text-gray-500">{rule.priority}</TableCell>
-                      <TableCell><Badge variant="pending">{MATCH_TYPE_LABELS[rule.match_type] ?? rule.match_type}</Badge></TableCell>
+                      <TableCell>
+                        <SourceBadge source={rule.source} />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="pending">{MATCH_TYPE_LABELS[rule.match_type] ?? rule.match_type}</Badge>
+                      </TableCell>
                       <TableCell className="font-medium">{rule.match_value}</TableCell>
                       <TableCell className="text-sm">
-                        {account ? <span><span className="text-gray-400 mr-1.5">{account.account_code}</span>{account.account_name}</span> : <span className="text-gray-400">Unknown account</span>}
+                        {account
+                          ? <span><span className="text-gray-400 mr-1.5">{account.account_code}</span>{account.account_name}</span>
+                          : <span className="text-gray-400">Unknown account</span>}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -153,12 +192,19 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete rule?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    This rule will be deleted and will no longer auto-classify matching transactions.
+                                    {rule.source === 'user_learned'
+                                      ? 'This learned rule will be deleted. Transactions matching this pattern will no longer be auto-classified.'
+                                      : 'This rule will be deleted and will no longer auto-classify matching transactions.'}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(rule)} className="bg-red-500 hover:bg-red-600 text-white">Delete</AlertDialogAction>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(rule)}
+                                    className="bg-red-500 hover:bg-red-600 text-white"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -183,7 +229,12 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Match Type</Label>
-                <select value={form.match_type} onChange={(e) => setForm((f) => ({ ...f, match_type: e.target.value }))} disabled={!!editingRule} className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50">
+                <select
+                  value={form.match_type}
+                  onChange={(e) => setForm((f) => ({ ...f, match_type: e.target.value }))}
+                  disabled={!!editingRule}
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50"
+                >
                   <option value="keyword">Keyword (description contains)</option>
                   <option value="vendor">Vendor (exact match)</option>
                   <option value="account">Account (source account)</option>
@@ -196,13 +247,19 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Match Value</Label>
-              <Input value={form.match_value} onChange={(e) => setForm((f) => ({ ...f, match_value: e.target.value }))}
+              <Input
+                value={form.match_value}
+                onChange={(e) => setForm((f) => ({ ...f, match_value: e.target.value }))}
                 placeholder={form.match_type === 'keyword' ? 'e.g. Shopify, AWS' : form.match_type === 'vendor' ? 'e.g. Amazon.ca' : 'e.g. account name'}
               />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Target Account</Label>
-              <select value={form.target_account_id} onChange={(e) => setForm((f) => ({ ...f, target_account_id: e.target.value }))} className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]">
+              <select
+                value={form.target_account_id}
+                onChange={(e) => setForm((f) => ({ ...f, target_account_id: e.target.value }))}
+                className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+              >
                 <option value="">Select account…</option>
                 {accounts.filter((a) => a.is_active).map((a) => (
                   <option key={a.id} value={a.id}>{a.account_code} – {a.account_name} ({a.account_type})</option>
