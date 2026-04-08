@@ -10,7 +10,9 @@ export async function createRule(data: {
   priority: number;
 }) {
   try {
-    await api('/classification/rules', { method: 'POST', body: JSON.stringify(data) });
+    const matchTypeLabel = data.match_type.charAt(0).toUpperCase() + data.match_type.slice(1);
+    const payload = { ...data, name: `${matchTypeLabel}: ${data.match_value}` };
+    await api('/classification/rules', { method: 'POST', body: JSON.stringify(payload) });
     revalidatePath('/rules');
     return { success: true };
   } catch (error: any) {

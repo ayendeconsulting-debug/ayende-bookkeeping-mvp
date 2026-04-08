@@ -1,6 +1,7 @@
 import { IsBoolean, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 export class CreateClassificationRuleDto {
+  @IsOptional()
   @IsUUID('all')
   businessId: string;
 
