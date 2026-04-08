@@ -1,11 +1,15 @@
-import { getClients } from './actions';
+import { getClients, getFirmAiUsage } from './actions';
 import { ClientListTable } from '@/components/client-list-table';
+import { FirmAiUsageWidget } from '@/components/firm-ai-usage-widget';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
 
 export default async function AccountantClientsPage() {
-  const clients = await getClients();
+  const [clients, firmUsage] = await Promise.all([
+    getClients(),
+    getFirmAiUsage(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -25,6 +29,9 @@ export default async function AccountantClientsPage() {
           </Link>
         </Button>
       </div>
+
+      {/* Firm AI Usage Widget — only shown for Accountant plan */}
+      {firmUsage && <FirmAiUsageWidget usage={firmUsage} />}
 
       {/* Table */}
       <ClientListTable clients={clients} />

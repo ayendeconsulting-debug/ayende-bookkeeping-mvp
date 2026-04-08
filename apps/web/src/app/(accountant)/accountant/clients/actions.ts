@@ -1,5 +1,4 @@
 'use server';
-
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
 
@@ -14,12 +13,28 @@ export interface ClientListItem {
   added_at: string;
 }
 
+export interface FirmAiUsage {
+  used: number;
+  cap: number;
+  percentage: number;
+}
+
 export async function getClients(): Promise<ClientListItem[]> {
   try {
     const data = await api<ClientListItem[]>('/firms/me/clients');
     return data;
   } catch {
     return [];
+  }
+}
+
+export async function getFirmAiUsage(): Promise<FirmAiUsage | null> {
+  try {
+    const data = await api<FirmAiUsage>('/ai/firm-usage');
+    return data;
+  } catch {
+    // Non-accountant plan or no firm — return null, widget is hidden
+    return null;
   }
 }
 
