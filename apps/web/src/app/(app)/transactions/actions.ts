@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
 
-/* ── Bulk classify ───────────────────────────────────────────────────────── */
+/* ── Bulk classify ──────────────────────────────────────────────────────── */
 export async function bulkClassifyTransactions(data: {
   rawTransactionIds: string[];
   accountId: string;
@@ -25,7 +25,7 @@ export async function bulkClassifyTransactions(data: {
   }
 }
 
-/* ── Tag a transaction as Personal or Business (Freelancer Mode) ──────────── */
+/* ── Tag a transaction as Personal or Business (Freelancer Mode) ────────── */
 export async function tagTransaction(transactionId: string, isPersonal: boolean) {
   try {
     await api(`/classification/raw/${transactionId}/tag`, {
@@ -39,7 +39,7 @@ export async function tagTransaction(transactionId: string, isPersonal: boolean)
   }
 }
 
-/* ── Classify a raw transaction ───────────────────────────────────────────── */
+/* ── Classify a raw transaction ─────────────────────────────────────────── */
 export async function classifyTransaction(data: {
   rawTransactionId: string;
   accountId: string;
@@ -66,7 +66,7 @@ export async function classifyTransaction(data: {
   }
 }
 
-/* ── Post a classified transaction to the ledger ─────────────────────────── */
+/* ── Post a classified transaction to the ledger ────────────────────────── */
 export async function postTransaction(data: {
   classifiedId: string;
   sourceAccountId: string;
@@ -84,7 +84,7 @@ export async function postTransaction(data: {
   }
 }
 
-/* ── Get AI classification suggestion ────────────────────────────────────── */
+/* ── Get AI classification suggestion ───────────────────────────────────── */
 export async function getAiSuggestion(rawTransactionId: string) {
   try {
     const result = await api(`/ai/classify/${rawTransactionId}`, {
@@ -97,7 +97,22 @@ export async function getAiSuggestion(rawTransactionId: string) {
   }
 }
 
-/* ── Document actions ────────────────────────────────────────────────────── */
+/* ── Phase 12: Run auto-classification rules against all pending txs ─────── */
+export async function runBatchRules() {
+  try {
+    const result = await api<{ total: number; classified: number; skipped: number }>(
+      '/classification/rules/run-batch',
+      { method: 'POST' },
+    );
+    revalidatePath('/transactions');
+    revalidatePath('/dashboard');
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/* ── Document actions ───────────────────────────────────────────────────── */
 export async function getDocumentUploadUrl(data: {
   rawTransactionId: string;
   fileName: string;

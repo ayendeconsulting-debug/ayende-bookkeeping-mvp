@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, CheckSquare } from 'lucide-react';
+import { Search, SlidersHorizontal, CheckSquare, Wand2 } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, BusinessMode } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
@@ -11,7 +11,7 @@ import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { bulkClassifyTransactions } from '@/app/(app)/transactions/actions';
+import { bulkClassifyTransactions, runBatchRules } from '@/app/(app)/transactions/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -52,6 +52,7 @@ export function TransactionInbox({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [isBulkPending, startBulkTransition] = useTransition();
+  const [isRunRulesPending, startRunRulesTransition] = useTransition();
 
   const [searchValue, setSearchValue] = useState(currentSearch);
   const [selectedTx, setSelectedTx] = useState<RawTransaction | null>(null);
@@ -135,6 +136,23 @@ export function TransactionInbox({
     });
   }
 
+  // Phase 12: Run Rules handler
+  function handleRunRules() {
+    startRunRulesTransition(async () => {
+      const result = await runBatchRules();
+      if (result.success && result.data) {
+        const { classified, skipped, total } = result.data;
+        const noMatch = total - classified;
+        toastSuccess(
+          `${classified} auto-classified, ${skipped} already classified, ${noMatch} no match.`,
+        );
+        router.refresh();
+      } else {
+        toastError(result.error ?? 'Failed to run rules.');
+      }
+    });
+  }
+
   const pendingCount = initialTransactions.filter((t) => t.status === 'pending').length;
 
   return (
@@ -155,20 +173,37 @@ export function TransactionInbox({
               )}
             </p>
           </div>
-          <form onSubmit={handleSearch} className="flex gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input
-                className="pl-8 w-64"
-                placeholder="Search transactions…"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-              />
-            </div>
-            <Button type="submit" variant="outline" size="sm">
-              <SlidersHorizontal className="w-4 h-4 mr-1.5" />Filter
-            </Button>
-          </form>
+
+          <div className="flex items-center gap-2">
+            {/* Phase 12: Run Rules button — admin + accountant only */}
+            <AdminOnly>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRunRules}
+                disabled={isRunRulesPending}
+                className="border-primary text-primary hover:bg-primary-light"
+              >
+                <Wand2 className="w-4 h-4 mr-1.5" />
+                {isRunRulesPending ? 'Running…' : 'Run Rules'}
+              </Button>
+            </AdminOnly>
+
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                  className="pl-8 w-64"
+                  placeholder="Search transactions…"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                />
+              </div>
+              <Button type="submit" variant="outline" size="sm">
+                <SlidersHorizontal className="w-4 h-4 mr-1.5" />Filter
+              </Button>
+            </form>
+          </div>
         </div>
 
         {/* Status tabs */}
