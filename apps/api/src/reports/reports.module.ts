@@ -31,6 +31,7 @@ import { HstController } from './controllers/hst.controller';
 // Services
 import { TaxService } from './services/tax.service';
 import { ClassificationService } from './services/classification.service';
+import { SplitTransactionService } from './services/split-transaction.service';
 import { IncomeStatementService } from './services/income-statement.service';
 import { BalanceSheetService } from './services/balance-sheet.service';
 import { TrialBalanceService } from './services/trial-balance.service';
@@ -86,6 +87,7 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
   providers: [
     TaxService,
     ClassificationService,
+    SplitTransactionService, // Phase 14
     IncomeStatementService,
     BalanceSheetService,
     TrialBalanceService,
@@ -108,6 +110,7 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
   exports: [
     // Phase 12: exported so PlaidModule can inject ClassificationService
     ClassificationService,
+    SplitTransactionService, // Phase 14
     IncomeStatementService,
     BalanceSheetService,
     TrialBalanceService,
@@ -118,7 +121,7 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
     ItcService,
     HstReportService,
     HstExportService,
-    // Phase 10 — exported so AiModule can inject PdfJobsService
+    // Phase 10 – exported so AiModule can inject PdfJobsService
     PdfJobsService,
     // Phase 11
     YearEndExportService,

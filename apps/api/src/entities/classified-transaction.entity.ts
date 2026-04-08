@@ -51,7 +51,7 @@ export class ClassifiedTransaction {
   @Column({ type: 'numeric', precision: 15, scale: 2, nullable: true })
   override_amount: number;
 
-  // varchar — stores Clerk user IDs (user_xxx) or 'system' for auto-classification
+  // varchar – stores Clerk user IDs (user_xxx) or 'system' for auto-classification
   @Column({ type: 'varchar', length: 255 })
   classified_by: string;
 
@@ -60,6 +60,13 @@ export class ClassifiedTransaction {
 
   @Column({ type: 'uuid', nullable: true })
   posted_journal_entry_id: string;
+
+  // Phase 14: split transaction tracking
+  @Column({ type: 'boolean', default: false })
+  is_split: boolean;
+
+  @Column({ type: 'integer', default: 0 })
+  split_count: number;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
