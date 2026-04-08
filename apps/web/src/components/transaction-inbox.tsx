@@ -1,11 +1,12 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, CheckSquare, Wand2 } from 'lucide-react';
+import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, BusinessMode } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
+import { TransactionExplainerPanel } from '@/components/transaction-explainer-panel';
 import { AdminOnly } from '@/components/admin-only';
 import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
@@ -29,10 +30,10 @@ interface TransactionInboxProps {
 }
 
 const STATUS_TABS = [
-  { key: 'all', label: 'All' },
-  { key: 'pending', label: 'Pending' },
+  { key: 'all',        label: 'All' },
+  { key: 'pending',    label: 'Pending' },
   { key: 'classified', label: 'Classified' },
-  { key: 'posted', label: 'Posted' },
+  { key: 'posted',     label: 'Posted' },
 ];
 
 function statusVariant(status: string): 'pending' | 'classified' | 'posted' | 'review' {
@@ -58,6 +59,10 @@ export function TransactionInbox({
   const [selectedTx, setSelectedTx] = useState<RawTransaction | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
+  // Phase 13: Explainer panel state
+  const [explainerTx, setExplainerTx]       = useState<RawTransaction | null>(null);
+  const [explainerOpen, setExplainerOpen]   = useState(false);
+
   // Bulk classification state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAccountId, setBulkAccountId] = useState('');
@@ -67,7 +72,6 @@ export function TransactionInbox({
   const LIMIT = 20;
   const totalPages = Math.ceil(totalCount / LIMIT);
 
-  // Transactions eligible for bulk selection (pending + non-personal)
   const selectableTxs = initialTransactions.filter(
     (tx) => tx.status === 'pending' && !tx.is_personal,
   );
@@ -99,6 +103,10 @@ export function TransactionInbox({
     startTransition(() => router.refresh());
   }
   function handleTagToggle() { startTransition(() => router.refresh()); }
+
+  // Phase 13: Explainer handlers
+  function openExplainer(tx: RawTransaction) { setExplainerTx(tx); setExplainerOpen(true); }
+  function handleExplainerClose() { setExplainerOpen(false); setExplainerTx(null); }
 
   function handleToggleAll() {
     if (allSelected) setSelectedIds(new Set());
@@ -136,7 +144,6 @@ export function TransactionInbox({
     });
   }
 
-  // Phase 12: Run Rules handler
   function handleRunRules() {
     startRunRulesTransition(async () => {
       const result = await runBatchRules();
@@ -165,17 +172,16 @@ export function TransactionInbox({
               {isFreelancer ? 'Income & Expenses' : 'Transactions'}
             </h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              {totalCount} total · {pendingCount} pending review
+              {totalCount} total Â· {pendingCount} pending review
               {isFreelancer && (
                 <span className="ml-2 text-purple-500 text-xs font-medium">
-                  · Tag each transaction as Business or Personal
+                  Â· Tag each transaction as Business or Personal
                 </span>
               )}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Phase 12: Run Rules button — admin + accountant only */}
             <AdminOnly>
               <Button
                 variant="outline"
@@ -185,7 +191,7 @@ export function TransactionInbox({
                 className="border-primary text-primary hover:bg-primary-light"
               >
                 <Wand2 className="w-4 h-4 mr-1.5" />
-                {isRunRulesPending ? 'Running…' : 'Run Rules'}
+                {isRunRulesPending ? 'Runningâ€¦' : 'Run Rules'}
               </Button>
             </AdminOnly>
 
@@ -194,7 +200,7 @@ export function TransactionInbox({
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   className="pl-8 w-64"
-                  placeholder="Search transactions…"
+                  placeholder="Search transactionsâ€¦"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                 />
@@ -234,14 +240,17 @@ export function TransactionInbox({
             </div>
             <p className="text-sm font-medium text-gray-900 mb-1">No transactions found</p>
             <p className="text-sm text-gray-500">
-              {currentSearch ? `No results for "${currentSearch}"` : currentStatus !== 'all' ? `No ${currentStatus} transactions` : 'Connect a bank account to start importing transactions'}
+              {currentSearch
+                ? `No results for "${currentSearch}"`
+                : currentStatus !== 'all'
+                ? `No ${currentStatus} transactions`
+                : 'Connect a bank account to start importing transactions'}
             </p>
           </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                {/* Bulk select checkbox — shown when there are selectable pending txs */}
                 {selectableTxs.length > 0 && (
                   <TableHead className="w-10">
                     <input
@@ -259,7 +268,7 @@ export function TransactionInbox({
                 <TableHead className="text-right">Amount</TableHead>
                 {isFreelancer && <TableHead className="w-44">Type</TableHead>}
                 <TableHead>Status</TableHead>
-                <TableHead className="w-36">Actions</TableHead>
+                <TableHead className="w-44">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -276,7 +285,6 @@ export function TransactionInbox({
                       isSelected ? 'bg-primary-light/30' : '',
                     )}
                   >
-                    {/* Checkbox cell */}
                     {selectableTxs.length > 0 && (
                       <TableCell>
                         {isSelectable ? (
@@ -293,13 +301,19 @@ export function TransactionInbox({
                     )}
 
                     <TableCell className="text-gray-500 whitespace-nowrap">
-                      {new Date(tx.transaction_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: '2-digit' })}
+                      {new Date(tx.transaction_date).toLocaleDateString('en-CA', {
+                        month: 'short', day: 'numeric', year: '2-digit',
+                      })}
                     </TableCell>
                     <TableCell className="max-w-xs">
                       <span className="block truncate text-gray-900">{tx.description}</span>
-                      {tx.plaid_category && <span className="text-xs text-gray-400">{tx.plaid_category}</span>}
+                      {tx.plaid_category && (
+                        <span className="text-xs text-gray-400">{tx.plaid_category}</span>
+                      )}
                     </TableCell>
-                    <TableCell className="text-gray-500 text-sm">{tx.source_account_name ?? '—'}</TableCell>
+                    <TableCell className="text-gray-500 text-sm">
+                      {tx.source_account_name ?? 'â€”'}
+                    </TableCell>
                     <TableCell className="text-right">
                       <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
                         {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
@@ -309,9 +323,18 @@ export function TransactionInbox({
                     {isFreelancer && (
                       <TableCell>
                         {tx.status === 'pending' ? (
-                          <TransactionTagToggle transactionId={tx.id} isPersonal={tx.is_personal} onToggle={handleTagToggle} />
+                          <TransactionTagToggle
+                            transactionId={tx.id}
+                            isPersonal={tx.is_personal}
+                            onToggle={handleTagToggle}
+                          />
                         ) : (
-                          <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full', tx.is_personal ? 'bg-purple-50 text-purple-600' : 'bg-primary-light text-primary')}>
+                          <span className={cn(
+                            'text-xs font-medium px-2 py-0.5 rounded-full',
+                            tx.is_personal
+                              ? 'bg-purple-50 text-purple-600'
+                              : 'bg-primary-light text-primary',
+                          )}>
                             {tx.is_personal ? 'Personal' : 'Business'}
                           </span>
                         )}
@@ -323,22 +346,48 @@ export function TransactionInbox({
                         {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
                       </Badge>
                     </TableCell>
+
                     <TableCell>
                       <div className="flex items-center gap-1.5">
                         {tx.status === 'pending' && !tx.is_personal && (
                           <AdminOnly>
-                            <Button size="sm" variant="outline" className="h-7 text-xs border-primary text-primary hover:bg-primary-light" onClick={() => openClassify(tx)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs border-primary text-primary hover:bg-primary-light"
+                              onClick={() => openClassify(tx)}
+                            >
                               Classify
                             </Button>
                           </AdminOnly>
                         )}
                         {tx.status === 'classified' && (
                           <AdminOnly>
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => openClassify(tx)}>Post</Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => openClassify(tx)}
+                            >
+                              Post
+                            </Button>
                           </AdminOnly>
                         )}
-                        {tx.status === 'posted' && <span className="text-xs text-gray-400">Posted</span>}
-                        {tx.status === 'pending' && tx.is_personal && isFreelancer && <span className="text-xs text-gray-400 italic">Personal</span>}
+                        {tx.status === 'posted' && (
+                          <span className="text-xs text-gray-400">Posted</span>
+                        )}
+                        {tx.status === 'pending' && tx.is_personal && isFreelancer && (
+                          <span className="text-xs text-gray-400 italic">Personal</span>
+                        )}
+
+                        {/* Phase 13: Explain button â€” visible on all transactions */}
+                        <button
+                          onClick={() => openExplainer(tx)}
+                          title="Explain with AI"
+                          className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -352,15 +401,19 @@ export function TransactionInbox({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white">
-          <span className="text-sm text-gray-500">Page {currentPage} of {totalPages} · {totalCount} transactions</span>
+          <span className="text-sm text-gray-500">
+            Page {currentPage} of {totalPages} Â· {totalCount} transactions
+          </span>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => handlePage(currentPage - 1)}>Previous</Button>
-            <Button size="sm" variant="outline" disabled={currentPage >= totalPages} onClick={() => handlePage(currentPage + 1)}>Next</Button>
+            <Button size="sm" variant="outline" disabled={currentPage <= 1}
+              onClick={() => handlePage(currentPage - 1)}>Previous</Button>
+            <Button size="sm" variant="outline" disabled={currentPage >= totalPages}
+              onClick={() => handlePage(currentPage + 1)}>Next</Button>
           </div>
         </div>
       )}
 
-      {/* Bulk classification action bar — fixed at bottom, slides up when items selected */}
+      {/* Bulk classification action bar */}
       {someSelected && (
         <div className="fixed bottom-0 left-[220px] right-0 bg-white border-t-2 border-primary/20 px-6 py-3 flex items-center gap-3 shadow-2xl z-20">
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -370,21 +423,19 @@ export function TransactionInbox({
 
           <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
 
-          {/* Account selector */}
           <select
             value={bulkAccountId}
             onChange={(e) => setBulkAccountId(e.target.value)}
             className="flex-1 max-w-xs h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            <option value="">Select account…</option>
+            <option value="">Select accountâ€¦</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.account_code} — {a.account_name}
+                {a.account_code} â€” {a.account_name}
               </option>
             ))}
           </select>
 
-          {/* Tax code selector */}
           <select
             value={bulkTaxCodeId}
             onChange={(e) => setBulkTaxCodeId(e.target.value)}
@@ -403,7 +454,7 @@ export function TransactionInbox({
             disabled={isBulkPending || !bulkAccountId}
             className="bg-primary text-white hover:bg-primary/90 flex-shrink-0"
           >
-            {isBulkPending ? 'Classifying…' : `Classify ${selectedIds.size}`}
+            {isBulkPending ? 'Classifyingâ€¦' : `Classify ${selectedIds.size}`}
           </Button>
 
           <Button
@@ -425,6 +476,14 @@ export function TransactionInbox({
         onClose={handlePanelClose}
         onSuccess={handleSuccess}
       />
+
+      {/* Phase 13: Transaction Explainer Panel */}
+      <TransactionExplainerPanel
+        transaction={explainerTx}
+        open={explainerOpen}
+        onClose={handleExplainerClose}
+      />
     </div>
   );
 }
+

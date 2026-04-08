@@ -1,9 +1,9 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
 
-/* ── Bulk classify ──────────────────────────────────────────────────────── */
+/* â”€â”€ Bulk classify â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function bulkClassifyTransactions(data: {
   rawTransactionIds: string[];
   accountId: string;
@@ -25,7 +25,7 @@ export async function bulkClassifyTransactions(data: {
   }
 }
 
-/* ── Tag a transaction as Personal or Business (Freelancer Mode) ────────── */
+/* â”€â”€ Tag a transaction as Personal or Business (Freelancer Mode) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function tagTransaction(transactionId: string, isPersonal: boolean) {
   try {
     await api(`/classification/raw/${transactionId}/tag`, {
@@ -39,7 +39,7 @@ export async function tagTransaction(transactionId: string, isPersonal: boolean)
   }
 }
 
-/* ── Classify a raw transaction ─────────────────────────────────────────── */
+/* â”€â”€ Classify a raw transaction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function classifyTransaction(data: {
   rawTransactionId: string;
   accountId: string;
@@ -66,7 +66,7 @@ export async function classifyTransaction(data: {
   }
 }
 
-/* ── Post a classified transaction to the ledger ────────────────────────── */
+/* â”€â”€ Post a classified transaction to the ledger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function postTransaction(data: {
   classifiedId: string;
   sourceAccountId: string;
@@ -84,7 +84,7 @@ export async function postTransaction(data: {
   }
 }
 
-/* ── Get AI classification suggestion ───────────────────────────────────── */
+/* â”€â”€ Get AI classification suggestion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function getAiSuggestion(rawTransactionId: string) {
   try {
     const result = await api(`/ai/classify/${rawTransactionId}`, {
@@ -97,7 +97,7 @@ export async function getAiSuggestion(rawTransactionId: string) {
   }
 }
 
-/* ── Phase 12: Run auto-classification rules against all pending txs ─────── */
+/* â”€â”€ Phase 12: Run auto-classification rules against all pending txs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function runBatchRules() {
   try {
     const result = await api<{ total: number; classified: number; skipped: number }>(
@@ -112,7 +112,33 @@ export async function runBatchRules() {
   }
 }
 
-/* ── Document actions ───────────────────────────────────────────────────── */
+/* â”€â”€ Phase 13: Explain a transaction via AI (async job) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+export async function explainTransaction(rawTransactionId: string) {
+  try {
+    const result = await api<{ job_id: string }>(
+      `/ai/explain/${rawTransactionId}`,
+      { method: 'POST' },
+    );
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/* â”€â”€ Phase 13: Poll an AI job for status + result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+export async function pollAiJob(jobId: string) {
+  try {
+    const result = await api<{
+      status: 'queued' | 'processing' | 'complete' | 'failed';
+      result?: unknown;
+    }>(`/ai/jobs/${jobId}`);
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/* â”€â”€ Document actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function getDocumentUploadUrl(data: {
   rawTransactionId: string;
   fileName: string;
@@ -183,3 +209,4 @@ export async function deleteDocument(documentId: string) {
     return { success: false, error: error.message };
   }
 }
+
