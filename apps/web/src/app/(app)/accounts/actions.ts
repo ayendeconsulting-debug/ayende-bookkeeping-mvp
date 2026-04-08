@@ -40,3 +40,21 @@ export async function deactivateAccount(id: string) {
     return { success: false, error: error.message };
   }
 }
+
+/* ── Phase 12: Seed standard default chart of accounts ───────────────────── */
+export async function seedDefaultAccounts(): Promise<{
+  success: boolean;
+  data?: { added: number; skipped: number };
+  error?: string;
+}> {
+  try {
+    const result = await api<{ added: number; skipped: number }>(
+      '/accounts/seed-defaults',
+      { method: 'POST' },
+    );
+    revalidatePath('/accounts');
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

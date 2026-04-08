@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Pencil, PowerOff, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Pencil, PowerOff, ChevronDown, ChevronRight, Wand2 } from 'lucide-react';
 import { Account, AccountType } from '@/types';
-import { createAccount, updateAccount, deactivateAccount } from '@/app/(app)/accounts/actions';
+import {
+  createAccount,
+  updateAccount,
+  deactivateAccount,
+  seedDefaultAccounts,
+} from '@/app/(app)/accounts/actions';
 import { AdminOnly } from '@/components/admin-only';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
@@ -29,11 +34,11 @@ const SUBTYPES = [
 ];
 
 const TYPE_COLORS: Record<AccountType, string> = {
-  asset: 'text-blue-600 bg-blue-50',
+  asset:     'text-blue-600 bg-blue-50',
   liability: 'text-red-600 bg-red-50',
-  equity: 'text-purple-600 bg-purple-50',
-  revenue: 'text-green-600 bg-green-50',
-  expense: 'text-orange-600 bg-orange-50',
+  equity:    'text-purple-600 bg-purple-50',
+  revenue:   'text-green-600 bg-green-50',
+  expense:   'text-orange-600 bg-orange-50',
 };
 
 interface AccountsManagerProps {
@@ -60,6 +65,9 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collapsedTypes, setCollapsedTypes] = useState<Set<string>>(new Set());
+
+  // Phase 12: seed defaults state
+  const [isSeedPending, startSeedTransition] = useTransition();
 
   function openCreate() {
     setEditingAccount(null);
@@ -127,6 +135,22 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
     }
   }
 
+  // Phase 12: Load Default Accounts handler
+  function handleSeedDefaults() {
+    startSeedTransition(async () => {
+      const result = await seedDefaultAccounts();
+      if (result.success && result.data) {
+        const { added, skipped } = result.data;
+        toastSuccess(
+          `${added} account${added !== 1 ? 's' : ''} added, ${skipped} already existed.`,
+        );
+        router.refresh();
+      } else {
+        toastError(result.error ?? 'Failed to load default accounts.');
+      }
+    });
+  }
+
   function toggleType(type: string) {
     setCollapsedTypes((prev) => {
       const next = new Set(prev);
@@ -140,6 +164,9 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
     return acc;
   }, {} as Record<string, Account[]>);
 
+  // Phase 12: show "Load Default Accounts" only when chart is empty/near-empty (<5 accounts)
+  const showLoadDefaults = accounts.length < 5;
+
   return (
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
@@ -149,13 +176,36 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
             {accounts.filter((a) => a.is_active).length} active accounts
           </p>
         </div>
-        <AdminOnly>
-          <Button onClick={openCreate} className="flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            New Account
-          </Button>
-        </AdminOnly>
+        <div className="flex items-center gap-2">
+          {/* Phase 12: Load Default Accounts button — admin only, shown when <5 accounts */}
+          {showLoadDefaults && (
+            <AdminOnly>
+              <Button
+                variant="outline"
+                onClick={handleSeedDefaults}
+                disabled={isSeedPending}
+                className="flex items-center gap-2 border-primary text-primary hover:bg-primary-light"
+              >
+                <Wand2 className="w-4 h-4" />
+                {isSeedPending ? 'Loading…' : 'Load Default Accounts'}
+              </Button>
+            </AdminOnly>
+          )}
+          <AdminOnly>
+            <Button onClick={openCreate} className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              New Account
+            </Button>
+          </AdminOnly>
+        </div>
       </div>
+
+      {/* Phase 12: Empty state prompt */}
+      {accounts.length === 0 && (
+        <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700">
+          Your chart of accounts is empty. Click <strong>Load Default Accounts</strong> to add a standard set of 27 accounts, or create them manually.
+        </div>
+      )}
 
       <div className="flex flex-col gap-4">
         {ACCOUNT_TYPES.map((type) => {
@@ -168,7 +218,9 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
                 onClick={() => toggleType(type)}
               >
                 <div className="flex items-center gap-2">
-                  {collapsed ? <ChevronRight className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                  {collapsed
+                    ? <ChevronRight className="w-4 h-4 text-gray-400" />
+                    : <ChevronDown className="w-4 h-4 text-gray-400" />}
                   <CardTitle className="capitalize">{type}</CardTitle>
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_COLORS[type]}`}>
                     {typeAccounts.length}
@@ -258,7 +310,11 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Account Code</Label>
-                <Input value={form.account_code} onChange={(e) => setForm((f) => ({ ...f, account_code: e.target.value }))} placeholder="e.g. 1000" />
+                <Input
+                  value={form.account_code}
+                  onChange={(e) => setForm((f) => ({ ...f, account_code: e.target.value }))}
+                  placeholder="e.g. 1000"
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label>Account Type</Label>
@@ -276,7 +332,11 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Account Name</Label>
-              <Input value={form.account_name} onChange={(e) => setForm((f) => ({ ...f, account_name: e.target.value }))} placeholder="e.g. Cash and Cash Equivalents" />
+              <Input
+                value={form.account_name}
+                onChange={(e) => setForm((f) => ({ ...f, account_name: e.target.value }))}
+                placeholder="e.g. Cash and Cash Equivalents"
+              />
             </div>
             {!editingAccount && (
               <div className="flex flex-col gap-1.5">
