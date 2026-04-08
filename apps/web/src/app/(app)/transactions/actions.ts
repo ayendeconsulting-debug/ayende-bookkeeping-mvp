@@ -1,9 +1,9 @@
-﻿'use server';
+'use server';
 
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
 
-/* â”€â”€ Bulk classify â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Bulk classify ──────────────────────────────────────────────────────────────── */
 export async function bulkClassifyTransactions(data: {
   rawTransactionIds: string[];
   accountId: string;
@@ -25,7 +25,7 @@ export async function bulkClassifyTransactions(data: {
   }
 }
 
-/* â”€â”€ Tag a transaction as Personal or Business (Freelancer Mode) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Tag a transaction as Personal or Business (Freelancer Mode) ──────────────── */
 export async function tagTransaction(transactionId: string, isPersonal: boolean) {
   try {
     await api(`/classification/raw/${transactionId}/tag`, {
@@ -39,7 +39,7 @@ export async function tagTransaction(transactionId: string, isPersonal: boolean)
   }
 }
 
-/* â”€â”€ Classify a raw transaction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Classify a raw transaction ───────────────────────────────────────────────── */
 export async function classifyTransaction(data: {
   rawTransactionId: string;
   accountId: string;
@@ -66,7 +66,7 @@ export async function classifyTransaction(data: {
   }
 }
 
-/* â”€â”€ Post a classified transaction to the ledger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Post a classified transaction to the ledger ─────────────────────────────── */
 export async function postTransaction(data: {
   classifiedId: string;
   sourceAccountId: string;
@@ -84,7 +84,7 @@ export async function postTransaction(data: {
   }
 }
 
-/* â”€â”€ Get AI classification suggestion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Get AI classification suggestion ────────────────────────────────────────── */
 export async function getAiSuggestion(rawTransactionId: string) {
   try {
     const result = await api(`/ai/classify/${rawTransactionId}`, {
@@ -97,7 +97,7 @@ export async function getAiSuggestion(rawTransactionId: string) {
   }
 }
 
-/* â”€â”€ Phase 12: Run auto-classification rules against all pending txs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Phase 12: Run auto-classification rules against all pending txs ─────────── */
 export async function runBatchRules() {
   try {
     const result = await api<{ total: number; classified: number; skipped: number }>(
@@ -112,7 +112,7 @@ export async function runBatchRules() {
   }
 }
 
-/* â”€â”€ Phase 13: Explain a transaction via AI (async job) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Phase 13: Explain a transaction via AI (async job) ──────────────────────── */
 export async function explainTransaction(rawTransactionId: string) {
   try {
     const result = await api<{ job_id: string }>(
@@ -125,7 +125,7 @@ export async function explainTransaction(rawTransactionId: string) {
   }
 }
 
-/* â”€â”€ Phase 13: Poll an AI job for status + result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Phase 13: Poll an AI job for status + result ────────────────────────────── */
 export async function pollAiJob(jobId: string) {
   try {
     const result = await api<{
@@ -138,7 +138,41 @@ export async function pollAiJob(jobId: string) {
   }
 }
 
-/* â”€â”€ Document actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Phase 14: Split a transaction across multiple accounts ──────────────────── */
+export async function splitTransaction(
+  rawTransactionId: string,
+  data: {
+    source_account_id: string;
+    splits: { account_id: string; amount: number; description?: string }[];
+  },
+) {
+  try {
+    const result = await api(
+      `/classification/raw/${rawTransactionId}/split`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    );
+    revalidatePath('/transactions');
+    revalidatePath('/dashboard');
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/* ── Phase 14: Get split lines for a posted split transaction ────────────────── */
+export async function getSplitLines(rawTransactionId: string) {
+  try {
+    const result = await api(`/classification/raw/${rawTransactionId}/splits`);
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/* ── Document actions ─────────────────────────────────────────────────────────── */
 export async function getDocumentUploadUrl(data: {
   rawTransactionId: string;
   fileName: string;
@@ -209,4 +243,3 @@ export async function deleteDocument(documentId: string) {
     return { success: false, error: error.message };
   }
 }
-

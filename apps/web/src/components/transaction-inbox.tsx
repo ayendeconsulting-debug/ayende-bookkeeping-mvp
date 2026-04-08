@@ -1,12 +1,13 @@
-﻿'use client';
+'use client';
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles } from 'lucide-react';
+import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, BusinessMode } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
 import { TransactionExplainerPanel } from '@/components/transaction-explainer-panel';
+import { SplitTransactionModal } from '@/components/split-transaction-modal';
 import { AdminOnly } from '@/components/admin-only';
 import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
@@ -60,8 +61,12 @@ export function TransactionInbox({
   const [panelOpen, setPanelOpen] = useState(false);
 
   // Phase 13: Explainer panel state
-  const [explainerTx, setExplainerTx]       = useState<RawTransaction | null>(null);
-  const [explainerOpen, setExplainerOpen]   = useState(false);
+  const [explainerTx, setExplainerTx]     = useState<RawTransaction | null>(null);
+  const [explainerOpen, setExplainerOpen] = useState(false);
+
+  // Phase 14: Split modal state
+  const [splitTx, setSplitTx]       = useState<RawTransaction | null>(null);
+  const [splitOpen, setSplitOpen]   = useState(false);
 
   // Bulk classification state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -107,6 +112,14 @@ export function TransactionInbox({
   // Phase 13: Explainer handlers
   function openExplainer(tx: RawTransaction) { setExplainerTx(tx); setExplainerOpen(true); }
   function handleExplainerClose() { setExplainerOpen(false); setExplainerTx(null); }
+
+  // Phase 14: Split handlers
+  function openSplit(tx: RawTransaction) { setSplitTx(tx); setSplitOpen(true); }
+  function handleSplitClose() { setSplitOpen(false); setSplitTx(null); }
+  function handleSplitSuccess() {
+    setSplitOpen(false); setSplitTx(null);
+    startTransition(() => router.refresh());
+  }
 
   function handleToggleAll() {
     if (allSelected) setSelectedIds(new Set());
@@ -172,10 +185,10 @@ export function TransactionInbox({
               {isFreelancer ? 'Income & Expenses' : 'Transactions'}
             </h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              {totalCount} total Â· {pendingCount} pending review
+              {totalCount} total · {pendingCount} pending review
               {isFreelancer && (
                 <span className="ml-2 text-purple-500 text-xs font-medium">
-                  Â· Tag each transaction as Business or Personal
+                  · Tag each transaction as Business or Personal
                 </span>
               )}
             </p>
@@ -191,7 +204,7 @@ export function TransactionInbox({
                 className="border-primary text-primary hover:bg-primary-light"
               >
                 <Wand2 className="w-4 h-4 mr-1.5" />
-                {isRunRulesPending ? 'Runningâ€¦' : 'Run Rules'}
+                {isRunRulesPending ? 'Running…' : 'Run Rules'}
               </Button>
             </AdminOnly>
 
@@ -200,7 +213,7 @@ export function TransactionInbox({
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
                 <Input
                   className="pl-8 w-64"
-                  placeholder="Search transactionsâ€¦"
+                  placeholder="Search transactions…"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                 />
@@ -268,7 +281,7 @@ export function TransactionInbox({
                 <TableHead className="text-right">Amount</TableHead>
                 {isFreelancer && <TableHead className="w-44">Type</TableHead>}
                 <TableHead>Status</TableHead>
-                <TableHead className="w-44">Actions</TableHead>
+                <TableHead className="w-52">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -276,6 +289,7 @@ export function TransactionInbox({
                 const amount = Number(tx.amount);
                 const isSelectable = tx.status === 'pending' && !tx.is_personal;
                 const isSelected = selectedIds.has(tx.id);
+                const isSplittable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal;
 
                 return (
                   <TableRow
@@ -312,7 +326,7 @@ export function TransactionInbox({
                       )}
                     </TableCell>
                     <TableCell className="text-gray-500 text-sm">
-                      {tx.source_account_name ?? 'â€”'}
+                      {tx.source_account_name ?? '–'}
                     </TableCell>
                     <TableCell className="text-right">
                       <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
@@ -380,7 +394,20 @@ export function TransactionInbox({
                           <span className="text-xs text-gray-400 italic">Personal</span>
                         )}
 
-                        {/* Phase 13: Explain button â€” visible on all transactions */}
+                        {/* Phase 14: Split button — pending and classified rows only */}
+                        {isSplittable && (
+                          <AdminOnly>
+                            <button
+                              onClick={() => openSplit(tx)}
+                              title="Split transaction"
+                              className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary"
+                            >
+                              <Split className="w-3.5 h-3.5" />
+                            </button>
+                          </AdminOnly>
+                        )}
+
+                        {/* Phase 13: Explain button — visible on all transactions */}
                         <button
                           onClick={() => openExplainer(tx)}
                           title="Explain with AI"
@@ -402,7 +429,7 @@ export function TransactionInbox({
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white">
           <span className="text-sm text-gray-500">
-            Page {currentPage} of {totalPages} Â· {totalCount} transactions
+            Page {currentPage} of {totalPages} · {totalCount} transactions
           </span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={currentPage <= 1}
@@ -428,10 +455,10 @@ export function TransactionInbox({
             onChange={(e) => setBulkAccountId(e.target.value)}
             className="flex-1 max-w-xs h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary"
           >
-            <option value="">Select accountâ€¦</option>
+            <option value="">Select account…</option>
             {accounts.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.account_code} â€” {a.account_name}
+                {a.account_code} – {a.account_name}
               </option>
             ))}
           </select>
@@ -454,7 +481,7 @@ export function TransactionInbox({
             disabled={isBulkPending || !bulkAccountId}
             className="bg-primary text-white hover:bg-primary/90 flex-shrink-0"
           >
-            {isBulkPending ? 'Classifyingâ€¦' : `Classify ${selectedIds.size}`}
+            {isBulkPending ? 'Classifying…' : `Classify ${selectedIds.size}`}
           </Button>
 
           <Button
@@ -483,7 +510,15 @@ export function TransactionInbox({
         open={explainerOpen}
         onClose={handleExplainerClose}
       />
+
+      {/* Phase 14: Split Transaction Modal */}
+      <SplitTransactionModal
+        transaction={splitTx}
+        accounts={accounts}
+        open={splitOpen}
+        onClose={handleSplitClose}
+        onSuccess={handleSplitSuccess}
+      />
     </div>
   );
 }
-
