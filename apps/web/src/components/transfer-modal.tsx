@@ -75,8 +75,8 @@ export function TransferModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4 bg-black/40">
+      <div className="bg-white sm:rounded-xl rounded-t-xl shadow-2xl w-full sm:max-w-md flex flex-col">
 
         {/* Header */}
         <div className="flex items-start justify-between px-6 py-4 border-b border-gray-200">
@@ -166,7 +166,7 @@ export function TransferModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 sm:rounded-b-xl">
           <Button variant="outline" onClick={handleClose} disabled={isPending}>
             Cancel
           </Button>

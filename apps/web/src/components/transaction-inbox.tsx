@@ -257,7 +257,7 @@ export function TransactionInbox({
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table — hidden on mobile, shown on sm+ */}
       <div className={cn('flex-1 overflow-auto bg-white', isPending && 'opacity-60 pointer-events-none')}>
         {initialTransactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -274,190 +274,233 @@ export function TransactionInbox({
             </p>
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {selectableTxs.length > 0 && (
-                  <TableHead className="w-10">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={handleToggleAll}
-                      className="rounded border-gray-300 cursor-pointer"
-                      title="Select all pending"
-                    />
-                  </TableHead>
-                )}
-                <TableHead className="w-28">Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Source Account</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                {isFreelancer && <TableHead className="w-44">Type</TableHead>}
-                <TableHead>Status</TableHead>
-                <TableHead className="w-52">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <>
+            {/* ── Desktop table (sm and above) ─────────────────────────── */}
+            <div className="hidden sm:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {selectableTxs.length > 0 && (
+                      <TableHead className="w-10">
+                        <input
+                          type="checkbox"
+                          checked={allSelected}
+                          onChange={handleToggleAll}
+                          className="rounded border-gray-300 cursor-pointer"
+                          title="Select all pending"
+                        />
+                      </TableHead>
+                    )}
+                    <TableHead className="w-28">Date</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Source Account</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    {isFreelancer && <TableHead className="w-44">Type</TableHead>}
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-52">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {initialTransactions.map((tx) => {
+                    const amount = Number(tx.amount);
+                    const isSelectable = tx.status === 'pending' && !tx.is_personal;
+                    const isSelected = selectedIds.has(tx.id);
+                    const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal;
+
+                    return (
+                      <TableRow
+                        key={tx.id}
+                        className={cn(
+                          tx.is_personal && isFreelancer ? 'opacity-60' : '',
+                          isSelected ? 'bg-primary-light/30' : '',
+                        )}
+                      >
+                        {selectableTxs.length > 0 && (
+                          <TableCell>
+                            {isSelectable ? (
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleToggleOne(tx.id)}
+                                className="rounded border-gray-300 cursor-pointer"
+                              />
+                            ) : (
+                              <div className="w-4" />
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell className="text-gray-500 whitespace-nowrap">
+                          {new Date(tx.transaction_date).toLocaleDateString('en-CA', {
+                            month: 'short', day: 'numeric', year: '2-digit',
+                          })}
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                          <div className="flex items-center gap-1.5">
+                            {tx.anomaly_flags && tx.anomaly_flags.length > 0 && (
+                              <div className="flex-shrink-0 relative group" title={tx.anomaly_flags.join('\n')}>
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 cursor-help" />
+                                <div className="absolute left-0 top-5 z-20 hidden group-hover:block w-56 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl pointer-events-none">
+                                  <p className="font-medium mb-1 text-amber-300">Anomaly flags:</p>
+                                  {tx.anomaly_flags.map((flag, i) => (
+                                    <p key={i} className="leading-snug">{flag}</p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            <span className="block truncate text-gray-900">{tx.description}</span>
+                          </div>
+                          {tx.plaid_category && (
+                            <span className="text-xs text-gray-400">{tx.plaid_category}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-gray-500 text-sm">
+                          {tx.source_account_name ?? '–'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
+                            {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
+                          </span>
+                        </TableCell>
+                        {isFreelancer && (
+                          <TableCell>
+                            {tx.status === 'pending' ? (
+                              <TransactionTagToggle
+                                transactionId={tx.id}
+                                isPersonal={tx.is_personal}
+                                onToggle={handleTagToggle}
+                              />
+                            ) : (
+                              <span className={cn(
+                                'text-xs font-medium px-2 py-0.5 rounded-full',
+                                tx.is_personal ? 'bg-purple-50 text-purple-600' : 'bg-primary-light text-primary',
+                              )}>
+                                {tx.is_personal ? 'Personal' : 'Business'}
+                              </span>
+                            )}
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <Badge variant={statusVariant(tx.status)}>
+                            {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5">
+                            {tx.status === 'pending' && !tx.is_personal && (
+                              <AdminOnly>
+                                <Button size="sm" variant="outline"
+                                  className="h-7 text-xs border-primary text-primary hover:bg-primary-light"
+                                  onClick={() => openClassify(tx)}>Classify</Button>
+                              </AdminOnly>
+                            )}
+                            {tx.status === 'classified' && (
+                              <AdminOnly>
+                                <Button size="sm" variant="outline" className="h-7 text-xs"
+                                  onClick={() => openClassify(tx)}>Post</Button>
+                              </AdminOnly>
+                            )}
+                            {tx.status === 'posted' && <span className="text-xs text-gray-400">Posted</span>}
+                            {tx.status === 'pending' && tx.is_personal && isFreelancer && (
+                              <span className="text-xs text-gray-400 italic">Personal</span>
+                            )}
+                            {isActionable && (
+                              <AdminOnly>
+                                <button onClick={() => openSplit(tx)} title="Split transaction"
+                                  className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary">
+                                  <Split className="w-3.5 h-3.5" />
+                                </button>
+                                <button onClick={() => openTransfer(tx)} title="Mark as transfer"
+                                  className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary">
+                                  <ArrowLeftRight className="w-3.5 h-3.5" />
+                                </button>
+                              </AdminOnly>
+                            )}
+                            <button onClick={() => openExplainer(tx)} title="Explain with AI"
+                              className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary">
+                              <Sparkles className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* ── Mobile card list (below sm) ──────────────────────────── */}
+            <div className="sm:hidden divide-y divide-gray-100">
               {initialTransactions.map((tx) => {
                 const amount = Number(tx.amount);
-                const isSelectable = tx.status === 'pending' && !tx.is_personal;
-                const isSelected = selectedIds.has(tx.id);
                 const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal;
 
                 return (
-                  <TableRow
-                    key={tx.id}
-                    className={cn(
-                      tx.is_personal && isFreelancer ? 'opacity-60' : '',
-                      isSelected ? 'bg-primary-light/30' : '',
-                    )}
-                  >
-                    {selectableTxs.length > 0 && (
-                      <TableCell>
-                        {isSelectable ? (
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleToggleOne(tx.id)}
-                            className="rounded border-gray-300 cursor-pointer"
-                          />
-                        ) : (
-                          <div className="w-4" />
-                        )}
-                      </TableCell>
-                    )}
-
-                    <TableCell className="text-gray-500 whitespace-nowrap">
-                      {new Date(tx.transaction_date).toLocaleDateString('en-CA', {
-                        month: 'short', day: 'numeric', year: '2-digit',
-                      })}
-                    </TableCell>
-                    <TableCell className="max-w-xs">
-                      <div className="flex items-center gap-1.5">
-                        {tx.anomaly_flags && tx.anomaly_flags.length > 0 && (
-                          <div
-                            className="flex-shrink-0 relative group"
-                            title={tx.anomaly_flags.join('\n')}
-                          >
-                            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 cursor-help" />
-                            <div className="absolute left-0 top-5 z-20 hidden group-hover:block w-56 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl pointer-events-none">
-                              <p className="font-medium mb-1 text-amber-300">Anomaly flags:</p>
-                              {tx.anomaly_flags.map((flag, i) => (
-                                <p key={i} className="leading-snug">{flag}</p>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        <span className="block truncate text-gray-900">{tx.description}</span>
-                      </div>
-                      {tx.plaid_category && (
-                        <span className="text-xs text-gray-400">{tx.plaid_category}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-gray-500 text-sm">
-                      {tx.source_account_name ?? '–'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
-                        {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
+                  <div key={tx.id} className="px-4 py-3 bg-white">
+                    {/* Row 1: date + status */}
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-gray-400">
+                        {new Date(tx.transaction_date).toLocaleDateString('en-CA', {
+                          month: 'short', day: 'numeric', year: '2-digit',
+                        })}
                       </span>
-                    </TableCell>
-
-                    {isFreelancer && (
-                      <TableCell>
-                        {tx.status === 'pending' ? (
-                          <TransactionTagToggle
-                            transactionId={tx.id}
-                            isPersonal={tx.is_personal}
-                            onToggle={handleTagToggle}
-                          />
-                        ) : (
-                          <span className={cn(
-                            'text-xs font-medium px-2 py-0.5 rounded-full',
-                            tx.is_personal
-                              ? 'bg-purple-50 text-purple-600'
-                              : 'bg-primary-light text-primary',
-                          )}>
-                            {tx.is_personal ? 'Personal' : 'Business'}
-                          </span>
-                        )}
-                      </TableCell>
-                    )}
-
-                    <TableCell>
                       <Badge variant={statusVariant(tx.status)}>
                         {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
                       </Badge>
-                    </TableCell>
+                    </div>
 
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        {tx.status === 'pending' && !tx.is_personal && (
-                          <AdminOnly>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs border-primary text-primary hover:bg-primary-light"
-                              onClick={() => openClassify(tx)}
-                            >
-                              Classify
-                            </Button>
-                          </AdminOnly>
-                        )}
-                        {tx.status === 'classified' && (
-                          <AdminOnly>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              onClick={() => openClassify(tx)}
-                            >
-                              Post
-                            </Button>
-                          </AdminOnly>
-                        )}
-                        {tx.status === 'posted' && (
-                          <span className="text-xs text-gray-400">Posted</span>
-                        )}
-                        {tx.status === 'pending' && tx.is_personal && isFreelancer && (
-                          <span className="text-xs text-gray-400 italic">Personal</span>
-                        )}
+                    {/* Row 2: description + anomaly */}
+                    <div className="flex items-start gap-1.5 mb-1">
+                      {tx.anomaly_flags && tx.anomaly_flags.length > 0 && (
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      )}
+                      <span className="text-sm font-medium text-gray-900 leading-snug">{tx.description}</span>
+                    </div>
 
-                        {/* Phase 14: Split + Transfer buttons — pending and classified rows only */}
-                        {isActionable && (
-                          <AdminOnly>
-                            <button
-                              onClick={() => openSplit(tx)}
-                              title="Split transaction"
-                              className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary"
-                            >
-                              <Split className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => openTransfer(tx)}
-                              title="Mark as transfer"
-                              className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary"
-                            >
-                              <ArrowLeftRight className="w-3.5 h-3.5" />
-                            </button>
-                          </AdminOnly>
-                        )}
+                    {/* Row 3: amount + source */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-400">{tx.source_account_name ?? '—'}</span>
+                      <span className={cn('text-sm font-semibold', amount >= 0 ? 'text-primary' : 'text-danger')}>
+                        {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
+                      </span>
+                    </div>
 
-                        {/* Phase 13: Explain button — visible on all transactions */}
-                        <button
-                          onClick={() => openExplainer(tx)}
-                          title="Explain with AI"
-                          className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                    {/* Row 4: actions */}
+                    <div className="flex items-center gap-2 min-h-[44px]">
+                      {tx.status === 'pending' && !tx.is_personal && (
+                        <AdminOnly>
+                          <Button size="sm" variant="outline"
+                            className="h-9 text-xs border-primary text-primary hover:bg-primary-light"
+                            onClick={() => openClassify(tx)}>Classify</Button>
+                        </AdminOnly>
+                      )}
+                      {tx.status === 'classified' && (
+                        <AdminOnly>
+                          <Button size="sm" variant="outline" className="h-9 text-xs"
+                            onClick={() => openClassify(tx)}>Post</Button>
+                        </AdminOnly>
+                      )}
+                      {isActionable && (
+                        <AdminOnly>
+                          <button onClick={() => openSplit(tx)} title="Split"
+                            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-primary">
+                            <Split className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => openTransfer(tx)} title="Transfer"
+                            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-primary">
+                            <ArrowLeftRight className="w-4 h-4" />
+                          </button>
+                        </AdminOnly>
+                      )}
+                      <button onClick={() => openExplainer(tx)} title="Explain with AI"
+                        className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-primary ml-auto">
+                        <Sparkles className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
                 );
               })}
-            </TableBody>
-          </Table>
+            </div>
+          </>
         )}
       </div>
 
@@ -478,7 +521,7 @@ export function TransactionInbox({
 
       {/* Bulk classification action bar */}
       {someSelected && (
-        <div className="fixed bottom-0 left-[220px] right-0 bg-white border-t-2 border-primary/20 px-6 py-3 flex items-center gap-3 shadow-2xl z-20">
+        <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-white border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
           <div className="flex items-center gap-2 flex-shrink-0">
             <CheckSquare className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold text-gray-800">{selectedIds.size} selected</span>
