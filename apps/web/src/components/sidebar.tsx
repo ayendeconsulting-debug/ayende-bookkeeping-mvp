@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -10,7 +10,7 @@ import {
   LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
   ClipboardList, Receipt, Filter, Sparkles, Settings, FileText,
   ArrowRightLeft, RefreshCw, Users, Car, Calculator, Tag, PieChart, Target,
-  Landmark, Bell, X, Wand2,
+  Landmark, Bell, X, Wand2, Lock,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,11 +37,12 @@ const reportItems = [
   { href: '/year-end',                 label: 'Year-End Report',  icon: Wand2 },
 ];
 const businessSettingsItems = [
-  { href: '/accounts', label: 'Chart of Accounts',   icon: BookOpen },
-  { href: '/tax',      label: 'Tax Codes',            icon: Receipt },
-  { href: '/rules',    label: 'Classification Rules', icon: Filter },
-  { href: '/ai',       label: 'AI Assistant',         icon: Sparkles },
-  { href: '/settings', label: 'Settings',             icon: Settings },
+  { href: '/accounts',                     label: 'Chart of Accounts',   icon: BookOpen },
+  { href: '/tax',                          label: 'Tax Codes',            icon: Receipt },
+  { href: '/rules',                        label: 'Classification Rules', icon: Filter },
+  { href: '/ai',                           label: 'AI Assistant',         icon: Sparkles },
+  { href: '/settings/fiscal-year-lock',    label: 'Fiscal Year Lock',     icon: Lock },
+  { href: '/settings',                     label: 'Settings',             icon: Settings },
 ];
 const freelancerItems = [
   { href: '/freelancer/dashboard',  label: 'Dashboard',       icon: LayoutDashboard },
@@ -172,4 +173,3 @@ function NavItem({ href, label, icon: Icon, active, onClose }: {
     </Link>
   );
 }
-
