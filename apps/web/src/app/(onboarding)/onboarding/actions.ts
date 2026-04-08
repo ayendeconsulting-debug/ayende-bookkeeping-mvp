@@ -2,6 +2,7 @@
 
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 
 const API_URL = process.env.API_URL || 'http://localhost:3005';
 
@@ -35,7 +36,7 @@ export async function saveModeAndCountry(
   return patchBusiness({ mode, country });
 }
 
-/* ── Step 2: Save business details ──────────────────────────────────────── */
+/* ── Step 2: Save business details ───────────────────────────────────────── */
 export async function saveBusinessDetails(data: {
   name: string;
   currency_code: string;
@@ -74,9 +75,7 @@ export async function saveTaxSettings(data: {
   hst_registration_number?: string;
   hst_reporting_frequency?: 'monthly' | 'quarterly' | 'annual';
 }): Promise<{ error?: string }> {
-  // Only call API if at least province_code is provided
   if (!data.province_code) return {};
-
   const res = await fetch(`${API_URL}/businesses/me/tax-settings`, {
     method: 'PATCH',
     headers: await getAuthHeaders(),
@@ -153,7 +152,7 @@ export async function fetchLegalAcceptanceStatus(): Promise<{
   }
 }
 
-/* ── Step 5: Accept legal documents ─────────────────────────────────────── */
+/* ── Step 5: Accept legal documents ──────────────────────────────────────── */
 export async function acceptLegalDocuments(
   documents: {
     document_type: string;
@@ -173,7 +172,36 @@ export async function acceptLegalDocuments(
   return {};
 }
 
-/* ── Step 6 / Complete: Mark onboarding done and redirect ────────────────── */
+/* ── Phase 12 Step 6: Create Stripe checkout from onboarding ────────────── */
+// Sets onboarding_checkout cookie so billing/success redirects to /banks
+export async function createCheckoutSessionFromOnboarding(
+  plan: 'starter' | 'pro' | 'accountant',
+  billing_cycle: 'monthly' | 'annual',
+): Promise<{ url?: string; error?: string }> {
+  const res = await fetch(`${API_URL}/billing/create-checkout-session`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ plan, billing_cycle }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    return { error: body.message ?? 'Failed to create checkout session' };
+  }
+  const data = await res.json();
+
+  // Mark this checkout as coming from onboarding so /billing/success
+  // redirects to /banks (Step 7) instead of /dashboard
+  const cookieStore = await cookies();
+  cookieStore.set('onboarding_checkout', '1', {
+    maxAge: 60 * 30, // 30 minutes — enough time to complete Stripe checkout
+    path: '/',
+    sameSite: 'lax',
+  });
+
+  return { url: data.url };
+}
+
+/* ── Step 7 / Complete: Mark onboarding done and redirect ────────────────── */
 export async function completeOnboarding(
   destination: '/dashboard' | '/banks',
 ): Promise<void> {

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { AlertCircle, Clock, XCircle } from 'lucide-react';
+import { AlertCircle, Clock, XCircle, Sparkles } from 'lucide-react';
 
 interface SubscriptionStatus {
   status:         string;
@@ -17,14 +17,31 @@ export function BillingBanner({ subscription }: BillingBannerProps) {
   const { status, days_remaining } = subscription;
 
   // Active subscription — no banner needed
-  if (status === 'active' || status === 'none') return null;
+  if (status === 'active') return null;
+
+  // Phase 12: status=none — show non-blocking upgrade prompt
+  if (status === 'none') {
+    return (
+      <div className="flex items-center gap-3 px-4 py-3 text-sm bg-[#EDF7F2] border-b border-[#C3E8D8] text-[#0F6E56]">
+        <Sparkles className="w-4 h-4 flex-shrink-0" />
+        <span className="flex-1">
+          <strong>Start your free trial.</strong>{' '}
+          Get full access to Tempo Books — no credit card charged for 60 days.
+        </span>
+        <Link
+          href="/pricing"
+          className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#0F6E56] text-white hover:bg-[#085041] transition-colors"
+        >
+          Choose a plan
+        </Link>
+      </div>
+    );
+  }
 
   if (status === 'trialing') {
     // Only show banner when ≤ 14 days remain
     if (days_remaining === null || days_remaining > 14) return null;
-
     const urgency = days_remaining <= 3;
-
     return (
       <div className={[
         'flex items-center gap-3 px-4 py-3 text-sm',

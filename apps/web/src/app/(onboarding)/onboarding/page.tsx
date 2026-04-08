@@ -11,16 +11,18 @@ import {
   completeOnboarding,
   acceptLegalDocuments,
   fetchLegalAcceptanceStatus,
+  createCheckoutSessionFromOnboarding,
 } from './actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, ChevronRight, Loader2, Building2, ShieldCheck, Receipt } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Loader2, Building2, ShieldCheck, Receipt, CreditCard } from 'lucide-react';
 import { LEGAL_VERSIONS } from '@/lib/legal-versions';
 
 type Mode    = 'business' | 'freelancer' | 'personal';
 type Country = 'CA' | 'US';
+type PlanId  = 'starter' | 'pro' | 'accountant';
 
 type LegalDocType =
   | 'terms_of_service'
@@ -50,7 +52,8 @@ const LEGAL_DOCS: LegalDoc[] = [
   { key: 'cookie_policy',    label: 'I acknowledge the',             linkLabel: 'Cookie Policy',    href: '/cookies'      },
 ];
 
-const TOTAL_STEPS = 6;
+// Phase 12: 7 steps (added Step 6: Plan Selection)
+const TOTAL_STEPS = 7;
 
 const MODE_CARDS = [
   {
@@ -95,7 +98,44 @@ const TAX_PRESETS: Record<Country, { code: string; name: string; rate: number }[
   ],
 };
 
-/* ── Progress Bar ──────────────────────────────────────────────────────────── */
+// Phase 12: Plan cards for Step 6
+const PLAN_CARDS: {
+  id: PlanId;
+  name: string;
+  price: number;
+  annualPrice: number;
+  description: string;
+  features: string[];
+  highlighted?: boolean;
+}[] = [
+  {
+    id: 'starter',
+    name: 'Starter',
+    price: 19,
+    annualPrice: 15,
+    description: 'Perfect for small businesses and freelancers',
+    features: ['Bank sync (Plaid)', 'Double-entry accounting', 'Financial reports', 'AI classification (50/mo)', 'Email support'],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: 49,
+    annualPrice: 39,
+    description: 'For growing businesses that need more power',
+    features: ['Everything in Starter', 'AI features (200/mo)', 'HST / GST engine', 'Year-End Assistant', 'Priority support'],
+    highlighted: true,
+  },
+  {
+    id: 'accountant',
+    name: 'Accountant',
+    price: 149,
+    annualPrice: 119,
+    description: 'For bookkeeping firms managing multiple clients',
+    features: ['Everything in Pro', 'AI features (500/mo)', 'Accountant portal', 'Client management', 'White-label subdomain'],
+  },
+];
+
+/* ── Progress Bar ─────────────────────────────────────────────────────────── */
 function ProgressBar({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-2 mb-8">
@@ -119,12 +159,9 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
-/* ── Legal Checkbox ────────────────────────────────────────────────────────── */
+/* ── Legal Checkbox ───────────────────────────────────────────────────────── */
 function LegalCheckbox({
-  doc,
-  checked,
-  preChecked,
-  onChange,
+  doc, checked, preChecked, onChange,
 }: {
   doc: LegalDoc;
   checked: boolean;
@@ -132,27 +169,18 @@ function LegalCheckbox({
   onChange: (val: boolean) => void;
 }) {
   return (
-    <label
-      className={[
-        'flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none',
-        checked
-          ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-primary/10'
-          : 'border-border bg-card hover:border-[#0F6E56]/50',
-      ].join(' ')}
-    >
+    <label className={[
+      'flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none',
+      checked
+        ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-primary/10'
+        : 'border-border bg-card hover:border-[#0F6E56]/50',
+    ].join(' ')}>
       <div className="relative flex-shrink-0 mt-0.5">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={(e) => onChange(e.target.checked)}
-          className="sr-only"
-        />
-        <div
-          className={[
-            'w-5 h-5 rounded flex items-center justify-center border-2 transition-all',
-            checked ? 'bg-[#0F6E56] border-[#0F6E56]' : 'bg-background border-border',
-          ].join(' ')}
-        >
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
+        <div className={[
+          'w-5 h-5 rounded flex items-center justify-center border-2 transition-all',
+          checked ? 'bg-[#0F6E56] border-[#0F6E56]' : 'bg-background border-border',
+        ].join(' ')}>
           {checked && (
             <svg viewBox="0 0 12 12" className="w-3 h-3 text-white" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -161,22 +189,16 @@ function LegalCheckbox({
           )}
         </div>
       </div>
-
       <div className="text-sm text-foreground leading-relaxed">
         <span>{doc.label} </span>
-        <a
-          href={doc.href}
-          target="_blank"
-          rel="noopener noreferrer"
+        <a href={doc.href} target="_blank" rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041] font-medium"
-        >
+          className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041] font-medium">
           {doc.linkLabel}
         </a>
         {preChecked && (
           <span className="ml-2 inline-flex items-center gap-1 text-xs text-[#0F6E56] font-medium">
-            <CheckCircle2 className="w-3 h-3" />
-            Previously accepted
+            <CheckCircle2 className="w-3 h-3" />Previously accepted
           </span>
         )}
       </div>
@@ -184,7 +206,7 @@ function LegalCheckbox({
   );
 }
 
-/* ── Main Wizard ───────────────────────────────────────────────────────────── */
+/* ── Main Wizard ──────────────────────────────────────────────────────────── */
 export default function OnboardingPage() {
   const [step, setStep]              = useState(1);
   const [isPending, startTransition] = useTransition();
@@ -221,6 +243,10 @@ export default function OnboardingPage() {
     cookie_policy:    false,
   });
   const [legalLoading, setLegalLoading] = useState(false);
+
+  // Phase 12: Plan selection state (Step 6)
+  const [selectedPlan,    setSelectedPlan]    = useState<PlanId>('pro');
+  const [billingCycle,    setBillingCycle]    = useState<'monthly' | 'annual'>('monthly');
 
   const allLegalChecked = LEGAL_DOCS.every((d) => legalChecks[d.key]);
 
@@ -268,12 +294,10 @@ export default function OnboardingPage() {
     });
   }
 
-  // Phase 9: Step 2 saves business details + tax settings (if province selected)
   function handleStep2() {
     if (!businessName.trim()) { setError('Business name is required.'); return; }
     setError(null);
     startTransition(async () => {
-      // Save business details
       const result = await saveBusinessDetails({
         name: businessName.trim(),
         currency_code:   currency || (selectedCountry === 'CA' ? 'CAD' : 'USD'),
@@ -281,7 +305,6 @@ export default function OnboardingPage() {
       });
       if (result.error) { setError(result.error); toastError('Could not save', result.error); return; }
 
-      // Save tax settings if province selected (CA only) — fire-and-forget on error
       if (selectedCountry === 'CA' && provinceCode) {
         const taxResult = await saveTaxSettings({
           province_code: provinceCode,
@@ -289,7 +312,6 @@ export default function OnboardingPage() {
           hst_reporting_frequency: hstFrequency,
         });
         if (taxResult.error) {
-          // Non-blocking — warn but don't stop onboarding
           toastError('Tax settings not saved', taxResult.error + ' — you can update these in Settings.');
         } else {
           toastSuccess('Tax settings saved', `Province: ${provinceCode} — default tax codes created`);
@@ -329,8 +351,23 @@ export default function OnboardingPage() {
       }));
       const result = await acceptLegalDocuments(documents);
       if (result.error) { setError(result.error); toastError('Could not record agreements', result.error); return; }
-      toastSuccess('Agreements accepted', 'You\'re all set!');
+      toastSuccess('Agreements accepted');
       setStep(6);
+    });
+  }
+
+  // Phase 12: Step 6 — create Stripe checkout and redirect
+  function handleStep6() {
+    setError(null);
+    startTransition(async () => {
+      const result = await createCheckoutSessionFromOnboarding(selectedPlan, billingCycle);
+      if (result.error || !result.url) {
+        setError(result.error ?? 'Failed to start checkout. Please try again.');
+        toastError('Checkout failed', result.error ?? 'Please try again.');
+        return;
+      }
+      // Same-window navigation — clean UX, no new tab
+      window.location.href = result.url;
     });
   }
 
@@ -341,7 +378,6 @@ export default function OnboardingPage() {
     });
   }
 
-  // Derived: province tax label for display
   const selectedProvince = provinces.find((p) => p.province_code === provinceCode);
   const taxLabel = selectedProvince
     ? selectedProvince.is_hst_province
@@ -428,7 +464,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 2: Business Details + Phase 9 Tax Settings ── */}
+        {/* ── Step 2: Business Details ── */}
         {step === 2 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
@@ -461,22 +497,16 @@ export default function OnboardingPage() {
               )}
             </div>
 
-            {/* Phase 9: Canadian tax settings — only shown for CA businesses */}
             {selectedCountry === 'CA' && (
               <div className="flex flex-col gap-4 pt-2 border-t border-border">
                 <div className="flex items-center gap-2">
                   <Receipt className="w-4 h-4 text-[#0F6E56]" />
                   <h3 className="text-sm font-semibold text-foreground">Canadian Tax Settings</h3>
                 </div>
-
-                {/* Province */}
                 <div className="flex flex-col gap-1.5">
                   <Label>Province / Territory <span className="text-muted-foreground font-normal">(recommended)</span></Label>
-                  <select
-                    value={provinceCode}
-                    onChange={(e) => setProvinceCode(e.target.value)}
-                    className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground"
-                  >
+                  <select value={provinceCode} onChange={(e) => setProvinceCode(e.target.value)}
+                    className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
                     <option value="">— Select province —</option>
                     {provinces.map((p) => (
                       <option key={p.province_code} value={p.province_code}>
@@ -489,37 +519,17 @@ export default function OnboardingPage() {
                       ✓ Default tax rate: {taxLabel} — tax codes will be created automatically
                     </p>
                   )}
-                  {!provinceCode && (
-                    <p className="text-xs text-muted-foreground">
-                      Selecting your province enables automatic HST/GST tax code setup.
-                    </p>
-                  )}
                 </div>
-
                 <div className="grid grid-cols-2 gap-3">
-                  {/* HST number */}
                   <div className="flex flex-col gap-1.5">
-                    <Label>
-                      HST / GST Number{' '}
-                      <span className="text-muted-foreground font-normal">(optional)</span>
-                    </Label>
-                    <Input
-                      value={hstNumber}
-                      onChange={(e) => setHstNumber(e.target.value)}
-                      placeholder="123456789RT0001"
-                      maxLength={20}
-                    />
-                    <p className="text-xs text-muted-foreground">You can add this later in Settings.</p>
+                    <Label>HST / GST Number <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                    <Input value={hstNumber} onChange={(e) => setHstNumber(e.target.value)}
+                      placeholder="123456789RT0001" maxLength={20} />
                   </div>
-
-                  {/* Reporting frequency */}
                   <div className="flex flex-col gap-1.5">
                     <Label>HST / GST Filing Frequency</Label>
-                    <select
-                      value={hstFrequency}
-                      onChange={(e) => setHstFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
-                      className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground"
-                    >
+                    <select value={hstFrequency} onChange={(e) => setHstFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
+                      className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
                       <option value="monthly">Monthly</option>
                       <option value="quarterly">Quarterly (most common)</option>
                       <option value="annual">Annual</option>
@@ -547,7 +557,6 @@ export default function OnboardingPage() {
               <h2 className="text-base font-semibold text-foreground mb-1">Set up your chart of accounts</h2>
               <p className="text-sm text-muted-foreground">We&apos;ll create the right accounts for your industry.</p>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               {INDUSTRIES
                 .filter((ind) => selectedMode === 'freelancer' ? ind.id !== 'retail' && ind.id !== 'restaurant' : true)
@@ -563,7 +572,6 @@ export default function OnboardingPage() {
                   </button>
                 ))}
             </div>
-
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => setStep(2)} disabled={isPending}>Back</Button>
@@ -587,8 +595,6 @@ export default function OnboardingPage() {
                 {' '}You can add more tax codes later.
               </p>
             </div>
-
-            {/* If province was set in Step 2, show confirmation instead of presets */}
             {selectedCountry === 'CA' && provinceCode ? (
               <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
@@ -618,12 +624,8 @@ export default function OnboardingPage() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Note: Tax code creation requires a tax liability account. You can add tax codes from Settings → Tax Codes after your accounts are set up.
-                </p>
               </>
             )}
-
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={skipStep4} disabled={isPending}>Skip for now</Button>
               <Button onClick={skipStep4} disabled={isPending} className="flex items-center gap-2">
@@ -640,11 +642,9 @@ export default function OnboardingPage() {
               <ShieldCheck className="w-5 h-5 text-[#0F6E56]" />
               <h2 className="text-base font-semibold text-foreground">Review and accept our agreements</h2>
             </div>
-
             <p className="text-sm text-muted-foreground">
               Please read and accept the following agreements before accessing Tempo. Links open in a new tab.
             </p>
-
             {legalLoading ? (
               <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -653,34 +653,21 @@ export default function OnboardingPage() {
             ) : (
               <div className="flex flex-col gap-3">
                 {LEGAL_DOCS.map((doc) => (
-                  <LegalCheckbox
-                    key={doc.key}
-                    doc={doc}
-                    checked={legalChecks[doc.key]}
-                    preChecked={preChecked[doc.key]}
-                    onChange={(val) => setLegalChecks((prev) => ({ ...prev, [doc.key]: val }))}
-                  />
+                  <LegalCheckbox key={doc.key} doc={doc}
+                    checked={legalChecks[doc.key]} preChecked={preChecked[doc.key]}
+                    onChange={(val) => setLegalChecks((prev) => ({ ...prev, [doc.key]: val }))} />
                 ))}
               </div>
             )}
-
             {!allLegalChecked && !legalLoading && (
-              <p className="text-xs text-muted-foreground">
-                All four agreements must be accepted to continue.
-              </p>
+              <p className="text-xs text-muted-foreground">All four agreements must be accepted to continue.</p>
             )}
-
             {error && <p className="text-sm text-destructive">{error}</p>}
-
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => setStep(selectedMode === 'personal' ? 3 : 4)} disabled={isPending}>
                 Back
               </Button>
-              <Button
-                onClick={handleStep5}
-                disabled={isPending || !allLegalChecked || legalLoading}
-                className="flex items-center gap-2"
-              >
+              <Button onClick={handleStep5} disabled={isPending || !allLegalChecked || legalLoading} className="flex items-center gap-2">
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Accept & Continue <ChevronRight className="w-4 h-4" />
               </Button>
@@ -688,8 +675,112 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 6: Connect Bank ── */}
+        {/* ── Step 6: Choose Your Plan (Phase 12 NEW) ── */}
         {step === 6 && (
+          <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-[#0F6E56]" />
+              <h2 className="text-base font-semibold text-foreground">Choose your plan</h2>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Start your <strong className="text-foreground">60-day free trial</strong> — no charge until your trial ends. Cancel anytime.
+            </p>
+
+            {/* Billing cycle toggle */}
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit">
+              <button
+                onClick={() => setBillingCycle('monthly')}
+                className={[
+                  'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
+                  billingCycle === 'monthly'
+                    ? 'bg-white dark:bg-card shadow text-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                ].join(' ')}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingCycle('annual')}
+                className={[
+                  'px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5',
+                  billingCycle === 'annual'
+                    ? 'bg-white dark:bg-card shadow text-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                ].join(' ')}
+              >
+                Annual
+                <span className="text-[10px] font-semibold text-[#0F6E56] bg-[#EDF7F2] px-1.5 py-0.5 rounded-full">
+                  Save ~20%
+                </span>
+              </button>
+            </div>
+
+            {/* Plan cards */}
+            <div className="grid grid-cols-3 gap-3">
+              {PLAN_CARDS.map((plan) => {
+                const isSelected = selectedPlan === plan.id;
+                const price = billingCycle === 'annual' ? plan.annualPrice : plan.price;
+                return (
+                  <button
+                    key={plan.id}
+                    onClick={() => setSelectedPlan(plan.id)}
+                    className={[
+                      'text-left p-4 rounded-xl border-2 transition-all relative',
+                      isSelected
+                        ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10 bg-[#EDF7F2]/40 dark:bg-primary/5'
+                        : 'border-border bg-card hover:border-[#0F6E56]/50',
+                    ].join(' ')}
+                  >
+                    {plan.highlighted && (
+                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-[#0F6E56] px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                        Most Popular
+                      </span>
+                    )}
+                    <div className="font-semibold text-sm text-foreground mb-0.5">{plan.name}</div>
+                    <div className="text-xs text-muted-foreground mb-3">{plan.description}</div>
+                    <div className="mb-3">
+                      <span className="text-2xl font-bold text-foreground">${price}</span>
+                      <span className="text-xs text-muted-foreground"> CAD/mo</span>
+                      {billingCycle === 'annual' && (
+                        <div className="text-[10px] text-muted-foreground">billed annually</div>
+                      )}
+                    </div>
+                    <ul className="space-y-1">
+                      {plan.features.map((f) => (
+                        <li key={f} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                          <span className={isSelected ? 'text-[#0F6E56] mt-0.5' : 'text-gray-300 mt-0.5'}>✓</span>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    {isSelected && (
+                      <div className="mt-3 flex items-center gap-1 text-xs font-medium text-[#0F6E56]">
+                        <CheckCircle2 className="w-3.5 h-3.5" />Selected
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setStep(5)} disabled={isPending}>Back</Button>
+              <Button onClick={handleStep6} disabled={isPending} className="flex items-center gap-2">
+                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Start Free Trial <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              You&apos;ll be redirected to Stripe to securely enter your payment details. No charge for 60 days.
+            </p>
+          </div>
+        )}
+
+        {/* ── Step 7: Connect Bank (previously Step 6) ── */}
+        {step === 7 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
               <h2 className="text-base font-semibold text-foreground mb-1">Connect your bank account</h2>
@@ -697,7 +788,6 @@ export default function OnboardingPage() {
                 Link your bank to auto-import transactions. Powered by Plaid — secure and read-only.
               </p>
             </div>
-
             <div className="rounded-xl border border-border bg-muted p-5 flex flex-col items-center gap-3 text-center">
               <div className="text-3xl">🏦</div>
               <div>
@@ -709,14 +799,12 @@ export default function OnboardingPage() {
                 Connect Bank →
               </Button>
             </div>
-
             <div className="text-center">
               <button onClick={() => handleComplete('/dashboard')} disabled={isPending}
                 className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors disabled:opacity-50">
                 Skip for now — go to Dashboard
               </button>
             </div>
-
             {error && <p className="text-sm text-destructive text-center">{error}</p>}
           </div>
         )}

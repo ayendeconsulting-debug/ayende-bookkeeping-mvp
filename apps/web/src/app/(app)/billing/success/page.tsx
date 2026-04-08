@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { CheckCircle2, ArrowRight, Calendar, CreditCard } from 'lucide-react';
 import { apiGet } from '@/lib/api';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 interface SubscriptionStatus {
   status:             string;
@@ -18,6 +20,14 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 export default async function BillingSuccessPage() {
+  // Phase 12: if this checkout originated from the onboarding wizard,
+  // redirect directly to /banks (Step 7) instead of showing the success page.
+  const cookieStore = await cookies();
+  const fromOnboarding = cookieStore.get('onboarding_checkout');
+  if (fromOnboarding) {
+    redirect('/banks');
+  }
+
   let subscription: SubscriptionStatus | null = null;
   try {
     subscription = await apiGet<SubscriptionStatus>('/billing/subscription');
@@ -43,11 +53,11 @@ export default async function BillingSuccessPage() {
         </div>
 
         <h1 className="text-3xl font-bold text-foreground mb-3">
-          You're all set!
+          You&apos;re all set!
         </h1>
         <p className="text-muted-foreground mb-8 leading-relaxed">
           Your 60-day free trial has started.
-          {planLabel && <> You're on the <strong className="text-foreground">{planLabel}</strong> plan.</>}
+          {planLabel && <> You&apos;re on the <strong className="text-foreground">{planLabel}</strong> plan.</>}
           {' '}No charge until your trial ends.
         </p>
 
