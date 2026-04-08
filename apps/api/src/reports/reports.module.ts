@@ -106,6 +106,8 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
     YearEndExportService,
   ],
   exports: [
+    // Phase 12: exported so PlaidModule can inject ClassificationService
+    ClassificationService,
     IncomeStatementService,
     BalanceSheetService,
     TrialBalanceService,

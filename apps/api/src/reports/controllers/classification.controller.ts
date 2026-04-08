@@ -28,7 +28,7 @@ import { Roles } from '../../auth/roles.decorator';
 export class ClassificationController {
   constructor(private readonly classificationService: ClassificationService) {}
 
-  // ── Raw Transactions — all roles ─────────────────────────────────────────
+  // ── Raw Transactions — all roles ──────────────────────────────────────────
 
   /** GET /classification/raw — all roles */
   @Get('raw')
@@ -103,14 +103,23 @@ export class ClassificationController {
   /**
    * POST /classification/rules/learn — admin only
    * Promotes a manual classification override into a reusable keyword rule.
-   * Called when the user confirms the "Save as rule for future transactions?" prompt.
-   * Body: { rawTransactionId, targetAccountId, taxCodeId? }
    */
   @Roles('admin')
   @Post('rules/learn')
   learnRule(@Req() req: Request, @Body() dto: LearnClassificationRuleDto) {
     dto.businessId = req.user!.businessId;
     return this.classificationService.learnRule(dto);
+  }
+
+  /**
+   * POST /classification/rules/run-batch — admin + accountant
+   * Phase 12: Applies all active rules to all pending raw_transactions for the business.
+   * Returns { total, classified, skipped }.
+   */
+  @Roles('admin', 'accountant')
+  @Post('rules/run-batch')
+  runBatchRules(@Req() req: Request) {
+    return this.classificationService.runBatchRules(req.user!.businessId);
   }
 
   // ── Classification & Posting — admin only ─────────────────────────────────

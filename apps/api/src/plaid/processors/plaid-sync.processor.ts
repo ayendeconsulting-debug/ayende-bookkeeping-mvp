@@ -7,6 +7,8 @@ import { PlaidService } from '../services/plaid.service';
 import { PlaidWebhookLog, WebhookProcessingStatus } from '../../entities/plaid-webhook-log.entity';
 import { PlaidItem } from '../../entities/plaid-item.entity';
 import { CurrencyService } from '../../currency/currency.service';
+// Phase 12: auto-classification on sync
+import { ClassificationService } from '../../reports/services/classification.service';
 
 export interface PlaidSyncJobData {
   plaidItemId: string;
@@ -20,6 +22,8 @@ export class PlaidSyncProcessor extends WorkerHost {
   constructor(
     private readonly plaidService: PlaidService,
     private readonly currencyService: CurrencyService,
+    // Phase 12
+    private readonly classificationService: ClassificationService,
     @InjectRepository(PlaidWebhookLog)
     private webhookLogRepo: Repository<PlaidWebhookLog>,
     @InjectRepository(PlaidItem)
@@ -55,8 +59,27 @@ export class PlaidSyncProcessor extends WorkerHost {
                 `Currency conversion: ${converted} foreign transactions converted for business ${plaidItem.business_id}`,
               );
             }
+
+            // Phase 12: apply classification rules to all newly pending transactions
+            if (result.added > 0) {
+              try {
+                const batchResult = await this.classificationService.runBatchRules(
+                  plaidItem.business_id,
+                );
+                if (batchResult.classified > 0) {
+                  this.logger.log(
+                    `Auto-classification: ${batchResult.classified}/${batchResult.total} transactions classified for business ${plaidItem.business_id}`,
+                  );
+                }
+              } catch (classifyErr: any) {
+                // Non-fatal — log and continue
+                this.logger.warn(
+                  `Auto-classification skipped for job ${job.id}: ${classifyErr.message}`,
+                );
+              }
+            }
           }
-        } catch (currencyErr) {
+        } catch (currencyErr: any) {
           // Non-fatal — log and continue
           this.logger.warn(
             `Currency conversion skipped for job ${job.id}: ${currencyErr.message}`,
@@ -71,7 +94,7 @@ export class PlaidSyncProcessor extends WorkerHost {
           processed_at: new Date(),
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`Sync job ${job.id} failed: ${error.message}`, error.stack);
 
       if (webhookLogId) {

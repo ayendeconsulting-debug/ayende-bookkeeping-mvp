@@ -12,6 +12,9 @@ import { PlaidSyncCursor } from '../entities/plaid-sync-cursor.entity';
 import { PlaidWebhookLog } from '../entities/plaid-webhook-log.entity';
 import { RawTransaction } from '../entities/raw-transaction.entity';
 
+// Phase 12: import ReportsModule to access ClassificationService
+import { ReportsModule } from '../reports/reports.module';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -24,6 +27,8 @@ import { RawTransaction } from '../entities/raw-transaction.entity';
     BullModule.registerQueue({
       name: 'plaid-sync',
     }),
+    // Phase 12: provides ClassificationService for auto-classification on sync
+    ReportsModule,
   ],
   controllers: [PlaidController],
   providers: [PlaidService, PlaidSyncProcessor],

@@ -132,7 +132,7 @@ export class ClassificationService {
     return { data, total };
   }
 
-  // ── Tag Transaction (Freelancer Mode) ────────────────────────────────────
+  // ── Tag Transaction (Freelancer Mode) ─────────────────────────────────────
 
   async tagTransaction(
     businessId: string,
@@ -458,7 +458,7 @@ export class ClassificationService {
     });
   }
 
-  // -- Classification Learning ---------------------------------------------
+  // ── Classification Learning ───────────────────────────────────────────────
 
   async learnRule(dto: LearnClassificationRuleDto): Promise<ClassificationRule> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -491,6 +491,123 @@ export class ClassificationService {
       is_active: true,
     });
     return this.ruleRepo.save(rule);
+  }
+
+  // ── Phase 12: Auto-Classification Engine ─────────────────────────────────
+
+  /**
+   * Matches a single raw transaction against an already-loaded rule set.
+   * Priority order: keyword → vendor → account. First match wins.
+   * Rules must be pre-sorted by priority ASC before calling this method.
+   */
+  private matchRule(rules: ClassificationRule[], rawTx: RawTransaction): ClassificationRule | null {
+    for (const rule of rules) {
+      if (!rule.match_value) continue;
+      if (rule.match_type === 'keyword') {
+        if (rawTx.description?.toLowerCase().includes(rule.match_value.toLowerCase())) return rule;
+      } else if (rule.match_type === 'vendor') {
+        if (rawTx.description?.toLowerCase().trim() === rule.match_value.toLowerCase().trim()) return rule;
+      } else if (rule.match_type === 'account') {
+        if ((rawTx as any).plaid_account_id === rule.match_value) return rule;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Applies active classification rules to a single pending raw transaction.
+   * Called per-transaction from PlaidSyncProcessor after upsert.
+   * Errors are caught and never propagate to the calling sync job.
+   */
+  async applyRulesToTransaction(
+    businessId: string,
+    rawTx: RawTransaction,
+  ): Promise<{ matched: boolean; ruleId?: string }> {
+    try {
+      if (rawTx.status !== RawTransactionStatus.PENDING) return { matched: false };
+
+      const existing = await this.classifiedRepo.findOne({
+        where: { raw_transaction_id: rawTx.id, business_id: businessId },
+      });
+      if (existing) return { matched: false };
+
+      const rules = await this.ruleRepo.find({
+        where: { business_id: businessId, is_active: true },
+        order: { priority: 'ASC' },
+      });
+
+      const matched = this.matchRule(rules, rawTx);
+      if (!matched) return { matched: false };
+
+      await this.classifiedRepo.save(
+        this.classifiedRepo.create({
+          business_id: businessId,
+          raw_transaction_id: rawTx.id,
+          classification_method: ClassificationMethod.AUTO,
+          account_id: matched.target_account_id,
+          tax_code_id: matched.tax_code_id ?? null,
+          classified_by: 'system',
+          is_posted: false,
+        }),
+      );
+      await this.rawTxRepo.update(rawTx.id, { status: RawTransactionStatus.CLASSIFIED });
+
+      return { matched: true, ruleId: matched.id };
+    } catch (err: any) {
+      // Never fail the sync job
+      return { matched: false };
+    }
+  }
+
+  /**
+   * Applies active rules to all pending transactions for the business in one pass.
+   * Rules are loaded once for efficiency. Called from the run-batch endpoint
+   * and reused by PlaidSyncProcessor after a sync completes.
+   */
+  async runBatchRules(
+    businessId: string,
+  ): Promise<{ total: number; classified: number; skipped: number }> {
+    const rules = await this.ruleRepo.find({
+      where: { business_id: businessId, is_active: true },
+      order: { priority: 'ASC' },
+    });
+
+    const pendingTxs = await this.rawTxRepo.find({
+      where: { business_id: businessId, status: RawTransactionStatus.PENDING },
+    });
+
+    let classified = 0;
+    let skipped = 0;
+
+    for (const rawTx of pendingTxs) {
+      try {
+        const existing = await this.classifiedRepo.findOne({
+          where: { raw_transaction_id: rawTx.id, business_id: businessId },
+        });
+        if (existing) { skipped++; continue; }
+
+        const matched = this.matchRule(rules, rawTx);
+        if (!matched) { skipped++; continue; }
+
+        await this.classifiedRepo.save(
+          this.classifiedRepo.create({
+            business_id: businessId,
+            raw_transaction_id: rawTx.id,
+            classification_method: ClassificationMethod.AUTO,
+            account_id: matched.target_account_id,
+            tax_code_id: matched.tax_code_id ?? null,
+            classified_by: 'system',
+            is_posted: false,
+          }),
+        );
+        await this.rawTxRepo.update(rawTx.id, { status: RawTransactionStatus.CLASSIFIED });
+        classified++;
+      } catch {
+        skipped++;
+      }
+    }
+
+    return { total: pendingTxs.length, classified, skipped };
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -528,5 +645,3 @@ export class ClassificationService {
     }
   }
 }
-
-
