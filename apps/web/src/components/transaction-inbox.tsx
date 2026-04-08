@@ -2,12 +2,13 @@
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split } from 'lucide-react';
+import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, BusinessMode } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
 import { TransactionExplainerPanel } from '@/components/transaction-explainer-panel';
 import { SplitTransactionModal } from '@/components/split-transaction-modal';
+import { TransferModal } from '@/components/transfer-modal';
 import { AdminOnly } from '@/components/admin-only';
 import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
@@ -65,8 +66,12 @@ export function TransactionInbox({
   const [explainerOpen, setExplainerOpen] = useState(false);
 
   // Phase 14: Split modal state
-  const [splitTx, setSplitTx]       = useState<RawTransaction | null>(null);
-  const [splitOpen, setSplitOpen]   = useState(false);
+  const [splitTx, setSplitTx]     = useState<RawTransaction | null>(null);
+  const [splitOpen, setSplitOpen] = useState(false);
+
+  // Phase 14: Transfer modal state
+  const [transferTx, setTransferTx]       = useState<RawTransaction | null>(null);
+  const [transferOpen, setTransferOpen]   = useState(false);
 
   // Bulk classification state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -118,6 +123,14 @@ export function TransactionInbox({
   function handleSplitClose() { setSplitOpen(false); setSplitTx(null); }
   function handleSplitSuccess() {
     setSplitOpen(false); setSplitTx(null);
+    startTransition(() => router.refresh());
+  }
+
+  // Phase 14: Transfer handlers
+  function openTransfer(tx: RawTransaction) { setTransferTx(tx); setTransferOpen(true); }
+  function handleTransferClose() { setTransferOpen(false); setTransferTx(null); }
+  function handleTransferSuccess() {
+    setTransferOpen(false); setTransferTx(null);
     startTransition(() => router.refresh());
   }
 
@@ -289,7 +302,7 @@ export function TransactionInbox({
                 const amount = Number(tx.amount);
                 const isSelectable = tx.status === 'pending' && !tx.is_personal;
                 const isSelected = selectedIds.has(tx.id);
-                const isSplittable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal;
+                const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal;
 
                 return (
                   <TableRow
@@ -394,8 +407,8 @@ export function TransactionInbox({
                           <span className="text-xs text-gray-400 italic">Personal</span>
                         )}
 
-                        {/* Phase 14: Split button — pending and classified rows only */}
-                        {isSplittable && (
+                        {/* Phase 14: Split + Transfer buttons — pending and classified rows only */}
+                        {isActionable && (
                           <AdminOnly>
                             <button
                               onClick={() => openSplit(tx)}
@@ -403,6 +416,13 @@ export function TransactionInbox({
                               className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary"
                             >
                               <Split className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => openTransfer(tx)}
+                              title="Mark as transfer"
+                              className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary"
+                            >
+                              <ArrowLeftRight className="w-3.5 h-3.5" />
                             </button>
                           </AdminOnly>
                         )}
@@ -518,6 +538,15 @@ export function TransactionInbox({
         open={splitOpen}
         onClose={handleSplitClose}
         onSuccess={handleSplitSuccess}
+      />
+
+      {/* Phase 14: Transfer Modal */}
+      <TransferModal
+        transaction={transferTx}
+        accounts={accounts}
+        open={transferOpen}
+        onClose={handleTransferClose}
+        onSuccess={handleTransferSuccess}
       />
     </div>
   );

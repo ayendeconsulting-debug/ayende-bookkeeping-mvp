@@ -12,10 +12,7 @@ export async function bulkClassifyTransactions(data: {
   try {
     const result = await api<{ classified: number; skipped: number; errors: string[] }>(
       '/classification/bulk-classify',
-      {
-        method: 'POST',
-        body: JSON.stringify(data),
-      },
+      { method: 'POST', body: JSON.stringify(data) },
     );
     revalidatePath('/transactions');
     revalidatePath('/dashboard');
@@ -149,10 +146,7 @@ export async function splitTransaction(
   try {
     const result = await api(
       `/classification/raw/${rawTransactionId}/split`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      },
+      { method: 'PATCH', body: JSON.stringify(data) },
     );
     revalidatePath('/transactions');
     revalidatePath('/dashboard');
@@ -166,6 +160,27 @@ export async function splitTransaction(
 export async function getSplitLines(rawTransactionId: string) {
   try {
     const result = await api(`/classification/raw/${rawTransactionId}/splits`);
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/* ── Phase 14: Mark a transaction as a transfer between two accounts ─────────── */
+export async function markAsTransfer(
+  rawTransactionId: string,
+  data: {
+    source_account_id: string;
+    destination_account_id: string;
+  },
+) {
+  try {
+    const result = await api(
+      `/classification/raw/${rawTransactionId}/mark-transfer`,
+      { method: 'PATCH', body: JSON.stringify(data) },
+    );
+    revalidatePath('/transactions');
+    revalidatePath('/dashboard');
     return { success: true, data: result };
   } catch (error: any) {
     return { success: false, error: error.message };
