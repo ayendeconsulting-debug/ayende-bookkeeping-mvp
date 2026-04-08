@@ -51,7 +51,8 @@ export class ClassifiedTransaction {
   @Column({ type: 'numeric', precision: 15, scale: 2, nullable: true })
   override_amount: number;
 
-  @Column({ type: 'uuid' })
+  // varchar — stores Clerk user IDs (user_xxx) or 'system' for auto-classification
+  @Column({ type: 'varchar', length: 255 })
   classified_by: string;
 
   @Column({ type: 'boolean', default: false })
