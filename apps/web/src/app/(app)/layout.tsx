@@ -1,8 +1,8 @@
-import { auth } from '@clerk/nextjs/server';
+﻿import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { AppShell } from '@/components/app-shell';
-import { BillingBanner } from '@/components/billing-banner';
+import { AlertBanner, AlertState } from '@/components/alert-banner';
 import { BusinessMode } from '@/types';
 
 const API_URL = process.env.API_URL || 'http://localhost:3005';
@@ -45,7 +45,7 @@ async function getMyBusiness(
       cache: 'no-store',
     });
 
-    // 451 – legal re-acceptance required
+    // 451 â€“ legal re-acceptance required
     if (res.status === 451) {
       redirect('/legal/update');
     }
@@ -74,6 +74,22 @@ async function getSubscriptionStatus(token: string) {
   }
 }
 
+async function getBillingAlerts(token: string): Promise<AlertState[]> {
+  try {
+    const res = await fetch(`${API_URL}/billing/alerts`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
 function isGracePeriodExpired(createdAt: string | undefined): boolean {
   if (!createdAt) return false;
   const created = new Date(createdAt).getTime();
@@ -97,31 +113,33 @@ export default async function AppLayout({
   const token = await getToken();
   let business: { settings?: Record<string, unknown>; mode?: string; created_at?: string } | null = null;
   let subscription = null;
+  let alerts: AlertState[] = [];
 
   if (token) {
-    [business, subscription] = await Promise.all([
+    [business, subscription, alerts] = await Promise.all([
       getMyBusiness(token),
       getSubscriptionStatus(token),
+      getBillingAlerts(token),
     ]);
 
-    // ── Onboarding gate ───────────────────────────────────────────────────────
+    // â”€â”€ Onboarding gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (business && !business.settings?.mode_selected) {
       redirect('/onboarding');
     }
 
-    // ── Subscription gate ─────────────────────────────────────────────────────
+    // â”€â”€ Subscription gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const headersList = await headers();
     const pathname    = headersList.get('x-pathname') ?? '';
     const isExempt    = BILLING_EXEMPT_PATHS.some((p) => pathname.startsWith(p));
 
     if (!isExempt && business?.settings?.mode_selected) {
-      // Hard-redirect on 'cancelled' — unambiguous signal the user cancelled.
+      // Hard-redirect on 'cancelled' â€” unambiguous signal the user cancelled.
       if (subscription?.status === 'cancelled') {
         redirect('/pricing?start=1');
       }
 
       // Redirect on 'none' only after the grace period has elapsed.
-      // 'none' within the first 7 days is treated as a Stripe webhook delay —
+      // 'none' within the first 7 days is treated as a Stripe webhook delay â€”
       // never lock out a newly registered user.
       if (
         subscription?.status === 'none' &&
@@ -136,8 +154,9 @@ export default async function AppLayout({
 
   return (
     <AppShell mode={mode}>
-      <BillingBanner subscription={subscription} />
+      <AlertBanner alerts={alerts} />
       {children}
     </AppShell>
   );
 }
+
