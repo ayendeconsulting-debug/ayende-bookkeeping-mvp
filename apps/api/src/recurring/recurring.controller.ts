@@ -71,4 +71,50 @@ export class RecurringController {
   cancel(@Req() req: Request, @Param('id') id: string) {
     return this.recurringService.cancel(req.user!.businessId, id);
   }
+
+  // ── Phase 12: Pattern Detection endpoints ─────────────────────────────────
+
+  /**
+   * GET /recurring/detections
+   * Returns detected recurring payment candidates for the business.
+   * All roles can view.
+   */
+  @Get('detections')
+  getDetections(@Req() req: Request) {
+    return this.recurringService.detectPatterns(req.user!.businessId);
+  }
+
+  /**
+   * POST /recurring/detections/confirm — admin + accountant
+   * Confirms a detection: stores key, creates RecurringTransaction template.
+   * Body: { key, description, amount, frequency, debitAccountId, creditAccountId }
+   */
+  @Roles('admin', 'accountant')
+  @Post('detections/confirm')
+  @HttpCode(HttpStatus.CREATED)
+  confirmDetection(
+    @Req() req: Request,
+    @Body()
+    body: {
+      key: string;
+      description: string;
+      amount: number;
+      frequency: 'weekly' | 'monthly' | 'quarterly' | 'annually';
+      debitAccountId: string;
+      creditAccountId: string;
+    },
+  ) {
+    return this.recurringService.confirmDetection(req.user!.businessId, body);
+  }
+
+  /**
+   * POST /recurring/detections/dismiss — admin + accountant
+   * Dismisses a detection: stores key so it does not reappear.
+   * Body: { key }
+   */
+  @Roles('admin', 'accountant')
+  @Post('detections/dismiss')
+  dismissDetection(@Req() req: Request, @Body() body: { key: string }) {
+    return this.recurringService.dismissDetection(req.user!.businessId, body.key);
+  }
 }
