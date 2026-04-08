@@ -8,7 +8,6 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Business } from './business.entity';
-import { User } from './user.entity';
 import { JournalLine } from './journal-line.entity';
 
 export enum JournalEntryStatus {
@@ -47,10 +46,12 @@ export class JournalEntry {
   })
   status: JournalEntryStatus;
 
-  @Column({ type: 'uuid' })
+  // varchar — stores Clerk user IDs (user_xxx) or 'system'
+  @Column({ type: 'varchar', length: 255 })
   created_by: string;
 
-  @Column({ type: 'uuid', nullable: true })
+  // varchar — stores Clerk user IDs (user_xxx) or 'system'
+  @Column({ type: 'varchar', length: 255, nullable: true })
   posted_by: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
@@ -69,14 +70,6 @@ export class JournalEntry {
   @ManyToOne(() => Business, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'business_id' })
   business: Business;
-
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'created_by' })
-  createdBy: User;
-
-  @ManyToOne(() => User, { nullable: true })
-  @JoinColumn({ name: 'posted_by' })
-  postedBy: User;
 
   @OneToMany(() => JournalLine, (journalLine) => journalLine.journalEntry, {
     cascade: true,
