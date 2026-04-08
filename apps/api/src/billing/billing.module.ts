@@ -11,6 +11,8 @@ import { BillingAlertService } from './billing-alert.service';
 import { BillingController } from './billing.controller';
 import { AccountantBillingProcessor, ACCOUNTANT_BILLING_QUEUE } from './accountant-billing.processor';
 import { AccountantBillingJob } from './accountant-billing.job';
+import { TrialMonitorProcessor, TRIAL_MONITOR_QUEUE } from './trial-monitor.processor';
+import { TrialMonitorJob } from './trial-monitor.job';
 import { EmailModule } from '../email/email.module';
 
 @Module({
@@ -22,7 +24,10 @@ import { EmailModule } from '../email/email.module';
       FirmStaff,
       AiUsageLog,
     ]),
-    BullModule.registerQueue({ name: ACCOUNTANT_BILLING_QUEUE }),
+    BullModule.registerQueue(
+      { name: ACCOUNTANT_BILLING_QUEUE },
+      { name: TRIAL_MONITOR_QUEUE },
+    ),
     EmailModule,
   ],
   controllers: [BillingController],
@@ -31,6 +36,8 @@ import { EmailModule } from '../email/email.module';
     BillingAlertService,
     AccountantBillingProcessor,
     AccountantBillingJob,
+    TrialMonitorProcessor,
+    TrialMonitorJob,
   ],
   exports: [BillingService, BillingAlertService],
 })

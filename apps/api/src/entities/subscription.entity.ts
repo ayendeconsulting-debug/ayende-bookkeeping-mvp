@@ -59,10 +59,16 @@ export class Subscription {
   current_period_end: Date | null;
 
   /**
+   * Customer email stored on checkout completion.
+   * Used by TrialMonitorProcessor to send reminder emails without a Stripe API call.
+   */
+  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
+  customer_email: string | null;
+
+  /**
    * Tracks which trial reminder emails have already been sent.
-   * Values are day-thresholds: '14', '7', '3', '1'.
+   * Values are day-thresholds as strings: '14', '7', '3', '1'.
    * Used by TrialMonitorProcessor to prevent duplicate sends.
-   * TypeORM synchronize:true will add this column automatically on deploy.
    */
   @Column({ type: 'simple-array', nullable: true, default: null })
   trial_reminder_sent_at: string[] | null;
