@@ -21,12 +21,13 @@ import { NarrativeService } from './services/narrative.service';
 import { ChatService } from './services/chat.service';
 import { ExplainerService } from './services/explainer.service';
 import { YearEndService } from './services/year-end.service';
+import { AiUsageService } from './services/ai-usage.service';
 // Async jobs
 import { AiJobsProcessor, AI_JOBS_QUEUE } from './ai-jobs.processor';
 import { AiJobsService } from './ai-jobs.service';
 // Guard
 import { AiUsageGuard } from './ai-usage.guard';
-// ReportsModule provides PdfJobsService + YearEndExportService — no circular dep
+// ReportsModule provides PdfJobsService + YearEndExportService – no circular dep
 import { ReportsModule } from '../reports/reports.module';
 
 @Module({
@@ -54,10 +55,11 @@ import { ReportsModule } from '../reports/reports.module';
     ChatService,
     ExplainerService,
     YearEndService,
+    AiUsageService,  // Phase 15
     AiJobsProcessor,
     AiJobsService,
     AiUsageGuard,
   ],
-  exports: [AiJobsService, AiUsageGuard],
+  exports: [AiJobsService, AiUsageGuard, AiUsageService],
 })
 export class AiModule {}

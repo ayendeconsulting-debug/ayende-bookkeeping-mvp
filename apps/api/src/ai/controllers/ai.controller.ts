@@ -11,19 +11,25 @@ import {
   HttpStatus,
   UseGuards,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import * as fs from 'fs';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { ClassificationAiService } from '../services/classification-ai.service';
 import { AnomalyService } from '../services/anomaly.service';
 import { NarrativeService } from '../services/narrative.service';
 import { ChatService } from '../services/chat.service';
 import { AiJobsService } from '../ai-jobs.service';
+import { AiUsageService } from '../services/ai-usage.service';
 import { PdfJobsService } from '../../reports/pdf-jobs.service';
 import { AiChatDto, AiAnomalyDto } from '../dto/ai.dto';
 import { AiUsageGuard } from '../ai-usage.guard';
 import { AiFeatureType } from '../decorators/ai-feature.decorator';
 import { AiFeature } from '../../entities/ai-usage-log.entity';
+import { Subscription } from '../../entities/subscription.entity';
+import { Business } from '../../entities/business.entity';
 import { YearEndReport } from '../services/year-end.service';
 
 @Controller('ai')
@@ -34,13 +40,16 @@ export class AiController {
     private readonly narrativeService: NarrativeService,
     private readonly chatService: ChatService,
     private readonly aiJobsService: AiJobsService,
+    private readonly aiUsageService: AiUsageService,
     private readonly pdfJobsService: PdfJobsService,
+    @InjectRepository(Subscription)
+    private readonly subscriptionRepo: Repository<Subscription>,
+    @InjectRepository(Business)
+    private readonly businessRepo: Repository<Business>,
   ) {}
 
   /**
    * POST /ai/classify/:rawTransactionId
-   * Enqueues an AI classification job.
-   * Returns HTTP 202 + { job_id } — poll GET /ai/jobs/:id for result.
    */
   @Post('classify/:rawTransactionId')
   @HttpCode(HttpStatus.ACCEPTED)
@@ -58,8 +67,6 @@ export class AiController {
 
   /**
    * POST /ai/anomalies
-   * Enqueues an anomaly detection job.
-   * Returns HTTP 202 + { job_id } — poll GET /ai/jobs/:id for result.
    */
   @Post('anomalies')
   @HttpCode(HttpStatus.ACCEPTED)
@@ -78,8 +85,6 @@ export class AiController {
 
   /**
    * POST /ai/explain/:rawTransactionId
-   * Enqueues a transaction explainer job.
-   * Returns HTTP 202 + { job_id } — poll GET /ai/jobs/:id for result.
    */
   @Post('explain/:rawTransactionId')
   @HttpCode(HttpStatus.ACCEPTED)
@@ -97,10 +102,6 @@ export class AiController {
 
   /**
    * POST /ai/year-end
-   * Enqueues a Year-End Assistant job.
-   * Body: { fiscalYearEnd: 'YYYY-MM-DD' }
-   * Returns HTTP 202 + { job_id } — poll GET /ai/jobs/:id for result.
-   * Result contains the full YearEndReport (rendered on screen by frontend).
    */
   @Post('year-end')
   @HttpCode(HttpStatus.ACCEPTED)
@@ -118,9 +119,6 @@ export class AiController {
 
   /**
    * POST /ai/year-end/export-pdf
-   * Enqueues a Year-End PDF export job.
-   * Body: the YearEndReport object returned from the year-end AI job.
-   * Returns HTTP 202 + { job_id } — poll GET /ai/year-end/pdf-status/:jobId.
    */
   @Post('year-end/export-pdf')
   @HttpCode(HttpStatus.ACCEPTED)
@@ -136,8 +134,6 @@ export class AiController {
 
   /**
    * GET /ai/year-end/pdf-status/:jobId
-   * Poll for year-end PDF job status.
-   * Returns { job_id, status, download_url?, filename? }
    */
   @Get('year-end/pdf-status/:jobId')
   getYearEndPdfStatus(@Param('jobId') jobId: string) {
@@ -146,7 +142,6 @@ export class AiController {
 
   /**
    * GET /ai/year-end/download/:jobId
-   * Authenticated download stream for generated year-end PDF.
    */
   @Get('year-end/download/:jobId')
   async downloadYearEndPdf(
@@ -154,23 +149,15 @@ export class AiController {
     @Res() res: Response,
   ) {
     const pdfInfo = await this.pdfJobsService.getPdfPath(jobId);
-    if (!pdfInfo) {
-      throw new NotFoundException('PDF not ready or job not found.');
-    }
-    if (!fs.existsSync(pdfInfo.filePath)) {
-      throw new NotFoundException('PDF file not found on server.');
-    }
+    if (!pdfInfo) throw new NotFoundException('PDF not ready or job not found.');
+    if (!fs.existsSync(pdfInfo.filePath)) throw new NotFoundException('PDF file not found on server.');
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${pdfInfo.filename}"`,
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${pdfInfo.filename}"`);
     fs.createReadStream(pdfInfo.filePath).pipe(res);
   }
 
   /**
    * GET /ai/jobs/:id
-   * Poll for the status and result of any AI job.
    */
   @Get('jobs/:id')
   getJobStatus(@Param('id') jobId: string) {
@@ -178,7 +165,42 @@ export class AiController {
   }
 
   /**
-   * GET /ai/narrative/income-statement?startDate=&endDate=&businessName=
+   * GET /ai/firm-usage
+   * Phase 15: Returns firm-wide AI usage for Accountant plan businesses.
+   * Returns { used, cap, percentage }.
+   * Returns 403 if the business is not on the Accountant plan.
+   */
+  @Get('firm-usage')
+  async getFirmUsage(@Req() req: Request) {
+    const businessId = req.user!.businessId;
+    const monthStart = this.aiUsageService.getCurrentMonthStart();
+
+    const subscription = await this.subscriptionRepo.findOne({
+      where: { business_id: businessId },
+    });
+
+    if (!subscription || subscription.plan !== 'accountant') {
+      throw new ForbiddenException(
+        'Firm-wide AI usage is only available on the Accountant plan.',
+      );
+    }
+
+    const business = await this.businessRepo.findOne({
+      where: { id: businessId },
+      select: ['id', 'created_by_firm_id'],
+    });
+
+    if (!business?.created_by_firm_id) {
+      // Accountant business not under a firm — return per-business usage
+      const used = await this.aiUsageService.getBusinessUsage(businessId, monthStart);
+      return { used, cap: 500, percentage: Math.min(Math.round((used / 500) * 100), 100) };
+    }
+
+    return this.aiUsageService.getFirmUsage(business.created_by_firm_id, monthStart);
+  }
+
+  /**
+   * GET /ai/narrative/income-statement
    */
   @Get('narrative/income-statement')
   incomeStatementNarrative(
@@ -194,7 +216,7 @@ export class AiController {
   }
 
   /**
-   * GET /ai/narrative/balance-sheet?asOfDate=&businessName=
+   * GET /ai/narrative/balance-sheet
    */
   @Get('narrative/balance-sheet')
   balanceSheetNarrative(
@@ -210,8 +232,6 @@ export class AiController {
 
   /**
    * POST /ai/chat
-   * Plain English bookkeeping assistant — synchronous.
-   * Not guarded — chat does not count against AI usage cap.
    */
   @Post('chat')
   chat(@Req() req: Request, @Body() dto: AiChatDto) {
