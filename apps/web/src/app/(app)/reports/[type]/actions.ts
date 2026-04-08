@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import { api } from '@/lib/api';
 
@@ -22,7 +22,7 @@ export async function getReportNarrative(
 
 /**
  * Fetch a report export (PDF or CSV) and return as base64.
- * Client uses this to trigger a file download without exposing the JWT.
+ * Calls GET /reports/:type/export?format=pdf|csv&startDate=...&endDate=...
  */
 export async function downloadReport(
   type: string,
@@ -30,14 +30,14 @@ export async function downloadReport(
   params: Record<string, string>,
 ): Promise<{ success: boolean; data?: string; filename?: string; error?: string }> {
   try {
-    const query = new URLSearchParams(params).toString();
+    const query = new URLSearchParams({ ...params, format }).toString();
     const { auth } = await import('@clerk/nextjs/server');
     const { getToken } = await auth();
     const token = await getToken();
 
     const apiUrl = process.env.API_URL || 'http://localhost:3005';
     const response = await fetch(
-      `${apiUrl}/reports/export/${type}/${format}?${query}`,
+      `${apiUrl}/reports/${type}/export?${query}`,
       {
         method: 'GET',
         headers: {
@@ -60,3 +60,4 @@ export async function downloadReport(
     return { success: false, error: error.message ?? 'Export failed.' };
   }
 }
+

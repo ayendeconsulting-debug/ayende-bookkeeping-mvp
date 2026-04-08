@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PDFDocument = require('pdfkit') as typeof import('pdfkit');
 import { IncomeStatementReport } from './income-statement.service';
 import { BalanceSheetReport } from './balance-sheet.service';
 import { TrialBalanceReport } from './trial-balance.service';
-import { GeneralLedgerReport } from './general-ledger.service';
+import { GeneralLedgerReport, GeneralLedgerAccountReport } from './general-ledger.service';
 
 type AnyReport =
   | IncomeStatementReport
@@ -14,7 +14,7 @@ type AnyReport =
 
 @Injectable()
 export class ExportService {
-  // ── PDF ───────────────────────────────────────────────────────────────────
+  // â”€â”€ PDF â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async generatePdf(reportType: string, data: AnyReport, businessName: string): Promise<Buffer> {
     return new Promise((resolve, reject) => {
@@ -108,7 +108,7 @@ export class ExportService {
       .text('LIABILITIES + EQUITY', { continued: true })
       .text(`$${liabPlusEquity.toFixed(2)}`, { align: 'right' });
     doc.fontSize(9).font('Helvetica').fillColor(data.is_balanced ? 'green' : 'red')
-      .text(data.is_balanced ? '✓ Balanced' : '✗ Out of balance', { align: 'right' });
+      .text(data.is_balanced ? 'âœ“ Balanced' : 'âœ— Out of balance', { align: 'right' });
     doc.fillColor('black');
   }
 
@@ -144,16 +144,34 @@ export class ExportService {
       .text(`$${data.grand_total_credits.toFixed(2)}`, 440, y, { width: 110, align: 'right' });
     doc.moveDown(0.5);
     doc.fontSize(9).font('Helvetica').fillColor(data.is_balanced ? 'green' : 'red')
-      .text(data.is_balanced ? '✓ Balanced' : '✗ Out of balance', { align: 'right' });
+      .text(data.is_balanced ? 'âœ“ Balanced' : 'âœ— Out of balance', { align: 'right' });
     doc.fillColor('black');
   }
 
+  // Phase 13: updated to handle GeneralLedgerReport.accounts array
   private renderGeneralLedgerPdf(doc: PDFKit.PDFDocument, data: GeneralLedgerReport): void {
-    doc.fontSize(10).font('Helvetica')
-      .text(`Account: ${data.account_code} - ${data.account_name}`)
-      .text(`Period: ${data.start_date} to ${data.end_date}`)
-      .text(`Opening Balance: $${data.opening_balance.toFixed(2)}`);
+    doc.fontSize(10).font('Helvetica').text(`Period: ${data.start_date} to ${data.end_date}`);
     doc.moveDown();
+
+    for (const account of data.accounts) {
+      this.renderGeneralLedgerAccountPdf(doc, account);
+      doc.moveDown();
+    }
+
+    if (data.accounts.length === 0) {
+      doc.fontSize(10).font('Helvetica').text('No ledger entries found for this period.');
+    }
+  }
+
+  private renderGeneralLedgerAccountPdf(
+    doc: PDFKit.PDFDocument,
+    account: GeneralLedgerAccountReport,
+  ): void {
+    doc.fontSize(11).font('Helvetica-Bold')
+      .text(`${account.account_code} - ${account.account_name}`);
+    doc.fontSize(9).font('Helvetica')
+      .text(`Opening Balance: $${account.opening_balance.toFixed(2)}`);
+    doc.moveDown(0.3);
 
     const y0 = doc.y;
     doc.fontSize(9).font('Helvetica-Bold')
@@ -167,28 +185,28 @@ export class ExportService {
     doc.moveTo(50, doc.y).lineTo(560, doc.y).stroke();
     doc.moveDown(0.3);
 
-    for (const line of data.lines) {
+    for (const line of account.lines) {
       const y       = doc.y;
       const dateStr = new Date(line.entry_date).toLocaleDateString('en-CA');
       doc.fontSize(8).font('Helvetica')
-        .text(dateStr,                                50,  y, { width: 80 })
-        .text(line.entry_number ?? '',                130, y, { width: 80 })
+        .text(dateStr,                                    50,  y, { width: 80 })
+        .text(line.entry_number ?? '',                    130, y, { width: 80 })
         .text((line.description ?? '').substring(0, 30), 210, y, { width: 160 })
         .text(line.debit_amount  > 0 ? `$${line.debit_amount.toFixed(2)}`  : '', 370, y, { width: 60, align: 'right' })
         .text(line.credit_amount > 0 ? `$${line.credit_amount.toFixed(2)}` : '', 430, y, { width: 60, align: 'right' })
-        .text(`$${line.running_balance.toFixed(2)}`,  490, y, { width: 70, align: 'right' });
+        .text(`$${line.running_balance.toFixed(2)}`,      490, y, { width: 70, align: 'right' });
       doc.moveDown(0.3);
     }
 
-    doc.moveDown(0.3);
+    doc.moveDown(0.2);
     doc.moveTo(50, doc.y).lineTo(560, doc.y).stroke();
     doc.moveDown(0.3);
-    doc.fontSize(10).font('Helvetica-Bold')
+    doc.fontSize(9).font('Helvetica-Bold')
       .text('Closing Balance', { continued: true })
-      .text(`$${data.closing_balance.toFixed(2)}`, { align: 'right' });
+      .text(`$${account.closing_balance.toFixed(2)}`, { align: 'right' });
   }
 
-  // ── CSV ───────────────────────────────────────────────────────────────────
+  // â”€â”€ CSV â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   generateCsv(reportType: string, data: AnyReport): string {
     switch (reportType) {
@@ -242,18 +260,29 @@ export class ExportService {
     return rows.join('\r\n');
   }
 
+  // Phase 13: updated to handle GeneralLedgerReport.accounts array
   private generalLedgerCsv(data: GeneralLedgerReport): string {
-    const rows = [
-      `General Ledger,"${data.account_code} - ${data.account_name}"`,
-      `Period,${data.start_date} to ${data.end_date}`,
-      `Opening Balance,${data.opening_balance.toFixed(2)}`, '',
-      'Date,Entry Number,Description,Debit,Credit,Running Balance',
-      ...data.lines.map(l =>
-        `${new Date(l.entry_date).toLocaleDateString('en-CA')},${l.entry_number ?? ''},"${(l.description ?? '').replace(/"/g, '""')}",${l.debit_amount.toFixed(2)},${l.credit_amount.toFixed(2)},${l.running_balance.toFixed(2)}`
-      ),
-      '',
-      `Closing Balance,,,,,${data.closing_balance.toFixed(2)}`,
+    const rows: string[] = [
+      `General Ledger,${data.start_date} to ${data.end_date}`, '',
     ];
+
+    for (const account of data.accounts) {
+      rows.push(
+        `Account,"${account.account_code} - ${account.account_name}"`,
+        `Opening Balance,${account.opening_balance.toFixed(2)}`, '',
+        'Date,Entry Number,Description,Debit,Credit,Running Balance',
+        ...account.lines.map(l =>
+          `${new Date(l.entry_date).toLocaleDateString('en-CA')},${l.entry_number ?? ''},"${(l.description ?? '').replace(/"/g, '""')}",${l.debit_amount.toFixed(2)},${l.credit_amount.toFixed(2)},${l.running_balance.toFixed(2)}`
+        ),
+        `Closing Balance,,,,,${account.closing_balance.toFixed(2)}`,
+        '',
+      );
+    }
+
+    if (data.accounts.length === 0) {
+      rows.push('No ledger entries found for this period.');
+    }
+
     return rows.join('\r\n');
   }
 
@@ -267,3 +296,4 @@ export class ExportService {
     return titles[reportType] ?? reportType;
   }
 }
+
