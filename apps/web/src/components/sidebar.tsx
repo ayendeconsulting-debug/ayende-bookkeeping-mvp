@@ -51,12 +51,14 @@ const freelancerItems = [
 const freelancerMainItems = [
   { href: '/transactions', label: 'Transactions',  icon: ArrowLeftRight },
   { href: '/invoices',     label: 'Invoices',      icon: FileText },
+  { href: '/recurring',    label: 'Recurring',     icon: RefreshCw },
   { href: '/banks',        label: 'Bank Accounts', icon: Building2 },
 ];
 const freelancerSettingsItems = [
-  { href: '/tax',      label: 'Tax Codes',    icon: Receipt },
-  { href: '/ai',       label: 'AI Assistant', icon: Sparkles },
-  { href: '/settings', label: 'Settings',     icon: Settings },
+  { href: '/accounts', label: 'Chart of Accounts', icon: BookOpen },
+  { href: '/tax',      label: 'Tax Codes',          icon: Receipt },
+  { href: '/ai',       label: 'AI Assistant',       icon: Sparkles },
+  { href: '/settings', label: 'Settings',           icon: Settings },
 ];
 const personalItems = [
   { href: '/personal/dashboard',  label: 'My Dashboard',      icon: LayoutDashboard },
