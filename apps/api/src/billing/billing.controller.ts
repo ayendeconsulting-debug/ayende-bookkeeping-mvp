@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Post,
   Get,
@@ -11,18 +11,20 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { BillingService } from './billing.service';
+import { BillingAlertService } from './billing-alert.service';
 import { CreateCheckoutSessionDto, CreatePortalSessionDto } from './dto/billing.dto';
 import { Public } from '../auth/public.decorator';
 
 @Controller('billing')
 export class BillingController {
-  constructor(private readonly billingService: BillingService) {}
+  constructor(
+    private readonly billingService: BillingService,
+    private readonly billingAlertService: BillingAlertService,
+  ) {}
 
   /**
    * POST /billing/create-checkout-session
    * Create a Stripe Checkout session for a subscription trial.
-   * Card collected upfront — no charge during 60-day trial.
-   * Auto-activates Starter plan after trial unless user cancels.
    */
   @Post('create-checkout-session')
   @HttpCode(HttpStatus.OK)
@@ -63,9 +65,18 @@ export class BillingController {
   }
 
   /**
+   * GET /billing/alerts
+   * Return active billing alerts for the authenticated business.
+   * Used by AlertBanner to render contextual in-app notifications.
+   */
+  @Get('alerts')
+  async getAlerts(@Req() req: Request) {
+    return this.billingAlertService.computeAlerts(req.user!.businessId);
+  }
+
+  /**
    * POST /billing/webhook
-   * Stripe webhook endpoint — bypasses JWT auth via @Public().
-   * Validates Stripe-Signature header before processing any event.
+   * Stripe webhook endpoint â€” bypasses JWT auth via @Public().
    */
   @Public()
   @Post('webhook')
@@ -76,9 +87,10 @@ export class BillingController {
   ) {
     const rawBody = req.rawBody;
     if (!rawBody) {
-      throw new Error('Raw body not available — ensure rawBody: true in NestFactory.create');
+      throw new Error('Raw body not available â€” ensure rawBody: true in NestFactory.create');
     }
     await this.billingService.handleWebhook(rawBody, signature);
     return { received: true };
   }
 }
+

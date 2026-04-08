@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -58,9 +58,19 @@ export class Subscription {
   @Column({ type: 'timestamp with time zone', nullable: true })
   current_period_end: Date | null;
 
+  /**
+   * Tracks which trial reminder emails have already been sent.
+   * Values are day-thresholds: '14', '7', '3', '1'.
+   * Used by TrialMonitorProcessor to prevent duplicate sends.
+   * TypeORM synchronize:true will add this column automatically on deploy.
+   */
+  @Column({ type: 'simple-array', nullable: true, default: null })
+  trial_reminder_sent_at: string[] | null;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 
   @UpdateDateColumn({ type: 'timestamp with time zone' })
   updated_at: Date;
 }
+
