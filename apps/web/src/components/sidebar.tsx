@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -10,7 +10,7 @@ import {
   LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
   ClipboardList, Receipt, Filter, Sparkles, Settings, FileText,
   ArrowRightLeft, RefreshCw, Users, Car, Calculator, Tag, PieChart, Target,
-  Landmark, Bell, X,
+  Landmark, Bell, X, Wand2,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,6 +34,7 @@ const reportItems = [
   { href: '/reports/trial-balance',    label: 'Trial Balance',    icon: ClipboardList },
   { href: '/reports/general-ledger',   label: 'General Ledger',   icon: BookOpen },
   { href: '/reports/hst',              label: 'HST / GST Report', icon: Receipt },
+  { href: '/year-end',                 label: 'Year-End Report',  icon: Wand2 },
 ];
 const businessSettingsItems = [
   { href: '/accounts', label: 'Chart of Accounts',   icon: BookOpen },
@@ -171,3 +172,4 @@ function NavItem({ href, label, icon: Icon, active, onClose }: {
     </Link>
   );
 }
+
