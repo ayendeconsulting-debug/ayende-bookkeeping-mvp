@@ -35,7 +35,7 @@ export class RawTransaction {
   @JoinColumn({ name: 'business_id' })
   business: Business;
 
-  // Nullable — Plaid-sourced transactions don't use import_batches
+  // Nullable – Plaid-sourced transactions don't use import_batches
   @Column({ type: 'uuid', nullable: true })
   import_batch_id: string;
 
@@ -54,7 +54,7 @@ export class RawTransaction {
   @Column({ type: 'varchar', length: 100, nullable: true })
   source_account_type: string;
 
-  // ─── SOURCE TRACKING ────────────────────────────────────────────────────────
+  // ─── SOURCE TRACKING ──────────────────────────────────────────────────────
   @Column({
     type: 'enum',
     enum: RawTransactionSource,
@@ -62,7 +62,7 @@ export class RawTransaction {
   })
   source: RawTransactionSource;
 
-  // ─── PLAID-SPECIFIC FIELDS ──────────────────────────────────────────────────
+  // ─── PLAID-SPECIFIC FIELDS ────────────────────────────────────────────────
   @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   plaid_transaction_id: string;
 
@@ -78,26 +78,22 @@ export class RawTransaction {
   @Column({ type: 'varchar', length: 255, nullable: true })
   plaid_pending_transaction_id: string;
 
-  // ─── FILE-IMPORT-SPECIFIC FIELDS ────────────────────────────────────────────
+  // ─── FILE-IMPORT-SPECIFIC FIELDS ──────────────────────────────────────────
   @Column({ type: 'varchar', length: 64, nullable: true })
   hash_signature: string;
 
-  // ─── MULTI-CURRENCY (Phase 5) ───────────────────────────────────────────────
-  // ISO currency code of the original transaction (e.g. 'USD' for a USD charge on a CAD account)
+  // ─── MULTI-CURRENCY (Phase 5) ─────────────────────────────────────────────
   @Column({ type: 'varchar', length: 3, nullable: true })
   currency_code: string | null;
 
-  // Original amount in the transaction currency before conversion
-  // null when transaction is in the business base currency
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
   original_amount: number | null;
 
-  // ─── FREELANCER MODE (Phase 5) ──────────────────────────────────────────────
-  // When true, transaction is excluded from all business reports and tax calculations
+  // ─── FREELANCER MODE (Phase 5) ────────────────────────────────────────────
   @Column({ type: 'boolean', default: false })
   is_personal: boolean;
 
-  // ─── STATUS ─────────────────────────────────────────────────────────────────
+  // ─── STATUS ───────────────────────────────────────────────────────────────
   @Column({
     type: 'enum',
     enum: RawTransactionStatus,
@@ -107,6 +103,12 @@ export class RawTransaction {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  // ─── PHASE 15: AI Anomaly Flags ───────────────────────────────────────────
+  // Persisted from Transaction Explainer AI job result.
+  // Reset to null when transaction is posted or a new explain job starts.
+  @Column({ type: 'jsonb', nullable: true })
+  anomaly_flags: string[] | null;
 
   @CreateDateColumn()
   created_at: Date;

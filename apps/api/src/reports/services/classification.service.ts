@@ -51,7 +51,7 @@ export class ClassificationService {
     private readonly hstPeriodService: HstPeriodService,
   ) {}
 
-  // ── Classification Rules ──────────────────────────────────────────────────
+  // ── Classification Rules ───────────────────────────────────────────────────
 
   async createRule(dto: CreateClassificationRuleDto): Promise<ClassificationRule> {
     const rule = this.ruleRepo.create({
@@ -90,7 +90,7 @@ export class ClassificationService {
     return this.ruleRepo.save(rule);
   }
 
-  // ── Raw Transactions ──────────────────────────────────────────────────────
+  // ── Raw Transactions ───────────────────────────────────────────────────────
 
   async getRawTransactions(
     businessId: string,
@@ -116,10 +116,7 @@ export class ClassificationService {
     }
 
     if (startDate && endDate) {
-      where.transaction_date = Between(
-        new Date(startDate),
-        new Date(endDate),
-      );
+      where.transaction_date = Between(new Date(startDate), new Date(endDate));
     }
 
     const [data, total] = await this.rawTxRepo.findAndCount({
@@ -147,7 +144,7 @@ export class ClassificationService {
     return this.rawTxRepo.save(tx);
   }
 
-  // ── Bulk Classification ───────────────────────────────────────────────────
+  // ── Bulk Classification ────────────────────────────────────────────────────
 
   async bulkClassify(
     businessId: string,
@@ -195,7 +192,7 @@ export class ClassificationService {
     return { classified, skipped, errors };
   }
 
-  // ── Manual Classification ─────────────────────────────────────────────────
+  // ── Manual Classification ──────────────────────────────────────────────────
 
   async classify(dto: ClassifyTransactionDto): Promise<ClassifiedTransaction> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -223,7 +220,7 @@ export class ClassificationService {
     return this.classifiedRepo.save(classified);
   }
 
-  // ── Post to General Ledger ────────────────────────────────────────────────
+  // ── Post to General Ledger ─────────────────────────────────────────────────
 
   async postClassifiedTransaction(
     businessId: string,
@@ -342,11 +339,14 @@ export class ClassificationService {
         posted_journal_entry_id: savedEntry.id,
       });
 
+      // Phase 15: clear anomaly flags once the transaction is reviewed and posted
+      await manager.update(RawTransaction, rawTx.id, { anomaly_flags: null });
+
       return savedEntry;
     });
   }
 
-  // ── Owner Contribution ────────────────────────────────────────────────────
+  // ── Owner Contribution ─────────────────────────────────────────────────────
 
   async postOwnerContribution(dto: OwnerContributionDto): Promise<JournalEntry> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -361,7 +361,6 @@ export class ClassificationService {
       throw new NotFoundException('No owner_contribution equity account found for this business');
     }
     await this.checkFiscalYearLock(dto.businessId, rawTx.transaction_date);
-    // Phase 9: reject if date falls within a locked HST period
     await this.checkHstPeriodLock(dto.businessId, rawTx.transaction_date);
 
     const amount = Number(rawTx.amount);
@@ -402,7 +401,7 @@ export class ClassificationService {
     });
   }
 
-  // ── Owner Draw ────────────────────────────────────────────────────────────
+  // ── Owner Draw ─────────────────────────────────────────────────────────────
 
   async postOwnerDraw(dto: OwnerDrawDto): Promise<JournalEntry> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -417,7 +416,6 @@ export class ClassificationService {
       throw new NotFoundException('No owner_draw equity account found for this business');
     }
     await this.checkFiscalYearLock(dto.businessId, rawTx.transaction_date);
-    // Phase 9: reject if date falls within a locked HST period
     await this.checkHstPeriodLock(dto.businessId, rawTx.transaction_date);
 
     const amount = Number(rawTx.amount);
@@ -458,7 +456,7 @@ export class ClassificationService {
     });
   }
 
-  // ── Classification Learning ───────────────────────────────────────────────
+  // ── Classification Learning ────────────────────────────────────────────────
 
   async learnRule(dto: LearnClassificationRuleDto): Promise<ClassificationRule> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -493,13 +491,8 @@ export class ClassificationService {
     return this.ruleRepo.save(rule);
   }
 
-  // ── Phase 12: Auto-Classification Engine ─────────────────────────────────
+  // ── Phase 12: Auto-Classification Engine ──────────────────────────────────
 
-  /**
-   * Matches a single raw transaction against an already-loaded rule set.
-   * Priority order: keyword → vendor → account. First match wins.
-   * Rules must be pre-sorted by priority ASC before calling this method.
-   */
   private matchRule(rules: ClassificationRule[], rawTx: RawTransaction): ClassificationRule | null {
     for (const rule of rules) {
       if (!rule.match_value) continue;
@@ -514,11 +507,6 @@ export class ClassificationService {
     return null;
   }
 
-  /**
-   * Applies active classification rules to a single pending raw transaction.
-   * Called per-transaction from PlaidSyncProcessor after upsert.
-   * Errors are caught and never propagate to the calling sync job.
-   */
   async applyRulesToTransaction(
     businessId: string,
     rawTx: RawTransaction,
@@ -554,16 +542,10 @@ export class ClassificationService {
 
       return { matched: true, ruleId: matched.id };
     } catch (err: any) {
-      // Never fail the sync job
       return { matched: false };
     }
   }
 
-  /**
-   * Applies active rules to all pending transactions for the business in one pass.
-   * Rules are loaded once for efficiency. Called from the run-batch endpoint
-   * and reused by PlaidSyncProcessor after a sync completes.
-   */
   async runBatchRules(
     businessId: string,
   ): Promise<{ total: number; classified: number; skipped: number }> {
@@ -625,7 +607,6 @@ export class ClassificationService {
     }
   }
 
-  // Phase 9: check if the transaction date falls within a locked HST period
   private async checkHstPeriodLock(businessId: string, date: Date): Promise<void> {
     const dateStr = date instanceof Date
       ? date.toISOString().split('T')[0]
@@ -638,7 +619,7 @@ export class ClassificationService {
 
     if (lockedPeriod) {
       throw new UnprocessableEntityException(
-        `Cannot post transaction dated ${dateStr} — it falls within a locked HST period ` +
+        `Cannot post transaction dated ${dateStr} – it falls within a locked HST period ` +
         `(${lockedPeriod.period_start} to ${lockedPeriod.period_end}). ` +
         `Locked periods cannot accept new journal entries.`,
       );
