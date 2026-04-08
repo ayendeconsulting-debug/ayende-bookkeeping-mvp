@@ -7,6 +7,8 @@ import { BusinessMode } from '@/types';
 
 const API_URL = process.env.API_URL || 'http://localhost:3005';
 
+const GRACE_PERIOD_DAYS = 7;
+
 // Routes inside (app) that are exempt from the subscription gate
 const BILLING_EXEMPT_PATHS = [
   '/billing/success',
@@ -33,7 +35,7 @@ async function provisionBusiness(clerkOrgId: string, orgName: string): Promise<v
 
 async function getMyBusiness(
   token: string,
-): Promise<{ settings?: Record<string, unknown>; mode?: string } | null> {
+): Promise<{ settings?: Record<string, unknown>; mode?: string; created_at?: string } | null> {
   try {
     const res = await fetch(`${API_URL}/businesses/me`, {
       headers: {
@@ -43,7 +45,7 @@ async function getMyBusiness(
       cache: 'no-store',
     });
 
-    // 451 — legal re-acceptance required
+    // 451 – legal re-acceptance required
     if (res.status === 451) {
       redirect('/legal/update');
     }
@@ -72,6 +74,14 @@ async function getSubscriptionStatus(token: string) {
   }
 }
 
+function isGracePeriodExpired(createdAt: string | undefined): boolean {
+  if (!createdAt) return false;
+  const created = new Date(createdAt).getTime();
+  const now = Date.now();
+  const diffDays = (now - created) / (1000 * 60 * 60 * 24);
+  return diffDays > GRACE_PERIOD_DAYS;
+}
+
 export default async function AppLayout({
   children,
 }: {
@@ -85,7 +95,7 @@ export default async function AppLayout({
   await provisionBusiness(orgId, orgSlug ?? 'My Business');
 
   const token = await getToken();
-  let business: { settings?: Record<string, unknown>; mode?: string } | null = null;
+  let business: { settings?: Record<string, unknown>; mode?: string; created_at?: string } | null = null;
   let subscription = null;
 
   if (token) {
@@ -100,19 +110,25 @@ export default async function AppLayout({
     }
 
     // ── Subscription gate ─────────────────────────────────────────────────────
-    // Only hard-redirect on 'cancelled' — an unambiguous signal that the user
-    // explicitly cancelled their subscription. 'none' is ambiguous (webhook
-    // delay, lookup failure) and must never lock out existing users.
     const headersList = await headers();
     const pathname    = headersList.get('x-pathname') ?? '';
     const isExempt    = BILLING_EXEMPT_PATHS.some((p) => pathname.startsWith(p));
 
-    if (
-      !isExempt &&
-      business?.settings?.mode_selected &&
-      subscription?.status === 'cancelled'
-    ) {
-      redirect('/pricing?start=1');
+    if (!isExempt && business?.settings?.mode_selected) {
+      // Hard-redirect on 'cancelled' — unambiguous signal the user cancelled.
+      if (subscription?.status === 'cancelled') {
+        redirect('/pricing?start=1');
+      }
+
+      // Redirect on 'none' only after the grace period has elapsed.
+      // 'none' within the first 7 days is treated as a Stripe webhook delay —
+      // never lock out a newly registered user.
+      if (
+        subscription?.status === 'none' &&
+        isGracePeriodExpired(business.created_at)
+      ) {
+        redirect('/pricing?start=1');
+      }
     }
   }
 
