@@ -1,9 +1,16 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { JournalEntry, JournalEntryStatus } from '../../entities/journal-entry.entity';
 import { JournalLine } from '../../entities/journal-line.entity';
 import { Account } from '../../entities/account.entity';
+import { FiscalYear } from '../../entities/fiscal-year.entity';
 import { CreateJournalEntryDto, PostJournalEntryDto } from './dto/create-journal-entry.dto';
 
 @Injectable()
@@ -15,8 +22,32 @@ export class JournalEntryService {
     private journalLineRepository: Repository<JournalLine>,
     @InjectRepository(Account)
     private accountRepository: Repository<Account>,
+    @InjectRepository(FiscalYear)
+    private fiscalYearRepository: Repository<FiscalYear>,
     private dataSource: DataSource,
   ) {}
+
+  // ── Fiscal Year Lock Guard ────────────────────────────────────────────────
+
+  /**
+   * Throws HTTP 423 if the given date falls within a locked fiscal year.
+   * Called before any write operation on journal entries.
+   */
+  private async assertNotLocked(businessId: string, date: Date): Promise<void> {
+    const entryDate = date instanceof Date ? date : new Date(date);
+    const year = entryDate.getFullYear();
+    const fy = await this.fiscalYearRepository.findOne({
+      where: { business_id: businessId, year_number: year },
+    });
+    if (fy?.is_locked) {
+      throw new HttpException(
+        'This fiscal year is locked. Contact support to make changes.',
+        HttpStatus.LOCKED, // 423
+      );
+    }
+  }
+
+  // ── Journal Entry Operations ──────────────────────────────────────────────
 
   /**
    * Create a journal entry in DRAFT status
@@ -48,14 +79,8 @@ export class JournalEntryService {
     }
 
     // Validation 3: CRITICAL - Debits must equal credits
-    const totalDebits = dto.lines.reduce(
-      (sum, line) => sum + line.debit_amount,
-      0,
-    );
-    const totalCredits = dto.lines.reduce(
-      (sum, line) => sum + line.credit_amount,
-      0,
-    );
+    const totalDebits = dto.lines.reduce((sum, line) => sum + line.debit_amount, 0);
+    const totalCredits = dto.lines.reduce((sum, line) => sum + line.credit_amount, 0);
 
     if (Math.abs(totalDebits - totalCredits) > 0.01) {
       throw new BadRequestException(
@@ -66,10 +91,7 @@ export class JournalEntryService {
     // Validation 4: All accounts must exist and belong to the business
     const accountIds = dto.lines.map((line) => line.account_id);
     const accounts = await this.accountRepository.find({
-      where: accountIds.map((id) => ({
-        id,
-        business_id: dto.business_id,
-      })),
+      where: accountIds.map((id) => ({ id, business_id: dto.business_id })),
     });
 
     if (accounts.length !== accountIds.length) {
@@ -80,18 +102,12 @@ export class JournalEntryService {
 
     // Use transaction to ensure atomicity
     return this.dataSource.transaction(async (manager) => {
-      // Convert entry_date to Date object if it's a string
-      const entryDate = typeof dto.entry_date === 'string' 
-        ? new Date(dto.entry_date) 
+      const entryDate = typeof dto.entry_date === 'string'
+        ? new Date(dto.entry_date)
         : dto.entry_date;
-      
-      // Generate entry number
-      const entryNumber = await this.generateEntryNumber(
-        dto.business_id,
-        entryDate,
-      );
 
-      // Create journal entry
+      const entryNumber = await this.generateEntryNumber(dto.business_id, entryDate);
+
       const journalEntry = manager.create(JournalEntry, {
         business_id: dto.business_id,
         entry_number: entryNumber,
@@ -106,7 +122,6 @@ export class JournalEntryService {
 
       const savedEntry = await manager.save(JournalEntry, journalEntry) as JournalEntry;
 
-      // Create journal lines
       const journalLines = dto.lines.map((lineDto) =>
         manager.create(JournalLine, {
           business_id: dto.business_id,
@@ -121,23 +136,19 @@ export class JournalEntryService {
 
       await manager.save(JournalLine, journalLines);
 
-      // Return entry with lines
       const result = await manager.findOne(JournalEntry, {
         where: { id: savedEntry.id },
         relations: ['lines', 'lines.account'],
       });
-      
-      if (!result) {
-        throw new Error('Failed to retrieve created journal entry');
-      }
-      
+
+      if (!result) throw new Error('Failed to retrieve created journal entry');
       return result;
     });
   }
 
   /**
    * Post a journal entry (make it permanent)
-   * Re-validates balance before posting
+   * Re-validates balance and checks fiscal year lock before posting.
    */
   async postJournalEntry(dto: PostJournalEntryDto): Promise<JournalEntry> {
     const entry = await this.journalEntryRepository.findOne({
@@ -145,33 +156,23 @@ export class JournalEntryService {
       relations: ['lines'],
     });
 
-    if (!entry) {
-      throw new NotFoundException('Journal entry not found');
-    }
+    if (!entry) throw new NotFoundException('Journal entry not found');
 
     if (entry.status !== JournalEntryStatus.DRAFT) {
-      throw new BadRequestException(
-        `Cannot post entry with status: ${entry.status}`,
-      );
+      throw new BadRequestException(`Cannot post entry with status: ${entry.status}`);
     }
 
-    // Re-validate balance before posting (safety check)
-    const totalDebits = entry.lines.reduce(
-      (sum, line) => sum + Number(line.debit_amount),
-      0,
-    );
-    const totalCredits = entry.lines.reduce(
-      (sum, line) => sum + Number(line.credit_amount),
-      0,
-    );
+    // Phase 14: fiscal year lock check
+    await this.assertNotLocked(entry.business_id, entry.entry_date);
+
+    // Re-validate balance before posting
+    const totalDebits = entry.lines.reduce((sum, line) => sum + Number(line.debit_amount), 0);
+    const totalCredits = entry.lines.reduce((sum, line) => sum + Number(line.credit_amount), 0);
 
     if (Math.abs(totalDebits - totalCredits) > 0.01) {
-      throw new BadRequestException(
-        'Cannot post unbalanced journal entry. This should never happen!',
-      );
+      throw new BadRequestException('Cannot post unbalanced journal entry.');
     }
 
-    // Post the entry
     entry.status = JournalEntryStatus.POSTED;
     entry.posted_by = dto.posted_by;
     entry.posted_at = new Date();
@@ -188,10 +189,7 @@ export class JournalEntryService {
       relations: ['lines', 'lines.account', 'createdBy', 'postedBy'],
     });
 
-    if (!entry) {
-      throw new NotFoundException('Journal entry not found');
-    }
-
+    if (!entry) throw new NotFoundException('Journal entry not found');
     return entry;
   }
 
@@ -203,9 +201,7 @@ export class JournalEntryService {
     status?: JournalEntryStatus,
   ): Promise<JournalEntry[]> {
     const where: any = { business_id: businessId };
-    if (status) {
-      where.status = status;
-    }
+    if (status) where.status = status;
 
     return this.journalEntryRepository.find({
       where,
@@ -215,22 +211,22 @@ export class JournalEntryService {
   }
 
   /**
-   * Delete a draft journal entry
+   * Delete a draft journal entry.
+   * Also checks fiscal year lock — even draft entries in a locked year cannot be deleted.
    */
   async deleteJournalEntry(id: string, businessId: string): Promise<void> {
     const entry = await this.journalEntryRepository.findOne({
       where: { id, business_id: businessId },
     });
 
-    if (!entry) {
-      throw new NotFoundException('Journal entry not found');
-    }
+    if (!entry) throw new NotFoundException('Journal entry not found');
 
     if (entry.status !== JournalEntryStatus.DRAFT) {
-      throw new BadRequestException(
-        'Cannot delete posted or locked journal entries',
-      );
+      throw new BadRequestException('Cannot delete posted or locked journal entries');
     }
+
+    // Phase 14: fiscal year lock check
+    await this.assertNotLocked(businessId, entry.entry_date);
 
     await this.journalEntryRepository.remove(entry);
   }
@@ -238,26 +234,20 @@ export class JournalEntryService {
   /**
    * Generate unique entry number: JE-YYYY-00001
    */
-  private async generateEntryNumber(
-    businessId: string,
-    entryDate: Date,
-  ): Promise<string> {
+  private async generateEntryNumber(businessId: string, entryDate: Date): Promise<string> {
     const year = entryDate.getFullYear();
-    
-    // Get the last entry number for this year
+
     const lastEntry = await this.journalEntryRepository
       .createQueryBuilder('je')
       .where('je.business_id = :businessId', { businessId })
-      .andWhere("je.entry_number LIKE :pattern", { pattern: `JE-${year}-%` })
+      .andWhere('je.entry_number LIKE :pattern', { pattern: `JE-${year}-%` })
       .orderBy('je.entry_number', 'DESC')
       .getOne();
 
     let sequence = 1;
     if (lastEntry?.entry_number) {
       const match = lastEntry.entry_number.match(/JE-\d{4}-(\d+)/);
-      if (match) {
-        sequence = parseInt(match[1], 10) + 1;
-      }
+      if (match) sequence = parseInt(match[1], 10) + 1;
     }
 
     return `JE-${year}-${sequence.toString().padStart(5, '0')}`;

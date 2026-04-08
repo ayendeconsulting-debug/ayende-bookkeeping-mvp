@@ -21,6 +21,7 @@ import { PersonalModule } from './personal/personal.module';
 import { LegalModule } from './legal/legal.module';
 import { BillingModule } from './billing/billing.module';
 import { FirmsModule } from './firms/firms.module';
+import { FiscalYearModule } from './fiscal-year/fiscal-year.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { LegalAcceptanceGuard } from './legal/legal-acceptance.guard';
@@ -66,6 +67,7 @@ function getRedisBullMQConnection() {
     LegalModule,
     BillingModule,
     FirmsModule,
+    FiscalYearModule, // Phase 14
   ],
   controllers: [AppController, HealthController],
   providers: [
