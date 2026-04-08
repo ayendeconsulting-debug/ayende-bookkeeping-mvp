@@ -175,15 +175,21 @@ export class BillingService {
     businessId: string,
     returnUrl: string,
   ): Promise<{ url: string }> {
+    const frontendUrl = process.env.FRONTEND_URL || 'https://gettempo.ca';
+
     const subscription = await this.subscriptionRepo.findOne({
       where: { business_id: businessId },
     });
+
+    // Phase 12: if no Stripe customer exists, redirect to /pricing instead of throwing.
+    // Handles businesses with status=none that click "Manage Subscription".
     if (!subscription?.stripe_customer_id) {
-      throw new BadRequestException('No Stripe customer found for this business');
+      return { url: frontendUrl + '/pricing' };
     }
+
     const session = await this.stripe.billingPortal.sessions.create({
       customer:   subscription.stripe_customer_id,
-      return_url: returnUrl || (process.env.FRONTEND_URL || 'https://gettempo.ca') + '/settings',
+      return_url: returnUrl || frontendUrl + '/settings',
     });
     return { url: session.url };
   }
