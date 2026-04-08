@@ -2,22 +2,65 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Business, BusinessMode } from '../entities/business.entity';
-import { Account } from '../entities/account.entity';
+import { Account, AccountType, AccountSubtype } from '../entities/account.entity';
 import { EmailService } from '../email/email.service';
 import { ConfigService } from '@nestjs/config';
 import { UpdateTaxSettingsDto } from '../reports/dto/update-tax-settings.dto';
 import { TaxSeedService } from '../reports/services/tax-seed.service';
 import { ProvinceConfigService } from '../reports/services/province-config.service';
 
-type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+type AccountTypeStr = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
 interface AccountSeed {
   code: string;
   name: string;
-  type: AccountType;
+  type: AccountTypeStr;
   subtype?: string | null;
   description?: string;
 }
+
+// Phase 12: standard default account set seeded on every new business
+interface DefaultAccountSeed {
+  code: string;
+  name: string;
+  account_type: AccountType;
+  account_subtype: AccountSubtype | null;
+}
+
+const DEFAULT_ACCOUNTS: DefaultAccountSeed[] = [
+  // ── Assets ──────────────────────────────────────────────────────────────
+  { code: '1000', name: 'Cash and Bank',            account_type: AccountType.ASSET,     account_subtype: AccountSubtype.BANK },
+  { code: '1100', name: 'Accounts Receivable',      account_type: AccountType.ASSET,     account_subtype: AccountSubtype.ACCOUNTS_RECEIVABLE },
+  { code: '1200', name: 'Other Current Assets',     account_type: AccountType.ASSET,     account_subtype: null },
+  // ── Liabilities ─────────────────────────────────────────────────────────
+  { code: '2000', name: 'Accounts Payable',         account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.ACCOUNTS_PAYABLE },
+  { code: '2100', name: 'Credit Card Payable',      account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.CREDIT_CARD },
+  { code: '2200', name: 'HST / GST Payable',        account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.TAX_PAYABLE },
+  { code: '2300', name: 'Other Current Liabilities',account_type: AccountType.LIABILITY, account_subtype: null },
+  // ── Equity ──────────────────────────────────────────────────────────────
+  { code: '3000', name: "Owner's Equity",           account_type: AccountType.EQUITY,    account_subtype: null },
+  { code: '3100', name: 'Owner Contribution',       account_type: AccountType.EQUITY,    account_subtype: AccountSubtype.OWNER_CONTRIBUTION },
+  { code: '3200', name: 'Owner Draw',               account_type: AccountType.EQUITY,    account_subtype: AccountSubtype.OWNER_DRAW },
+  { code: '3300', name: 'Retained Earnings',        account_type: AccountType.EQUITY,    account_subtype: null },
+  // ── Revenue ─────────────────────────────────────────────────────────────
+  { code: '4000', name: 'Revenue',                  account_type: AccountType.REVENUE,   account_subtype: null },
+  { code: '4100', name: 'Other Income',             account_type: AccountType.REVENUE,   account_subtype: null },
+  // ── Expenses ────────────────────────────────────────────────────────────
+  { code: '5000', name: 'Cost of Goods Sold',       account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '5100', name: 'Advertising & Marketing',  account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '5200', name: 'Bank Fees & Charges',      account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '5300', name: 'Insurance',                account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '5400', name: 'Meals & Entertainment',    account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '5500', name: 'Office Expenses',          account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '5600', name: 'Professional Fees',        account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '5700', name: 'Rent & Facilities',        account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '5800', name: 'Software & Subscriptions', account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '5900', name: 'Travel',                   account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '6000', name: 'Payroll & Wages',          account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '6100', name: 'Utilities',                account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '6200', name: 'Depreciation',             account_type: AccountType.EXPENSE,   account_subtype: null },
+  { code: '6900', name: 'Other Expenses',           account_type: AccountType.EXPENSE,   account_subtype: null },
+];
 
 @Injectable()
 export class BusinessesService {
@@ -82,7 +125,6 @@ export class BusinessesService {
       dto.province_code !== undefined && business.province_code === null;
 
     if (dto.province_code !== undefined) {
-      // Validate province code exists in our config
       const provinceConfig = await this.provinceConfigService.getProvinceConfig(
         dto.province_code,
       );
@@ -93,7 +135,6 @@ export class BusinessesService {
       }
       business.province_code = dto.province_code;
 
-      // Auto-seed default tax codes on first province set — idempotent
       if (isFirstProvinceSet) {
         await this.taxSeedService.seedDefaultTaxCodes(id, provinceConfig);
       }
@@ -126,6 +167,15 @@ export class BusinessesService {
 
     const saved = await this.businessRepo.save(business);
 
+    // Phase 12: seed standard chart of accounts on every new business creation
+    // Non-blocking — errors are logged but never fail provisioning
+    try {
+      await this.seedDefaultAccounts(saved.id);
+    } catch (err: any) {
+      // Log but don't fail provision
+      console.warn(`seedDefaultAccounts failed for business ${saved.id}: ${err.message}`);
+    }
+
     // Send welcome email — fire-and-forget, never blocks provision()
     if (ownerEmail) {
       const appUrl = this.config.get<string>('APP_URL') ?? 'https://gettempo.ca';
@@ -147,8 +197,44 @@ export class BusinessesService {
     return saved;
   }
 
-  // ── Seed Chart of Accounts ────────────────────────────────────────────────
+  // ── Phase 12: Seed standard default chart of accounts ─────────────────────
+  // Idempotent — skips accounts whose code already exists for this business.
+  // Called automatically from provision() and on-demand from POST /accounts/seed-defaults.
+  async seedDefaultAccounts(
+    businessId: string,
+  ): Promise<{ added: number; skipped: number }> {
+    const existing = await this.accountRepo.find({
+      where: { business_id: businessId },
+      select: ['code'],
+    });
+    const existingCodes = new Set(existing.map((a) => a.code));
 
+    let added = 0;
+    let skipped = 0;
+
+    for (const def of DEFAULT_ACCOUNTS) {
+      if (existingCodes.has(def.code)) {
+        skipped++;
+        continue;
+      }
+      const acc = this.accountRepo.create();
+      Object.assign(acc, {
+        business_id: businessId,
+        code: def.code,
+        name: def.name,
+        account_type: def.account_type,
+        is_active: true,
+        ...(def.account_subtype ? { account_subtype: def.account_subtype } : {}),
+      });
+      await this.accountRepo.save(acc);
+      existingCodes.add(def.code);
+      added++;
+    }
+
+    return { added, skipped };
+  }
+
+  // ── Seed Chart of Accounts (industry-specific, called from onboarding) ────
   async seedAccounts(
     businessId: string,
     industry: string,
@@ -180,7 +266,7 @@ export class BusinessesService {
     return { seeded: accounts.length, skipped: false };
   }
 
-  // ── Account seed templates ────────────────────────────────────────────────
+  // ── Account seed templates ─────────────────────────────────────────────────
 
   private buildAccountSeeds(country: string, industry: string): AccountSeed[] {
     const isCA = country === 'CA';

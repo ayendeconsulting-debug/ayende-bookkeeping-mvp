@@ -32,12 +32,24 @@ export class AccountController {
   }
 
   /**
-   * Seed default chart of accounts — admin only
+   * Seed default chart of accounts — admin only (legacy endpoint)
    * POST /accounts/seed
    */
   @Roles('admin')
   @Post('seed')
   async seedDefaultAccounts(@Req() req: Request) {
+    return this.accountService.seedDefaultChartOfAccounts(req.user!.businessId);
+  }
+
+  /**
+   * Phase 12: Seed default chart of accounts — admin only
+   * POST /accounts/seed-defaults
+   * Idempotent — skips accounts whose code already exists.
+   * Returns { added, skipped }.
+   */
+  @Roles('admin')
+  @Post('seed-defaults')
+  async seedDefaults(@Req() req: Request) {
     return this.accountService.seedDefaultChartOfAccounts(req.user!.businessId);
   }
 
