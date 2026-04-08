@@ -1,15 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Pencil, Pause, Play, X, RefreshCw } from 'lucide-react';
+import { Plus, Pencil, Pause, Play, X, RefreshCw, Wand2, Check } from 'lucide-react';
 import { RecurringTransaction, Account, RecurringFrequency, RecurringStatus } from '@/types';
+import { BusinessDetectionCandidate } from '@/app/(app)/recurring/page';
 import {
   createRecurring,
   updateRecurring,
   pauseRecurring,
   resumeRecurring,
   cancelRecurring,
+  confirmBusinessDetection,
+  dismissBusinessDetection,
 } from '@/app/(app)/recurring/actions';
 import { AdminOnly } from '@/components/admin-only';
 import { toastSuccess, toastError } from '@/lib/toast';
@@ -21,10 +24,13 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatCurrency } from '@/lib/utils';
 
 interface RecurringManagerProps {
   initialRecurring: RecurringTransaction[];
   accounts: Account[];
+  // Phase 12
+  initialDetections?: BusinessDetectionCandidate[];
 }
 
 interface RecurringFormData {
@@ -38,6 +44,14 @@ interface RecurringFormData {
   notes: string;
 }
 
+// Phase 12: confirm dialog state
+interface ConfirmDialogState {
+  open: boolean;
+  candidate: BusinessDetectionCandidate | null;
+  debitAccountId: string;
+  creditAccountId: string;
+}
+
 const EMPTY_FORM: RecurringFormData = {
   description: '',
   amount: '',
@@ -49,7 +63,7 @@ const EMPTY_FORM: RecurringFormData = {
   notes: '',
 };
 
-const FREQUENCY_LABELS: Record<RecurringFrequency, string> = {
+const FREQUENCY_LABELS: Record<string, string> = {
   daily: 'Daily',
   weekly: 'Weekly',
   monthly: 'Monthly',
@@ -73,16 +87,31 @@ function formatAmount(amount: number, currency = 'CAD') {
   return new Intl.NumberFormat('en-CA', { style: 'currency', currency }).format(amount);
 }
 
-export function RecurringManager({ initialRecurring, accounts }: RecurringManagerProps) {
+export function RecurringManager({
+  initialRecurring,
+  accounts,
+  initialDetections = [],
+}: RecurringManagerProps) {
   const router = useRouter();
   const [recurring, setRecurring] = useState<RecurringTransaction[]>(initialRecurring);
+  const [detections, setDetections] = useState<BusinessDetectionCandidate[]>(initialDetections);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<RecurringTransaction | null>(null);
   const [form, setForm] = useState<RecurringFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Phase 12: confirm detection dialog state
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
+    open: false,
+    candidate: null,
+    debitAccountId: '',
+    creditAccountId: '',
+  });
+  const [isDetectionPending, startDetectionTransition] = useTransition();
+
   const accountMap = Object.fromEntries(accounts.map((a) => [a.id, a]));
+  const activeAccounts = accounts.filter((a) => a.is_active);
 
   function openCreate() {
     setEditingItem(null);
@@ -180,6 +209,54 @@ export function RecurringManager({ initialRecurring, accounts }: RecurringManage
     }
   }
 
+  // Phase 12: detection handlers
+
+  function openConfirmDialog(candidate: BusinessDetectionCandidate) {
+    setConfirmDialog({ open: true, candidate, debitAccountId: '', creditAccountId: '' });
+  }
+
+  function handleConfirmDetection() {
+    const { candidate, debitAccountId, creditAccountId } = confirmDialog;
+    if (!candidate) return;
+    if (!debitAccountId || !creditAccountId) {
+      toastError('Please select both debit and credit accounts.');
+      return;
+    }
+
+    startDetectionTransition(async () => {
+      const result = await confirmBusinessDetection({
+        key: candidate.key,
+        description: candidate.description,
+        amount: candidate.averageAmount,
+        frequency: candidate.frequency,
+        debitAccountId,
+        creditAccountId,
+      });
+
+      if (result.success) {
+        setDetections((prev) => prev.filter((d) => d.key !== candidate.key));
+        setConfirmDialog({ open: false, candidate: null, debitAccountId: '', creditAccountId: '' });
+        toastSuccess(`"${candidate.description}" added to recurring transactions.`);
+        router.refresh();
+      } else {
+        toastError(result.error ?? 'Failed to confirm detection.');
+      }
+    });
+  }
+
+  function handleDismissDetection(candidate: BusinessDetectionCandidate) {
+    // Optimistic removal
+    setDetections((prev) => prev.filter((d) => d.key !== candidate.key));
+    startDetectionTransition(async () => {
+      const result = await dismissBusinessDetection(candidate.key);
+      if (!result.success) {
+        // Restore on failure
+        setDetections((prev) => [...prev, candidate]);
+        toastError(result.error ?? 'Failed to dismiss.');
+      }
+    });
+  }
+
   const activeItems   = recurring.filter((r) => r.status === 'active');
   const inactiveItems = recurring.filter((r) => r.status !== 'active');
 
@@ -202,6 +279,73 @@ export function RecurringManager({ initialRecurring, accounts }: RecurringManage
       <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700">
         Recurring entries are posted automatically at midnight on their scheduled date. Posting creates a balanced journal entry debiting and crediting the selected accounts.
       </div>
+
+      {/* Phase 12: Detected Patterns panel — shown above Active table when candidates exist */}
+      {detections.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Wand2 className="w-4 h-4 text-primary" />
+            <h2 className="text-sm font-semibold text-gray-800">
+              Detected Patterns ({detections.length})
+            </h2>
+            <span className="text-xs text-gray-400">— confirm to create a recurring template, or dismiss to hide</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {detections.map((candidate) => (
+              <Card key={candidate.key} className="border-primary/20">
+                <CardContent className="pt-4 pb-3">
+                  <div className="flex items-start justify-between mb-2">
+                    <p className="text-sm font-semibold text-gray-900 truncate flex-1 min-w-0 pr-2">
+                      {candidate.description}
+                    </p>
+                    <Badge variant="secondary" className="text-[10px] flex-shrink-0">
+                      {FREQUENCY_LABELS[candidate.frequency] ?? candidate.frequency}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-lg font-bold text-gray-900">
+                      {formatCurrency(candidate.averageAmount)}
+                    </span>
+                    <span className="text-xs text-gray-400">
+                      {candidate.occurrences} occurrences detected
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-gray-400 mb-3">
+                    Next estimated:{' '}
+                    {new Date(candidate.nextEstimatedDate).toLocaleDateString('en-CA', {
+                      month: 'short', day: 'numeric', year: 'numeric',
+                    })}
+                  </p>
+
+                  <AdminOnly>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => openConfirmDialog(candidate)}
+                        disabled={isDetectionPending}
+                        className="flex-1 h-7 text-xs bg-primary text-white hover:bg-primary/90"
+                      >
+                        <Check className="w-3 h-3 mr-1" />Confirm
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDismissDetection(candidate)}
+                        disabled={isDetectionPending}
+                        className="h-7 text-xs text-gray-500"
+                      >
+                        <X className="w-3 h-3 mr-1" />Dismiss
+                      </Button>
+                    </div>
+                  </AdminOnly>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Active</h2>
       <Card className="mb-6">
@@ -242,13 +386,13 @@ export function RecurringManager({ initialRecurring, accounts }: RecurringManage
         </>
       )}
 
+      {/* New / Edit recurring dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingItem ? 'Edit Recurring Transaction' : 'New Recurring Transaction'}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4 mt-2">
-
             <div className="flex flex-col gap-1.5">
               <Label>Description</Label>
               <Input
@@ -295,8 +439,8 @@ export function RecurringManager({ initialRecurring, accounts }: RecurringManage
                     className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
                   >
                     <option value="">Select account…</option>
-                    {accounts.filter((a) => a.is_active).map((a) => (
-                      <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>
+                    {activeAccounts.map((a) => (
+                      <option key={a.id} value={a.id}>{a.account_code} — {a.account_name}</option>
                     ))}
                   </select>
                 </div>
@@ -308,8 +452,8 @@ export function RecurringManager({ initialRecurring, accounts }: RecurringManage
                     className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
                   >
                     <option value="">Select account…</option>
-                    {accounts.filter((a) => a.is_active).map((a) => (
-                      <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>
+                    {activeAccounts.map((a) => (
+                      <option key={a.id} value={a.id}>{a.account_code} — {a.account_name}</option>
                     ))}
                   </select>
                 </div>
@@ -355,6 +499,84 @@ export function RecurringManager({ initialRecurring, accounts }: RecurringManage
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Phase 12: Confirm detection dialog — account selection */}
+      <Dialog
+        open={confirmDialog.open}
+        onOpenChange={(open) =>
+          setConfirmDialog((s) => ({ ...s, open, ...(open ? {} : { candidate: null, debitAccountId: '', creditAccountId: '' }) }))
+        }
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Recurring Pattern</DialogTitle>
+          </DialogHeader>
+          {confirmDialog.candidate && (
+            <div className="flex flex-col gap-4 mt-2">
+              <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm">
+                <p className="font-semibold text-gray-900">{confirmDialog.candidate.description}</p>
+                <p className="text-gray-500 mt-0.5">
+                  {formatCurrency(confirmDialog.candidate.averageAmount)} ·{' '}
+                  {FREQUENCY_LABELS[confirmDialog.candidate.frequency] ?? confirmDialog.candidate.frequency}
+                </p>
+              </div>
+
+              <p className="text-sm text-gray-600">
+                Select the accounts to use for this recurring journal entry:
+              </p>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>Debit Account <span className="text-gray-400 font-normal">(expense / asset)</span></Label>
+                <select
+                  value={confirmDialog.debitAccountId}
+                  onChange={(e) =>
+                    setConfirmDialog((s) => ({ ...s, debitAccountId: e.target.value }))
+                  }
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+                >
+                  <option value="">Select account…</option>
+                  {activeAccounts.map((a) => (
+                    <option key={a.id} value={a.id}>{a.account_code} — {a.account_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label>Credit Account <span className="text-gray-400 font-normal">(bank / liability)</span></Label>
+                <select
+                  value={confirmDialog.creditAccountId}
+                  onChange={(e) =>
+                    setConfirmDialog((s) => ({ ...s, creditAccountId: e.target.value }))
+                  }
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+                >
+                  <option value="">Select account…</option>
+                  {activeAccounts.map((a) => (
+                    <option key={a.id} value={a.id}>{a.account_code} — {a.account_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 mt-2">
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    setConfirmDialog({ open: false, candidate: null, debitAccountId: '', creditAccountId: '' })
+                  }
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmDetection}
+                  disabled={isDetectionPending || !confirmDialog.debitAccountId || !confirmDialog.creditAccountId}
+                >
+                  {isDetectionPending ? 'Creating…' : 'Create Recurring'}
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
