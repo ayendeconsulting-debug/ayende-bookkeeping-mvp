@@ -68,6 +68,16 @@ export class ClassifiedTransaction {
   @Column({ type: 'integer', default: 0 })
   split_count: number;
 
+  // Phase 14: transfer tracking
+  @Column({ type: 'boolean', default: false })
+  is_transfer: boolean;
+
+  @Column({ type: 'uuid', nullable: true })
+  transfer_pair_id: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  destination_account_id: string;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 

@@ -12,6 +12,7 @@ import {
 import { Request } from 'express';
 import { ClassificationService } from '../services/classification.service';
 import { SplitTransactionService } from '../services/split-transaction.service';
+import { TransferService } from '../services/transfer.service';
 import {
   ClassifyTransactionDto,
   OwnerContributionDto,
@@ -24,6 +25,7 @@ import {
 } from '../dto/create-classification-rule.dto';
 import { LearnClassificationRuleDto } from '../dto/learn-classification-rule.dto';
 import { SplitTransactionDto } from '../dto/split-transaction.dto';
+import { MarkTransferDto } from '../dto/transfer-transaction.dto';
 import { Roles } from '../../auth/roles.decorator';
 
 @Controller('classification')
@@ -31,6 +33,7 @@ export class ClassificationController {
   constructor(
     private readonly classificationService: ClassificationService,
     private readonly splitTransactionService: SplitTransactionService,
+    private readonly transferService: TransferService,
   ) {}
 
   // ── Raw Transactions – all roles ─────────────────────────────────────────
@@ -104,6 +107,28 @@ export class ClassificationController {
     return this.splitTransactionService.getSplitLines(
       req.user!.businessId,
       id,
+    );
+  }
+
+  // ── Phase 14: Transfer Transactions ──────────────────────────────────────
+
+  /**
+   * PATCH /classification/raw/:id/mark-transfer – admin + accountant
+   * Marks a transaction as a transfer between two accounts.
+   * Posts a balanced journal entry (Debit destination, Credit source).
+   */
+  @Roles('admin', 'accountant')
+  @Patch('raw/:id/mark-transfer')
+  markTransfer(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() dto: MarkTransferDto,
+  ) {
+    return this.transferService.markAsTransfer(
+      req.user!.businessId,
+      id,
+      dto,
+      req.user!.userId,
     );
   }
 

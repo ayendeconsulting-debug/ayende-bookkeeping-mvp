@@ -32,6 +32,7 @@ import { HstController } from './controllers/hst.controller';
 import { TaxService } from './services/tax.service';
 import { ClassificationService } from './services/classification.service';
 import { SplitTransactionService } from './services/split-transaction.service';
+import { TransferService } from './services/transfer.service';
 import { IncomeStatementService } from './services/income-statement.service';
 import { BalanceSheetService } from './services/balance-sheet.service';
 import { TrialBalanceService } from './services/trial-balance.service';
@@ -88,6 +89,7 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
     TaxService,
     ClassificationService,
     SplitTransactionService, // Phase 14
+    TransferService,         // Phase 14
     IncomeStatementService,
     BalanceSheetService,
     TrialBalanceService,
@@ -111,6 +113,7 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
     // Phase 12: exported so PlaidModule can inject ClassificationService
     ClassificationService,
     SplitTransactionService, // Phase 14
+    TransferService,         // Phase 14
     IncomeStatementService,
     BalanceSheetService,
     TrialBalanceService,
