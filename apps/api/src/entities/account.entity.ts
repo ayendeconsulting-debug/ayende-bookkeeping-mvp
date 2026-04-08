@@ -38,7 +38,7 @@ export enum AccountSubtype {
 }
 
 @Entity('accounts')
-@Index(['business_id', 'code'], { unique: true })
+@Index(['business_id', 'account_code'], { unique: true })
 export class Account {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -46,11 +46,13 @@ export class Account {
   @Column({ type: 'uuid' })
   business_id: string;
 
-  @Column({ type: 'varchar', length: 20 })
-  code: string;
+  // DB column name stays 'code' — frontend and DTO use 'account_code'
+  @Column({ name: 'code', type: 'varchar', length: 20 })
+  account_code: string;
 
-  @Column({ type: 'varchar', length: 255 })
-  name: string;
+  // DB column name stays 'name' — frontend and DTO use 'account_name'
+  @Column({ name: 'name', type: 'varchar', length: 255 })
+  account_name: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;

@@ -40,7 +40,7 @@ export class ClassificationAiService {
 
     const accounts = await this.accountRepo.find({
       where: { business_id: businessId, is_active: true },
-      order: { code: 'ASC' },
+      order: { account_code: 'ASC' },
     });
 
     const taxCodes = await this.taxCodeRepo.find({
@@ -48,14 +48,14 @@ export class ClassificationAiService {
     });
 
     const accountList = accounts.map(a =>
-      `${a.code} | ${a.name} | ${a.account_type} | ${a.account_subtype}`
+      `${a.account_code} | ${a.account_name} | ${a.account_type} | ${a.account_subtype}`
     ).join('\n');
 
     const taxList = taxCodes.length > 0
       ? taxCodes.map(t => `${t.id} | ${t.code} | ${t.name} | ${t.tax_type} | ${(Number(t.rate) * 100).toFixed(2)}%`).join('\n')
       : 'None configured';
 
-    const systemPrompt = `You are a bookkeeping assistant for a Canadian/US small business. 
+    const systemPrompt = `You are a bookkeeping assistant for a Canadian/US small business.
 Your job is to classify bank transactions into the correct chart of accounts.
 You must respond with ONLY valid JSON and nothing else — no explanation, no markdown.`;
 
@@ -108,21 +108,21 @@ Respond with ONLY this JSON structure:
       };
     }
 
-    const matchedAccount = accounts.find(a => a.code === parsed.suggested_account_code) ?? null;
+    const matchedAccount = accounts.find(a => a.account_code === parsed.suggested_account_code) ?? null;
     const matchedTaxCode = taxCodes.find(t => t.id === parsed.suggested_tax_code_id) ?? null;
 
     return {
       raw_transaction_id: rawTransactionId,
       description: rawTx.description,
       amount: Number(rawTx.amount),
-      suggested_account_id: matchedAccount?.id ?? null,
-      suggested_account_code: matchedAccount?.code ?? null,
-      suggested_account_name: matchedAccount?.name ?? null,
-      suggested_tax_code_id: matchedTaxCode?.id ?? null,
-      suggested_tax_code: matchedTaxCode?.code ?? null,
-      confidence: parsed.confidence ?? 'low',
-      reasoning: parsed.reasoning ?? '',
-      requires_human_review: parsed.requires_human_review ?? true,
+      suggested_account_id:   matchedAccount?.id           ?? null,
+      suggested_account_code: matchedAccount?.account_code ?? null,
+      suggested_account_name: matchedAccount?.account_name ?? null,
+      suggested_tax_code_id:  matchedTaxCode?.id           ?? null,
+      suggested_tax_code:     matchedTaxCode?.code         ?? null,
+      confidence:             parsed.confidence             ?? 'low',
+      reasoning:              parsed.reasoning              ?? '',
+      requires_human_review:  parsed.requires_human_review ?? true,
     };
   }
 }

@@ -21,45 +21,45 @@ interface AccountSeed {
 
 // Phase 12: standard default account set seeded on every new business
 interface DefaultAccountSeed {
-  code: string;
-  name: string;
+  account_code: string;
+  account_name: string;
   account_type: AccountType;
   account_subtype: AccountSubtype | null;
 }
 
 const DEFAULT_ACCOUNTS: DefaultAccountSeed[] = [
   // ── Assets ──────────────────────────────────────────────────────────────
-  { code: '1000', name: 'Cash and Bank',            account_type: AccountType.ASSET,     account_subtype: AccountSubtype.BANK },
-  { code: '1100', name: 'Accounts Receivable',      account_type: AccountType.ASSET,     account_subtype: AccountSubtype.ACCOUNTS_RECEIVABLE },
-  { code: '1200', name: 'Other Current Assets',     account_type: AccountType.ASSET,     account_subtype: null },
+  { account_code: '1000', account_name: 'Cash and Bank',            account_type: AccountType.ASSET,     account_subtype: AccountSubtype.BANK },
+  { account_code: '1100', account_name: 'Accounts Receivable',      account_type: AccountType.ASSET,     account_subtype: AccountSubtype.ACCOUNTS_RECEIVABLE },
+  { account_code: '1200', account_name: 'Other Current Assets',     account_type: AccountType.ASSET,     account_subtype: null },
   // ── Liabilities ─────────────────────────────────────────────────────────
-  { code: '2000', name: 'Accounts Payable',         account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.ACCOUNTS_PAYABLE },
-  { code: '2100', name: 'Credit Card Payable',      account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.CREDIT_CARD },
-  { code: '2200', name: 'HST / GST Payable',        account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.TAX_PAYABLE },
-  { code: '2300', name: 'Other Current Liabilities',account_type: AccountType.LIABILITY, account_subtype: null },
+  { account_code: '2000', account_name: 'Accounts Payable',         account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.ACCOUNTS_PAYABLE },
+  { account_code: '2100', account_name: 'Credit Card Payable',      account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.CREDIT_CARD },
+  { account_code: '2200', account_name: 'HST / GST Payable',        account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.TAX_PAYABLE },
+  { account_code: '2300', account_name: 'Other Current Liabilities',account_type: AccountType.LIABILITY, account_subtype: null },
   // ── Equity ──────────────────────────────────────────────────────────────
-  { code: '3000', name: "Owner's Equity",           account_type: AccountType.EQUITY,    account_subtype: null },
-  { code: '3100', name: 'Owner Contribution',       account_type: AccountType.EQUITY,    account_subtype: AccountSubtype.OWNER_CONTRIBUTION },
-  { code: '3200', name: 'Owner Draw',               account_type: AccountType.EQUITY,    account_subtype: AccountSubtype.OWNER_DRAW },
-  { code: '3300', name: 'Retained Earnings',        account_type: AccountType.EQUITY,    account_subtype: null },
+  { account_code: '3000', account_name: "Owner's Equity",           account_type: AccountType.EQUITY,    account_subtype: null },
+  { account_code: '3100', account_name: 'Owner Contribution',       account_type: AccountType.EQUITY,    account_subtype: AccountSubtype.OWNER_CONTRIBUTION },
+  { account_code: '3200', account_name: 'Owner Draw',               account_type: AccountType.EQUITY,    account_subtype: AccountSubtype.OWNER_DRAW },
+  { account_code: '3300', account_name: 'Retained Earnings',        account_type: AccountType.EQUITY,    account_subtype: null },
   // ── Revenue ─────────────────────────────────────────────────────────────
-  { code: '4000', name: 'Revenue',                  account_type: AccountType.REVENUE,   account_subtype: null },
-  { code: '4100', name: 'Other Income',             account_type: AccountType.REVENUE,   account_subtype: null },
+  { account_code: '4000', account_name: 'Revenue',                  account_type: AccountType.REVENUE,   account_subtype: null },
+  { account_code: '4100', account_name: 'Other Income',             account_type: AccountType.REVENUE,   account_subtype: null },
   // ── Expenses ────────────────────────────────────────────────────────────
-  { code: '5000', name: 'Cost of Goods Sold',       account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '5100', name: 'Advertising & Marketing',  account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '5200', name: 'Bank Fees & Charges',      account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '5300', name: 'Insurance',                account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '5400', name: 'Meals & Entertainment',    account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '5500', name: 'Office Expenses',          account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '5600', name: 'Professional Fees',        account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '5700', name: 'Rent & Facilities',        account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '5800', name: 'Software & Subscriptions', account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '5900', name: 'Travel',                   account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '6000', name: 'Payroll & Wages',          account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '6100', name: 'Utilities',                account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '6200', name: 'Depreciation',             account_type: AccountType.EXPENSE,   account_subtype: null },
-  { code: '6900', name: 'Other Expenses',           account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '5000', account_name: 'Cost of Goods Sold',       account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '5100', account_name: 'Advertising & Marketing',  account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '5200', account_name: 'Bank Fees & Charges',      account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '5300', account_name: 'Insurance',                account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '5400', account_name: 'Meals & Entertainment',    account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '5500', account_name: 'Office Expenses',          account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '5600', account_name: 'Professional Fees',        account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '5700', account_name: 'Rent & Facilities',        account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '5800', account_name: 'Software & Subscriptions', account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '5900', account_name: 'Travel',                   account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '6000', account_name: 'Payroll & Wages',          account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '6100', account_name: 'Utilities',                account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '6200', account_name: 'Depreciation',             account_type: AccountType.EXPENSE,   account_subtype: null },
+  { account_code: '6900', account_name: 'Other Expenses',           account_type: AccountType.EXPENSE,   account_subtype: null },
 ];
 
 @Injectable()
@@ -168,15 +168,13 @@ export class BusinessesService {
     const saved = await this.businessRepo.save(business);
 
     // Phase 12: seed standard chart of accounts on every new business creation
-    // Non-blocking — errors are logged but never fail provisioning
     try {
       await this.seedDefaultAccounts(saved.id);
     } catch (err: any) {
-      // Log but don't fail provision
       console.warn(`seedDefaultAccounts failed for business ${saved.id}: ${err.message}`);
     }
 
-    // Send welcome email — fire-and-forget, never blocks provision()
+    // Send welcome email — fire-and-forget
     if (ownerEmail) {
       const appUrl = this.config.get<string>('APP_URL') ?? 'https://gettempo.ca';
       const trialEndDate = new Date();
@@ -198,36 +196,34 @@ export class BusinessesService {
   }
 
   // ── Phase 12: Seed standard default chart of accounts ─────────────────────
-  // Idempotent — skips accounts whose code already exists for this business.
-  // Called automatically from provision() and on-demand from POST /accounts/seed-defaults.
   async seedDefaultAccounts(
     businessId: string,
   ): Promise<{ added: number; skipped: number }> {
     const existing = await this.accountRepo.find({
       where: { business_id: businessId },
-      select: ['code'],
+      select: ['account_code'],
     });
-    const existingCodes = new Set(existing.map((a) => a.code));
+    const existingCodes = new Set(existing.map((a) => a.account_code));
 
     let added = 0;
     let skipped = 0;
 
     for (const def of DEFAULT_ACCOUNTS) {
-      if (existingCodes.has(def.code)) {
+      if (existingCodes.has(def.account_code)) {
         skipped++;
         continue;
       }
       const acc = this.accountRepo.create();
       Object.assign(acc, {
         business_id: businessId,
-        code: def.code,
-        name: def.name,
+        account_code: def.account_code,
+        account_name: def.account_name,
         account_type: def.account_type,
         is_active: true,
         ...(def.account_subtype ? { account_subtype: def.account_subtype } : {}),
       });
       await this.accountRepo.save(acc);
-      existingCodes.add(def.code);
+      existingCodes.add(def.account_code);
       added++;
     }
 
@@ -253,8 +249,8 @@ export class BusinessesService {
       const acc = this.accountRepo.create();
       Object.assign(acc, {
         business_id: businessId,
-        code: seed.code,
-        name: seed.name,
+        account_code: seed.code,
+        account_name: seed.name,
         account_type: seed.type,
         is_active: true,
         ...(seed.subtype ? { account_subtype: seed.subtype } : {}),

@@ -34,9 +34,6 @@ export class LedgerService {
     private accountRepository: Repository<Account>,
   ) {}
 
-  /**
-   * Calculate balance for a specific account
-   */
   async getAccountBalance(
     accountId: string,
     businessId: string,
@@ -45,12 +42,8 @@ export class LedgerService {
     const account = await this.accountRepository.findOne({
       where: { id: accountId, business_id: businessId },
     });
+    if (!account) throw new Error('Account not found');
 
-    if (!account) {
-      throw new Error('Account not found');
-    }
-
-    // Build query for journal lines
     const query = this.journalLineRepository
       .createQueryBuilder('jl')
       .innerJoin('jl.journalEntry', 'je')
@@ -58,38 +51,24 @@ export class LedgerService {
       .andWhere('jl.business_id = :businessId', { businessId })
       .andWhere('je.status = :status', { status: JournalEntryStatus.POSTED });
 
-    if (asOfDate) {
-      query.andWhere('je.entry_date <= :asOfDate', { asOfDate });
-    }
+    if (asOfDate) query.andWhere('je.entry_date <= :asOfDate', { asOfDate });
 
     const lines = await query.getMany();
 
-    const debit_total = lines.reduce(
-      (sum, line) => sum + Number(line.debit_amount),
-      0,
-    );
-    const credit_total = lines.reduce(
-      (sum, line) => sum + Number(line.credit_amount),
-      0,
-    );
+    const debit_total  = lines.reduce((sum, l) => sum + Number(l.debit_amount),  0);
+    const credit_total = lines.reduce((sum, l) => sum + Number(l.credit_amount), 0);
 
-    // Calculate balance based on account type
-    // Assets and Expenses: Debit increases balance
-    // Liabilities, Equity, Revenue: Credit increases balance
     let balance: number;
-    if (
-      account.account_type === AccountType.ASSET ||
-      account.account_type === AccountType.EXPENSE
-    ) {
+    if (account.account_type === AccountType.ASSET || account.account_type === AccountType.EXPENSE) {
       balance = debit_total - credit_total;
     } else {
       balance = credit_total - debit_total;
     }
 
     return {
-      account_id: account.id,
-      account_code: account.code,
-      account_name: account.name,
+      account_id:   account.id,
+      account_code: account.account_code,
+      account_name: account.account_name,
       account_type: account.account_type,
       debit_total,
       credit_total,
@@ -97,55 +76,35 @@ export class LedgerService {
     };
   }
 
-  /**
-   * Generate Trial Balance
-   * CRITICAL: This should ALWAYS equal zero if accounting is correct
-   */
-  async getTrialBalance(
-    businessId: string,
-    asOfDate?: Date,
-  ): Promise<TrialBalance> {
-    // Get all accounts
+  async getTrialBalance(businessId: string, asOfDate?: Date): Promise<TrialBalance> {
     const accounts = await this.accountRepository.find({
       where: { business_id: businessId, is_active: true },
-      order: { code: 'ASC' },
+      order: { account_code: 'ASC' },
     });
 
-    // Calculate balance for each account
     const accountBalances: AccountBalance[] = [];
-    let totalDebits = 0;
+    let totalDebits  = 0;
     let totalCredits = 0;
 
     for (const account of accounts) {
-      const balance = await this.getAccountBalance(
-        account.id,
-        businessId,
-        asOfDate,
-      );
-
-      // Only include accounts with activity
+      const balance = await this.getAccountBalance(account.id, businessId, asOfDate);
       if (balance.debit_total > 0 || balance.credit_total > 0) {
         accountBalances.push(balance);
-        totalDebits += balance.debit_total;
+        totalDebits  += balance.debit_total;
         totalCredits += balance.credit_total;
       }
     }
 
     const difference = totalDebits - totalCredits;
-    const isBalanced = Math.abs(difference) < 0.01; // Allow for rounding
-
     return {
       accounts: accountBalances,
-      total_debits: totalDebits,
+      total_debits:  totalDebits,
       total_credits: totalCredits,
-      is_balanced: isBalanced,
+      is_balanced:   Math.abs(difference) < 0.01,
       difference,
     };
   }
 
-  /**
-   * Get general ledger for an account (all transactions)
-   */
   async getGeneralLedger(
     accountId: string,
     businessId: string,
@@ -160,48 +119,32 @@ export class LedgerService {
       .andWhere('jl.business_id = :businessId', { businessId })
       .andWhere('je.status = :status', { status: JournalEntryStatus.POSTED });
 
-    if (startDate) {
-      query.andWhere('je.entry_date >= :startDate', { startDate });
-    }
-
-    if (endDate) {
-      query.andWhere('je.entry_date <= :endDate', { endDate });
-    }
+    if (startDate) query.andWhere('je.entry_date >= :startDate', { startDate });
+    if (endDate)   query.andWhere('je.entry_date <= :endDate', { endDate });
 
     query.orderBy('je.entry_date', 'ASC').addOrderBy('je.entry_number', 'ASC');
 
     const lines = await query.getMany();
 
-    // Get account info
-    const account = await this.accountRepository.findOne({
-      where: { id: accountId },
-    });
+    const account = await this.accountRepository.findOne({ where: { id: accountId } });
+    if (!account) throw new Error('Account not found');
 
-    if (!account) {
-      throw new Error('Account not found');
-    }
-
-    // Calculate running balance
     let runningBalance = 0;
 
     const ledgerEntries = lines.map((line) => {
-      const debit = Number(line.debit_amount);
+      const debit  = Number(line.debit_amount);
       const credit = Number(line.credit_amount);
 
-      // Update running balance based on account type
-      if (
-        account.account_type === AccountType.ASSET ||
-        account.account_type === AccountType.EXPENSE
-      ) {
+      if (account.account_type === AccountType.ASSET || account.account_type === AccountType.EXPENSE) {
         runningBalance += debit - credit;
       } else {
         runningBalance += credit - debit;
       }
 
       return {
-        date: line.journalEntry.entry_date,
+        date:         line.journalEntry.entry_date,
         entry_number: line.journalEntry.entry_number,
-        description: line.description || line.journalEntry.description,
+        description:  line.description || line.journalEntry.description,
         debit,
         credit,
         balance: runningBalance,
@@ -209,19 +152,15 @@ export class LedgerService {
     });
 
     return {
-      account_id: accountId,
-      account_code: account.code,
-      account_name: account.name,
-      account_type: account.account_type,
-      entries: ledgerEntries,
-      ending_balance: runningBalance,
+      account_id:      accountId,
+      account_code:    account.account_code,
+      account_name:    account.account_name,
+      account_type:    account.account_type,
+      entries:         ledgerEntries,
+      ending_balance:  runningBalance,
     };
   }
 
-  /**
-   * Verify accounting integrity
-   * Returns true if all posted entries balance
-   */
   async verifyAccountingIntegrity(businessId: string): Promise<{
     is_valid: boolean;
     total_debits: number;
@@ -231,47 +170,29 @@ export class LedgerService {
   }> {
     const errors: string[] = [];
 
-    // Get all posted journal entries
     const entries = await this.journalEntryRepository.find({
-      where: {
-        business_id: businessId,
-        status: JournalEntryStatus.POSTED,
-      },
+      where: { business_id: businessId, status: JournalEntryStatus.POSTED },
       relations: ['lines'],
     });
 
-    // Check each entry is balanced
     for (const entry of entries) {
-      const totalDebits = entry.lines.reduce(
-        (sum, line) => sum + Number(line.debit_amount),
-        0,
-      );
-      const totalCredits = entry.lines.reduce(
-        (sum, line) => sum + Number(line.credit_amount),
-        0,
-      );
-
+      const totalDebits  = entry.lines.reduce((sum, l) => sum + Number(l.debit_amount),  0);
+      const totalCredits = entry.lines.reduce((sum, l) => sum + Number(l.credit_amount), 0);
       if (Math.abs(totalDebits - totalCredits) > 0.01) {
-        errors.push(
-          `Entry ${entry.entry_number} is unbalanced: Debits ${totalDebits}, Credits ${totalCredits}`,
-        );
+        errors.push(`Entry ${entry.entry_number} is unbalanced: Debits ${totalDebits}, Credits ${totalCredits}`);
       }
     }
 
-    // Get trial balance
     const trialBalance = await this.getTrialBalance(businessId);
-
     if (!trialBalance.is_balanced) {
-      errors.push(
-        `Trial balance does not balance. Difference: ${trialBalance.difference}`,
-      );
+      errors.push(`Trial balance does not balance. Difference: ${trialBalance.difference}`);
     }
 
     return {
-      is_valid: errors.length === 0,
-      total_debits: trialBalance.total_debits,
+      is_valid:      errors.length === 0,
+      total_debits:  trialBalance.total_debits,
       total_credits: trialBalance.total_credits,
-      difference: trialBalance.difference,
+      difference:    trialBalance.difference,
       errors,
     };
   }
