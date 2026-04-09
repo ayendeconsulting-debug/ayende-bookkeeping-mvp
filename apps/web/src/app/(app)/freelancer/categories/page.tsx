@@ -12,14 +12,13 @@ async function getAccounts(): Promise<Account[]> {
 
 export default async function FreelancerCategoriesPage() {
   const accounts = await getAccounts();
-  // Show only expense accounts — these are the "categories" for freelancers
   const expenseAccounts = accounts.filter((a) => a.account_type === 'expense' && a.is_active);
 
   return (
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Expense Categories</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Expense Categories</h1>
+        <p className="text-sm text-gray-500 dark:text-[#a09888] mt-0.5">
           Manage the categories used when tagging your business expenses.
         </p>
       </div>

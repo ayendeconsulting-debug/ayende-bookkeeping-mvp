@@ -70,15 +70,12 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
     <div className="flex flex-col gap-4">
       {/* Header action */}
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-[#a09888]">
           {active.length} active {active.length === 1 ? 'category' : 'categories'} · used to tag
           business expenses
         </p>
         {!showForm && (
-          <Button
-            onClick={() => setShowForm(true)}
-            className="bg-primary text-white hover:bg-primary/90"
-          >
+          <Button onClick={() => setShowForm(true)} className="bg-primary text-white hover:bg-primary/90">
             <Plus className="w-4 h-4 mr-2" />
             Add Category
           </Button>
@@ -103,20 +100,10 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
                   onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
                 />
               </div>
-              <Button
-                onClick={handleAdd}
-                disabled={isPending}
-                className="bg-primary text-white hover:bg-primary/90"
-              >
+              <Button onClick={handleAdd} disabled={isPending} className="bg-primary text-white hover:bg-primary/90">
                 {isPending ? 'Adding…' : 'Add'}
               </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowForm(false);
-                  setForm(EMPTY_FORM);
-                }}
-              >
+              <Button variant="outline" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}>
                 Cancel
               </Button>
             </div>
@@ -128,13 +115,13 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
-            <Tag className="w-4 h-4 text-gray-400" />
+            <Tag className="w-4 h-4 text-gray-400 dark:text-[#7a7060]" />
             Active Categories
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           {active.length === 0 ? (
-            <div className="py-8 text-center text-sm text-gray-400">
+            <div className="py-8 text-center text-sm text-gray-400 dark:text-[#7a7060]">
               No active categories yet. Add one above.
             </div>
           ) : (
@@ -142,19 +129,21 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
               {active.map((cat) => (
                 <div
                   key={cat.id}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 group"
+                  className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2720] group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-md bg-primary-light flex items-center justify-center flex-shrink-0">
+                    <div className="w-7 h-7 rounded-md bg-primary-light dark:bg-primary/20 flex items-center justify-center flex-shrink-0">
                       <Tag className="w-3.5 h-3.5 text-primary" />
                     </div>
-                    <span className="text-sm font-medium text-gray-900">{cat.account_name}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-[#f0ede8]">
+                      {cat.account_name}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => handleToggle(cat)}
                       disabled={isPending}
-                      className="text-xs text-gray-400 hover:text-red-500 px-2 py-1 rounded transition-colors"
+                      className="text-xs text-gray-400 dark:text-[#7a7060] hover:text-red-500 dark:hover:text-red-400 px-2 py-1 rounded transition-colors"
                     >
                       Deactivate
                     </button>
@@ -170,7 +159,7 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
       {inactive.length > 0 && (
         <Card className="opacity-70">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-gray-500">
+            <CardTitle className="text-sm text-gray-500 dark:text-[#a09888]">
               Inactive Categories ({inactive.length})
             </CardTitle>
           </CardHeader>
@@ -179,9 +168,11 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
               {inactive.map((cat) => (
                 <div
                   key={cat.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-50 group"
+                  className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2720] group"
                 >
-                  <span className="text-sm text-gray-400 line-through">{cat.account_name}</span>
+                  <span className="text-sm text-gray-400 dark:text-[#7a7060] line-through">
+                    {cat.account_name}
+                  </span>
                   <button
                     onClick={() => handleToggle(cat)}
                     disabled={isPending}
