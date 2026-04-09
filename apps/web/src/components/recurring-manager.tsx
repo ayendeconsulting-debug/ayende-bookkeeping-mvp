@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -264,7 +264,7 @@ export function RecurringManager({
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Recurring Transactions</h1>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Recurring Transactions</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Scheduled journal entries posted automatically on their due date.
           </p>
@@ -285,10 +285,10 @@ export function RecurringManager({
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Wand2 className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-gray-800">
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-[#f0ede8]">
               Detected Patterns ({detections.length})
             </h2>
-            <span className="text-xs text-gray-400">— confirm to create a recurring template, or dismiss to hide</span>
+            <span className="text-xs text-gray-400 dark:text-[#7a7060]">— confirm to create a recurring template, or dismiss to hide</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {detections.map((candidate) => (
@@ -304,10 +304,10 @@ export function RecurringManager({
                   </div>
 
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="text-lg font-bold text-gray-900">
+                    <span className="text-lg font-bold text-gray-900 dark:text-[#f0ede8]">
                       {formatCurrency(candidate.averageAmount)}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-400 dark:text-[#7a7060]">
                       {candidate.occurrences} occurrences detected
                     </span>
                   </div>
@@ -334,7 +334,7 @@ export function RecurringManager({
                         variant="outline"
                         onClick={() => handleDismissDetection(candidate)}
                         disabled={isDetectionPending}
-                        className="h-7 text-xs text-gray-500"
+                        className="h-7 text-xs text-gray-500 dark:text-[#a09888]"
                       >
                         <X className="w-3 h-3 mr-1" />Dismiss
                       </Button>
@@ -353,7 +353,7 @@ export function RecurringManager({
           {activeItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <RefreshCw className="w-8 h-8 text-gray-300 mb-3" />
-              <p className="text-sm text-gray-400">No active recurring transactions. Click New Recurring to add one.</p>
+              <p className="text-sm text-gray-400 dark:text-[#7a7060]">No active recurring transactions. Click New Recurring to add one.</p>
             </div>
           ) : (
             <RecurringTable
@@ -420,7 +420,7 @@ export function RecurringManager({
                   value={form.frequency}
                   onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value as RecurringFrequency }))}
                   disabled={!!editingItem}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50 dark:bg-[#1e1c19]"
                 >
                   {Object.entries(FREQUENCY_LABELS).map(([val, label]) => (
                     <option key={val} value={val}>{label}</option>
@@ -436,7 +436,7 @@ export function RecurringManager({
                   <select
                     value={form.debit_account_id}
                     onChange={(e) => setForm((f) => ({ ...f, debit_account_id: e.target.value }))}
-                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
                   >
                     <option value="">Select account…</option>
                     {activeAccounts.map((a) => (
@@ -449,7 +449,7 @@ export function RecurringManager({
                   <select
                     value={form.credit_account_id}
                     onChange={(e) => setForm((f) => ({ ...f, credit_account_id: e.target.value }))}
-                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
                   >
                     <option value="">Select account…</option>
                     {activeAccounts.map((a) => (
@@ -468,7 +468,7 @@ export function RecurringManager({
                   value={form.start_date}
                   onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
                   disabled={!!editingItem}
-                  className="disabled:bg-gray-50"
+                  className="disabled:bg-gray-50 dark:bg-[#1e1c19]"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -516,14 +516,14 @@ export function RecurringManager({
           {confirmDialog.candidate && (
             <div className="flex flex-col gap-4 mt-2">
               <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm">
-                <p className="font-semibold text-gray-900">{confirmDialog.candidate.description}</p>
+                <p className="font-semibold text-gray-900 dark:text-[#f0ede8]">{confirmDialog.candidate.description}</p>
                 <p className="text-gray-500 mt-0.5">
                   {formatCurrency(confirmDialog.candidate.averageAmount)} ·{' '}
                   {FREQUENCY_LABELS[confirmDialog.candidate.frequency] ?? confirmDialog.candidate.frequency}
                 </p>
               </div>
 
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-[#c8c0b0]">
                 Select the accounts to use for this recurring journal entry:
               </p>
 
@@ -534,7 +534,7 @@ export function RecurringManager({
                   onChange={(e) =>
                     setConfirmDialog((s) => ({ ...s, debitAccountId: e.target.value }))
                   }
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
                 >
                   <option value="">Select account…</option>
                   {activeAccounts.map((a) => (
@@ -550,7 +550,7 @@ export function RecurringManager({
                   onChange={(e) =>
                     setConfirmDialog((s) => ({ ...s, creditAccountId: e.target.value }))
                   }
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
                 >
                   <option value="">Select account…</option>
                   {activeAccounts.map((a) => (
@@ -618,20 +618,20 @@ function RecurringTable({
               <TableCell className="font-medium">{item.description}</TableCell>
               <TableCell className="font-mono text-sm">{formatAmount(item.amount, item.currency_code)}</TableCell>
               <TableCell><Badge variant="secondary">{FREQUENCY_LABELS[item.frequency]}</Badge></TableCell>
-              <TableCell className="text-sm text-gray-600">
-                <span className="text-gray-400">{debit?.account_code ?? '?'}</span>
+              <TableCell className="text-sm text-gray-600 dark:text-[#c8c0b0]">
+                <span className="text-gray-400 dark:text-[#7a7060]">{debit?.account_code ?? '?'}</span>
                 {' '}{debit?.account_name ?? 'Unknown'}
-                <span className="mx-1.5 text-gray-300">→</span>
-                <span className="text-gray-400">{credit?.account_code ?? '?'}</span>
+                <span className="mx-1.5 text-gray-300 dark:text-[#3a3730]">→</span>
+                <span className="text-gray-400 dark:text-[#7a7060]">{credit?.account_code ?? '?'}</span>
                 {' '}{credit?.account_name ?? 'Unknown'}
               </TableCell>
-              <TableCell className="text-sm text-gray-500">{formatDate(item.next_run_date)}</TableCell>
+              <TableCell className="text-sm text-gray-500 dark:text-[#a09888]">{formatDate(item.next_run_date)}</TableCell>
               <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
                   {isEditable && (
                     <AdminOnly>
-                      <Button variant="ghost" size="sm" onClick={() => onEdit(item)} className="text-gray-400 hover:text-gray-600">
+                      <Button variant="ghost" size="sm" onClick={() => onEdit(item)} className="text-gray-400 hover:text-gray-600 dark:text-[#c8c0b0]">
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                     </AdminOnly>

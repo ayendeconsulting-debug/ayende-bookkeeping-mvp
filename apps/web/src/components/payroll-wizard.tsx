@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -160,7 +160,7 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Payroll</h1>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Payroll</h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {template.country === 'CA' ? '🇨🇦 Canadian payroll (CPP, EI)' : '🇺🇸 US payroll (FICA)'}
             {' · '}{pastEntries.length} past {pastEntries.length === 1 ? 'entry' : 'entries'}
@@ -253,7 +253,7 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
                             <select
                               value={d.account_id}
                               onChange={(e) => updateDeduction(idx, 'account_id', e.target.value)}
-                              className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+                              className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
                             >
                               <option value="">Select account…</option>
                               {liabilityAccounts.map((a) => (
@@ -273,7 +273,7 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
 
                 {/* Net pay summary */}
                 <div className="rounded-lg bg-gray-50 border border-gray-100 px-4 py-3 flex items-center justify-between">
-                  <span className="text-sm text-gray-500">Net Pay (calculated)</span>
+                  <span className="text-sm text-gray-500 dark:text-[#a09888]">Net Pay (calculated)</span>
                   <span className={`text-sm font-semibold ${netPay < 0 ? 'text-red-600' : 'text-[#0F6E56]'}`}>
                     {formatCurrency(netPay)}
                   </span>
@@ -285,7 +285,7 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
                     <select
                       value={wagesAccountId}
                       onChange={(e) => setWagesAccountId(e.target.value)}
-                      className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+                      className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
                     >
                       <option value="">Select account…</option>
                       {wageAccounts.map((a) => (
@@ -298,7 +298,7 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
                     <select
                       value={bankAccountId}
                       onChange={(e) => setBankAccountId(e.target.value)}
-                      className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+                      className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
                     >
                       <option value="">Select account…</option>
                       {bankAccounts.map((a) => (
@@ -334,18 +334,18 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
                 <div className="rounded-lg border border-gray-200 overflow-hidden">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200">
-                        <th className="text-left px-4 py-2 text-xs font-medium text-gray-500">Account</th>
-                        <th className="text-right px-4 py-2 text-xs font-medium text-gray-500">Debit</th>
-                        <th className="text-right px-4 py-2 text-xs font-medium text-gray-500">Credit</th>
+                      <tr className="bg-gray-50 border-b border-gray-200 dark:border-[#3a3730]">
+                        <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 dark:text-[#a09888]">Account</th>
+                        <th className="text-right px-4 py-2 text-xs font-medium text-gray-500 dark:text-[#a09888]">Debit</th>
+                        <th className="text-right px-4 py-2 text-xs font-medium text-gray-500 dark:text-[#a09888]">Credit</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {previewLines.map((line, idx) => (
                         <tr key={idx}>
                           <td className="px-4 py-2.5">
-                            <div className="font-medium text-gray-900">{line.account}</div>
-                            <div className="text-xs text-gray-400">{line.description}</div>
+                            <div className="font-medium text-gray-900 dark:text-[#f0ede8]">{line.account}</div>
+                            <div className="text-xs text-gray-400 dark:text-[#7a7060]">{line.description}</div>
                           </td>
                           <td className="px-4 py-2.5 text-right font-mono text-sm">
                             {line.debit > 0 ? formatCurrency(line.debit) : '—'}
@@ -380,7 +380,7 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
                   </table>
                 </div>
 
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-[#a09888]">
                   This will create a posted journal entry. This action cannot be undone.
                 </p>
 
@@ -412,7 +412,7 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Users className="w-8 h-8 text-gray-300 mb-3" />
-              <p className="text-sm text-gray-400">No payroll entries yet.</p>
+              <p className="text-sm text-gray-400 dark:text-[#7a7060]">No payroll entries yet.</p>
               <p className="text-xs text-gray-400 mt-1">Click "New Payroll Entry" to post your first payroll run.</p>
             </CardContent>
           </Card>
@@ -424,7 +424,7 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
                 className="flex items-center justify-between rounded-lg border border-gray-100 bg-white px-4 py-3"
               >
                 <div>
-                  <div className="text-sm font-medium text-gray-900">{entry.description}</div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-[#f0ede8]">{entry.description}</div>
                   <div className="text-xs text-gray-400 mt-0.5">
                     {new Date(entry.entry_date).toLocaleDateString('en-CA', {
                       year: 'numeric', month: 'long', day: 'numeric',
@@ -432,7 +432,7 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium text-gray-900">
+                  <span className="text-sm font-medium text-gray-900 dark:text-[#f0ede8]">
                     {formatCurrency(
                       entry.journal_lines?.find((l) => Number(l.debit_amount) > 0)
                         ? Number(entry.journal_lines.find((l) => Number(l.debit_amount) > 0)!.debit_amount)

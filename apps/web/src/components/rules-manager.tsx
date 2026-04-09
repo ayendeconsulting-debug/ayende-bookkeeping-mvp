@@ -32,18 +32,20 @@ const MATCH_TYPE_LABELS: Record<string, string> = { keyword: 'Keyword', vendor: 
 function SourceBadge({ source }: { source?: string }) {
   if (source === 'user_learned') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
         <Wand2 className="w-3 h-3" />
         Learned
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 dark:bg-[#2a2720] dark:text-[#a09888] dark:border-[#3a3730]">
       Manual
     </span>
   );
 }
+
+const selectCls = "text-sm border border-gray-200 rounded-lg px-3 py-2 w-full outline-none bg-white text-gray-900 focus:border-[#0F6E56] disabled:bg-gray-50 dark:bg-[#222019] dark:border-[#3a3730] dark:text-[#f0ede8] dark:focus:border-[#0F6E56] dark:disabled:bg-[#1a1714]";
 
 export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
   const router = useRouter();
@@ -104,7 +106,6 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
   }
 
   const accountMap = Object.fromEntries(accounts.map((a) => [a.id, a]));
-
   const learnedCount = rules.filter((r) => r.source === 'user_learned').length;
   const manualCount  = rules.filter((r) => r.source !== 'user_learned').length;
 
@@ -112,11 +113,11 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Classification Rules</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Classification Rules</h1>
+          <p className="text-sm text-gray-500 dark:text-[#a09888] mt-0.5">
             Auto-classify transactions by keyword, vendor, or account match
             {rules.length > 0 && (
-              <span className="ml-2 text-gray-400">
+              <span className="ml-2 text-gray-400 dark:text-[#7a7060]">
                 · {manualCount} manual{learnedCount > 0 ? `, ${learnedCount} learned` : ''}
               </span>
             )}
@@ -129,9 +130,9 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
         </AdminOnly>
       </div>
 
-      <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700">
+      <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400">
         Rules are applied in priority order (lowest number first). The first matching rule wins.
-        <span className="ml-2 text-blue-500">
+        <span className="ml-2 text-blue-500 dark:text-blue-400">
           <Wand2 className="inline w-3.5 h-3.5 mr-0.5" />
           Learned rules are created automatically when you classify a transaction and confirm the suggestion.
         </span>
@@ -141,8 +142,8 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
         <CardContent className="p-0">
           {rules.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Filter className="w-8 h-8 text-gray-300 mb-3" />
-              <p className="text-sm text-gray-400">No rules yet. Add rules to auto-classify transactions.</p>
+              <Filter className="w-8 h-8 text-gray-300 dark:text-[#3a3730] mb-3" />
+              <p className="text-sm text-gray-400 dark:text-[#7a7060]">No rules yet. Add rules to auto-classify transactions.</p>
             </div>
           ) : (
             <Table>
@@ -160,31 +161,29 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
                 {rules.map((rule) => {
                   const account = accountMap[rule.target_account_id];
                   return (
-                    <TableRow key={rule.id} className={cn(rule.source === 'user_learned' && 'bg-amber-50/30')}>
-                      <TableCell className="font-mono text-sm text-gray-500">{rule.priority}</TableCell>
-                      <TableCell>
-                        <SourceBadge source={rule.source} />
-                      </TableCell>
+                    <TableRow key={rule.id} className={cn(rule.source === 'user_learned' && 'bg-amber-50/30 dark:bg-amber-900/10')}>
+                      <TableCell className="font-mono text-sm text-gray-500 dark:text-[#a09888]">{rule.priority}</TableCell>
+                      <TableCell><SourceBadge source={rule.source} /></TableCell>
                       <TableCell>
                         <Badge variant="pending">{MATCH_TYPE_LABELS[rule.match_type] ?? rule.match_type}</Badge>
                       </TableCell>
                       <TableCell className="font-medium">{rule.match_value}</TableCell>
                       <TableCell className="text-sm">
                         {account
-                          ? <span><span className="text-gray-400 mr-1.5">{account.account_code}</span>{account.account_name}</span>
-                          : <span className="text-gray-400">Unknown account</span>}
+                          ? <span><span className="text-gray-400 dark:text-[#7a7060] mr-1.5">{account.account_code}</span>{account.account_name}</span>
+                          : <span className="text-gray-400 dark:text-[#7a7060]">Unknown account</span>}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <AdminOnly>
-                            <Button variant="ghost" size="sm" onClick={() => openEdit(rule)} className="text-gray-400 hover:text-gray-600">
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(rule)} className="text-gray-400 hover:text-gray-600 dark:text-[#7a7060] dark:hover:text-[#c8c0b0]">
                               <Pencil className="w-3.5 h-3.5" />
                             </Button>
                           </AdminOnly>
                           <AdminOnly>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500">
+                                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500 dark:text-[#7a7060] dark:hover:text-red-400">
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -199,10 +198,7 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleDelete(rule)}
-                                    className="bg-red-500 hover:bg-red-600 text-white"
-                                  >
+                                  <AlertDialogAction onClick={() => handleDelete(rule)} className="bg-red-500 hover:bg-red-600 text-white">
                                     Delete
                                   </AlertDialogAction>
                                 </AlertDialogFooter>
@@ -233,7 +229,7 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
                   value={form.match_type}
                   onChange={(e) => setForm((f) => ({ ...f, match_type: e.target.value }))}
                   disabled={!!editingRule}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50"
+                  className={selectCls}
                 >
                   <option value="keyword">Keyword (description contains)</option>
                   <option value="vendor">Vendor (exact match)</option>
@@ -258,7 +254,7 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
               <select
                 value={form.target_account_id}
                 onChange={(e) => setForm((f) => ({ ...f, target_account_id: e.target.value }))}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
+                className={selectCls}
               >
                 <option value="">Select account…</option>
                 {accounts.filter((a) => a.is_active).map((a) => (
