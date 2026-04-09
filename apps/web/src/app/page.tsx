@@ -290,70 +290,73 @@ export default function LandingPage() {
 
       <main className="flex-1">
 
-        {/* ── Hero ───────────────────────────────────────────────────── */}
+        {/* ── Hero ─────────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden">
 
-          {/* Background: dot grid + radial glow + bottom fade */}
-          <div className="absolute inset-0 bg-[#EDF7F2]" />
+          {/* Background: theme-aware base + dot grid + radial glow + bottom fade */}
+          <div className="absolute inset-0 bg-[#EDF7F2] dark:bg-[#071410]" />
           <svg
-            className="absolute inset-0 w-full h-full pointer-events-none"
+            className="absolute inset-0 w-full h-full pointer-events-none opacity-40 dark:opacity-20"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
           >
             <defs>
               <pattern id="hero-dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
-                <circle cx="1.5" cy="1.5" r="1.5" fill="#0F6E56" opacity="0.18" />
+                <circle cx="1.5" cy="1.5" r="1.5" fill="#0F6E56" />
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#hero-dots)" />
           </svg>
-          {/* Radial glow centred behind the headline */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[420px] rounded-full bg-[#0F6E56]/10 blur-3xl pointer-events-none" />
-          {/* Fade to background at the bottom */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[420px] rounded-full bg-[#0F6E56]/10 dark:bg-[#0F6E56]/20 blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-b from-transparent to-background pointer-events-none" />
 
-          <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
+          {/* Top-left: bar chart */}
+          <svg className="absolute top-16 left-8 opacity-10 dark:opacity-[0.07] pointer-events-none hidden lg:block" width="80" height="64" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="0"  y="32" width="14" height="32" rx="3" fill="#0F6E56"/>
+            <rect x="22" y="16" width="14" height="48" rx="3" fill="#0F6E56"/>
+            <rect x="44" y="8"  width="14" height="56" rx="3" fill="#0F6E56"/>
+            <rect x="66" y="20" width="14" height="44" rx="3" fill="#0F6E56"/>
+          </svg>
 
-            <div className="inline-flex items-center gap-2 bg-[#0F6E56] text-white text-xs font-semibold px-4 py-1.5 rounded-full mb-4">
-              <Zap className="w-3 h-3" /> Launch offer: 50% off Starter & Pro
-            </div>
+          {/* Top-right: document / ledger */}
+          <svg className="absolute top-20 right-10 opacity-10 dark:opacity-[0.07] pointer-events-none hidden lg:block" width="56" height="72" viewBox="0 0 56 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="0" y="0" width="56" height="72" rx="6" fill="#0F6E56"/>
+            <rect x="8" y="12" width="24" height="4" rx="2" fill="white" opacity="0.6"/>
+            <rect x="8" y="22" width="40" height="3" rx="1.5" fill="white" opacity="0.4"/>
+            <rect x="8" y="30" width="36" height="3" rx="1.5" fill="white" opacity="0.4"/>
+            <rect x="8" y="38" width="40" height="3" rx="1.5" fill="white" opacity="0.4"/>
+            <rect x="8" y="46" width="28" height="3" rx="1.5" fill="white" opacity="0.4"/>
+            <rect x="8" y="56" width="20" height="4" rx="2" fill="white" opacity="0.5"/>
+          </svg>
 
-            <div className="inline-flex items-center gap-2 bg-white/70 dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 text-[#0F6E56] text-xs font-medium px-4 py-1.5 rounded-full mb-6 ml-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0F6E56] animate-pulse" />
-              Built for businesses, freelancers, personal accounts &amp; accountants
-            </div>
+          {/* Mid-right: checkmark shield */}
+          <svg className="absolute top-1/2 -translate-y-1/2 right-8 opacity-10 dark:opacity-[0.07] pointer-events-none hidden xl:block" width="56" height="64" viewBox="0 0 56 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M28 2L4 12V32C4 46 14 58 28 62C42 58 52 46 52 32V12L28 2Z" fill="#0F6E56"/>
+            <path d="M16 32L24 40L40 24" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
+          </svg>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground leading-tight tracking-tight mb-6 max-w-4xl mx-auto">
-              Clean books. Every month.{' '}
-              <span className="text-[#0F6E56]">Not just at tax time.</span>
-            </h1>
+          {/* Bottom-left: line chart */}
+          <svg className="absolute bottom-16 left-12 opacity-10 dark:opacity-[0.07] pointer-events-none hidden lg:block" width="96" height="48" viewBox="0 0 96 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <polyline points="0,40 20,28 40,32 60,16 80,20 96,8" stroke="#0F6E56" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <circle cx="0"  cy="40" r="4" fill="#0F6E56"/>
+            <circle cx="20" cy="28" r="4" fill="#0F6E56"/>
+            <circle cx="40" cy="32" r="4" fill="#0F6E56"/>
+            <circle cx="60" cy="16" r="4" fill="#0F6E56"/>
+            <circle cx="80" cy="20" r="4" fill="#0F6E56"/>
+            <circle cx="96" cy="8"  r="4" fill="#0F6E56"/>
+          </svg>
 
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-              Tempo Books handles double-entry accounting, bank sync, AI transaction classification, and HST/GST tracking — whether you run a business, freelance, manage personal finances, or handle client books.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
-              <Link
-                href="/sign-up"
-                className="inline-flex items-center gap-2 bg-[#0F6E56] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#085041] transition-colors shadow-sm"
-              >
-                Start free — 60 days <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="#features"
-                className="inline-flex items-center gap-2 border border-border bg-white/80 dark:bg-card text-foreground px-6 py-3 rounded-xl font-semibold text-sm hover:border-[#0F6E56] hover:text-[#0F6E56] transition-colors"
-              >
-                See how it works →
-              </Link>
-            </div>
-
-            <p className="text-xs text-muted-foreground mb-12">
-              60-day free trial · No charge during trial · Auto-continues on Starter after trial
-            </p>
-
-            <DashboardCarousel />
-          </div>
-        </section>
+          {/* Bottom-right: bank building */}
+          <svg className="absolute bottom-12 right-14 opacity-10 dark:opacity-[0.07] pointer-events-none hidden lg:block" width="72" height="64" viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="0"  y="56" width="72" height="8" rx="2" fill="#0F6E56"/>
+            <rect x="4"  y="24" width="8"  height="32" rx="1" fill="#0F6E56"/>
+            <rect x="18" y="24" width="8"  height="32" rx="1" fill="#0F6E56"/>
+            <rect x="32" y="24" width="8"  height="32" rx="1" fill="#0F6E56"/>
+            <rect x="46" y="24" width="8"  height="32" rx="1" fill="#0F6E56"/>
+            <rect x="60" y="24" width="8"  height="32" rx="1" fill="#0F6E56"/>
+            <rect x="0"  y="18" width="72" height="6"  rx="1" fill="#0F6E56"/>
+            <polygon points="36,0 0,18 72,18" fill="#0F6E56"/>
+          </svg>
 
         {/* ── Stats ──────────────────────────────────────────────────── */}
         <section className="border-y border-border bg-card">
@@ -752,3 +755,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
