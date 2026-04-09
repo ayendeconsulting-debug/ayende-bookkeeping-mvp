@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tempo-books-v1';
+const CACHE_NAME = 'tempo-books-v2';
 
 // Static assets to pre-cache on install
 const PRECACHE_URLS = [
