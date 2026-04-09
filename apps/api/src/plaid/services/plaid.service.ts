@@ -374,13 +374,14 @@ export class PlaidService {
         });
         if (exists) continue;
 
-        // Store Plaid amount as-is. Plaid sandbox for depository accounts
-        // already uses the correct convention: negative = expense, positive = income.
+        // Plaid production convention for depository accounts:
+        // positive = money leaving account (expense), negative = money entering (income).
+        // Negate so our convention is: positive = income, negative = expense.
         const raw = manager.create(RawTransaction, {
           business_id:          plaidItem.business_id,
           transaction_date:     new Date(tx.date),
           description:          tx.name || tx.merchant_name || 'Unknown',
-          amount:               tx.amount,
+          amount:               -tx.amount,
           source_account_name:  tx.account_id,
           source:               RawTransactionSource.PLAID,
           plaid_transaction_id: tx.transaction_id,
@@ -399,7 +400,7 @@ export class PlaidService {
           { plaid_transaction_id: tx.transaction_id },
           {
             description:      tx.name || tx.merchant_name || 'Unknown',
-            amount:           tx.amount,
+            amount:           -tx.amount,
             transaction_date: new Date(tx.date),
             plaid_pending:    tx.pending,
           },
