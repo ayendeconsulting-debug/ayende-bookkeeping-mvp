@@ -25,7 +25,7 @@ export class PlaidController {
 
   constructor(private readonly plaidService: PlaidService) {}
 
-  // ── LINK TOKEN — admin only ───────────────────────────────────────────
+  // ── LINK TOKEN – admin only ──────────────────────────────────────────────
 
   @Roles('admin')
   @Post('link-token')
@@ -37,7 +37,7 @@ export class PlaidController {
     return { link_token: linkToken };
   }
 
-  // ── TOKEN EXCHANGE — admin only ───────────────────────────────────────
+  // ── TOKEN EXCHANGE – admin only ──────────────────────────────────────────
 
   @Roles('admin')
   @Post('exchange-token')
@@ -55,7 +55,7 @@ export class PlaidController {
     };
   }
 
-  // ── LIST CONNECTED BANKS — all roles ─────────────────────────────────
+  // ── LIST CONNECTED BANKS – all roles ─────────────────────────────────────
 
   @Get('items')
   async getItems(@Req() req: Request) {
@@ -63,14 +63,34 @@ export class PlaidController {
     return items.map(({ access_token_encrypted, ...item }) => item);
   }
 
-  // ── LIST ACCOUNTS FOR ITEM — all roles ───────────────────────────────
+  // ── LIST ACCOUNTS FOR ITEM – all roles ───────────────────────────────────
 
   @Get('items/:id/accounts')
   async getAccountsForItem(@Param('id') itemId: string, @Req() req: Request) {
     return this.plaidService.getAccountsForItem(itemId, req.user!.businessId);
   }
 
-  // ── DISCONNECT BANK — admin only ──────────────────────────────────────
+  // ── MANUAL SYNC – admin only ─────────────────────────────────────────────
+  // Triggers an immediate transaction sync for the given Plaid item.
+  // Useful after a cursor reset or to force a refresh without waiting for webhook.
+
+  @Roles('admin')
+  @Post('items/:id/sync')
+  @HttpCode(HttpStatus.OK)
+  async manualSync(@Param('id') itemId: string, @Req() req: Request) {
+    this.logger.log(
+      `Manual sync requested for item ${itemId} by user ${req.user!.userId}`,
+    );
+    const result = await this.plaidService.syncTransactions(itemId);
+    return {
+      message: 'Sync complete',
+      added: result.added,
+      modified: result.modified,
+      removed: result.removed,
+    };
+  }
+
+  // ── DISCONNECT BANK – admin only ─────────────────────────────────────────
 
   @Roles('admin')
   @Delete('items/:id')
@@ -80,11 +100,7 @@ export class PlaidController {
     return { message: 'Bank account disconnected successfully' };
   }
 
-  // ── WEBHOOK (PUBLIC + no rate limit) ─────────────────────────────────
-  //
-  // @Public()     — bypasses JwtAuthGuard (Plaid calls this without a JWT)
-  // @SkipThrottle() — bypasses ThrottlerGuard (Plaid sends bursts during sync)
-  // Signature verification is enforced inside PlaidService.handleWebhook()
+  // ── WEBHOOK (PUBLIC + no rate limit) ─────────────────────────────────────
 
   @Public()
   @SkipThrottle()
