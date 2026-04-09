@@ -6,7 +6,7 @@ export function MarketingFooter() {
       <div className="max-w-6xl mx-auto px-6 py-12">
 
         {/* Top row */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-10">
 
           {/* Brand */}
           <div className="md:col-span-1">
@@ -21,7 +21,7 @@ export function MarketingFooter() {
               <span className="text-sm font-semibold text-foreground">Tempo Bookkeeping</span>
             </Link>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Tax-ready bookkeeping for Canadian and US small businesses.
+              Bookkeeping that&apos;s always ready — for businesses, freelancers, personal accounts, and the accountants who manage them.
             </p>
           </div>
 
@@ -44,13 +44,31 @@ export function MarketingFooter() {
             </ul>
           </div>
 
+          {/* For Accountants */}
+          <div>
+            <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">For Accountants</p>
+            <ul className="space-y-2">
+              {[
+                { label: 'Accountant Portal', href: '/#accountants'   },
+                { label: 'Portal Pricing',    href: '/pricing'        },
+                { label: 'Contact us',        href: 'mailto:hello@gettempo.ca' },
+              ].map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {/* Company */}
           <div>
             <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Company</p>
             <ul className="space-y-2">
               {[
-                { label: 'FAQ',          href: '/#faq'   },
-                { label: 'Contact',      href: 'mailto:hello@gettempo.ca' },
+                { label: 'FAQ',     href: '/#faq'   },
+                { label: 'Contact', href: 'mailto:hello@gettempo.ca' },
               ].map((l) => (
                 <li key={l.href}>
                   <Link href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">

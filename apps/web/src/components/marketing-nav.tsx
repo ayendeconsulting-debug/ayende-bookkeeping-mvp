@@ -6,10 +6,11 @@ import { useAuth } from '@clerk/nextjs';
 import { Menu, X } from 'lucide-react';
 
 const NAV_LINKS = [
-  { label: 'Pricing',  href: '/pricing'    },
-  { label: 'Features', href: '/#features'  },
-  { label: 'About',    href: '/about'      },
-  { label: 'FAQ',      href: '/#faq'       },
+  { label: 'Pricing',        href: '/pricing'      },
+  { label: 'Features',       href: '/#features'    },
+  { label: 'For Accountants',href: '/#accountants' },
+  { label: 'About',          href: '/about'        },
+  { label: 'FAQ',            href: '/#faq'         },
 ];
 
 export function MarketingNav() {
@@ -57,7 +58,7 @@ export function MarketingNav() {
               </Link>
               <Link href="/sign-up"
                 className="text-sm font-medium bg-[#0F6E56] text-white px-4 py-2 rounded-lg hover:bg-[#085041] transition-colors">
-                Get started
+                Start free — 60 days
               </Link>
             </>
           )}
@@ -73,7 +74,7 @@ export function MarketingNav() {
           ) : (
             <Link href="/sign-up"
               className="text-xs font-medium bg-[#0F6E56] text-white px-3 py-1.5 rounded-lg hover:bg-[#085041] transition-colors">
-              Get started
+              Start free
             </Link>
           )}
           <button

@@ -6,43 +6,43 @@ import { ChevronDown } from 'lucide-react';
 const FAQS = [
   {
     q: 'Is Tempo really free to try?',
-    a: 'Yes — every new account gets a full 60-day free trial with no credit card required. You get access to all features on the Pro plan during your trial so you can see exactly what you\'re getting before committing.',
+    a: "Yes — 60 full days, no skipped features. You get access to everything on your chosen plan from day one. If you decide it's not for you before day 60, cancel and owe nothing. After your trial, Starter continues automatically at $10 CAD/mo — no action needed.",
   },
   {
     q: 'What countries does Tempo support?',
-    a: 'Tempo is built specifically for Canadian and US small businesses. We support CAD and USD currencies, CRA and IRS tax reporting requirements, and connect to 12,000+ financial institutions in both countries via Plaid.',
+    a: 'Tempo is built primarily for Canadian businesses — with a full HST/GST tax engine, CRA remittance reporting (GST34 lines 101–113), and Canadian bank connectivity via Plaid. US businesses are fully supported as well, with IRS-compatible reports and USD currency handling. Canadian bank sync via Plaid is in active expansion.',
   },
   {
     q: 'How does bank connectivity work?',
-    a: 'Tempo uses Plaid, the industry standard for secure bank connectivity. Plaid connects to your bank using read-only access — we can see your transactions but we cannot move money. Your banking credentials are never stored on our servers.',
+    a: "Tempo uses Plaid — the same bank connection technology used by major fintech apps. You authenticate directly with your bank in a secure Plaid-hosted flow. Tempo receives read-only access to your transactions and can never move money or initiate payments. Your login credentials are never stored on our servers.",
   },
   {
     q: 'Is my financial data secure?',
-    a: 'Yes. All data is encrypted at rest using AES-256 encryption and in transit using TLS. We follow industry best practices for data security and access control. Sensitive credentials like bank tokens are encrypted before storage.',
+    a: 'Yes. All data is encrypted at rest and in transit. Bank connections are read-only via Plaid. Your financial data is never shared with third parties or used to train AI models. Each business operates in a fully isolated data environment — no cross-tenant access is architecturally possible.',
   },
   {
     q: 'Can I import my existing data?',
-    a: 'Yes. You can import transactions via CSV or PDF bank statements in addition to the live Plaid bank connection. This means you can backfill historical data from before you joined Tempo.',
+    a: 'Yes. Upload CSV or PDF bank statements and Tempo will parse, deduplicate, and classify them automatically. This means you can backfill historical data from before you joined. If you have existing transactions from another system, export them as CSV and import directly.',
   },
   {
     q: 'What reports does Tempo generate?',
-    a: 'Tempo generates an Income Statement (Profit & Loss), Balance Sheet, Trial Balance, and General Ledger — all built on double-entry accounting principles. Reports are filterable by date range and exportable as PDF or CSV.',
+    a: 'Tempo generates an Income Statement (Profit & Loss), Balance Sheet, Trial Balance, and General Ledger — all built on double-entry accounting. For Canadian businesses, a CRA remittance report with GST34 lines pre-calculated is always available. All reports are filterable by date range and exportable as PDF or CSV.',
   },
   {
     q: 'Does Tempo handle HST, GST, and sales tax?',
-    a: 'Yes. Tempo has a full tax code engine that supports HST, GST, PST, and US sales tax. When you classify a transaction with a tax code, Tempo automatically splits the net and tax amounts into separate journal lines.',
+    a: 'Yes — this is one of Tempo\'s core strengths. Every transaction with a tax code automatically splits the net amount and tax portion into separate journal lines, posting the tax to the correct liability account. Your CRA remittance report with GST34 lines 101–113 is always pre-calculated and export-ready.',
   },
   {
     q: 'Can my accountant access my books?',
-    a: 'Yes. You can invite your accountant to your business with a dedicated Accountant role. They get full read and write access to your transactions and reports, without being able to change billing or subscription settings.',
+    a: 'Yes. Invite your accountant by email and assign them an Accountant role. They get full read access plus the ability to request edit access for specific transactions — with every change logged in the dual audit trail. For bookkeeping firms, the Accountant Portal gives them a dedicated dashboard to manage all their clients in one place.',
   },
   {
     q: 'What happens when my trial ends?',
-    a: 'At the end of your 60-day trial, you\'ll be prompted to select a plan and add a payment method to continue. Your data is preserved and nothing is deleted. If you choose not to subscribe, your account is locked but your data remains accessible for 30 days.',
+    a: "If you're on Starter, your plan auto-continues at $10 CAD/mo — no action needed. For Pro or Accountant, you'll receive a reminder before your trial ends and can activate billing with one click. If you cancel before day 60, you pay nothing and your data remains accessible for 30 days.",
   },
   {
     q: 'Can I cancel at any time?',
-    a: 'Yes. You can cancel your subscription at any time from the Settings page. You\'ll keep access until the end of your current billing period. We don\'t charge cancellation fees.',
+    a: "Yes. Cancel your subscription at any time from the Settings page — no cancellation fees, no friction. You keep full access until the end of your current billing period. We don't believe in making it hard to leave.",
   },
 ];
 

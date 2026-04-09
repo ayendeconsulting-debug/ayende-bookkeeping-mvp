@@ -1,11 +1,11 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { MarketingNav } from '@/components/marketing-nav';
 import { MarketingFooter } from '@/components/marketing-footer';
 import { FaqAccordion } from './(marketing)/faq-accordion';
 import { DashboardCarousel } from './(marketing)/dashboard-carousel';
 import {
   BarChart3, FileText, Shield, Zap, Users, Globe, Sparkles,
-  CheckCircle2, ArrowRight, BookOpen, Building2,
+  CheckCircle2, ArrowRight, BookOpen, Building2, Lock,
 } from 'lucide-react';
 
 // ── Stats ─────────────────────────────────────────────────────────────────
@@ -16,14 +16,114 @@ const STATS = [
   { value: '5',       label: 'AI-powered features',         sub: 'Included on every plan' },
 ];
 
+// ── Segments ──────────────────────────────────────────────────────────────
+const SEGMENTS = [
+  {
+    emoji: '🏢',
+    title: 'Business',
+    tagline: 'Tax-ready books for SMBs',
+    href: '#business',
+  },
+  {
+    emoji: '💼',
+    title: 'Freelancer',
+    tagline: 'Bookkeeping in 10 min/mo',
+    href: '#freelancer',
+  },
+  {
+    emoji: '🏠',
+    title: 'Personal',
+    tagline: 'See where your money goes',
+    href: '#personal',
+  },
+  {
+    emoji: '📊',
+    title: 'Accountant',
+    tagline: 'Manage all your clients',
+    href: '#accountants',
+  },
+];
+
+// ── Segment deep-dives ────────────────────────────────────────────────────
+const SEGMENT_DETAILS = [
+  {
+    id: 'business',
+    emoji: '🏢',
+    title: 'For Business Owners',
+    tagline: 'Tax-ready books. Every single month.',
+    pain: 'Most small business owners spend the last two weeks of March in a panic — hunting receipts, untangling transactions, and paying their accountant to fix what should have been right all year.',
+    bullets: [
+      'Bank sync imports and classifies transactions automatically — no manual entry',
+      'HST/GST is split and posted to the correct liability account on every transaction',
+      'CRA remittance report (GST34 lines 101–113) is always one click away',
+      'Income Statement and Balance Sheet update in real time as you post',
+      'AI anomaly detection flags unusual charges before they become problems',
+      'Fiscal year locking prevents retroactive changes once you file',
+    ],
+    cta: 'Start your free 60-day trial',
+    ctaHref: '/sign-up',
+  },
+  {
+    id: 'freelancer',
+    emoji: '💼',
+    title: 'For Freelancers & Sole Proprietors',
+    tagline: 'Bookkeeping that takes 10 minutes a month.',
+    pain: "You didn't start freelancing to spend your weekends categorizing expenses. Tempo Books handles the accounting so you can focus on the work that actually pays.",
+    bullets: [
+      'Connect your bank and let Tempo classify every transaction automatically',
+      'Split personal and business expenses on the same account — no separate bank required',
+      'HST/GST tracked per transaction, remittance report ready when you need it',
+      'Income Statement shows exactly what you earned and what it cost you',
+      'AI Transaction Explainer breaks down any charge in plain English',
+      '$10/mo on Starter — less than one billable hour',
+    ],
+    cta: 'Start free — 60 days',
+    ctaHref: '/sign-up',
+  },
+  {
+    id: 'personal',
+    emoji: '🏠',
+    title: 'For Personal Finance',
+    tagline: 'Finally know where every dollar went.',
+    pain: 'Budgeting apps give you charts. Tempo gives you a real ledger — the same system accountants use, built for people who want to actually understand their money.',
+    bullets: [
+      'Connect your personal accounts and import all transactions automatically',
+      'Categorize spending by account type — housing, food, transport, subscriptions',
+      'See a real Income vs Expense view by month, quarter, or year',
+      'Track net worth with a live Balance Sheet of your assets and liabilities',
+      'AI assistant answers plain-language questions about your spending',
+      'Included on the Starter plan — $10/mo',
+    ],
+    cta: 'Start free — see your full financial picture in minutes',
+    ctaHref: '/sign-up',
+  },
+  {
+    id: 'accountants',
+    emoji: '📊',
+    title: 'For Accountants & Bookkeeping Firms',
+    tagline: 'Your client portal. Your brand. Your workflow.',
+    pain: "Switching between client logins, chasing down bank statements, and explaining the same transaction twice — that's time your firm can't bill for. Tempo Books' Accountant Portal was built to eliminate all of it.",
+    bullets: [
+      'Single dashboard for all client businesses — KPI cards, status, balance at a glance',
+      'White-label subdomain: yourfirm.gettempo.ca — client-facing with your branding',
+      'Request edit access with one click — full dual audit log of every change',
+      'AI anomaly detection runs across all client books simultaneously',
+      'Onboard a new client in under 5 minutes — invite by email, they connect their bank',
+      'Metered billing: $149/mo base includes 5 clients, +$15/mo per additional',
+    ],
+    cta: 'See Accountant Portal pricing',
+    ctaHref: '/pricing',
+  },
+];
+
 // ── Features ──────────────────────────────────────────────────────────────
 const FEATURES = [
   {
     category: 'AI',
     icon: Sparkles,
-    title: 'AI that works on your actual numbers',
+    title: 'Not a chatbot. A bookkeeper that reads your ledger.',
     description:
-      'Classify transactions, detect anomalies, explain charges in plain language, and generate a year-end summary — all powered by Claude AI on your real financial data.',
+      "Tempo's AI runs on your actual financial data — real journal entries, real accounts, real amounts. Classify transactions, detect anomalies, explain charges in plain language, and generate a year-end summary. Ask it anything. It already knows the answer.",
     points: [
       'Transaction Explainer — plain-language breakdowns',
       'Anomaly detection (amount, frequency, category)',
@@ -35,7 +135,7 @@ const FEATURES = [
   {
     category: 'Tax Ready',
     icon: Shield,
-    title: 'Tax-ready books, all year round',
+    title: 'HST, GST, CRA — handled automatically.',
     description:
       'Every transaction is posted to the correct account with HST/GST split automatically. Your Income Statement, Balance Sheet, and CRA remittance report are always current — no scramble at filing time.',
     points: [
@@ -49,9 +149,9 @@ const FEATURES = [
   {
     category: 'Accounting',
     icon: BarChart3,
-    title: 'Real double-entry accounting',
+    title: 'Real double-entry accounting. No spreadsheet hacks.',
     description:
-      'Every transaction creates balanced journal entries automatically. Your books are always accurate — no spreadsheet hacks, no single-entry workarounds.',
+      'Every transaction creates balanced journal entries automatically. Debits equal credits. Your books are always accurate — the same standard your accountant expects.',
     points: [
       'Automated journal entries',
       'Debit/credit validation',
@@ -63,9 +163,9 @@ const FEATURES = [
   {
     category: 'Banking',
     icon: Zap,
-    title: 'Connect your bank in seconds',
+    title: 'Connect your bank in seconds. Import everything.',
     description:
-      'Link your business bank account via Plaid for automatic transaction import. Transactions are classified, deduplicated, and posted to your ledger — zero manual entry.',
+      'Link your bank account via Plaid for automatic transaction import. Transactions are classified, deduplicated, and posted to your ledger — zero manual entry, ever.',
     points: [
       '12,000+ institutions',
       'Real-time sync',
@@ -77,9 +177,9 @@ const FEATURES = [
   {
     category: 'Reporting',
     icon: FileText,
-    title: 'Tax-ready financial reports',
+    title: 'Every report you need. Always up to date.',
     description:
-      'Generate an Income Statement, Balance Sheet, Trial Balance, and General Ledger with one click. Filter by date range, export as PDF or CSV.',
+      'Income Statement, Balance Sheet, Trial Balance, and General Ledger — generated from your actual journal entries. Filter by any date range, export PDF or CSV in one click.',
     points: [
       'Income Statement & Balance Sheet',
       'Trial Balance & General Ledger',
@@ -91,9 +191,9 @@ const FEATURES = [
   {
     category: 'Firms',
     icon: Building2,
-    title: 'A dedicated portal for accounting firms',
+    title: 'A dedicated portal for accounting firms.',
     description:
-      'Manage multiple clients from one dashboard. White-label with your firm\'s brand, onboard clients in minutes, and request edit access with a full audit trail of every change made.',
+      "Manage every client from one dashboard. White-label with your firm's brand, onboard clients in minutes, and request edit access with a full audit trail of every change made.",
     points: [
       'Multi-client dashboard with KPI cards',
       'White-label subdomain (yourfirm.gettempo.ca)',
@@ -112,7 +212,7 @@ const PLANS = [
     price: '$10',
     period: ' CAD/mo',
     annualNote: '2 months free on annual',
-    description: 'For freelancers and solo founders',
+    description: 'For freelancers — real books for $10/mo',
     features: [
       'Up to 500 transactions/mo',
       '4 financial reports',
@@ -130,7 +230,7 @@ const PLANS = [
     price: '$25',
     period: ' CAD/mo',
     annualNote: '2 months free on annual',
-    description: 'For growing small businesses',
+    description: 'For businesses that are scaling fast',
     features: [
       'Up to 2,500 transactions/mo',
       'Everything in Starter',
@@ -148,7 +248,7 @@ const PLANS = [
     price: '$149',
     period: ' CAD/mo base',
     annualNote: '$1,490/yr · see full pricing',
-    description: 'For bookkeeping firms & multi-client',
+    description: 'For firms managing client books at scale',
     features: [
       '5 client businesses included',
       '3 staff seats included',
@@ -163,6 +263,25 @@ const PLANS = [
   },
 ];
 
+// ── Testimonials ──────────────────────────────────────────────────────────
+const TESTIMONIALS = [
+  {
+    quote: '[PLACEHOLDER — replace with real user quote. 2–3 sentences. Focus on the before/after: what was broken, what changed after using Tempo Books.]',
+    name: '[First Name]',
+    role: 'Business Owner, [City]',
+  },
+  {
+    quote: '[PLACEHOLDER — replace with real user quote. Ideal for a freelancer or sole proprietor. Focus on time saved or HST/tax clarity.]',
+    name: '[First Name]',
+    role: 'Freelancer, [City]',
+  },
+  {
+    quote: '[PLACEHOLDER — replace with real user quote. Ideal for an accountant or bookkeeping firm. Focus on client management efficiency.]',
+    name: '[First Name]',
+    role: 'Bookkeeper, [City]',
+  },
+];
+
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   return (
@@ -173,25 +292,44 @@ export default function LandingPage() {
 
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#EDF7F2] via-background to-background pointer-events-none" />
+
+          {/* Background: dot grid + radial glow + bottom fade */}
+          <div className="absolute inset-0 bg-[#EDF7F2]" />
+          <svg
+            className="absolute inset-0 w-full h-full pointer-events-none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <defs>
+              <pattern id="hero-dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
+                <circle cx="1.5" cy="1.5" r="1.5" fill="#0F6E56" opacity="0.18" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#hero-dots)" />
+          </svg>
+          {/* Radial glow centred behind the headline */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[420px] rounded-full bg-[#0F6E56]/10 blur-3xl pointer-events-none" />
+          {/* Fade to background at the bottom */}
+          <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-b from-transparent to-background pointer-events-none" />
+
           <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
 
             <div className="inline-flex items-center gap-2 bg-[#0F6E56] text-white text-xs font-semibold px-4 py-1.5 rounded-full mb-4">
               <Zap className="w-3 h-3" /> Launch offer: 50% off Starter & Pro
             </div>
 
-            <div className="inline-flex items-center gap-2 bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 text-[#0F6E56] text-xs font-medium px-4 py-1.5 rounded-full mb-6 ml-2">
+            <div className="inline-flex items-center gap-2 bg-white/70 dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 text-[#0F6E56] text-xs font-medium px-4 py-1.5 rounded-full mb-6 ml-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#0F6E56] animate-pulse" />
-              Built for Canadian &amp; US small businesses
+              Built for businesses, freelancers, personal accounts &amp; accountants
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground leading-tight tracking-tight mb-6 max-w-4xl mx-auto">
-              AI-assisted bookkeeping{' '}
-              <span className="text-[#0F6E56]">built for tax time</span>
+              Clean books. Every month.{' '}
+              <span className="text-[#0F6E56]">Not just at tax time.</span>
             </h1>
 
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-              Tempo Books handles double-entry accounting, bank sync, AI transaction classification, and HST/GST tracking — so when tax season arrives, your books are already ready.
+              Tempo Books handles double-entry accounting, bank sync, AI transaction classification, and HST/GST tracking — whether you run a business, freelance, manage personal finances, or handle client books.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
@@ -199,13 +337,13 @@ export default function LandingPage() {
                 href="/sign-up"
                 className="inline-flex items-center gap-2 bg-[#0F6E56] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#085041] transition-colors shadow-sm"
               >
-                Start free trial <ArrowRight className="w-4 h-4" />
+                Start free — 60 days <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
-                href="/pricing"
-                className="inline-flex items-center gap-2 border border-border bg-card text-foreground px-6 py-3 rounded-xl font-semibold text-sm hover:border-[#0F6E56] hover:text-[#0F6E56] transition-colors"
+                href="#features"
+                className="inline-flex items-center gap-2 border border-border bg-white/80 dark:bg-card text-foreground px-6 py-3 rounded-xl font-semibold text-sm hover:border-[#0F6E56] hover:text-[#0F6E56] transition-colors"
               >
-                See pricing
+                See how it works →
               </Link>
             </div>
 
@@ -232,8 +370,67 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── AI Feature highlight ────────────────────────────────────── */}
+        {/* ── Segment Selector ───────────────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-6 py-16">
+          <div className="text-center mb-10">
+            <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">Who It&apos;s For</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              One product. Built for how you actually work.
+            </h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Whether you run a business, freelance, manage your own money, or handle books for clients — Tempo Books is built for exactly that.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {SEGMENTS.map((seg) => (
+              <a
+                key={seg.href}
+                href={seg.href}
+                className="group rounded-2xl border border-border bg-card hover:border-[#0F6E56] hover:shadow-sm transition-all p-6 flex flex-col items-center text-center"
+              >
+                <span className="text-4xl mb-3">{seg.emoji}</span>
+                <p className="text-sm font-semibold text-foreground mb-1 group-hover:text-[#0F6E56] transition-colors">{seg.title}</p>
+                <p className="text-xs text-muted-foreground mb-3">{seg.tagline}</p>
+                <span className="text-xs font-semibold text-[#0F6E56]">Learn more →</span>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Segment Deep Dives ─────────────────────────────────────── */}
+        <section className="max-w-6xl mx-auto px-6 pb-10 space-y-8">
+          {SEGMENT_DETAILS.map((seg) => (
+            <div
+              key={seg.id}
+              id={seg.id}
+              className="rounded-2xl border border-border bg-card p-8 md:p-10 scroll-mt-20"
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-3xl">{seg.emoji}</span>
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground">{seg.title}</h2>
+              </div>
+              <p className="text-[#0F6E56] font-semibold text-lg mb-4">{seg.tagline}</p>
+              <p className="text-muted-foreground leading-relaxed mb-6 max-w-2xl italic">{seg.pain}</p>
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-8">
+                {seg.bullets.map((b) => (
+                  <li key={b} className="flex items-start gap-2 text-sm">
+                    <CheckCircle2 className="w-4 h-4 text-[#0F6E56] flex-shrink-0 mt-0.5" />
+                    <span className="text-muted-foreground">{b}</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={seg.ctaHref}
+                className="inline-flex items-center gap-2 bg-[#0F6E56] text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-[#085041] transition-colors"
+              >
+                {seg.cta} <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          ))}
+        </section>
+
+        {/* ── AI Feature highlight ────────────────────────────────────── */}
+        <section className="max-w-6xl mx-auto px-6 py-10">
           <div className="rounded-2xl bg-gradient-to-r from-[#EDF7F2] to-[#f5f3ef] dark:from-primary/10 dark:to-background border border-[#C3E8D8] dark:border-primary/30 p-8 md:p-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div>
@@ -241,10 +438,10 @@ export default function LandingPage() {
                   <Sparkles className="w-3 h-3" /> Powered by Claude AI
                 </div>
                 <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
-                  Ask your books anything
+                  Not a chatbot. A bookkeeper that reads your ledger.
                 </h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  Get instant ad hoc answers from your actual financial data. Explain any transaction in plain language, detect anomalies before they become problems, and generate a year-end summary ready for your accountant.
+                  Tempo&apos;s AI runs on your actual financial data — real journal entries, real accounts, real amounts. Ask it anything. It already knows the answer.
                 </p>
                 <ul className="space-y-2 mb-6">
                   {[
@@ -329,11 +526,11 @@ export default function LandingPage() {
               <div className="bg-muted/50 rounded-xl p-6 space-y-4">
                 <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider">At tax time you have</p>
                 {[
-                  { label: 'Income Statement', desc: 'Revenue, expenses, net income by period' },
-                  { label: 'Balance Sheet', desc: 'Assets, liabilities, and equity snapshot' },
-                  { label: 'CRA Remittance Report', desc: 'GST34 lines pre-calculated, export ready' },
-                  { label: 'General Ledger', desc: 'Every transaction with full audit trail' },
-                  { label: 'Year-End AI Summary', desc: 'Observations, adjustments, and checklist PDF' },
+                  { label: 'Income Statement',      desc: 'Revenue, expenses, net income by period' },
+                  { label: 'Balance Sheet',          desc: 'Assets, liabilities, and equity snapshot' },
+                  { label: 'CRA Remittance Report',  desc: 'GST34 lines pre-calculated, export ready' },
+                  { label: 'General Ledger',         desc: 'Every transaction with full audit trail' },
+                  { label: 'Year-End AI Summary',    desc: 'Observations, adjustments, and checklist PDF' },
                 ].map((item) => (
                   <div key={item.label} className="flex items-start gap-3">
                     <CheckCircle2 className="w-4 h-4 text-[#0F6E56] flex-shrink-0 mt-0.5" />
@@ -353,10 +550,10 @@ export default function LandingPage() {
           <div className="text-center mb-14">
             <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">Features</p>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Everything you need to run your books
+              The full bookkeeping stack. Nothing missing.
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              From bank import to AI-powered year-end filing — Tempo handles the full bookkeeping workflow.
+              From bank import to year-end filing — every feature you need, none you don&apos;t.
             </p>
           </div>
 
@@ -402,17 +599,40 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* ── Social Proof ────────────────────────────────────────────── */}
+        <section className="bg-card border-y border-border">
+          <div className="max-w-6xl mx-auto px-6 py-20">
+            <div className="text-center mb-12">
+              <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">What People Say</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                Real businesses. Real books. Zero spreadsheets.
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {TESTIMONIALS.map((t, i) => (
+                <div key={i} className="rounded-2xl border border-border bg-background p-6 flex flex-col">
+                  <p className="text-3xl text-[#0F6E56] mb-4 leading-none">&ldquo;</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed flex-1 italic mb-6">{t.quote}</p>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ── Pricing preview ─────────────────────────────────────────── */}
-        <section id="pricing" className="bg-card border-y border-border">
+        <section id="pricing" className="bg-background border-b border-border">
           <div className="max-w-6xl mx-auto px-6 py-20">
             <div className="text-center mb-6">
               <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">Pricing</p>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-                Simple, transparent pricing
+                Pricing that makes sense from day one.
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                60-day free trial on all plans. Starter &amp; Pro at 50% off for launch.
-                The Accountant plan includes a full firm portal with white-label branding, client onboarding, and metered per-client billing.
+                60 days free. Pick a plan, connect your bank, and your books are running before your trial ends.
               </p>
             </div>
 
@@ -475,7 +695,7 @@ export default function LandingPage() {
             </div>
 
             <p className="text-center text-xs text-muted-foreground mt-6">
-              Starter &amp; Pro: annual plans get 2 months free.{' '}
+              Annual plans save you 2 months — pay for 10, get 12.{' '}
               <Link href="/pricing" className="text-[#0F6E56] hover:underline underline-offset-2">
                 See full pricing details →
               </Link>
@@ -487,7 +707,9 @@ export default function LandingPage() {
         <section id="faq" className="max-w-3xl mx-auto px-6 py-20">
           <div className="text-center mb-12">
             <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">FAQ</p>
-            <h2 className="text-3xl font-bold text-foreground mb-4">Common questions</h2>
+            <h2 className="text-3xl font-bold text-foreground mb-4">
+              The questions worth answering honestly.
+            </h2>
             <p className="text-muted-foreground">
               Can&apos;t find the answer?{' '}
               <a href="mailto:hello@gettempo.ca" className="text-[#0F6E56] hover:underline underline-offset-2">
@@ -502,17 +724,17 @@ export default function LandingPage() {
         <section className="bg-[#0F6E56] dark:bg-[#085041]">
           <div className="max-w-4xl mx-auto px-6 py-16 text-center">
             <h2 className="text-3xl font-bold text-white mb-4">
-              Start your free trial today
+              Your books should be ready before you need them.
             </h2>
             <p className="text-[#C3E8D8] mb-8 max-w-xl mx-auto">
-              60 days free, no charge during trial. Your books will be tax-ready before the trial ends — or your accountant will be very impressed.
+              Not the night before filing. Not after a frantic call to your accountant. Every month, automatically — starting now.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/sign-up"
                 className="inline-flex items-center gap-2 bg-white text-[#0F6E56] px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#EDF7F2] transition-colors"
               >
-                Start free trial <ArrowRight className="w-4 h-4" />
+                Start free — 60 days <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 href="/pricing"
