@@ -20,11 +20,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem('tempo-theme') as Theme | null;
     if (stored === 'dark' || stored === 'light') {
+      // Always honour an explicit user preference
       setTheme(stored);
       applyTheme(stored);
     } else {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const initial: Theme = prefersDark ? 'dark' : 'light';
+      // No stored preference — default by viewport:
+      // mobile (< 768px) → dark, desktop (≥ 768px) → light
+      const isMobile = window.matchMedia('(max-width: 767px)').matches;
+      const initial: Theme = isMobile ? 'dark' : 'light';
       setTheme(initial);
       applyTheme(initial);
     }

@@ -395,7 +395,7 @@ export default function LandingPage() {
 
         {/* ── AI Feature highlight ────────────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-6 py-10">
-          <div className="rounded-2xl bg-gradient-to-r from-[#EDF7F2] to-[#f5f3ef] dark:from-primary/10 dark:to-background border border-[#C3E8D8] dark:border-primary/30 p-8 md:p-10">
+          <div className="rounded-2xl bg-gradient-to-r from-[#EDF7F2] to-[#f5f3ef] dark:from-card dark:to-card border border-[#C3E8D8] dark:border-border p-8 md:p-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div>
                 <div className="inline-flex items-center gap-2 bg-[#0F6E56] text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">
@@ -527,12 +527,12 @@ export default function LandingPage() {
                   className={[
                     'rounded-2xl p-6 flex flex-col border-2 transition-all',
                     feature.highlight
-                      ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-primary/10'
+                      ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-card'
                       : 'border-border bg-card hover:border-[#0F6E56]/40 hover:shadow-sm',
                   ].join(' ')}
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#EDF7F2] dark:bg-primary/10 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-[#EDF7F2] dark:bg-[#0F6E56]/20 flex items-center justify-center">
                       <Icon className="w-4 h-4 text-[#0F6E56]" />
                     </div>
                     <span className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider">
