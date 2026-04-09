@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePlaidLink } from 'react-plaid-link';
 import {
@@ -8,7 +8,7 @@ import {
   AlertCircle, Loader2, CreditCard,
 } from 'lucide-react';
 import { PlaidItem, PlaidAccount } from '@/types';
-import { createLinkToken, exchangeToken, disconnectBank } from '@/app/(app)/banks/actions';
+import { createLinkToken, exchangeToken, disconnectBank, syncBank } from '@/app/(app)/banks/actions';
 import { AdminOnly } from '@/components/admin-only';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
@@ -75,6 +75,7 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
   const router = useRouter();
   const [banks, setBanks] = useState<PlaidItem[]>(initialBanks);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState<string | null>(null);
 
   function handleConnectSuccess() {
     router.refresh();
@@ -90,6 +91,24 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
       toastError('Failed to disconnect bank', result.error ?? 'Please try again.');
     }
     setDisconnecting(null);
+  }
+
+  async function handleSync(bank: PlaidItem) {
+    setSyncing(bank.id);
+    const result = await syncBank(bank.id);
+    if (result.success) {
+      const { added = 0, modified = 0, removed = 0 } = result;
+      const parts = [];
+      if (added > 0) parts.push(`${added} new`);
+      if (modified > 0) parts.push(`${modified} updated`);
+      if (removed > 0) parts.push(`${removed} removed`);
+      const msg = parts.length > 0 ? parts.join(', ') : 'Already up to date';
+      toastSuccess(`${bank.institution_name} synced`, msg);
+      router.refresh();
+    } else {
+      toastError('Sync failed', result.error ?? 'Please try again.');
+    }
+    setSyncing(null);
   }
 
   return (
@@ -126,6 +145,8 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
           {banks.map((bank) => {
             const accounts = accountsByItem[bank.id] ?? [];
             const isDisconnecting = disconnecting === bank.id;
+            const isSyncing = syncing === bank.id;
+
             return (
               <Card key={bank.id}>
                 <CardHeader className="flex-row items-center justify-between pb-3">
@@ -150,29 +171,47 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
                       </div>
                     </div>
                   </div>
-                  <AdminOnly>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" disabled={isDisconnecting} className="text-gray-400 hover:text-red-500 hover:bg-red-50">
-                          {isDisconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Disconnect {bank.institution_name}?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will stop importing new transactions. Existing transactions and journal entries will not be affected.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDisconnect(bank)} className="bg-red-500 hover:bg-red-600 text-white">
-                            Disconnect
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </AdminOnly>
+
+                  <div className="flex items-center gap-2">
+                    <AdminOnly>
+                      {/* Sync button */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSync(bank)}
+                        disabled={isSyncing || isDisconnecting}
+                        className="flex items-center gap-1.5 text-xs border-primary text-primary hover:bg-primary-light"
+                      >
+                        {isSyncing
+                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          : <RefreshCw className="w-3.5 h-3.5" />}
+                        {isSyncing ? 'Syncing…' : 'Sync'}
+                      </Button>
+
+                      {/* Disconnect button */}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" disabled={isDisconnecting || isSyncing} className="text-gray-400 hover:text-red-500 hover:bg-red-50">
+                            {isDisconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Disconnect {bank.institution_name}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will stop importing new transactions. Existing transactions and journal entries will not be affected.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDisconnect(bank)} className="bg-red-500 hover:bg-red-600 text-white">
+                              Disconnect
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </AdminOnly>
+                  </div>
                 </CardHeader>
 
                 {accounts.length > 0 && (

@@ -1,12 +1,7 @@
 'use server';
-
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
 
-/**
- * Create a Plaid Link token to initiate the bank connection flow.
- * Called client-side via Server Action before opening Plaid Link.
- */
 export async function createLinkToken(): Promise<{
   success: boolean;
   link_token?: string;
@@ -20,10 +15,6 @@ export async function createLinkToken(): Promise<{
   }
 }
 
-/**
- * Exchange the public_token returned by Plaid Link for a permanent access_token.
- * Called after Plaid Link onSuccess callback.
- */
 export async function exchangeToken(
   publicToken: string,
   institutionName: string,
@@ -46,9 +37,6 @@ export async function exchangeToken(
   }
 }
 
-/**
- * Disconnect a bank — revokes Plaid token and soft-deletes locally.
- */
 export async function disconnectBank(
   itemId: string,
 ): Promise<{ success: boolean; error?: string }> {
@@ -59,5 +47,22 @@ export async function disconnectBank(
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message ?? 'Failed to disconnect bank.' };
+  }
+}
+
+export async function syncBank(
+  itemId: string,
+): Promise<{ success: boolean; added?: number; modified?: number; removed?: number; error?: string }> {
+  try {
+    const data = await api<{ added: number; modified: number; removed: number }>(
+      `/plaid/items/${itemId}/sync`,
+      { method: 'POST' },
+    );
+    revalidatePath('/banks');
+    revalidatePath('/transactions');
+    revalidatePath('/dashboard');
+    return { success: true, added: data.added, modified: data.modified, removed: data.removed };
+  } catch (error: any) {
+    return { success: false, error: error.message ?? 'Sync failed.' };
   }
 }
