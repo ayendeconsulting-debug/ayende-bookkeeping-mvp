@@ -42,9 +42,17 @@ export default function RootLayout({
             dangerouslySetInnerHTML={{
               __html: `
                 try {
-                  var t = localStorage.getItem('tempo-theme');
-                  if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                    document.documentElement.classList.add('dark');
+                  var p = window.location.pathname;
+                  var marketingRoutes = ['/', '/pricing', '/about', '/faq', '/cookies', '/privacy', '/terms', '/terms-of-use'];
+                  var isMarketing = marketingRoutes.indexOf(p) !== -1;
+                  if (isMarketing) {
+                    document.documentElement.dataset.forceLight = 'true';
+                    document.documentElement.classList.remove('dark');
+                  } else {
+                    var t = localStorage.getItem('tempo-theme');
+                    if (t === 'dark' || (!t && window.matchMedia('(max-width: 767px)').matches)) {
+                      document.documentElement.classList.add('dark');
+                    }
                   }
                 } catch(e) {}
               `,
