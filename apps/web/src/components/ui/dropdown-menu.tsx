@@ -19,14 +19,16 @@ const DropdownMenuSubTrigger = React.forwardRef<
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      'flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-gray-900 outline-none focus:bg-gray-100 data-[state=open]:bg-gray-100',
+      'flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-gray-900 outline-none',
+      'focus:bg-gray-100 data-[state=open]:bg-gray-100',
+      'dark:text-[#f0ede8] dark:focus:bg-[#2a2720] dark:data-[state=open]:bg-[#2a2720]',
       inset && 'pl-8',
       className,
     )}
     {...props}
   >
     {children}
-    <ChevronRight className="ml-auto h-4 w-4 text-gray-400" />
+    <ChevronRight className="ml-auto h-4 w-4 text-gray-400 dark:text-[#7a7060]" />
   </DropdownMenuPrimitive.SubTrigger>
 ));
 DropdownMenuSubTrigger.displayName = DropdownMenuPrimitive.SubTrigger.displayName;
@@ -39,6 +41,7 @@ const DropdownMenuSubContent = React.forwardRef<
     ref={ref}
     className={cn(
       'z-50 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 bg-white p-1 shadow-md',
+      'dark:border-[#3a3730] dark:bg-[#222019]',
       'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className,
     )}
@@ -57,6 +60,7 @@ const DropdownMenuContent = React.forwardRef<
       sideOffset={sideOffset}
       className={cn(
         'z-50 min-w-[8rem] overflow-hidden rounded-md border border-gray-200 bg-white p-1 shadow-md',
+        'dark:border-[#3a3730] dark:bg-[#222019]',
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
         'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
         'data-[side=bottom]:slide-in-from-top-2 data-[side=top]:slide-in-from-bottom-2',
@@ -77,6 +81,7 @@ const DropdownMenuItem = React.forwardRef<
     className={cn(
       'relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-gray-900 outline-none transition-colors',
       'focus:bg-gray-100 focus:text-gray-900',
+      'dark:text-[#f0ede8] dark:focus:bg-[#2a2720] dark:focus:text-[#f0ede8]',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       inset && 'pl-8',
       className,
@@ -93,7 +98,9 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   <DropdownMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      'relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm text-gray-900 outline-none transition-colors focus:bg-gray-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      'relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm text-gray-900 outline-none transition-colors',
+      'focus:bg-gray-100 data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
+      'dark:text-[#f0ede8] dark:focus:bg-[#2a2720]',
       className,
     )}
     checked={checked}
@@ -115,7 +122,11 @@ const DropdownMenuLabel = React.forwardRef<
 >(({ className, inset, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn('px-2 py-1.5 text-xs font-medium text-gray-500', inset && 'pl-8', className)}
+    className={cn(
+      'px-2 py-1.5 text-xs font-medium text-gray-500 dark:text-[#a09888]',
+      inset && 'pl-8',
+      className,
+    )}
     {...props}
   />
 ));
@@ -127,24 +138,15 @@ const DropdownMenuSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1 my-1 h-px bg-gray-100', className)}
+    className={cn('-mx-1 my-1 h-px bg-gray-100 dark:bg-[#3a3730]', className)}
     {...props}
   />
 ));
 DropdownMenuSeparator.displayName = DropdownMenuPrimitive.Separator.displayName;
 
 export {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuGroup,
-  DropdownMenuPortal,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuRadioGroup,
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuCheckboxItem, DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenuGroup, DropdownMenuPortal, DropdownMenuSub, DropdownMenuSubContent,
+  DropdownMenuSubTrigger, DropdownMenuRadioGroup,
 };

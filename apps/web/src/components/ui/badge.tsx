@@ -8,26 +8,26 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-primary-light text-primary',
+          'bg-primary-light text-primary dark:bg-primary/20 dark:text-[#4abe94]',
         secondary:
-          'bg-gray-100 text-gray-700',
+          'bg-gray-100 text-gray-700 dark:bg-[#2a2720] dark:text-[#c8c0b0]',
         destructive:
-          'bg-danger-light text-danger',
+          'bg-danger-light text-danger dark:bg-red-900/30 dark:text-red-400',
         warning:
-          'bg-warning-light text-warning',
+          'bg-warning-light text-warning dark:bg-amber-900/30 dark:text-amber-400',
         info:
-          'bg-info-light text-info',
+          'bg-info-light text-info dark:bg-blue-900/30 dark:text-blue-400',
         outline:
-          'border border-gray-200 text-gray-700',
+          'border border-gray-200 text-gray-700 dark:border-[#3a3730] dark:text-[#c8c0b0]',
         // Transaction status badges
         pending:
-          'bg-warning-light text-warning',
+          'bg-warning-light text-warning dark:bg-amber-900/30 dark:text-amber-400',
         classified:
-          'bg-primary-light text-primary',
+          'bg-primary-light text-primary dark:bg-primary/20 dark:text-[#4abe94]',
         posted:
-          'bg-gray-100 text-gray-600',
+          'bg-gray-100 text-gray-600 dark:bg-[#2a2720] dark:text-[#a09888]',
         review:
-          'bg-info-light text-info',
+          'bg-info-light text-info dark:bg-blue-900/30 dark:text-blue-400',
       },
     },
     defaultVariants: {

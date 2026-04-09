@@ -7,11 +7,16 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: 'border-gray-200 bg-white text-gray-900',
-        destructive: 'border-danger-light bg-danger-light text-danger',
-        success: 'border-primary-light bg-primary-light text-primary',
-        warning: 'border-warning-light bg-warning-light text-warning',
-        info: 'border-info-light bg-info-light text-info',
+        default:
+          'border-gray-200 bg-white text-gray-900 dark:border-[#3a3730] dark:bg-[#222019] dark:text-[#f0ede8]',
+        destructive:
+          'border-danger-light bg-danger-light text-danger dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400',
+        success:
+          'border-primary-light bg-primary-light text-primary dark:border-primary/30 dark:bg-primary/10 dark:text-[#4abe94]',
+        warning:
+          'border-warning-light bg-warning-light text-warning dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-400',
+        info:
+          'border-info-light bg-info-light text-info dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-400',
       },
     },
     defaultVariants: {
@@ -24,12 +29,7 @@ const Alert = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
 >(({ className, variant, ...props }, ref) => (
-  <div
-    ref={ref}
-    role="alert"
-    className={cn(alertVariants({ variant }), className)}
-    {...props}
-  />
+  <div ref={ref} role="alert" className={cn(alertVariants({ variant }), className)} {...props} />
 ));
 Alert.displayName = 'Alert';
 
@@ -37,11 +37,7 @@ const AlertTitle = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLHeadingElement>
 >(({ className, ...props }, ref) => (
-  <h5
-    ref={ref}
-    className={cn('mb-1 font-medium leading-none tracking-tight', className)}
-    {...props}
-  />
+  <h5 ref={ref} className={cn('mb-1 font-medium leading-none tracking-tight', className)} {...props} />
 ));
 AlertTitle.displayName = 'AlertTitle';
 
@@ -49,11 +45,7 @@ const AlertDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn('text-sm opacity-90 [&_p]:leading-relaxed', className)}
-    {...props}
-  />
+  <div ref={ref} className={cn('text-sm opacity-90 [&_p]:leading-relaxed', className)} {...props} />
 ));
 AlertDescription.displayName = 'AlertDescription';
 
