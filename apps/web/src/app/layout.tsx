@@ -1,13 +1,32 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { BrandingProvider } from '@/components/branding-provider';
+import { PwaRegister } from '@/components/pwa-register';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Tempo Books - AI-Assisted Bookkeeping for Canadian and US Small Businesses',
   description: 'Double-entry accounting, bank sync, AI transaction classification, HST/GST filing, and a dedicated Accountant Portal. 60-day free trial.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Tempo Books',
+  },
+  icons: {
+    apple: '/icons/apple-touch-icon.png',
+    icon: '/icons/icon-192.png',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#0F6E56',
+  width: 'device-width',
+  initialScale: 1,
+  minimumScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
@@ -45,10 +64,9 @@ export default function RootLayout({
               />
             </ThemeProvider>
           </BrandingProvider>
+          <PwaRegister />
         </body>
       </html>
     </ClerkProvider>
   );
 }
-
-
