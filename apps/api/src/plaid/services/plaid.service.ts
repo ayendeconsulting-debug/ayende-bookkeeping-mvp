@@ -34,7 +34,7 @@ export class PlaidService {
   private readonly logger = new Logger(PlaidService.name);
   private readonly plaidClient: PlaidApi;
 
-  /** In-memory JWK cache — keys are rotated rarely; cache indefinitely per kid */
+  /** In-memory JWK cache – keys are rotated rarely; cache indefinitely per kid */
   private readonly jwkCache = new Map<string, any>();
 
   constructor(
@@ -89,7 +89,7 @@ export class PlaidService {
     }
   }
 
-  // ─── TOKEN EXCHANGE ───────────────────────────────────────────────────────
+  // ─── TOKEN EXCHANGE ──────────────────────────────────────────────────────
 
   async exchangeToken(businessId: string, dto: ExchangeTokenDto): Promise<PlaidItem> {
     let exchangeResponse;
@@ -258,7 +258,7 @@ export class PlaidService {
       const claimedHash    = (payload as any).request_body_sha256 as string;
 
       if (!claimedHash || claimedHash !== bodyHash) {
-        throw new Error('request_body_sha256 mismatch — possible replay or tampering');
+        throw new Error('request_body_sha256 mismatch – possible replay or tampering');
       }
     } catch (err: any) {
       if (err?.status === 401) throw err;
@@ -267,7 +267,7 @@ export class PlaidService {
     }
   }
 
-  // ─── WEBHOOK HANDLING ────────────────────────────────────────────────────
+  // ─── WEBHOOK HANDLING ─────────────────────────────────────────────────────
 
   async handleWebhook(
     payload: Record<string, any>,
@@ -334,7 +334,7 @@ export class PlaidService {
     }
   }
 
-  // ─── TRANSACTION SYNC ────────────────────────────────────────────────────
+  // ─── TRANSACTION SYNC ─────────────────────────────────────────────────────
 
   async syncTransactions(plaidItemId: string): Promise<{ added: number; modified: number; removed: number }> {
     const plaidItem = await this.plaidItemRepo.findOne({
@@ -374,11 +374,15 @@ export class PlaidService {
         });
         if (exists) continue;
 
+        // Plaid sign convention: positive = money leaving account (expense),
+        // negative = money entering account (income).
+        // We negate so our convention matches user expectation:
+        // positive = income, negative = expense.
         const raw = manager.create(RawTransaction, {
           business_id:          plaidItem.business_id,
           transaction_date:     new Date(tx.date),
           description:          tx.name || tx.merchant_name || 'Unknown',
-          amount:               Math.abs(tx.amount),
+          amount:               -tx.amount,
           source_account_name:  tx.account_id,
           source:               RawTransactionSource.PLAID,
           plaid_transaction_id: tx.transaction_id,
@@ -397,7 +401,7 @@ export class PlaidService {
           { plaid_transaction_id: tx.transaction_id },
           {
             description:      tx.name || tx.merchant_name || 'Unknown',
-            amount:           Math.abs(tx.amount),
+            amount:           -tx.amount,
             transaction_date: new Date(tx.date),
             plaid_pending:    tx.pending,
           },
