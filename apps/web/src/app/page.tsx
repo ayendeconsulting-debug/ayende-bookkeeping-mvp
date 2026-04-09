@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { MarketingNav } from '@/components/marketing-nav';
 import { MarketingFooter } from '@/components/marketing-footer';
+import { MarketingThemeEnforcer } from '@/components/marketing-theme-enforcer';
 import { FaqAccordion } from './(marketing)/faq-accordion';
 import { DashboardCarousel } from './(marketing)/dashboard-carousel';
 import {
@@ -266,6 +267,7 @@ const TESTIMONIALS = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <MarketingThemeEnforcer />
       <MarketingNav />
 
       <main className="flex-1">

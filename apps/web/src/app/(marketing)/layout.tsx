@@ -1,5 +1,4 @@
-import { MarketingNav } from '@/components/marketing-nav';
-import { MarketingFooter } from '@/components/marketing-footer';
+import { MarketingThemeEnforcer } from '@/components/marketing-theme-enforcer';
 
 export default function MarketingLayout({
   children,
@@ -7,12 +6,11 @@ export default function MarketingLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <MarketingNav />
-      <main className="flex-1">
+    <>
+      <MarketingThemeEnforcer />
+      <div className="min-h-screen bg-background flex flex-col">
         {children}
-      </main>
-      <MarketingFooter />
-    </div>
+      </div>
+    </>
   );
 }
