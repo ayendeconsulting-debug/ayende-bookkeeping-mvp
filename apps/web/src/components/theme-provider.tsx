@@ -20,12 +20,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem('tempo-theme') as Theme | null;
     if (stored === 'dark' || stored === 'light') {
-      // Always honour an explicit user preference
       setTheme(stored);
       applyTheme(stored);
     } else {
-      // No stored preference — default by viewport:
-      // mobile (< 768px) → dark, desktop (≥ 768px) → light
       const isMobile = window.matchMedia('(max-width: 767px)').matches;
       const initial: Theme = isMobile ? 'dark' : 'light';
       setTheme(initial);
@@ -34,6 +31,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   function applyTheme(t: Theme) {
+    // Marketing pages set data-force-light="true" on <html>.
+    // When that flag is present, always stay in light mode.
+    if (document.documentElement.dataset.forceLight === 'true') {
+      document.documentElement.classList.remove('dark');
+      return;
+    }
     if (t === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
