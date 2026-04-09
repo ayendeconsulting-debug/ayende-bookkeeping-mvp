@@ -273,72 +273,7 @@ export default function LandingPage() {
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden">
 
-          {/* Base background — light uses mint, dark uses theme background variable */}
-          <div className="absolute inset-0 bg-[#EDF7F2] dark:bg-background" />
-
-          {/* Dot grid — lighter on mobile to keep text readable */}
-          <svg
-            className="absolute inset-0 w-full h-full pointer-events-none opacity-15 sm:opacity-30 dark:opacity-10"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <defs>
-              <pattern id="hero-dots" x="0" y="0" width="24" height="24" patternUnits="userSpaceOnUse">
-                <circle cx="1.5" cy="1.5" r="1.5" fill="#0F6E56" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#hero-dots)" />
-          </svg>
-
-          {/* Radial glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[420px] rounded-full bg-[#0F6E56]/8 dark:bg-[#0F6E56]/15 blur-3xl pointer-events-none" />
-
-          {/* Bottom fade */}
-          <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-b from-transparent to-background pointer-events-none" />
-
-          {/* Decorative graphics — desktop only */}
-          <svg className="absolute top-16 left-8 opacity-10 dark:opacity-[0.07] pointer-events-none hidden lg:block" width="80" height="64" viewBox="0 0 80 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="0"  y="32" width="14" height="32" rx="3" fill="#0F6E56"/>
-            <rect x="22" y="16" width="14" height="48" rx="3" fill="#0F6E56"/>
-            <rect x="44" y="8"  width="14" height="56" rx="3" fill="#0F6E56"/>
-            <rect x="66" y="20" width="14" height="44" rx="3" fill="#0F6E56"/>
-          </svg>
-
-          <svg className="absolute top-20 right-10 opacity-10 dark:opacity-[0.07] pointer-events-none hidden lg:block" width="56" height="72" viewBox="0 0 56 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect x="0" y="0"  width="56" height="72" rx="6"   fill="#0F6E56"/>
-            <rect x="8" y="12" width="24" height="4"  rx="2"   fill="white" opacity="0.6"/>
-            <rect x="8" y="22" width="40" height="3"  rx="1.5" fill="white" opacity="0.4"/>
-            <rect x="8" y="30" width="36" height="3"  rx="1.5" fill="white" opacity="0.4"/>
-            <rect x="8" y="38" width="40" height="3"  rx="1.5" fill="white" opacity="0.4"/>
-            <rect x="8" y="46" width="28" height="3"  rx="1.5" fill="white" opacity="0.4"/>
-            <rect x="8" y="56" width="20" height="4"  rx="2"   fill="white" opacity="0.5"/>
-          </svg>
-
-          <svg className="absolute top-1/2 -translate-y-1/2 right-8 opacity-10 dark:opacity-[0.07] pointer-events-none hidden xl:block" width="56" height="64" viewBox="0 0 56 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <path d="M28 2L4 12V32C4 46 14 58 28 62C42 58 52 46 52 32V12L28 2Z" fill="#0F6E56"/>
-            <path d="M16 32L24 40L40 24" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"/>
-          </svg>
-
-          <svg className="absolute bottom-16 left-12 opacity-10 dark:opacity-[0.07] pointer-events-none hidden lg:block" width="96" height="48" viewBox="0 0 96 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <polyline points="0,40 20,28 40,32 60,16 80,20 96,8" stroke="#0F6E56" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-            <circle cx="0"  cy="40" r="4" fill="#0F6E56"/>
-            <circle cx="20" cy="28" r="4" fill="#0F6E56"/>
-            <circle cx="40" cy="32" r="4" fill="#0F6E56"/>
-            <circle cx="60" cy="16" r="4" fill="#0F6E56"/>
-            <circle cx="80" cy="20" r="4" fill="#0F6E56"/>
-            <circle cx="96" cy="8"  r="4" fill="#0F6E56"/>
-          </svg>
-
-          <svg className="absolute bottom-12 right-14 opacity-10 dark:opacity-[0.07] pointer-events-none hidden lg:block" width="72" height="64" viewBox="0 0 72 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect    x="0"  y="56" width="72" height="8"  rx="2" fill="#0F6E56"/>
-            <rect    x="4"  y="24" width="8"  height="32" rx="1" fill="#0F6E56"/>
-            <rect    x="18" y="24" width="8"  height="32" rx="1" fill="#0F6E56"/>
-            <rect    x="32" y="24" width="8"  height="32" rx="1" fill="#0F6E56"/>
-            <rect    x="46" y="24" width="8"  height="32" rx="1" fill="#0F6E56"/>
-            <rect    x="60" y="24" width="8"  height="32" rx="1" fill="#0F6E56"/>
-            <rect    x="0"  y="18" width="72" height="6"  rx="1" fill="#0F6E56"/>
-            <polygon points="36,0 0,18 72,18"                     fill="#0F6E56"/>
-          </svg>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#EDF7F2] via-background to-background pointer-events-none" />
 
           {/* Hero content */}
           <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
@@ -352,12 +287,12 @@ export default function LandingPage() {
               Built for businesses, freelancers, personal accounts &amp; accountants
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground dark:text-white leading-tight tracking-tight mb-6 max-w-4xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground leading-tight tracking-tight mb-6 max-w-4xl mx-auto">
               Clean books. Every month.{' '}
               <span className="text-[#0F6E56]">Not just at tax time.</span>
             </h1>
 
-            <p className="text-lg text-foreground/70 dark:text-white/70 max-w-2xl mx-auto mb-8 leading-relaxed">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
               Tempo Books handles double-entry accounting, bank sync, AI transaction classification, and HST/GST tracking — whether you run a business, freelance, manage personal finances, or handle client books.
             </p>
 
@@ -376,7 +311,7 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            <p className="text-xs text-foreground/50 dark:text-white/50 mb-12">
+            <p className="text-xs text-muted-foreground mb-12">
               60-day free trial · No charge during trial · Auto-continues on Starter after trial
             </p>
 
@@ -460,7 +395,7 @@ export default function LandingPage() {
 
         {/* ── AI Feature highlight ────────────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-6 py-10">
-          <div className="rounded-2xl bg-[#EDF7F2] dark:bg-card border border-[#C3E8D8] dark:border-border p-8 md:p-10">
+          <div className="rounded-2xl bg-gradient-to-r from-[#EDF7F2] to-[#f5f3ef] dark:from-primary/10 dark:to-background border border-[#C3E8D8] dark:border-primary/30 p-8 md:p-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div>
                 <div className="inline-flex items-center gap-2 bg-[#0F6E56] text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">
@@ -592,12 +527,12 @@ export default function LandingPage() {
                   className={[
                     'rounded-2xl p-6 flex flex-col border-2 transition-all',
                     feature.highlight
-                      ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-card'
+                      ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-primary/10'
                       : 'border-border bg-card hover:border-[#0F6E56]/40 hover:shadow-sm',
                   ].join(' ')}
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#EDF7F2] dark:bg-[#0F6E56]/20 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-[#EDF7F2] dark:bg-primary/10 flex items-center justify-center">
                       <Icon className="w-4 h-4 text-[#0F6E56]" />
                     </div>
                     <span className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider">
