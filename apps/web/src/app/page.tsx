@@ -273,12 +273,12 @@ export default function LandingPage() {
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden">
 
-          {/* Base background — theme-aware */}
-          <div className="absolute inset-0 bg-[#EDF7F2] dark:bg-[#071410]" />
+          {/* Base background — light uses mint, dark uses theme background variable */}
+          <div className="absolute inset-0 bg-[#EDF7F2] dark:bg-background" />
 
-          {/* Dot grid */}
+          {/* Dot grid — lighter on mobile to keep text readable */}
           <svg
-            className="absolute inset-0 w-full h-full pointer-events-none opacity-40 dark:opacity-20"
+            className="absolute inset-0 w-full h-full pointer-events-none opacity-15 sm:opacity-30 dark:opacity-10"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
           >
@@ -291,7 +291,7 @@ export default function LandingPage() {
           </svg>
 
           {/* Radial glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[420px] rounded-full bg-[#0F6E56]/10 dark:bg-[#0F6E56]/20 blur-3xl pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[420px] rounded-full bg-[#0F6E56]/8 dark:bg-[#0F6E56]/15 blur-3xl pointer-events-none" />
 
           {/* Bottom fade */}
           <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-b from-transparent to-background pointer-events-none" />
@@ -352,12 +352,12 @@ export default function LandingPage() {
               Built for businesses, freelancers, personal accounts &amp; accountants
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground leading-tight tracking-tight mb-6 max-w-4xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground dark:text-white leading-tight tracking-tight mb-6 max-w-4xl mx-auto">
               Clean books. Every month.{' '}
               <span className="text-[#0F6E56]">Not just at tax time.</span>
             </h1>
 
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+            <p className="text-lg text-foreground/70 dark:text-white/70 max-w-2xl mx-auto mb-8 leading-relaxed">
               Tempo Books handles double-entry accounting, bank sync, AI transaction classification, and HST/GST tracking — whether you run a business, freelance, manage personal finances, or handle client books.
             </p>
 
@@ -376,7 +376,7 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            <p className="text-xs text-muted-foreground mb-12">
+            <p className="text-xs text-foreground/50 dark:text-white/50 mb-12">
               60-day free trial · No charge during trial · Auto-continues on Starter after trial
             </p>
 
@@ -460,7 +460,7 @@ export default function LandingPage() {
 
         {/* ── AI Feature highlight ────────────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-6 py-10">
-          <div className="rounded-2xl bg-gradient-to-r from-[#EDF7F2] to-[#f5f3ef] dark:from-primary/10 dark:to-background border border-[#C3E8D8] dark:border-primary/30 p-8 md:p-10">
+          <div className="rounded-2xl bg-[#EDF7F2] dark:bg-card border border-[#C3E8D8] dark:border-border p-8 md:p-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
               <div>
                 <div className="inline-flex items-center gap-2 bg-[#0F6E56] text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">
@@ -592,12 +592,12 @@ export default function LandingPage() {
                   className={[
                     'rounded-2xl p-6 flex flex-col border-2 transition-all',
                     feature.highlight
-                      ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-primary/10'
+                      ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-card'
                       : 'border-border bg-card hover:border-[#0F6E56]/40 hover:shadow-sm',
                   ].join(' ')}
                 >
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#EDF7F2] dark:bg-primary/10 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-[#EDF7F2] dark:bg-[#0F6E56]/20 flex items-center justify-center">
                       <Icon className="w-4 h-4 text-[#0F6E56]" />
                     </div>
                     <span className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider">
