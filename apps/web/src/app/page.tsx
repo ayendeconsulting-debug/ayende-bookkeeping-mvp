@@ -267,6 +267,16 @@ const TESTIMONIALS = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            try {
+              document.documentElement.dataset.forceLight = 'true';
+              document.documentElement.classList.remove('dark');
+            } catch(e) {}
+          `,
+        }}
+      />
       <MarketingThemeEnforcer />
       <MarketingNav />
 
