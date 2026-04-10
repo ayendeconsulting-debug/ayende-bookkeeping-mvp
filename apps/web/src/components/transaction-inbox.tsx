@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight, AlertTriangle } from 'lucide-react';
+import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight, AlertTriangle, Tag } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, BusinessMode, BudgetCategoryWithSpending } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { bulkClassifyTransactions, runBatchRules } from '@/app/(app)/transactions/actions';
+import { bulkAssignPersonalCategory } from '@/app/(app)/personal/transactions/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -33,12 +34,14 @@ interface TransactionInboxProps {
   budgetCategories?: BudgetCategoryWithSpending[];
 }
 
-const STATUS_TABS = [
-  { key: 'all',        label: 'All' },
-  { key: 'pending',    label: 'Pending' },
-  { key: 'classified', label: 'Classified' },
-  { key: 'posted',     label: 'Posted' },
-];
+function getStatusTabs(isPersonal: boolean) {
+  return [
+    { key: 'all',        label: 'All' },
+    { key: 'pending',    label: 'Pending' },
+    { key: 'classified', label: 'Classified' },
+    { key: 'posted',     label: isPersonal ? 'Categorized' : 'Posted' },
+  ];
+}
 
 function statusVariant(status: string): 'pending' | 'classified' | 'posted' | 'review' {
   const map: Record<string, 'pending' | 'classified' | 'posted' | 'review'> = {
@@ -59,48 +62,59 @@ export function TransactionInbox({
   const [isPending, startTransition] = useTransition();
   const [isBulkPending, startBulkTransition] = useTransition();
   const [isRunRulesPending, startRunRulesTransition] = useTransition();
+  const [isPersonalBulkPending, startPersonalBulkTransition] = useTransition();
 
   const [searchValue, setSearchValue] = useState(currentSearch);
   const [selectedTx, setSelectedTx] = useState<RawTransaction | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
 
   // Phase 13: Explainer panel state
-  const [explainerTx, setExplainerTx]     = useState<RawTransaction | null>(null);
+  const [explainerTx, setExplainerTx]   = useState<RawTransaction | null>(null);
   const [explainerOpen, setExplainerOpen] = useState(false);
 
   // Phase 14: Split modal state
-  const [splitTx, setSplitTx]     = useState<RawTransaction | null>(null);
+  const [splitTx, setSplitTx]   = useState<RawTransaction | null>(null);
   const [splitOpen, setSplitOpen] = useState(false);
 
   // Phase 14: Transfer modal state
-  const [transferTx, setTransferTx]       = useState<RawTransaction | null>(null);
-  const [transferOpen, setTransferOpen]   = useState(false);
+  const [transferTx, setTransferTx]     = useState<RawTransaction | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   // Phase 17: Personal category panel state
-  const [personalCatTx, setPersonalCatTx]       = useState<RawTransaction | null>(null);
-  const [personalCatOpen, setPersonalCatOpen]   = useState(false);
+  const [personalCatTx, setPersonalCatTx]     = useState<RawTransaction | null>(null);
+  const [personalCatOpen, setPersonalCatOpen] = useState(false);
 
-  // Bulk classification state
+  // Business bulk classification state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAccountId, setBulkAccountId] = useState('');
   const [bulkTaxCodeId, setBulkTaxCodeId] = useState('');
 
+  // Phase 17: Personal bulk categorization state
+  const [personalSelectedIds, setPersonalSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkCategoryId, setBulkCategoryId] = useState('');
+
   const isFreelancer = mode === 'freelancer';
   const isPersonal   = mode === 'personal';
+  const STATUS_TABS  = getStatusTabs(isPersonal);
   const LIMIT = 20;
   const totalPages = Math.ceil(totalCount / LIMIT);
 
-  // Build a lookup for category name+colour by id
-  const categoryMap = Object.fromEntries(
-    budgetCategories.map((c) => [c.id, c]),
-  );
+  // Category lookup by id
+  const categoryMap = Object.fromEntries(budgetCategories.map((c) => [c.id, c]));
 
+  // Business bulk selectable
   const selectableTxs = initialTransactions.filter(
     (tx) => tx.status === 'pending' && !tx.is_personal,
   );
   const allSelected =
     selectableTxs.length > 0 && selectableTxs.every((tx) => selectedIds.has(tx.id));
   const someSelected = selectedIds.size > 0;
+
+  // Personal bulk selectable — all statuses
+  const personalAllSelected =
+    initialTransactions.length > 0 &&
+    initialTransactions.every((tx) => personalSelectedIds.has(tx.id));
+  const somePersonalSelected = personalSelectedIds.size > 0;
 
   const updateParams = useCallback(
     (updates: Record<string, string | undefined>) => {
@@ -119,7 +133,6 @@ export function TransactionInbox({
   function handleSearch(e: React.FormEvent) { e.preventDefault(); updateParams({ search: searchValue }); }
   function handlePage(page: number) { updateParams({ page: String(page) }); }
 
-  // Business/freelancer classify panel
   function openClassify(tx: RawTransaction) {
     if (isPersonal) { setPersonalCatTx(tx); setPersonalCatOpen(true); }
     else { setSelectedTx(tx); setPanelOpen(true); }
@@ -131,11 +144,9 @@ export function TransactionInbox({
   }
   function handleTagToggle() { startTransition(() => router.refresh()); }
 
-  // Phase 13: Explainer handlers
   function openExplainer(tx: RawTransaction) { setExplainerTx(tx); setExplainerOpen(true); }
   function handleExplainerClose() { setExplainerOpen(false); setExplainerTx(null); }
 
-  // Phase 14: Split handlers
   function openSplit(tx: RawTransaction) { setSplitTx(tx); setSplitOpen(true); }
   function handleSplitClose() { setSplitOpen(false); setSplitTx(null); }
   function handleSplitSuccess() {
@@ -143,7 +154,6 @@ export function TransactionInbox({
     startTransition(() => router.refresh());
   }
 
-  // Phase 14: Transfer handlers
   function openTransfer(tx: RawTransaction) { setTransferTx(tx); setTransferOpen(true); }
   function handleTransferClose() { setTransferOpen(false); setTransferTx(null); }
   function handleTransferSuccess() {
@@ -151,28 +161,37 @@ export function TransactionInbox({
     startTransition(() => router.refresh());
   }
 
-  // Phase 17: Personal category handlers
   function handlePersonalCatClose() { setPersonalCatOpen(false); setPersonalCatTx(null); }
   function handlePersonalCatSuccess() {
     setPersonalCatOpen(false); setPersonalCatTx(null);
     startTransition(() => router.refresh());
   }
 
+  // Business bulk
   function handleToggleAll() {
     if (allSelected) setSelectedIds(new Set());
     else setSelectedIds(new Set(selectableTxs.map((tx) => tx.id)));
   }
-
   function handleToggleOne(id: string) {
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id); else next.add(id);
     setSelectedIds(next);
   }
 
+  // Personal bulk
+  function handlePersonalToggleAll() {
+    if (personalAllSelected) setPersonalSelectedIds(new Set());
+    else setPersonalSelectedIds(new Set(initialTransactions.map((tx) => tx.id)));
+  }
+  function handlePersonalToggleOne(id: string) {
+    const next = new Set(personalSelectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setPersonalSelectedIds(next);
+  }
+
   function handleBulkClassify() {
     if (!bulkAccountId) { toastError('Please select an account first.'); return; }
     if (selectedIds.size === 0) { toastError('No transactions selected.'); return; }
-
     startBulkTransition(async () => {
       const result = await bulkClassifyTransactions({
         rawTransactionIds: Array.from(selectedIds),
@@ -194,14 +213,35 @@ export function TransactionInbox({
     });
   }
 
+  function handlePersonalBulkCategorize() {
+    if (!bulkCategoryId) { toastError('Please select a category first.'); return; }
+    if (personalSelectedIds.size === 0) { toastError('No transactions selected.'); return; }
+    startPersonalBulkTransition(async () => {
+      const result = await bulkAssignPersonalCategory(
+        Array.from(personalSelectedIds),
+        bulkCategoryId,
+      );
+      if (result.success) {
+        const cat = categoryMap[bulkCategoryId];
+        toastSuccess(
+          `${result.assigned} transaction${result.assigned !== 1 ? 's' : ''} categorized as "${cat?.name ?? ''}"`,
+        );
+        setPersonalSelectedIds(new Set());
+        setBulkCategoryId('');
+        startTransition(() => router.refresh());
+      } else {
+        toastError(result.error ?? 'Bulk categorization failed.');
+      }
+    });
+  }
+
   function handleRunRules() {
     startRunRulesTransition(async () => {
       const result = await runBatchRules();
       if (result.success && result.data) {
         const { classified, skipped, total } = result.data;
-        const noMatch = total - classified;
         toastSuccess(
-          `${classified} auto-classified, ${skipped} already classified, ${noMatch} no match.`,
+          `${classified} auto-classified, ${skipped} already classified, ${total - classified} no match.`,
         );
         router.refresh();
       } else {
@@ -218,9 +258,7 @@ export function TransactionInbox({
       <div className="px-6 py-5 border-b border-gray-200 bg-white">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">
-              {isFreelancer ? 'Income & Expenses' : 'Transactions'}
-            </h1>
+            <h1 className="text-xl font-semibold text-gray-900">Transactions</h1>
             <p className="text-sm text-gray-500 mt-0.5">
               {totalCount} total · {pendingCount} pending review
               {isFreelancer && (
@@ -234,28 +272,19 @@ export function TransactionInbox({
           <div className="flex items-center gap-2">
             {!isPersonal && (
               <AdminOnly>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleRunRules}
+                <Button variant="outline" size="sm" onClick={handleRunRules}
                   disabled={isRunRulesPending}
-                  className="border-primary text-primary hover:bg-primary-light"
-                >
+                  className="border-primary text-primary hover:bg-primary-light">
                   <Wand2 className="w-4 h-4 mr-1.5" />
                   {isRunRulesPending ? 'Running…' : 'Run Rules'}
                 </Button>
               </AdminOnly>
             )}
-
             <form onSubmit={handleSearch} className="flex gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  className="pl-8 w-64"
-                  placeholder="Search transactions…"
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                />
+                <Input className="pl-8 w-64" placeholder="Search transactions…"
+                  value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
               </div>
               <Button type="submit" variant="outline" size="sm">
                 <SlidersHorizontal className="w-4 h-4 mr-1.5" />Filter
@@ -267,16 +296,13 @@ export function TransactionInbox({
         {/* Status tabs */}
         <div className="flex gap-0 -mb-px">
           {STATUS_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => handleStatusTab(tab.key)}
+            <button key={tab.key} onClick={() => handleStatusTab(tab.key)}
               className={cn(
                 'px-4 py-2 text-sm border-b-2 transition-colors',
                 currentStatus === tab.key || (tab.key === 'all' && !currentStatus)
                   ? 'border-primary text-primary font-medium'
                   : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300',
-              )}
-            >
+              )}>
               {tab.label}
             </button>
           ))}
@@ -292,29 +318,34 @@ export function TransactionInbox({
             </div>
             <p className="text-sm font-medium text-gray-900 mb-1">No transactions found</p>
             <p className="text-sm text-gray-500">
-              {currentSearch
-                ? `No results for "${currentSearch}"`
-                : currentStatus !== 'all'
-                ? `No ${currentStatus} transactions`
+              {currentSearch ? `No results for "${currentSearch}"`
+                : currentStatus !== 'all' ? `No ${currentStatus} transactions`
                 : 'Connect a bank account to start importing transactions'}
             </p>
           </div>
         ) : (
           <>
-            {/* ── Desktop table ─────────────────────────────────────── */}
+            {/* ── Desktop table ─────────────────────────────────── */}
             <div className="hidden sm:block">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {selectableTxs.length > 0 && !isPersonal && (
+                    {/* Personal: checkbox for all rows */}
+                    {isPersonal && (
                       <TableHead className="w-10">
-                        <input
-                          type="checkbox"
-                          checked={allSelected}
+                        <input type="checkbox" checked={personalAllSelected}
+                          onChange={handlePersonalToggleAll}
+                          className="rounded border-gray-300 cursor-pointer"
+                          title="Select all" />
+                      </TableHead>
+                    )}
+                    {/* Business: checkbox for pending only */}
+                    {!isPersonal && selectableTxs.length > 0 && (
+                      <TableHead className="w-10">
+                        <input type="checkbox" checked={allSelected}
                           onChange={handleToggleAll}
                           className="rounded border-gray-300 cursor-pointer"
-                          title="Select all pending"
-                        />
+                          title="Select all pending" />
                       </TableHead>
                     )}
                     <TableHead className="w-28">Date</TableHead>
@@ -331,29 +362,31 @@ export function TransactionInbox({
                     const amount = Number(tx.amount);
                     const isSelectable = tx.status === 'pending' && !tx.is_personal && !isPersonal;
                     const isSelected = selectedIds.has(tx.id);
+                    const isPersonalSelected = personalSelectedIds.has(tx.id);
                     const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal && !isPersonal;
                     const assignedCat = tx.personal_category_id ? categoryMap[tx.personal_category_id] : null;
 
                     return (
-                      <TableRow
-                        key={tx.id}
-                        className={cn(
-                          tx.is_personal && isFreelancer ? 'opacity-60' : '',
-                          isSelected ? 'bg-primary-light/30' : '',
+                      <TableRow key={tx.id} className={cn(
+                        tx.is_personal && isFreelancer ? 'opacity-60' : '',
+                        isSelected || isPersonalSelected ? 'bg-primary-light/30' : '',
+                      )}>
+                        {/* Personal checkbox */}
+                        {isPersonal && (
+                          <TableCell>
+                            <input type="checkbox" checked={isPersonalSelected}
+                              onChange={() => handlePersonalToggleOne(tx.id)}
+                              className="rounded border-gray-300 cursor-pointer" />
+                          </TableCell>
                         )}
-                      >
-                        {selectableTxs.length > 0 && !isPersonal && (
+                        {/* Business checkbox */}
+                        {!isPersonal && selectableTxs.length > 0 && (
                           <TableCell>
                             {isSelectable ? (
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
+                              <input type="checkbox" checked={isSelected}
                                 onChange={() => handleToggleOne(tx.id)}
-                                className="rounded border-gray-300 cursor-pointer"
-                              />
-                            ) : (
-                              <div className="w-4" />
-                            )}
+                                className="rounded border-gray-300 cursor-pointer" />
+                            ) : <div className="w-4" />}
                           </TableCell>
                         )}
                         <TableCell className="text-gray-500 whitespace-nowrap">
@@ -376,13 +409,10 @@ export function TransactionInbox({
                             )}
                             <span className="block truncate text-gray-900">{tx.description}</span>
                           </div>
-                          {/* Phase 17: show assigned category badge in personal mode, else plaid_category */}
                           {isPersonal && assignedCat ? (
                             <span className="inline-flex items-center gap-1 mt-0.5">
-                              <span
-                                className="w-2 h-2 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: assignedCat.color ?? '#0F6E56' }}
-                              />
+                              <span className="w-2 h-2 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: assignedCat.color ?? '#0F6E56' }} />
                               <span className="text-xs font-medium text-gray-600 dark:text-[#c8c0b0]">
                                 {assignedCat.name}
                               </span>
@@ -402,16 +432,11 @@ export function TransactionInbox({
                         {isFreelancer && (
                           <TableCell>
                             {tx.status === 'pending' ? (
-                              <TransactionTagToggle
-                                transactionId={tx.id}
-                                isPersonal={tx.is_personal}
-                                onToggle={handleTagToggle}
-                              />
+                              <TransactionTagToggle transactionId={tx.id}
+                                isPersonal={tx.is_personal} onToggle={handleTagToggle} />
                             ) : (
-                              <span className={cn(
-                                'text-xs font-medium px-2 py-0.5 rounded-full',
-                                tx.is_personal ? 'bg-purple-50 text-purple-600' : 'bg-primary-light text-primary',
-                              )}>
+                              <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full',
+                                tx.is_personal ? 'bg-purple-50 text-purple-600' : 'bg-primary-light text-primary')}>
                                 {tx.is_personal ? 'Personal' : 'Business'}
                               </span>
                             )}
@@ -424,7 +449,6 @@ export function TransactionInbox({
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5">
-                            {/* Personal mode: Categorize button */}
                             {isPersonal && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
@@ -434,8 +458,6 @@ export function TransactionInbox({
                                 </Button>
                               </AdminOnly>
                             )}
-
-                            {/* Business/freelancer classify flow */}
                             {!isPersonal && tx.status === 'pending' && !tx.is_personal && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
@@ -480,48 +502,52 @@ export function TransactionInbox({
               </Table>
             </div>
 
-            {/* ── Mobile card list ───────────────────────────────────── */}
+            {/* ── Mobile card list ─────────────────────────────── */}
             <div className="sm:hidden divide-y divide-gray-100">
               {initialTransactions.map((tx) => {
                 const amount = Number(tx.amount);
                 const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal && !isPersonal;
                 const assignedCat = tx.personal_category_id ? categoryMap[tx.personal_category_id] : null;
+                const isPersonalSelected = personalSelectedIds.has(tx.id);
 
                 return (
-                  <div key={tx.id} className="px-4 py-3 bg-white">
+                  <div key={tx.id} className={cn('px-4 py-3 bg-white', isPersonalSelected && 'bg-primary-light/20')}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs text-gray-400">
-                        {new Date(tx.transaction_date).toLocaleDateString('en-CA', {
-                          month: 'short', day: 'numeric', year: '2-digit',
-                        })}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {isPersonal && (
+                          <input type="checkbox" checked={isPersonalSelected}
+                            onChange={() => handlePersonalToggleOne(tx.id)}
+                            className="rounded border-gray-300 cursor-pointer" />
+                        )}
+                        <span className="text-xs text-gray-400">
+                          {new Date(tx.transaction_date).toLocaleDateString('en-CA', {
+                            month: 'short', day: 'numeric', year: '2-digit',
+                          })}
+                        </span>
+                      </div>
                       <Badge variant={statusVariant(tx.status)}>
                         {tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}
                       </Badge>
                     </div>
-
                     <div className="flex items-start gap-1.5 mb-1">
                       {tx.anomaly_flags && tx.anomaly_flags.length > 0 && (
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
                       )}
                       <span className="text-sm font-medium text-gray-900 leading-snug">{tx.description}</span>
                     </div>
-
-                    {/* Phase 17: category badge on mobile */}
                     {isPersonal && assignedCat && (
                       <span className="inline-flex items-center gap-1 mb-1">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: assignedCat.color ?? '#0F6E56' }} />
+                        <span className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: assignedCat.color ?? '#0F6E56' }} />
                         <span className="text-xs font-medium text-gray-600">{assignedCat.name}</span>
                       </span>
                     )}
-
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs text-gray-400">{tx.source_account_name ?? '—'}</span>
                       <span className={cn('text-sm font-semibold', amount >= 0 ? 'text-primary' : 'text-danger')}>
                         {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
                       </span>
                     </div>
-
                     <div className="flex items-center gap-2 min-h-[44px]">
                       {isPersonal && (
                         <AdminOnly>
@@ -585,104 +611,92 @@ export function TransactionInbox({
         </div>
       )}
 
-      {/* Bulk classification action bar — hidden in personal mode */}
+      {/* ── Personal bulk categorization bar ─────────────────────── */}
+      {somePersonalSelected && isPersonal && (
+        <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-white border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <CheckSquare className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-gray-800">
+              {personalSelectedIds.size} selected
+            </span>
+          </div>
+
+          <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
+
+          <select
+            value={bulkCategoryId}
+            onChange={(e) => setBulkCategoryId(e.target.value)}
+            className="flex-1 max-w-xs h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+          >
+            <option value="">Select category…</option>
+            {budgetCategories.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+
+          <Button
+            onClick={handlePersonalBulkCategorize}
+            disabled={isPersonalBulkPending || !bulkCategoryId}
+            className="bg-primary text-white hover:bg-primary/90 flex-shrink-0"
+          >
+            <Tag className="w-3.5 h-3.5 mr-1.5" />
+            {isPersonalBulkPending
+              ? 'Saving…'
+              : `Categorize ${personalSelectedIds.size}`}
+          </Button>
+
+          <Button variant="outline" onClick={() => setPersonalSelectedIds(new Set())}
+            disabled={isPersonalBulkPending} className="flex-shrink-0">
+            Clear
+          </Button>
+        </div>
+      )}
+
+      {/* ── Business bulk classification bar ─────────────────────── */}
       {someSelected && !isPersonal && (
         <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-white border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
           <div className="flex items-center gap-2 flex-shrink-0">
             <CheckSquare className="w-4 h-4 text-primary" />
             <span className="text-sm font-semibold text-gray-800">{selectedIds.size} selected</span>
           </div>
-
           <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
-
-          <select
-            value={bulkAccountId}
-            onChange={(e) => setBulkAccountId(e.target.value)}
-            className="flex-1 max-w-xs h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary"
-          >
+          <select value={bulkAccountId} onChange={(e) => setBulkAccountId(e.target.value)}
+            className="flex-1 max-w-xs h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary">
             <option value="">Select account…</option>
             {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.account_code} – {a.account_name}
-              </option>
+              <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>
             ))}
           </select>
-
-          <select
-            value={bulkTaxCodeId}
-            onChange={(e) => setBulkTaxCodeId(e.target.value)}
-            className="w-44 h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary"
-          >
+          <select value={bulkTaxCodeId} onChange={(e) => setBulkTaxCodeId(e.target.value)}
+            className="w-44 h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary">
             <option value="">No tax code</option>
             {taxCodes.filter((tc) => tc.is_active).map((tc) => (
-              <option key={tc.id} value={tc.id}>
-                {tc.code} ({(Number(tc.rate) * 100).toFixed(0)}%)
-              </option>
+              <option key={tc.id} value={tc.id}>{tc.code} ({(Number(tc.rate) * 100).toFixed(0)}%)</option>
             ))}
           </select>
-
-          <Button
-            onClick={handleBulkClassify}
-            disabled={isBulkPending || !bulkAccountId}
-            className="bg-primary text-white hover:bg-primary/90 flex-shrink-0"
-          >
+          <Button onClick={handleBulkClassify} disabled={isBulkPending || !bulkAccountId}
+            className="bg-primary text-white hover:bg-primary/90 flex-shrink-0">
             {isBulkPending ? 'Classifying…' : `Classify ${selectedIds.size}`}
           </Button>
-
-          <Button
-            variant="outline"
-            onClick={() => setSelectedIds(new Set())}
-            disabled={isBulkPending}
-            className="flex-shrink-0"
-          >
-            Clear
-          </Button>
+          <Button variant="outline" onClick={() => setSelectedIds(new Set())}
+            disabled={isBulkPending} className="flex-shrink-0">Clear</Button>
         </div>
       )}
 
-      {/* Business/freelancer classify panel */}
-      <ClassifyPanel
-        transaction={selectedTx}
-        accounts={accounts}
-        taxCodes={taxCodes}
-        open={panelOpen}
-        onClose={handlePanelClose}
-        onSuccess={handleSuccess}
-      />
+      <ClassifyPanel transaction={selectedTx} accounts={accounts} taxCodes={taxCodes}
+        open={panelOpen} onClose={handlePanelClose} onSuccess={handleSuccess} />
 
-      {/* Phase 13: Transaction Explainer Panel */}
-      <TransactionExplainerPanel
-        transaction={explainerTx}
-        open={explainerOpen}
-        onClose={handleExplainerClose}
-      />
+      <TransactionExplainerPanel transaction={explainerTx} open={explainerOpen}
+        onClose={handleExplainerClose} />
 
-      {/* Phase 14: Split Transaction Modal */}
-      <SplitTransactionModal
-        transaction={splitTx}
-        accounts={accounts}
-        open={splitOpen}
-        onClose={handleSplitClose}
-        onSuccess={handleSplitSuccess}
-      />
+      <SplitTransactionModal transaction={splitTx} accounts={accounts}
+        open={splitOpen} onClose={handleSplitClose} onSuccess={handleSplitSuccess} />
 
-      {/* Phase 14: Transfer Modal */}
-      <TransferModal
-        transaction={transferTx}
-        accounts={accounts}
-        open={transferOpen}
-        onClose={handleTransferClose}
-        onSuccess={handleTransferSuccess}
-      />
+      <TransferModal transaction={transferTx} accounts={accounts}
+        open={transferOpen} onClose={handleTransferClose} onSuccess={handleTransferSuccess} />
 
-      {/* Phase 17: Personal Category Panel */}
-      <PersonalCategoryPanel
-        transaction={personalCatTx}
-        categories={budgetCategories}
-        open={personalCatOpen}
-        onClose={handlePersonalCatClose}
-        onSuccess={handlePersonalCatSuccess}
-      />
+      <PersonalCategoryPanel transaction={personalCatTx} categories={budgetCategories}
+        open={personalCatOpen} onClose={handlePersonalCatClose} onSuccess={handlePersonalCatSuccess} />
     </div>
   );
 }
