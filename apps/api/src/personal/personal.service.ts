@@ -224,13 +224,15 @@ export class PersonalService {
        ORDER BY pa.type, pa.name`,
       [businessId],
     );
-    const coaBalances = await this.dataSource.query(
-      `SELECT a.account_name, a.account_type, a.account_subtype,
-              COALESCE(ab.balance, 0) AS balance
-       FROM accounts a
-       LEFT JOIN account_balances ab ON ab.account_id = a.id AND ab.business_id = a.business_id
-       WHERE a.business_id = $1 AND a.account_type IN ('asset','liability') AND a.is_active = true
-       ORDER BY a.account_type, a.account_name`,
+      const coaBalances = await this.dataSource.query(
+        `SELECT a.account_name, a.account_type, a.account_subtype,
+                COALESCE(SUM(jl.debit_amount - jl.credit_amount), 0) AS balance
+         FROM accounts a
+         LEFT JOIN journal_lines jl ON jl.account_id = a.id
+         LEFT JOIN journal_entries je ON je.id = jl.journal_entry_id AND je.status = 'posted'
+         WHERE a.business_id = $1 AND a.account_type IN ('asset','liability') AND a.is_active = true
+         GROUP BY a.id, a.account_name, a.account_type, a.account_subtype
+         ORDER BY a.account_type, a.account_name`,
       [businessId],
     );
     const ASSET_TYPES = ['depository', 'investment', 'other'];
