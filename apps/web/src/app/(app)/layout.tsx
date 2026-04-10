@@ -106,7 +106,7 @@ export default async function AppLayout({
   const { userId, orgId, orgSlug, getToken } = await auth();
 
   if (!userId) redirect('/sign-in');
-  if (!orgId)  redirect('/sign-in?error=no-org');
+  if (!orgId)  redirect('/select-org');
 
   await provisionBusiness(orgId, orgSlug ?? 'My Business');
 
