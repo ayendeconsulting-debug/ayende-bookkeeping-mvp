@@ -22,7 +22,6 @@ import {
 } from '../dto/classify-transaction.dto';
 import { CreateClassificationRuleDto, UpdateClassificationRuleDto } from '../dto/create-classification-rule.dto';
 import { LearnClassificationRuleDto } from '../dto/learn-classification-rule.dto';
-// Phase 9: HST period lock check
 import { HstPeriodService } from './hst-period.service';
 
 @Injectable()
@@ -47,11 +46,10 @@ export class ClassificationService {
     @InjectRepository(FiscalYear)
     private readonly fiscalYearRepo: Repository<FiscalYear>,
     private readonly dataSource: DataSource,
-    // Phase 9
     private readonly hstPeriodService: HstPeriodService,
   ) {}
 
-  // ── Classification Rules ───────────────────────────────────────────────────
+  // ── Classification Rules ──────────────────────────────────────────────────
 
   async createRule(dto: CreateClassificationRuleDto): Promise<ClassificationRule> {
     const rule = this.ruleRepo.create({
@@ -90,7 +88,7 @@ export class ClassificationService {
     return this.ruleRepo.save(rule);
   }
 
-  // ── Raw Transactions ───────────────────────────────────────────────────────
+  // ── Raw Transactions ──────────────────────────────────────────────────────
 
   async getRawTransactions(
     businessId: string,
@@ -99,37 +97,84 @@ export class ClassificationService {
       search?: string;
       startDate?: string;
       endDate?: string;
+      sourceAccountName?: string;
+      month?: string; // format: YYYY-MM
       limit?: number;
       offset?: number;
     },
   ): Promise<{ data: RawTransaction[]; total: number }> {
-    const { status, search, startDate, endDate, limit = 20, offset = 0 } = filters;
+    const {
+      status, search, startDate, endDate,
+      sourceAccountName, month,
+      limit = 20, offset = 0,
+    } = filters;
 
-    const where: any = { business_id: businessId };
+    const qb = this.rawTxRepo
+      .createQueryBuilder('rt')
+      .where('rt.business_id = :businessId', { businessId });
 
+    // ── Status filter ─────────────────────────────────────────────
+    // 'categorized' = personal_category_id IS NOT NULL (personal mode)
     if (status && status !== 'all') {
-      where.status = status as RawTransactionStatus;
+      if (status === 'categorized') {
+        qb.andWhere('rt.personal_category_id IS NOT NULL');
+      } else {
+        qb.andWhere('rt.status = :status', { status });
+      }
     }
 
+    // ── Search ────────────────────────────────────────────────────
     if (search) {
-      where.description = ILike(`%${search}%`);
+      qb.andWhere('rt.description ILIKE :search', { search: `%${search}%` });
     }
 
+    // ── Date range ────────────────────────────────────────────────
     if (startDate && endDate) {
-      where.transaction_date = Between(new Date(startDate), new Date(endDate));
+      qb.andWhere('rt.transaction_date BETWEEN :startDate AND :endDate', { startDate, endDate });
     }
 
-    const [data, total] = await this.rawTxRepo.findAndCount({
-      where,
-      order: { transaction_date: 'DESC', created_at: 'DESC' },
-      take: Math.min(limit, 100),
-      skip: offset,
-    });
+    // ── Month filter (YYYY-MM) overrides startDate/endDate ─────────
+    if (month) {
+      const [year, mon] = month.split('-').map(Number);
+      const firstDay = `${year}-${String(mon).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, mon, 0).getDate();
+      const lastDayStr = `${year}-${String(mon).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      qb.andWhere('rt.transaction_date BETWEEN :mStart AND :mEnd', {
+        mStart: firstDay,
+        mEnd: lastDayStr,
+      });
+    }
 
+    // ── Source account filter ─────────────────────────────────────
+    if (sourceAccountName) {
+      qb.andWhere('rt.source_account_name = :sourceAccountName', { sourceAccountName });
+    }
+
+    qb.orderBy('rt.transaction_date', 'DESC')
+      .addOrderBy('rt.created_at', 'DESC')
+      .take(Math.min(limit, 100))
+      .skip(offset);
+
+    const [data, total] = await qb.getManyAndCount();
     return { data, total };
   }
 
-  // ── Tag Transaction (Freelancer Mode) ─────────────────────────────────────
+  // ── Source Account Names (for filter dropdown) ────────────────────────────
+
+  async getSourceAccounts(businessId: string): Promise<string[]> {
+    const rows = await this.dataSource.query(
+      `SELECT DISTINCT source_account_name
+       FROM raw_transactions
+       WHERE business_id = $1
+         AND source_account_name IS NOT NULL
+         AND source_account_name != ''
+       ORDER BY source_account_name ASC`,
+      [businessId],
+    );
+    return rows.map((r: any) => r.source_account_name as string);
+  }
+
+  // ── Tag Transaction (Freelancer Mode) ────────────────────────────────────
 
   async tagTransaction(
     businessId: string,
@@ -144,7 +189,7 @@ export class ClassificationService {
     return this.rawTxRepo.save(tx);
   }
 
-  // ── Bulk Classification ────────────────────────────────────────────────────
+  // ── Bulk Classification ───────────────────────────────────────────────────
 
   async bulkClassify(
     businessId: string,
@@ -182,7 +227,6 @@ export class ClassificationService {
 
         rawTx.status = RawTransactionStatus.CLASSIFIED;
         await this.rawTxRepo.save(rawTx);
-
         classified++;
       } catch (err: any) {
         errors.push(`${rawTransactionId}: ${err.message ?? 'Unknown error'}`);
@@ -192,7 +236,7 @@ export class ClassificationService {
     return { classified, skipped, errors };
   }
 
-  // ── Manual Classification ──────────────────────────────────────────────────
+  // ── Manual Classification ─────────────────────────────────────────────────
 
   async classify(dto: ClassifyTransactionDto): Promise<ClassifiedTransaction> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -220,7 +264,7 @@ export class ClassificationService {
     return this.classifiedRepo.save(classified);
   }
 
-  // ── Post to General Ledger ─────────────────────────────────────────────────
+  // ── Post to General Ledger ────────────────────────────────────────────────
 
   async postClassifiedTransaction(
     businessId: string,
@@ -239,7 +283,6 @@ export class ClassificationService {
 
     const amount = Number(classified.override_amount ?? rawTx.amount);
     await this.checkFiscalYearLock(businessId, rawTx.transaction_date);
-    // Phase 9: reject if date falls within a locked HST period
     await this.checkHstPeriodLock(businessId, rawTx.transaction_date);
 
     return this.dataSource.transaction(async (manager) => {
@@ -266,71 +309,19 @@ export class ClassificationService {
         const netAmount = parseFloat((amount / (1 + rate)).toFixed(2));
         const taxAmount = parseFloat((amount - netAmount).toFixed(2));
 
-        lines.push({
-          business_id: businessId,
-          journal_entry_id: savedEntry.id,
-          line_number: 1,
-          account_id: classified.account_id,
-          debit_amount: netAmount,
-          credit_amount: 0,
-          description: rawTx.description,
-          is_tax_line: false,
-          tax_code_id: null,
-        });
-        lines.push({
-          business_id: businessId,
-          journal_entry_id: savedEntry.id,
-          line_number: 2,
-          account_id: taxCode.tax_account_id,
-          debit_amount: taxAmount,
-          credit_amount: 0,
-          description: `Tax: ${taxCode.code} @ ${(rate * 100).toFixed(2)}%`,
-          is_tax_line: true,
-          tax_code_id: taxCode.id,
-        });
-        lines.push({
-          business_id: businessId,
-          journal_entry_id: savedEntry.id,
-          line_number: 3,
-          account_id: sourceAccountId,
-          debit_amount: 0,
-          credit_amount: amount,
-          description: rawTx.description,
-          is_tax_line: false,
-          tax_code_id: null,
-        });
+        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: classified.account_id, debit_amount: netAmount, credit_amount: 0, description: rawTx.description, is_tax_line: false, tax_code_id: null });
+        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: taxCode.tax_account_id, debit_amount: taxAmount, credit_amount: 0, description: `Tax: ${taxCode.code} @ ${(rate * 100).toFixed(2)}%`, is_tax_line: true, tax_code_id: taxCode.id });
+        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 3, account_id: sourceAccountId, debit_amount: 0, credit_amount: amount, description: rawTx.description, is_tax_line: false, tax_code_id: null });
 
         const savedLines = await manager.save(JournalLine, lines.map(l => manager.create(JournalLine, l))) as JournalLine[];
         const taxLine = savedLines[1];
         await manager.save(TaxTransaction, manager.create(TaxTransaction, {
-          business_id: businessId,
-          journal_line_id: taxLine.id,
-          tax_code_id: taxCode.id,
-          net_amount: netAmount,
-          tax_amount: taxAmount,
-          gross_amount: amount,
+          business_id: businessId, journal_line_id: taxLine.id, tax_code_id: taxCode.id,
+          net_amount: netAmount, tax_amount: taxAmount, gross_amount: amount,
         }));
       } else {
-        lines.push({
-          business_id: businessId,
-          journal_entry_id: savedEntry.id,
-          line_number: 1,
-          account_id: classified.account_id,
-          debit_amount: amount,
-          credit_amount: 0,
-          description: rawTx.description,
-          is_tax_line: false,
-        });
-        lines.push({
-          business_id: businessId,
-          journal_entry_id: savedEntry.id,
-          line_number: 2,
-          account_id: sourceAccountId,
-          debit_amount: 0,
-          credit_amount: amount,
-          description: rawTx.description,
-          is_tax_line: false,
-        });
+        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: classified.account_id, debit_amount: amount, credit_amount: 0, description: rawTx.description, is_tax_line: false });
+        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: sourceAccountId, debit_amount: 0, credit_amount: amount, description: rawTx.description, is_tax_line: false });
         await manager.save(JournalLine, lines.map(l => manager.create(JournalLine, l)));
       }
 
@@ -338,15 +329,12 @@ export class ClassificationService {
         is_posted: true,
         posted_journal_entry_id: savedEntry.id,
       });
-
-      // Phase 15: clear anomaly flags once the transaction is reviewed and posted
       await manager.update(RawTransaction, rawTx.id, { anomaly_flags: null });
-
       return savedEntry;
     });
   }
 
-  // ── Owner Contribution ─────────────────────────────────────────────────────
+  // ── Owner Contribution ────────────────────────────────────────────────────
 
   async postOwnerContribution(dto: OwnerContributionDto): Promise<JournalEntry> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -357,51 +345,30 @@ export class ClassificationService {
     const ownerContribAccount = await this.accountRepo.findOne({
       where: { business_id: dto.businessId, account_subtype: AccountSubtype.OWNER_CONTRIBUTION },
     });
-    if (!ownerContribAccount) {
-      throw new NotFoundException('No owner_contribution equity account found for this business');
-    }
+    if (!ownerContribAccount) throw new NotFoundException('No owner_contribution equity account found');
+
     await this.checkFiscalYearLock(dto.businessId, rawTx.transaction_date);
     await this.checkHstPeriodLock(dto.businessId, rawTx.transaction_date);
 
     const amount = Number(rawTx.amount);
     return this.dataSource.transaction(async (manager) => {
       const entry = manager.create(JournalEntry, {
-        business_id: dto.businessId,
-        entry_date: rawTx.transaction_date,
+        business_id: dto.businessId, entry_date: rawTx.transaction_date,
         description: `Owner Contribution: ${rawTx.description}`,
-        reference_type: 'owner_contribution',
-        reference_id: rawTx.id,
-        status: JournalEntryStatus.POSTED,
-        created_by: dto.classifiedBy,
-        posted_by: dto.classifiedBy,
-        posted_at: new Date(),
+        reference_type: 'owner_contribution', reference_id: rawTx.id,
+        status: JournalEntryStatus.POSTED, created_by: dto.classifiedBy,
+        posted_by: dto.classifiedBy, posted_at: new Date(),
       });
       const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
       await manager.save(JournalLine, [
-        manager.create(JournalLine, {
-          business_id: dto.businessId,
-          journal_entry_id: savedEntry.id,
-          line_number: 1,
-          account_id: dto.debitAccountId,
-          debit_amount: amount,
-          credit_amount: 0,
-          description: rawTx.description,
-        }),
-        manager.create(JournalLine, {
-          business_id: dto.businessId,
-          journal_entry_id: savedEntry.id,
-          line_number: 2,
-          account_id: ownerContribAccount.id,
-          debit_amount: 0,
-          credit_amount: amount,
-          description: `Owner Contribution: ${rawTx.description}`,
-        }),
+        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: dto.debitAccountId, debit_amount: amount, credit_amount: 0, description: rawTx.description }),
+        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: ownerContribAccount.id, debit_amount: 0, credit_amount: amount, description: `Owner Contribution: ${rawTx.description}` }),
       ]);
       return savedEntry;
     });
   }
 
-  // ── Owner Draw ─────────────────────────────────────────────────────────────
+  // ── Owner Draw ────────────────────────────────────────────────────────────
 
   async postOwnerDraw(dto: OwnerDrawDto): Promise<JournalEntry> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -412,51 +379,30 @@ export class ClassificationService {
     const ownerDrawAccount = await this.accountRepo.findOne({
       where: { business_id: dto.businessId, account_subtype: AccountSubtype.OWNER_DRAW },
     });
-    if (!ownerDrawAccount) {
-      throw new NotFoundException('No owner_draw equity account found for this business');
-    }
+    if (!ownerDrawAccount) throw new NotFoundException('No owner_draw equity account found');
+
     await this.checkFiscalYearLock(dto.businessId, rawTx.transaction_date);
     await this.checkHstPeriodLock(dto.businessId, rawTx.transaction_date);
 
     const amount = Number(rawTx.amount);
     return this.dataSource.transaction(async (manager) => {
       const entry = manager.create(JournalEntry, {
-        business_id: dto.businessId,
-        entry_date: rawTx.transaction_date,
+        business_id: dto.businessId, entry_date: rawTx.transaction_date,
         description: `Owner Draw: ${rawTx.description}`,
-        reference_type: 'owner_draw',
-        reference_id: rawTx.id,
-        status: JournalEntryStatus.POSTED,
-        created_by: dto.classifiedBy,
-        posted_by: dto.classifiedBy,
-        posted_at: new Date(),
+        reference_type: 'owner_draw', reference_id: rawTx.id,
+        status: JournalEntryStatus.POSTED, created_by: dto.classifiedBy,
+        posted_by: dto.classifiedBy, posted_at: new Date(),
       });
       const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
       await manager.save(JournalLine, [
-        manager.create(JournalLine, {
-          business_id: dto.businessId,
-          journal_entry_id: savedEntry.id,
-          line_number: 1,
-          account_id: ownerDrawAccount.id,
-          debit_amount: amount,
-          credit_amount: 0,
-          description: `Owner Draw: ${rawTx.description}`,
-        }),
-        manager.create(JournalLine, {
-          business_id: dto.businessId,
-          journal_entry_id: savedEntry.id,
-          line_number: 2,
-          account_id: dto.creditAccountId,
-          debit_amount: 0,
-          credit_amount: amount,
-          description: rawTx.description,
-        }),
+        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: ownerDrawAccount.id, debit_amount: amount, credit_amount: 0, description: `Owner Draw: ${rawTx.description}` }),
+        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: dto.creditAccountId, debit_amount: 0, credit_amount: amount, description: rawTx.description }),
       ]);
       return savedEntry;
     });
   }
 
-  // ── Classification Learning ────────────────────────────────────────────────
+  // ── Classification Learning ───────────────────────────────────────────────
 
   async learnRule(dto: LearnClassificationRuleDto): Promise<ClassificationRule> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -491,7 +437,7 @@ export class ClassificationService {
     return this.ruleRepo.save(rule);
   }
 
-  // ── Phase 12: Auto-Classification Engine ──────────────────────────────────
+  // ── Phase 12: Auto-Classification Engine ─────────────────────────────────
 
   private matchRule(rules: ClassificationRule[], rawTx: RawTransaction): ClassificationRule | null {
     for (const rule of rules) {
@@ -513,7 +459,6 @@ export class ClassificationService {
   ): Promise<{ matched: boolean; ruleId?: string }> {
     try {
       if (rawTx.status !== RawTransactionStatus.PENDING) return { matched: false };
-
       const existing = await this.classifiedRepo.findOne({
         where: { raw_transaction_id: rawTx.id, business_id: businessId },
       });
@@ -529,19 +474,16 @@ export class ClassificationService {
 
       await this.classifiedRepo.save(
         this.classifiedRepo.create({
-          business_id: businessId,
-          raw_transaction_id: rawTx.id,
+          business_id: businessId, raw_transaction_id: rawTx.id,
           classification_method: ClassificationMethod.AUTO,
           account_id: matched.target_account_id,
           tax_code_id: matched.tax_code_id ?? null,
-          classified_by: 'system',
-          is_posted: false,
+          classified_by: 'system', is_posted: false,
         }),
       );
       await this.rawTxRepo.update(rawTx.id, { status: RawTransactionStatus.CLASSIFIED });
-
       return { matched: true, ruleId: matched.id };
-    } catch (err: any) {
+    } catch {
       return { matched: false };
     }
   }
@@ -553,7 +495,6 @@ export class ClassificationService {
       where: { business_id: businessId, is_active: true },
       order: { priority: 'ASC' },
     });
-
     const pendingTxs = await this.rawTxRepo.find({
       where: { business_id: businessId, status: RawTransactionStatus.PENDING },
     });
@@ -573,13 +514,11 @@ export class ClassificationService {
 
         await this.classifiedRepo.save(
           this.classifiedRepo.create({
-            business_id: businessId,
-            raw_transaction_id: rawTx.id,
+            business_id: businessId, raw_transaction_id: rawTx.id,
             classification_method: ClassificationMethod.AUTO,
             account_id: matched.target_account_id,
             tax_code_id: matched.tax_code_id ?? null,
-            classified_by: 'system',
-            is_posted: false,
+            classified_by: 'system', is_posted: false,
           }),
         );
         await this.rawTxRepo.update(rawTx.id, { status: RawTransactionStatus.CLASSIFIED });
@@ -612,11 +551,7 @@ export class ClassificationService {
       ? date.toISOString().split('T')[0]
       : String(date).split('T')[0];
 
-    const lockedPeriod = await this.hstPeriodService.isDateInLockedPeriod(
-      businessId,
-      dateStr,
-    );
-
+    const lockedPeriod = await this.hstPeriodService.isDateInLockedPeriod(businessId, dateStr);
     if (lockedPeriod) {
       throw new UnprocessableEntityException(
         `Cannot post transaction dated ${dateStr} – it falls within a locked HST period ` +

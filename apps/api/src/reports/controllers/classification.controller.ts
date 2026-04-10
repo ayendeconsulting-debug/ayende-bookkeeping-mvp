@@ -36,9 +36,20 @@ export class ClassificationController {
     private readonly transferService: TransferService,
   ) {}
 
-  // ── Raw Transactions – all roles ─────────────────────────────────────────
+  // ── Raw Transactions ──────────────────────────────────────────────────────
 
-  /** GET /classification/raw – all roles */
+  /**
+   * GET /classification/raw/source-accounts
+   * Returns distinct source_account_name values for the business.
+   * MUST be declared before GET raw/:id to avoid NestJS treating
+   * 'source-accounts' as an :id parameter.
+   */
+  @Get('raw/source-accounts')
+  getSourceAccounts(@Req() req: Request) {
+    return this.classificationService.getSourceAccounts(req.user!.businessId);
+  }
+
+  /** GET /classification/raw — all roles */
   @Get('raw')
   getRawTransactions(
     @Req() req: Request,
@@ -46,6 +57,8 @@ export class ClassificationController {
     @Query('search') search?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('sourceAccountName') sourceAccountName?: string,
+    @Query('month') month?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
@@ -54,12 +67,14 @@ export class ClassificationController {
       search,
       startDate,
       endDate,
+      sourceAccountName,
+      month,
       limit: limit ? parseInt(limit, 10) : 20,
       offset: offset ? parseInt(offset, 10) : 0,
     });
   }
 
-  /** PATCH /classification/raw/:id/tag – admin only */
+  /** PATCH /classification/raw/:id/tag — admin only */
   @Roles('admin')
   @Patch('raw/:id/tag')
   tagTransaction(
@@ -74,12 +89,8 @@ export class ClassificationController {
     );
   }
 
-  // ── Phase 14: Split Transactions ─────────────────────────────────────────
+  // ── Phase 14: Split Transactions ──────────────────────────────────────────
 
-  /**
-   * PATCH /classification/raw/:id/split – admin + accountant
-   * Accepts split lines, validates totals, posts journal entry, marks transaction as split.
-   */
   @Roles('admin', 'accountant')
   @Patch('raw/:id/split')
   splitTransaction(
@@ -88,35 +99,17 @@ export class ClassificationController {
     @Body() dto: SplitTransactionDto,
   ) {
     return this.splitTransactionService.postSplitTransaction(
-      req.user!.businessId,
-      id,
-      dto,
-      req.user!.userId,
+      req.user!.businessId, id, dto, req.user!.userId,
     );
   }
 
-  /**
-   * GET /classification/raw/:id/splits – all roles
-   * Returns split lines for a posted split transaction.
-   */
   @Get('raw/:id/splits')
-  getSplitLines(
-    @Req() req: Request,
-    @Param('id') id: string,
-  ) {
-    return this.splitTransactionService.getSplitLines(
-      req.user!.businessId,
-      id,
-    );
+  getSplitLines(@Req() req: Request, @Param('id') id: string) {
+    return this.splitTransactionService.getSplitLines(req.user!.businessId, id);
   }
 
   // ── Phase 14: Transfer Transactions ──────────────────────────────────────
 
-  /**
-   * PATCH /classification/raw/:id/mark-transfer – admin + accountant
-   * Marks a transaction as a transfer between two accounts.
-   * Posts a balanced journal entry (Debit destination, Credit source).
-   */
   @Roles('admin', 'accountant')
   @Patch('raw/:id/mark-transfer')
   markTransfer(
@@ -125,16 +118,12 @@ export class ClassificationController {
     @Body() dto: MarkTransferDto,
   ) {
     return this.transferService.markAsTransfer(
-      req.user!.businessId,
-      id,
-      dto,
-      req.user!.userId,
+      req.user!.businessId, id, dto, req.user!.userId,
     );
   }
 
   // ── Rules ─────────────────────────────────────────────────────────────────
 
-  /** POST /classification/rules – admin only */
   @Roles('admin')
   @Post('rules')
   createRule(@Req() req: Request, @Body() dto: CreateClassificationRuleDto) {
@@ -142,13 +131,11 @@ export class ClassificationController {
     return this.classificationService.createRule(dto);
   }
 
-  /** GET /classification/rules – all roles */
   @Get('rules')
   findAllRules(@Req() req: Request) {
     return this.classificationService.findAllRules(req.user!.businessId);
   }
 
-  /** PATCH /classification/rules/:id – admin only */
   @Roles('admin')
   @Patch('rules/:id')
   updateRule(
@@ -159,17 +146,12 @@ export class ClassificationController {
     return this.classificationService.updateRule(req.user!.businessId, id, dto);
   }
 
-  /** DELETE /classification/rules/:id – admin only */
   @Roles('admin')
   @Delete('rules/:id')
   deactivateRule(@Req() req: Request, @Param('id') id: string) {
     return this.classificationService.deactivateRule(req.user!.businessId, id);
   }
 
-  /**
-   * POST /classification/rules/learn – admin only
-   * Promotes a manual classification override into a reusable keyword rule.
-   */
   @Roles('admin')
   @Post('rules/learn')
   learnRule(@Req() req: Request, @Body() dto: LearnClassificationRuleDto) {
@@ -177,19 +159,14 @@ export class ClassificationController {
     return this.classificationService.learnRule(dto);
   }
 
-  /**
-   * POST /classification/rules/run-batch – admin + accountant
-   * Phase 12: Applies all active rules to all pending raw_transactions for the business.
-   */
   @Roles('admin', 'accountant')
   @Post('rules/run-batch')
   runBatchRules(@Req() req: Request) {
     return this.classificationService.runBatchRules(req.user!.businessId);
   }
 
-  // ── Classification & Posting – admin only ─────────────────────────────────
+  // ── Classification & Posting ──────────────────────────────────────────────
 
-  /** POST /classification/classify – admin only */
   @Roles('admin')
   @Post('classify')
   classify(@Req() req: Request, @Body() dto: ClassifyTransactionDto) {
@@ -198,20 +175,15 @@ export class ClassificationController {
     return this.classificationService.classify(dto);
   }
 
-  /** POST /classification/bulk-classify – admin only */
   @Roles('admin')
   @Post('bulk-classify')
   bulkClassify(@Req() req: Request, @Body() dto: BulkClassifyDto) {
     return this.classificationService.bulkClassify(
-      req.user!.businessId,
-      req.user!.userId,
-      dto.rawTransactionIds,
-      dto.accountId,
-      dto.taxCodeId,
+      req.user!.businessId, req.user!.userId,
+      dto.rawTransactionIds, dto.accountId, dto.taxCodeId,
     );
   }
 
-  /** POST /classification/post/:id – admin only */
   @Roles('admin')
   @Post('post/:id')
   postClassified(
@@ -220,16 +192,12 @@ export class ClassificationController {
     @Body() body: { sourceAccountId: string },
   ) {
     return this.classificationService.postClassifiedTransaction(
-      req.user!.businessId,
-      id,
-      body.sourceAccountId,
-      req.user!.userId,
+      req.user!.businessId, id, body.sourceAccountId, req.user!.userId,
     );
   }
 
-  // ── Owner Equity – admin only ─────────────────────────────────────────────
+  // ── Owner Equity ──────────────────────────────────────────────────────────
 
-  /** POST /classification/owner-contribution – admin only */
   @Roles('admin')
   @Post('owner-contribution')
   ownerContribution(@Req() req: Request, @Body() dto: OwnerContributionDto) {
@@ -238,7 +206,6 @@ export class ClassificationController {
     return this.classificationService.postOwnerContribution(dto);
   }
 
-  /** POST /classification/owner-draw – admin only */
   @Roles('admin')
   @Post('owner-draw')
   ownerDraw(@Req() req: Request, @Body() dto: OwnerDrawDto) {

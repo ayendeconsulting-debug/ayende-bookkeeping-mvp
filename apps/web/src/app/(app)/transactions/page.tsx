@@ -7,16 +7,26 @@ interface PageProps {
     status?: string;
     search?: string;
     page?: string;
+    sourceAccountName?: string;
+    month?: string;
   }>;
 }
 
-async function getTransactions(status?: string, search?: string, page?: string) {
+async function getTransactions(
+  status?: string,
+  search?: string,
+  page?: string,
+  sourceAccountName?: string,
+  month?: string,
+) {
   try {
     const limit = 20;
     const offset = (parseInt(page ?? '1') - 1) * limit;
     const params = new URLSearchParams();
     if (status && status !== 'all') params.set('status', status);
     if (search) params.set('search', search);
+    if (sourceAccountName) params.set('sourceAccountName', sourceAccountName);
+    if (month) params.set('month', month);
     params.set('limit', String(limit));
     params.set('offset', String(offset));
     return await apiGet<{ data: RawTransaction[]; total: number }>(
@@ -28,51 +38,43 @@ async function getTransactions(status?: string, search?: string, page?: string) 
 }
 
 async function getAccounts() {
-  try {
-    return await apiGet<Account[]>('/accounts');
-  } catch {
-    return [];
-  }
+  try { return await apiGet<Account[]>('/accounts'); }
+  catch { return []; }
 }
 
 async function getTaxCodes() {
-  try {
-    return await apiGet<TaxCode[]>('/tax/codes');
-  } catch {
-    return [];
-  }
+  try { return await apiGet<TaxCode[]>('/tax/codes'); }
+  catch { return []; }
 }
 
 async function getMyBusiness() {
-  try {
-    return await apiGet<Business>('/businesses/me');
-  } catch {
-    return null;
-  }
+  try { return await apiGet<Business>('/businesses/me'); }
+  catch { return null; }
 }
 
 async function getBudgetCategories() {
-  try {
-    return await apiGet<BudgetCategoryWithSpending[]>('/personal/budget-categories');
-  } catch {
-    return [];
-  }
+  try { return await apiGet<BudgetCategoryWithSpending[]>('/personal/budget-categories'); }
+  catch { return []; }
+}
+
+async function getSourceAccounts() {
+  try { return await apiGet<string[]>('/classification/raw/source-accounts'); }
+  catch { return []; }
 }
 
 export default async function TransactionsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const { status, search, page } = params;
+  const { status, search, page, sourceAccountName, month } = params;
 
-  const [txResult, accounts, taxCodes, business] = await Promise.all([
-    getTransactions(status, search, page),
+  const [txResult, accounts, taxCodes, business, sourceAccounts] = await Promise.all([
+    getTransactions(status, search, page, sourceAccountName, month),
     getAccounts(),
     getTaxCodes(),
     getMyBusiness(),
+    getSourceAccounts(),
   ]);
 
   const mode = (business?.mode ?? 'business') as BusinessMode;
-
-  // Only fetch budget categories for personal mode to avoid unnecessary API call
   const budgetCategories = mode === 'personal' ? await getBudgetCategories() : [];
 
   return (
@@ -86,6 +88,9 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       currentPage={parseInt(page ?? '1')}
       mode={mode}
       budgetCategories={budgetCategories}
+      sourceAccounts={sourceAccounts}
+      currentSourceAccount={sourceAccountName ?? ''}
+      currentMonth={month ?? ''}
     />
   );
 }
