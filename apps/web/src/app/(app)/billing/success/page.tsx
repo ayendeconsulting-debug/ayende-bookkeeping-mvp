@@ -3,6 +3,7 @@ import { CheckCircle2, ArrowRight, Calendar, CreditCard } from 'lucide-react';
 import { apiGet } from '@/lib/api';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { auth } from '@clerk/nextjs/server';
 
 interface SubscriptionStatus {
   status:             string;
@@ -19,12 +20,35 @@ const PLAN_LABELS: Record<string, string> = {
   accountant: 'Accountant',
 };
 
+const API_URL = process.env.API_URL || 'http://localhost:3005';
+
 export default async function BillingSuccessPage() {
-  // Phase 12: if this checkout originated from the onboarding wizard,
-  // redirect directly to /banks (Step 7) instead of showing the success page.
   const cookieStore = await cookies();
   const fromOnboarding = cookieStore.get('onboarding_checkout');
+
   if (fromOnboarding) {
+    // Clear the cookie
+    cookieStore.delete('onboarding_checkout');
+
+    // Mark onboarding complete so AppLayout no longer redirects to /onboarding
+    try {
+      const { getToken } = await auth();
+      const token = await getToken();
+      if (token) {
+        await fetch(`${API_URL}/businesses/me`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ settings: { mode_selected: true } }),
+          cache: 'no-store',
+        });
+      }
+    } catch (err) {
+      console.error('[billing/success] Failed to mark onboarding complete:', err);
+    }
+
     redirect('/banks');
   }
 
