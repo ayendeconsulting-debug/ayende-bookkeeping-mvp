@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -217,7 +217,7 @@ export class PersonalService {
   async getNetWorth(businessId: string) {
     const plaidAccounts = await this.dataSource.query(
       `SELECT pa.name, pa.type, pa.subtype,
-              COALESCE(pa.current_balance, 0) AS current_balance, pa.currency_code
+              COALESCE(pa.current_balance, 0) AS current_balance, pa.iso_currency_code AS currency_code
        FROM plaid_accounts pa
        INNER JOIN plaid_items pi ON pi.id = pa.plaid_item_id
        WHERE pi.business_id = $1 AND pi.is_deleted = false
