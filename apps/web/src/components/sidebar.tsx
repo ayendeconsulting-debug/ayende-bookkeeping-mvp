@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -51,10 +51,11 @@ const freelancerItems = [
   { href: '/freelancer/categories', label: 'Categories',      icon: Tag },
 ];
 const freelancerMainItems = [
-  { href: '/transactions', label: 'Transactions',  icon: ArrowLeftRight },
-  { href: '/invoices',     label: 'Invoices',      icon: FileText },
-  { href: '/recurring',    label: 'Recurring',     icon: RefreshCw },
-  { href: '/banks',        label: 'Bank Accounts', icon: Building2 },
+  { href: '/transactions', label: 'Transactions',        icon: ArrowLeftRight },
+  { href: '/rules',        label: 'Classification Rules', icon: Filter },
+  { href: '/invoices',     label: 'Invoices',             icon: FileText },
+  { href: '/recurring',    label: 'Recurring',            icon: RefreshCw },
+  { href: '/banks',        label: 'Bank Accounts',        icon: Building2 },
 ];
 const freelancerSettingsItems = [
   { href: '/accounts', label: 'Chart of Accounts', icon: BookOpen },
@@ -69,6 +70,8 @@ const personalItems = [
   { href: '/personal/networth',   label: 'Net Worth',          icon: Landmark },
   { href: '/personal/recurring',  label: 'Recurring Payments', icon: RefreshCw },
   { href: '/personal/reminders',  label: 'Upcoming Payments',  icon: Bell },
+  { href: '/transactions',        label: 'Transactions',        icon: ArrowLeftRight },
+  { href: '/rules',               label: 'Classification Rules', icon: Filter },
 ];
 const personalMainItems     = [{ href: '/banks', label: 'Bank Accounts', icon: Building2 }];
 const personalSettingsItems = [
