@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -32,7 +32,8 @@ interface TransactionInboxProps {
   currentPage: number;
   mode?: BusinessMode;
   budgetCategories?: BudgetCategoryWithSpending[];
-  sourceAccounts?: string[];
+  sourceAccounts?: { value: string; label: string }[];
+  transactionMonths?: { value: string; label: string }[];
   currentSourceAccount?: string;
   currentMonth?: string;
 }
@@ -72,6 +73,7 @@ export function TransactionInbox({
   currentStatus, currentSearch, currentPage, mode = 'business',
   budgetCategories = [],
   sourceAccounts = [],
+  transactionMonths = [],
   currentSourceAccount = '',
   currentMonth = '',
 }: TransactionInboxProps) {
@@ -249,10 +251,10 @@ export function TransactionInbox({
           <div>
             <h1 className="text-xl font-semibold text-gray-900">Transactions</h1>
             <p className="text-sm text-gray-500 mt-0.5">
-              {totalCount} total · {pendingCount} pending review
+              {totalCount} total Â· {pendingCount} pending review
               {isFreelancer && (
                 <span className="ml-2 text-purple-500 text-xs font-medium">
-                  · Tag each transaction as Business or Personal
+                  Â· Tag each transaction as Business or Personal
                 </span>
               )}
             </p>
@@ -265,14 +267,14 @@ export function TransactionInbox({
                   disabled={isRunRulesPending}
                   className="border-primary text-primary hover:bg-primary-light">
                   <Wand2 className="w-4 h-4 mr-1.5" />
-                  {isRunRulesPending ? 'Running…' : 'Run Rules'}
+                  {isRunRulesPending ? 'Runningâ€¦' : 'Run Rules'}
                 </Button>
               </AdminOnly>
             )}
             <form onSubmit={handleSearch} className="flex gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                <Input className="pl-8 w-56" placeholder="Search transactions…"
+                <Input className="pl-8 w-56" placeholder="Search transactionsâ€¦"
                   value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
               </div>
               <Button type="submit" variant="outline" size="sm">
@@ -282,7 +284,7 @@ export function TransactionInbox({
           </div>
         </div>
 
-        {/* ── Account + Month filters ── */}
+        {/* â”€â”€ Account + Month filters â”€â”€ */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           {/* Source account dropdown */}
           <select
@@ -292,7 +294,7 @@ export function TransactionInbox({
           >
             <option value="">All accounts</option>
             {sourceAccounts.map((a) => (
-              <option key={a} value={a}>{a}</option>
+              <option key={a.value} value={a.value}>{a.label}</option>
             ))}
           </select>
 
@@ -303,7 +305,7 @@ export function TransactionInbox({
             className="h-8 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary min-w-[160px]"
           >
             <option value="">All months</option>
-            {MONTH_OPTIONS.map((m) => (
+            {transactionMonths.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
           </select>
@@ -354,7 +356,7 @@ export function TransactionInbox({
           </div>
         ) : (
           <>
-            {/* ── Desktop table ─────────────────────────────────── */}
+            {/* â”€â”€ Desktop table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="hidden sm:block">
               <Table>
                 <TableHeader>
@@ -440,7 +442,7 @@ export function TransactionInbox({
                             <span className="text-xs text-gray-400">{tx.plaid_category}</span>
                           ) : null}
                         </TableCell>
-                        <TableCell className="text-gray-500 text-sm">{tx.source_account_name ?? '—'}</TableCell>
+                        <TableCell className="text-gray-500 text-sm">{tx.source_account_name ?? 'â€”'}</TableCell>
                         <TableCell className="text-right">
                           <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
                             {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
@@ -516,7 +518,7 @@ export function TransactionInbox({
               </Table>
             </div>
 
-            {/* ── Mobile card list ─────────────────────────────── */}
+            {/* â”€â”€ Mobile card list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             <div className="sm:hidden divide-y divide-gray-100">
               {initialTransactions.map((tx) => {
                 const amount = Number(tx.amount);
@@ -554,7 +556,7 @@ export function TransactionInbox({
                       </span>
                     )}
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-400">{tx.source_account_name ?? '—'}</span>
+                      <span className="text-xs text-gray-400">{tx.source_account_name ?? 'â€”'}</span>
                       <span className={cn('text-sm font-semibold', amount >= 0 ? 'text-primary' : 'text-danger')}>
                         {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
                       </span>
@@ -610,7 +612,7 @@ export function TransactionInbox({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white">
-          <span className="text-sm text-gray-500">Page {currentPage} of {totalPages} · {totalCount} transactions</span>
+          <span className="text-sm text-gray-500">Page {currentPage} of {totalPages} Â· {totalCount} transactions</span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={currentPage <= 1}
               onClick={() => handlePage(currentPage - 1)}>Previous</Button>
@@ -620,7 +622,7 @@ export function TransactionInbox({
         </div>
       )}
 
-      {/* ── Personal bulk bar ─────────────────────────────────────── */}
+      {/* â”€â”€ Personal bulk bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {somePersonalSelected && isPersonal && (
         <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-white border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -630,21 +632,21 @@ export function TransactionInbox({
           <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
           <select value={bulkCategoryId} onChange={(e) => setBulkCategoryId(e.target.value)}
             className="flex-1 max-w-xs h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary">
-            <option value="">Select category…</option>
+            <option value="">Select categoryâ€¦</option>
             {budgetCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <Button onClick={handlePersonalBulkCategorize}
             disabled={isPersonalBulkPending || !bulkCategoryId}
             className="bg-primary text-white hover:bg-primary/90 flex-shrink-0">
             <Tag className="w-3.5 h-3.5 mr-1.5" />
-            {isPersonalBulkPending ? 'Saving…' : `Categorize ${personalSelectedIds.size}`}
+            {isPersonalBulkPending ? 'Savingâ€¦' : `Categorize ${personalSelectedIds.size}`}
           </Button>
           <Button variant="outline" onClick={() => setPersonalSelectedIds(new Set())}
             disabled={isPersonalBulkPending} className="flex-shrink-0">Clear</Button>
         </div>
       )}
 
-      {/* ── Business bulk bar ─────────────────────────────────────── */}
+      {/* â”€â”€ Business bulk bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       {someSelected && !isPersonal && (
         <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-white border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -654,8 +656,8 @@ export function TransactionInbox({
           <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
           <select value={bulkAccountId} onChange={(e) => setBulkAccountId(e.target.value)}
             className="flex-1 max-w-xs h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary">
-            <option value="">Select account…</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>)}
+            <option value="">Select accountâ€¦</option>
+            {accounts.map((a) => <option key={a.id} value={a.id}>{a.account_code} â€“ {a.account_name}</option>)}
           </select>
           <select value={bulkTaxCodeId} onChange={(e) => setBulkTaxCodeId(e.target.value)}
             className="w-44 h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary">
@@ -666,7 +668,7 @@ export function TransactionInbox({
           </select>
           <Button onClick={handleBulkClassify} disabled={isBulkPending || !bulkAccountId}
             className="bg-primary text-white hover:bg-primary/90 flex-shrink-0">
-            {isBulkPending ? 'Classifying…' : `Classify ${selectedIds.size}`}
+            {isBulkPending ? 'Classifyingâ€¦' : `Classify ${selectedIds.size}`}
           </Button>
           <Button variant="outline" onClick={() => setSelectedIds(new Set())}
             disabled={isBulkPending} className="flex-shrink-0">Clear</Button>

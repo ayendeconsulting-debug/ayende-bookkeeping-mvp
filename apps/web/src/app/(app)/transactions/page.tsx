@@ -58,7 +58,12 @@ async function getBudgetCategories() {
 }
 
 async function getSourceAccounts() {
-  try { return await apiGet<string[]>('/classification/raw/source-accounts'); }
+  try { return await apiGet<{ value: string; label: string }[]>('/classification/raw/source-accounts'); }
+  catch { return []; }
+}
+
+async function getTransactionMonths() {
+  try { return await apiGet<{ value: string; label: string }[]>('/classification/raw/transaction-months'); }
   catch { return []; }
 }
 
@@ -66,12 +71,13 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const { status, search, page, sourceAccountName, month } = params;
 
-  const [txResult, accounts, taxCodes, business, sourceAccounts] = await Promise.all([
+  const [txResult, accounts, taxCodes, business, sourceAccounts, transactionMonths] = await Promise.all([
     getTransactions(status, search, page, sourceAccountName, month),
     getAccounts(),
     getTaxCodes(),
     getMyBusiness(),
     getSourceAccounts(),
+    getTransactionMonths(),
   ]);
 
   const mode = (business?.mode ?? 'business') as BusinessMode;
@@ -89,6 +95,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       mode={mode}
       budgetCategories={budgetCategories}
       sourceAccounts={sourceAccounts}
+      transactionMonths={transactionMonths}
       currentSourceAccount={sourceAccountName ?? ''}
       currentMonth={month ?? ''}
     />

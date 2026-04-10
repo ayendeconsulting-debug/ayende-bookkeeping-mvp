@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Get,
   Post,
@@ -36,7 +36,7 @@ export class ClassificationController {
     private readonly transferService: TransferService,
   ) {}
 
-  // ── Raw Transactions ──────────────────────────────────────────────────────
+  // â”€â”€ Raw Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   /**
    * GET /classification/raw/source-accounts
@@ -49,7 +49,12 @@ export class ClassificationController {
     return this.classificationService.getSourceAccounts(req.user!.businessId);
   }
 
-  /** GET /classification/raw — all roles */
+  @Get('raw/transaction-months')
+  getTransactionMonths(@Req() req: Request) {
+    return this.classificationService.getTransactionMonths(req.user!.businessId);
+  }
+
+  /** GET /classification/raw â€” all roles */
   @Get('raw')
   getRawTransactions(
     @Req() req: Request,
@@ -74,7 +79,7 @@ export class ClassificationController {
     });
   }
 
-  /** PATCH /classification/raw/:id/tag — admin only */
+  /** PATCH /classification/raw/:id/tag â€” admin only */
   @Roles('admin')
   @Patch('raw/:id/tag')
   tagTransaction(
@@ -89,7 +94,7 @@ export class ClassificationController {
     );
   }
 
-  // ── Phase 14: Split Transactions ──────────────────────────────────────────
+  // â”€â”€ Phase 14: Split Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Roles('admin', 'accountant')
   @Patch('raw/:id/split')
@@ -108,7 +113,7 @@ export class ClassificationController {
     return this.splitTransactionService.getSplitLines(req.user!.businessId, id);
   }
 
-  // ── Phase 14: Transfer Transactions ──────────────────────────────────────
+  // â”€â”€ Phase 14: Transfer Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Roles('admin', 'accountant')
   @Patch('raw/:id/mark-transfer')
@@ -122,7 +127,7 @@ export class ClassificationController {
     );
   }
 
-  // ── Rules ─────────────────────────────────────────────────────────────────
+  // â”€â”€ Rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Roles('admin')
   @Post('rules')
@@ -165,7 +170,7 @@ export class ClassificationController {
     return this.classificationService.runBatchRules(req.user!.businessId);
   }
 
-  // ── Classification & Posting ──────────────────────────────────────────────
+  // â”€â”€ Classification & Posting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Roles('admin')
   @Post('classify')
@@ -196,7 +201,7 @@ export class ClassificationController {
     );
   }
 
-  // ── Owner Equity ──────────────────────────────────────────────────────────
+  // â”€â”€ Owner Equity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Roles('admin')
   @Post('owner-contribution')

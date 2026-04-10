@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -49,7 +49,7 @@ export class ClassificationService {
     private readonly hstPeriodService: HstPeriodService,
   ) {}
 
-  // ── Classification Rules ──────────────────────────────────────────────────
+  // â”€â”€ Classification Rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async createRule(dto: CreateClassificationRuleDto): Promise<ClassificationRule> {
     const rule = this.ruleRepo.create({
@@ -88,7 +88,7 @@ export class ClassificationService {
     return this.ruleRepo.save(rule);
   }
 
-  // ── Raw Transactions ──────────────────────────────────────────────────────
+  // â”€â”€ Raw Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getRawTransactions(
     businessId: string,
@@ -113,7 +113,7 @@ export class ClassificationService {
       .createQueryBuilder('rt')
       .where('rt.business_id = :businessId', { businessId });
 
-    // ── Status filter ─────────────────────────────────────────────
+    // â”€â”€ Status filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // 'categorized' = personal_category_id IS NOT NULL (personal mode)
     if (status && status !== 'all') {
       if (status === 'categorized') {
@@ -123,17 +123,17 @@ export class ClassificationService {
       }
     }
 
-    // ── Search ────────────────────────────────────────────────────
+    // â”€â”€ Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (search) {
       qb.andWhere('rt.description ILIKE :search', { search: `%${search}%` });
     }
 
-    // ── Date range ────────────────────────────────────────────────
+    // â”€â”€ Date range â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (startDate && endDate) {
       qb.andWhere('rt.transaction_date BETWEEN :startDate AND :endDate', { startDate, endDate });
     }
 
-    // ── Month filter (YYYY-MM) overrides startDate/endDate ─────────
+    // â”€â”€ Month filter (YYYY-MM) overrides startDate/endDate â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (month) {
       const [year, mon] = month.split('-').map(Number);
       const firstDay = `${year}-${String(mon).padStart(2, '0')}-01`;
@@ -145,7 +145,7 @@ export class ClassificationService {
       });
     }
 
-    // ── Source account filter ─────────────────────────────────────
+    // â”€â”€ Source account filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (sourceAccountName) {
       qb.andWhere('rt.source_account_name = :sourceAccountName', { sourceAccountName });
     }
@@ -159,22 +159,40 @@ export class ClassificationService {
     return { data, total };
   }
 
-  // ── Source Account Names (for filter dropdown) ────────────────────────────
+  // â”€â”€ Source Account Names (for filter dropdown) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-  async getSourceAccounts(businessId: string): Promise<string[]> {
+  async getSourceAccounts(businessId: string): Promise<{ value: string; label: string }[]> {
     const rows = await this.dataSource.query(
-      `SELECT DISTINCT source_account_name
-       FROM raw_transactions
-       WHERE business_id = $1
-         AND source_account_name IS NOT NULL
-         AND source_account_name != ''
-       ORDER BY source_account_name ASC`,
+      `SELECT DISTINCT rt.source_account_name AS value,
+              COALESCE(pa.name, rt.source_account_name) AS label
+       FROM raw_transactions rt
+       LEFT JOIN plaid_accounts pa ON pa.account_id = rt.source_account_name
+       WHERE rt.business_id = $1
+         AND rt.source_account_name IS NOT NULL
+         AND rt.source_account_name != ''
+       ORDER BY label ASC`,
       [businessId],
     );
-    return rows.map((r: any) => r.source_account_name as string);
+    return rows.map((r: any) => ({ value: r.value as string, label: r.label as string }));
   }
 
-  // ── Tag Transaction (Freelancer Mode) ────────────────────────────────────
+  async getTransactionMonths(businessId: string): Promise<{ value: string; label: string }[]> {
+    const rows = await this.dataSource.query(
+      `SELECT DISTINCT TO_CHAR(transaction_date, 'YYYY-MM') AS value
+       FROM raw_transactions
+       WHERE business_id = $1
+       ORDER BY value DESC`,
+      [businessId],
+    );
+    return rows.map((r: any) => {
+      const [year, mon] = (r.value as string).split('-');
+      const date = new Date(Number(year), Number(mon) - 1, 1);
+      const label = date.toLocaleDateString('en-CA', { month: 'long', year: 'numeric' });
+      return { value: r.value as string, label };
+    });
+  }
+
+  // â”€â”€ Tag Transaction (Freelancer Mode) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async tagTransaction(
     businessId: string,
@@ -189,7 +207,7 @@ export class ClassificationService {
     return this.rawTxRepo.save(tx);
   }
 
-  // ── Bulk Classification ───────────────────────────────────────────────────
+  // â”€â”€ Bulk Classification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async bulkClassify(
     businessId: string,
@@ -236,7 +254,7 @@ export class ClassificationService {
     return { classified, skipped, errors };
   }
 
-  // ── Manual Classification ─────────────────────────────────────────────────
+  // â”€â”€ Manual Classification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async classify(dto: ClassifyTransactionDto): Promise<ClassifiedTransaction> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -264,7 +282,7 @@ export class ClassificationService {
     return this.classifiedRepo.save(classified);
   }
 
-  // ── Post to General Ledger ────────────────────────────────────────────────
+  // â”€â”€ Post to General Ledger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async postClassifiedTransaction(
     businessId: string,
@@ -334,7 +352,7 @@ export class ClassificationService {
     });
   }
 
-  // ── Owner Contribution ────────────────────────────────────────────────────
+  // â”€â”€ Owner Contribution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async postOwnerContribution(dto: OwnerContributionDto): Promise<JournalEntry> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -368,7 +386,7 @@ export class ClassificationService {
     });
   }
 
-  // ── Owner Draw ────────────────────────────────────────────────────────────
+  // â”€â”€ Owner Draw â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async postOwnerDraw(dto: OwnerDrawDto): Promise<JournalEntry> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -402,7 +420,7 @@ export class ClassificationService {
     });
   }
 
-  // ── Classification Learning ───────────────────────────────────────────────
+  // â”€â”€ Classification Learning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async learnRule(dto: LearnClassificationRuleDto): Promise<ClassificationRule> {
     const rawTx = await this.rawTxRepo.findOne({
@@ -437,7 +455,7 @@ export class ClassificationService {
     return this.ruleRepo.save(rule);
   }
 
-  // ── Phase 12: Auto-Classification Engine ─────────────────────────────────
+  // â”€â”€ Phase 12: Auto-Classification Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private matchRule(rules: ClassificationRule[], rawTx: RawTransaction): ClassificationRule | null {
     for (const rule of rules) {
@@ -531,7 +549,7 @@ export class ClassificationService {
     return { total: pendingTxs.length, classified, skipped };
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private async checkFiscalYearLock(businessId: string, date: Date): Promise<void> {
     const fiscalYear = await this.fiscalYearRepo
@@ -554,7 +572,7 @@ export class ClassificationService {
     const lockedPeriod = await this.hstPeriodService.isDateInLockedPeriod(businessId, dateStr);
     if (lockedPeriod) {
       throw new UnprocessableEntityException(
-        `Cannot post transaction dated ${dateStr} – it falls within a locked HST period ` +
+        `Cannot post transaction dated ${dateStr} â€“ it falls within a locked HST period ` +
         `(${lockedPeriod.period_start} to ${lockedPeriod.period_end}). ` +
         `Locked periods cannot accept new journal entries.`,
       );
