@@ -1,9 +1,11 @@
-import {
+﻿import {
   IsString,
   IsNumber,
   IsOptional,
   IsDateString,
+  IsUUID,
   Min,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -139,3 +141,14 @@ export class DismissReminderDto {
   @IsString()
   due_date: string;
 }
+
+// â”€â”€â”€ Phase 17: Personal Category Assignment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export class AssignPersonalCategoryDto {
+  // category_id can be a UUID string to assign, or null to clear
+  @ValidateIf((o) => o.category_id !== null)
+  @IsUUID()
+  category_id: string | null;
+}
+
+
+

@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -91,13 +91,35 @@ export class PersonalService {
     const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
     const monthEnd = today.toISOString().split('T')[0];
 
+    // ── Primary: explicit personal_category_id assignments ────────────────
+    const assignedRows = await this.dataSource.query(
+      `SELECT rt.personal_category_id AS category_id,
+              SUM(ABS(rt.amount)) AS total_spent
+       FROM raw_transactions rt
+       WHERE rt.business_id = $1
+         AND rt.transaction_date BETWEEN $2 AND $3
+         AND rt.amount < 0
+         AND rt.status != 'ignored'
+         AND rt.personal_category_id IS NOT NULL
+       GROUP BY rt.personal_category_id`,
+      [businessId, monthStart, monthEnd],
+    );
+
+    const assignedMap: Record<string, number> = {};
+    for (const row of assignedRows) {
+      assignedMap[row.category_id] = Number(row.total_spent);
+    }
+
+    // ── Secondary: plaid_category fuzzy match for unassigned transactions ─
     const spendingRows = await this.dataSource.query(
       `SELECT LOWER(COALESCE(plaid_category, 'other')) AS cat,
               SUM(ABS(amount)) AS total_spent
        FROM raw_transactions
        WHERE business_id = $1
          AND transaction_date BETWEEN $2 AND $3
-         AND amount < 0 AND status != 'ignored'
+         AND amount < 0
+         AND status != 'ignored'
+         AND personal_category_id IS NULL
        GROUP BY LOWER(COALESCE(plaid_category, 'other'))`,
       [businessId, monthStart, monthEnd],
     );
@@ -106,11 +128,17 @@ export class PersonalService {
     for (const row of spendingRows) spendingMap[row.cat] = Number(row.total_spent);
 
     return categories.map((cat) => {
+      // Exact match via assigned category id
+      const assignedSpend = assignedMap[cat.id] ?? 0;
+
+      // Fuzzy match via plaid_category for unassigned transactions
       const catLower = cat.name.toLowerCase();
-      let spent = 0;
+      let fuzzySpend = 0;
       for (const [plaidCat, amount] of Object.entries(spendingMap)) {
-        if (plaidCat.includes(catLower) || catLower.includes(plaidCat)) spent += amount;
+        if (plaidCat.includes(catLower) || catLower.includes(plaidCat)) fuzzySpend += amount;
       }
+
+      const spent = assignedSpend + fuzzySpend;
       const target = cat.monthly_target ? Number(cat.monthly_target) : null;
       const remaining = target !== null ? Math.max(0, target - spent) : null;
       const over_budget = target !== null && spent > target;
@@ -148,6 +176,45 @@ export class PersonalService {
     cat.is_active = false;
     await this.budgetCategoryRepo.save(cat);
     return { deleted: true };
+  }
+
+  // ── Phase 17: Assign Personal Category ───────────────────────────
+
+  async assignPersonalCategory(
+    businessId: string,
+    transactionId: string,
+    categoryId: string | null,
+  ) {
+    // Verify transaction belongs to this business
+    const rows = await this.dataSource.query(
+      `SELECT id FROM raw_transactions WHERE id = $1 AND business_id = $2 LIMIT 1`,
+      [transactionId, businessId],
+    );
+    if (!rows.length) {
+      throw new NotFoundException(`Transaction ${transactionId} not found`);
+    }
+
+    // If assigning (not clearing), verify category belongs to this business
+    if (categoryId !== null) {
+      const catRows = await this.dataSource.query(
+        `SELECT id FROM budget_categories WHERE id = $1 AND business_id = $2 AND is_active = true LIMIT 1`,
+        [categoryId, businessId],
+      );
+      if (!catRows.length) {
+        throw new BadRequestException(`Budget category ${categoryId} not found for this business`);
+      }
+    }
+
+    await this.dataSource.query(
+      `UPDATE raw_transactions SET personal_category_id = $1, updated_at = NOW() WHERE id = $2`,
+      [categoryId, transactionId],
+    );
+
+    const updated = await this.dataSource.query(
+      `SELECT * FROM raw_transactions WHERE id = $1 LIMIT 1`,
+      [transactionId],
+    );
+    return updated[0];
   }
 
   // ── Savings Goals ─────────────────────────────────────────────────
@@ -224,15 +291,15 @@ export class PersonalService {
        ORDER BY pa.type, pa.name`,
       [businessId],
     );
-      const coaBalances = await this.dataSource.query(
-        `SELECT a.name AS account_name, a.account_type, a.account_subtype,
-                COALESCE(SUM(jl.debit_amount - jl.credit_amount), 0) AS balance
-         FROM accounts a
-         LEFT JOIN journal_lines jl ON jl.account_id = a.id
-         LEFT JOIN journal_entries je ON je.id = jl.journal_entry_id AND je.status = 'posted'
-         WHERE a.business_id = $1 AND a.account_type IN ('asset','liability') AND a.is_active = true
-         GROUP BY a.id, a.name, a.account_type, a.account_subtype
-         ORDER BY a.account_type, a.name`,
+    const coaBalances = await this.dataSource.query(
+      `SELECT a.name AS account_name, a.account_type, a.account_subtype,
+              COALESCE(SUM(jl.debit_amount - jl.credit_amount), 0) AS balance
+       FROM accounts a
+       LEFT JOIN journal_lines jl ON jl.account_id = a.id
+       LEFT JOIN journal_entries je ON je.id = jl.journal_entry_id AND je.status = 'posted'
+       WHERE a.business_id = $1 AND a.account_type IN ('asset','liability') AND a.is_active = true
+       GROUP BY a.id, a.name, a.account_type, a.account_subtype
+       ORDER BY a.account_type, a.name`,
       [businessId],
     );
     const ASSET_TYPES = ['depository', 'investment', 'other'];
@@ -349,7 +416,6 @@ export class PersonalService {
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
 
     const snoozedSet = new Set(
       snoozed
@@ -391,7 +457,6 @@ export class PersonalService {
 
     const total_due_30_days = reminders.reduce((s, r) => s + r.amount, 0);
 
-    // Get current Plaid depository balance
     const balanceRows = await this.dataSource.query(
       `SELECT COALESCE(SUM(COALESCE(pa.current_balance, 0)), 0) AS total
        FROM plaid_accounts pa
@@ -417,7 +482,6 @@ export class PersonalService {
   async snoozeReminder(businessId: string, key: string, due_date: string, snoozed_until: string): Promise<void> {
     const settings = await this.getSettings(businessId);
     const snoozed: any[] = settings.snoozed_reminders ?? [];
-    // Upsert by key+due_date
     const filtered = snoozed.filter((s: any) => !(s.key === key && s.due_date === due_date));
     filtered.push({ key, due_date, snoozed_until });
     await this.mergeSettings(businessId, { snoozed_reminders: filtered });
@@ -442,14 +506,12 @@ export class PersonalService {
 
     const current = new Date(lastDate);
 
-    // Advance to first occurrence >= today (safety cap: 500 iterations)
     let safety = 0;
     while (current < today && safety < 500) {
       this.advanceDate(current, frequency);
       safety++;
     }
 
-    // Collect all occurrences within window (max 10)
     let collected = 0;
     while (current <= cutoff && collected < 10) {
       dates.push(current.toISOString().split('T')[0]);
@@ -520,4 +582,3 @@ export class PersonalService {
     await this.budgetCategoryRepo.save(cats);
   }
 }
-

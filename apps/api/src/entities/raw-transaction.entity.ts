@@ -110,6 +110,12 @@ export class RawTransaction {
   @Column({ type: 'jsonb', nullable: true })
   anomaly_flags: string[] | null;
 
+  // ─── PHASE 17: Personal Budget Category ───────────────────────────────────
+  // Manual category assignment for personal mode users.
+  // FK to budget_categories.id — ON DELETE SET NULL handled by nullable column.
+  @Column({ type: 'uuid', nullable: true })
+  personal_category_id: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 

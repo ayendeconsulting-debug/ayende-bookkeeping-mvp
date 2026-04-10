@@ -8,6 +8,7 @@ import {
   CreateSavingsGoalDto, UpdateSavingsGoalDto,
   ConfirmDetectionDto, DismissDetectionDto,
   SnoozeReminderDto, DismissReminderDto,
+  AssignPersonalCategoryDto,
 } from './dto/personal.dto';
 import { Roles } from '../auth/roles.decorator';
 
@@ -15,7 +16,7 @@ import { Roles } from '../auth/roles.decorator';
 export class PersonalController {
   constructor(private readonly personalService: PersonalService) {}
 
-  // ── Budget Categories ─────────────────────────────────────────────
+  // ── Budget Categories ─────────────────────────────────────────────────────
 
   @Get('budget-categories')
   getBudgetCategories(@Req() req: Request) {
@@ -40,7 +41,7 @@ export class PersonalController {
     return this.personalService.deleteBudgetCategory(req.user!.businessId, id);
   }
 
-  // ── Savings Goals ─────────────────────────────────────────────────
+  // ── Savings Goals ─────────────────────────────────────────────────────────
 
   @Get('savings-goals')
   getSavingsGoals(@Req() req: Request) {
@@ -65,14 +66,30 @@ export class PersonalController {
     return this.personalService.deleteSavingsGoal(req.user!.businessId, id);
   }
 
-  // ── Net Worth ─────────────────────────────────────────────────────
+  // ── Net Worth ─────────────────────────────────────────────────────────────
 
   @Get('net-worth')
   getNetWorth(@Req() req: Request) {
     return this.personalService.getNetWorth(req.user!.businessId);
   }
 
-  // ── Recurring Detection ───────────────────────────────────────────
+  // ── Phase 17: Personal Transaction Category Assignment ────────────────────
+
+  @Roles('admin')
+  @Patch('transactions/:id/category')
+  assignPersonalCategory(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() dto: AssignPersonalCategoryDto,
+  ) {
+    return this.personalService.assignPersonalCategory(
+      req.user!.businessId,
+      id,
+      dto.category_id,
+    );
+  }
+
+  // ── Recurring Detection ───────────────────────────────────────────────────
 
   @Get('recurring-detections')
   detectRecurringPayments(@Req() req: Request) {
@@ -96,15 +113,13 @@ export class PersonalController {
     return this.personalService.getConfirmedRecurring(req.user!.businessId);
   }
 
-  // ── Upcoming Reminders ────────────────────────────────────────────
+  // ── Upcoming Reminders ────────────────────────────────────────────────────
 
-  /** GET /personal/upcoming-reminders — reminders for next 30 days with balance warning */
   @Get('upcoming-reminders')
   getUpcomingReminders(@Req() req: Request) {
     return this.personalService.getUpcomingReminders(req.user!.businessId);
   }
 
-  /** POST /personal/upcoming-reminders/snooze — snooze a reminder until a given date */
   @Roles('admin')
   @Post('upcoming-reminders/snooze')
   snoozeReminder(@Req() req: Request, @Body() dto: SnoozeReminderDto) {
@@ -113,7 +128,6 @@ export class PersonalController {
     );
   }
 
-  /** POST /personal/upcoming-reminders/dismiss — dismiss a specific reminder occurrence */
   @Roles('admin')
   @Post('upcoming-reminders/dismiss')
   dismissReminder(@Req() req: Request, @Body() dto: DismissReminderDto) {
