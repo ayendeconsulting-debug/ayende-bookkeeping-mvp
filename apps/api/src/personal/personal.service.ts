@@ -231,8 +231,8 @@ export class PersonalService {
          LEFT JOIN journal_lines jl ON jl.account_id = a.id
          LEFT JOIN journal_entries je ON je.id = jl.journal_entry_id AND je.status = 'posted'
          WHERE a.business_id = $1 AND a.account_type IN ('asset','liability') AND a.is_active = true
-         GROUP BY a.id, a.account_name, a.account_type, a.account_subtype
-         ORDER BY a.account_type, a.account_name`,
+         GROUP BY a.id, a.name, a.account_type, a.account_subtype
+         ORDER BY a.account_type, a.name`,
       [businessId],
     );
     const ASSET_TYPES = ['depository', 'investment', 'other'];
@@ -520,3 +520,4 @@ export class PersonalService {
     await this.budgetCategoryRepo.save(cats);
   }
 }
+
