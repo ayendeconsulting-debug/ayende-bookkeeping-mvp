@@ -225,7 +225,7 @@ export class PersonalService {
       [businessId],
     );
       const coaBalances = await this.dataSource.query(
-        `SELECT a.account_name, a.account_type, a.account_subtype,
+        `SELECT a.name AS account_name, a.account_type, a.account_subtype,
                 COALESCE(SUM(jl.debit_amount - jl.credit_amount), 0) AS balance
          FROM accounts a
          LEFT JOIN journal_lines jl ON jl.account_id = a.id
