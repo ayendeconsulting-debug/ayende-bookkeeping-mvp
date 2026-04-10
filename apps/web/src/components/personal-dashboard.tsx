@@ -1,21 +1,20 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import {
   BudgetCategoryWithSpending, SavingsGoalWithProgress,
-  NetWorthResult, IncomeStatement, Business,
+  NetWorthResult, PersonalCashflow, Business,
   ConfirmedRecurring, UpcomingRemindersResult,
 } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UpcomingRemindersWidget } from '@/components/upcoming-reminders-widget';
-import { TrendingDown, TrendingUp, PiggyBank, Wallet, AlertCircle, Target, RefreshCw, ChevronRight } from 'lucide-react';
+import { AlertCircle, ChevronRight } from 'lucide-react';
 
 interface PersonalDashboardProps {
   budgetCategories:   BudgetCategoryWithSpending[];
   savingsGoals:       SavingsGoalWithProgress[];
   netWorth:           NetWorthResult | null;
-  monthlyStatement:   IncomeStatement | null;
+  cashflow:           PersonalCashflow | null;
   business:           Business | null;
   confirmedRecurring: ConfirmedRecurring[];
   upcomingReminders:  UpcomingRemindersResult | null;
@@ -33,11 +32,10 @@ function calcMonthlyEquivalent(amount: number, frequency: string): number {
 
 export function PersonalDashboard({
   budgetCategories, savingsGoals, netWorth,
-  monthlyStatement, business, confirmedRecurring, upcomingReminders,
+  cashflow, business, confirmedRecurring, upcomingReminders,
 }: PersonalDashboardProps) {
-  const moneyIn  = Number(monthlyStatement?.total_revenue  ?? 0);
-  const moneyOut = Number(monthlyStatement?.total_expenses ?? 0);
-  const netFlow  = moneyIn - moneyOut;
+  const moneyIn  = Number(cashflow?.money_in  ?? 0);
+  const moneyOut = Number(cashflow?.money_out ?? 0);
 
   const totalMonthlyTarget    = budgetCategories.reduce((s, c) => s + (c.monthly_target ?? 0), 0);
   const totalSpent            = budgetCategories.reduce((s, c) => s + c.spent_this_month, 0);
@@ -119,7 +117,9 @@ export function PersonalDashboard({
               {netWorth.plaid_assets.length > 0 && (
                 <div>
                   <p className="text-xs text-gray-400 dark:text-[#7a7060] mb-0.5">Accounts</p>
-                  <p className="text-sm font-semibold text-gray-700 dark:text-[#c8c0b0]">{netWorth.plaid_assets.length + netWorth.plaid_liabilities.length} connected</p>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-[#c8c0b0]">
+                    {netWorth.plaid_assets.length + netWorth.plaid_liabilities.length} connected
+                  </p>
                 </div>
               )}
             </div>
@@ -241,22 +241,20 @@ export function PersonalDashboard({
             </div>
             <UpcomingRemindersWidget data={upcomingReminders} compact />
           </div>
-
         </div>
       </div>
     </div>
   );
 }
 
-/* ── Emma-style sub-components ─────────────────────────────────────── */
+/* ── Sub-components ─────────────────────────────────────────────────── */
 
 function EmmaBudgetBar({ category }: { category: BudgetCategoryWithSpending }) {
-  const pct      = category.percentage_spent ?? 0;
+  const pct       = category.percentage_spent ?? 0;
   const hasTarget = category.monthly_target != null;
-  const isOver   = category.over_budget;
-  const isWarn   = !isOver && pct >= 80;
-
-  const barColor = isOver ? 'bg-red-400' : isWarn ? 'bg-amber-400' : 'bg-[#0F6E56]';
+  const isOver    = category.over_budget;
+  const isWarn    = !isOver && pct >= 80;
+  const barColor  = isOver ? 'bg-red-400' : isWarn ? 'bg-amber-400' : 'bg-[#0F6E56]';
 
   return (
     <div>
@@ -280,10 +278,8 @@ function EmmaBudgetBar({ category }: { category: BudgetCategoryWithSpending }) {
       </div>
       {hasTarget && (
         <div className="h-3 bg-gray-100 dark:bg-[#2a2720] rounded-full overflow-hidden">
-          <div
-            className={cn('h-full rounded-full transition-all', barColor)}
-            style={{ width: `${Math.min(100, pct)}%` }}
-          />
+          <div className={cn('h-full rounded-full transition-all', barColor)}
+            style={{ width: `${Math.min(100, pct)}%` }} />
         </div>
       )}
     </div>
@@ -300,7 +296,8 @@ function EmmaGoalCard({ goal }: { goal: SavingsGoalWithProgress }) {
         </span>
       </div>
       <div className="h-3 bg-gray-100 dark:bg-[#2a2720] rounded-full overflow-hidden mb-2">
-        <div className="h-full bg-[#0F6E56] rounded-full transition-all" style={{ width: `${goal.percentage_complete}%` }} />
+        <div className="h-full bg-[#0F6E56] rounded-full transition-all"
+          style={{ width: `${goal.percentage_complete}%` }} />
       </div>
       <div className="flex justify-between text-xs text-gray-400 dark:text-[#7a7060]">
         <span>{formatCurrency(Number(goal.current_amount))} saved</span>

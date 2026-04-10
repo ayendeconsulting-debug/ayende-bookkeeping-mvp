@@ -484,3 +484,13 @@ export interface UpcomingRemindersResult {
   balance_warning: boolean;
   balance_shortfall: number;
 }
+
+/* -- Phase 17 – Personal Cashflow -------------------------------------------------------------- */
+
+export interface PersonalCashflow {
+  money_in: number;
+  money_out: number;
+  net: number;
+  start_date: string;
+  end_date: string;
+}

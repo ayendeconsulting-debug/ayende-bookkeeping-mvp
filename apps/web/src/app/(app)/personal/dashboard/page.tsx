@@ -3,7 +3,7 @@ import {
   BudgetCategoryWithSpending,
   SavingsGoalWithProgress,
   NetWorthResult,
-  IncomeStatement,
+  PersonalCashflow,
   Business,
   ConfirmedRecurring,
   UpcomingRemindersResult,
@@ -22,12 +22,12 @@ async function getNetWorth(): Promise<NetWorthResult | null> {
   try { return await apiGet<NetWorthResult>('/personal/net-worth'); }
   catch { return null; }
 }
-async function getMonthlyStatement(): Promise<IncomeStatement | null> {
+async function getCashflow(): Promise<PersonalCashflow | null> {
   try {
     const today = new Date();
     const startDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
     const endDate = today.toISOString().split('T')[0];
-    return await apiGet<IncomeStatement>(`/reports/income-statement?startDate=${startDate}&endDate=${endDate}`);
+    return await apiGet<PersonalCashflow>(`/personal/cashflow?startDate=${startDate}&endDate=${endDate}`);
   } catch { return null; }
 }
 async function getMyBusiness(): Promise<Business | null> {
@@ -46,10 +46,10 @@ async function getUpcomingReminders(): Promise<UpcomingRemindersResult | null> {
 export default async function PersonalDashboardPage() {
   const [
     budgetCategories, savingsGoals, netWorth,
-    monthlyStatement, business, confirmedRecurring, upcomingReminders,
+    cashflow, business, confirmedRecurring, upcomingReminders,
   ] = await Promise.all([
     getBudgetCategories(), getSavingsGoals(), getNetWorth(),
-    getMonthlyStatement(), getMyBusiness(), getConfirmedRecurring(), getUpcomingReminders(),
+    getCashflow(), getMyBusiness(), getConfirmedRecurring(), getUpcomingReminders(),
   ]);
 
   return (
@@ -57,7 +57,7 @@ export default async function PersonalDashboardPage() {
       budgetCategories={budgetCategories}
       savingsGoals={savingsGoals}
       netWorth={netWorth}
-      monthlyStatement={monthlyStatement}
+      cashflow={cashflow}
       business={business}
       confirmedRecurring={confirmedRecurring}
       upcomingReminders={upcomingReminders}

@@ -66,6 +66,14 @@ export interface UpcomingRemindersResult {
   balance_shortfall: number;
 }
 
+export interface PersonalCashflow {
+  money_in: number;
+  money_out: number;
+  net: number;
+  start_date: string;
+  end_date: string;
+}
+
 @Injectable()
 export class PersonalService {
   constructor(
@@ -128,16 +136,12 @@ export class PersonalService {
     for (const row of spendingRows) spendingMap[row.cat] = Number(row.total_spent);
 
     return categories.map((cat) => {
-      // Exact match via assigned category id
       const assignedSpend = assignedMap[cat.id] ?? 0;
-
-      // Fuzzy match via plaid_category for unassigned transactions
       const catLower = cat.name.toLowerCase();
       let fuzzySpend = 0;
       for (const [plaidCat, amount] of Object.entries(spendingMap)) {
         if (plaidCat.includes(catLower) || catLower.includes(plaidCat)) fuzzySpend += amount;
       }
-
       const spent = assignedSpend + fuzzySpend;
       const target = cat.monthly_target ? Number(cat.monthly_target) : null;
       const remaining = target !== null ? Math.max(0, target - spent) : null;
@@ -178,6 +182,31 @@ export class PersonalService {
     return { deleted: true };
   }
 
+  // ── Phase 17: Personal Cashflow ───────────────────────────────────
+  // Reads raw_transactions directly — no journal entries required.
+
+  async getCashflow(businessId: string, startDate: string, endDate: string): Promise<PersonalCashflow> {
+    const rows = await this.dataSource.query(
+      `SELECT
+         COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0)  AS money_in,
+         COALESCE(SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END), 0) AS money_out
+       FROM raw_transactions
+       WHERE business_id = $1
+         AND transaction_date BETWEEN $2 AND $3
+         AND status != 'ignored'`,
+      [businessId, startDate, endDate],
+    );
+    const money_in  = parseFloat(Number(rows[0]?.money_in  ?? 0).toFixed(2));
+    const money_out = parseFloat(Number(rows[0]?.money_out ?? 0).toFixed(2));
+    return {
+      money_in,
+      money_out,
+      net: parseFloat((money_in - money_out).toFixed(2)),
+      start_date: startDate,
+      end_date: endDate,
+    };
+  }
+
   // ── Phase 17: Assign Personal Category ───────────────────────────
 
   async assignPersonalCategory(
@@ -185,7 +214,6 @@ export class PersonalService {
     transactionId: string,
     categoryId: string | null,
   ) {
-    // Verify transaction belongs to this business
     const rows = await this.dataSource.query(
       `SELECT id FROM raw_transactions WHERE id = $1 AND business_id = $2 LIMIT 1`,
       [transactionId, businessId],
@@ -193,8 +221,6 @@ export class PersonalService {
     if (!rows.length) {
       throw new NotFoundException(`Transaction ${transactionId} not found`);
     }
-
-    // If assigning (not clearing), verify category belongs to this business
     if (categoryId !== null) {
       const catRows = await this.dataSource.query(
         `SELECT id FROM budget_categories WHERE id = $1 AND business_id = $2 AND is_active = true LIMIT 1`,
@@ -204,12 +230,10 @@ export class PersonalService {
         throw new BadRequestException(`Budget category ${categoryId} not found for this business`);
       }
     }
-
     await this.dataSource.query(
       `UPDATE raw_transactions SET personal_category_id = $1, updated_at = NOW() WHERE id = $2`,
       [categoryId, transactionId],
     );
-
     const updated = await this.dataSource.query(
       `SELECT * FROM raw_transactions WHERE id = $1 LIMIT 1`,
       [transactionId],
@@ -425,36 +449,22 @@ export class PersonalService {
     const dismissedSet = new Set(dismissed.map((d: any) => `${d.key}::${d.due_date}`));
 
     const reminders: UpcomingReminder[] = [];
-
     for (const payment of confirmed) {
       const dueDates = this.projectDueDates(payment.last_date, payment.frequency, 30);
       for (const dueDate of dueDates) {
         const compositeKey = `${payment.key}::${dueDate}`;
         if (snoozedSet.has(compositeKey) || dismissedSet.has(compositeKey)) continue;
-
-        const daysUntil = Math.round(
-          (new Date(dueDate).getTime() - today.getTime()) / 86400000,
-        );
-
+        const daysUntil = Math.round((new Date(dueDate).getTime() - today.getTime()) / 86400000);
         reminders.push({
-          key: payment.key,
-          merchant: payment.merchant,
-          amount: payment.amount,
-          frequency: payment.frequency,
-          due_date: dueDate,
-          type: payment.type,
-          days_until: daysUntil,
-          is_due_soon: daysUntil <= 3,
+          key: payment.key, merchant: payment.merchant, amount: payment.amount,
+          frequency: payment.frequency, due_date: dueDate, type: payment.type,
+          days_until: daysUntil, is_due_soon: daysUntil <= 3,
         });
       }
     }
-
     reminders.sort((a, b) => a.days_until - b.days_until);
 
-    const total_due_7_days = reminders
-      .filter((r) => r.days_until <= 7)
-      .reduce((s, r) => s + r.amount, 0);
-
+    const total_due_7_days = reminders.filter((r) => r.days_until <= 7).reduce((s, r) => s + r.amount, 0);
     const total_due_30_days = reminders.reduce((s, r) => s + r.amount, 0);
 
     const balanceRows = await this.dataSource.query(
@@ -466,16 +476,14 @@ export class PersonalService {
     );
     const current_balance = Number(balanceRows[0]?.total ?? 0);
     const balance_warning = current_balance > 0 && total_due_7_days > current_balance;
-    const balance_shortfall = balance_warning
-      ? parseFloat((total_due_7_days - current_balance).toFixed(2)) : 0;
+    const balance_shortfall = balance_warning ? parseFloat((total_due_7_days - current_balance).toFixed(2)) : 0;
 
     return {
       reminders,
       total_due_7_days: parseFloat(total_due_7_days.toFixed(2)),
       total_due_30_days: parseFloat(total_due_30_days.toFixed(2)),
       current_balance: parseFloat(current_balance.toFixed(2)),
-      balance_warning,
-      balance_shortfall,
+      balance_warning, balance_shortfall,
     };
   }
 
@@ -503,22 +511,15 @@ export class PersonalService {
     today.setHours(0, 0, 0, 0);
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() + daysAhead);
-
     const current = new Date(lastDate);
-
     let safety = 0;
-    while (current < today && safety < 500) {
-      this.advanceDate(current, frequency);
-      safety++;
-    }
-
+    while (current < today && safety < 500) { this.advanceDate(current, frequency); safety++; }
     let collected = 0;
     while (current <= cutoff && collected < 10) {
       dates.push(current.toISOString().split('T')[0]);
       this.advanceDate(current, frequency);
       collected++;
     }
-
     return dates;
   }
 

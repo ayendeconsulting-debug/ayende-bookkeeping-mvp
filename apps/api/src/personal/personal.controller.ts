@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Req,
+  Controller, Get, Post, Patch, Delete, Body, Param, Req, Query,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { PersonalService } from './personal.service';
@@ -71,6 +71,24 @@ export class PersonalController {
   @Get('net-worth')
   getNetWorth(@Req() req: Request) {
     return this.personalService.getNetWorth(req.user!.businessId);
+  }
+
+  // ── Phase 17: Cashflow (Money In / Money Out from raw transactions) ───────
+
+  @Get('cashflow')
+  getCashflow(
+    @Req() req: Request,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    const today = new Date();
+    const defaultStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+    const defaultEnd = today.toISOString().split('T')[0];
+    return this.personalService.getCashflow(
+      req.user!.businessId,
+      startDate ?? defaultStart,
+      endDate ?? defaultEnd,
+    );
   }
 
   // ── Phase 17: Personal Transaction Category Assignment ────────────────────
