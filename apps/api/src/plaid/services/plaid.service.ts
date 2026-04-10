@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   Logger,
   BadRequestException,
@@ -158,24 +158,24 @@ export class PlaidService {
         });
         if (!existing) {
           const entity = manager.create(PlaidAccount, {
-            plaid_item_id: plaidItem.id,
-            business_id:   plaidItem.business_id,
-            account_id:    account.account_id,
-            name:          account.name,
-            official_name: account.official_name,
-            type:          account.type as any,
-            subtype:       account.subtype,
-            mask:          account.mask,
+            plaid_item_id:     plaidItem.id,
+            business_id:       plaidItem.business_id,
+            account_id:        account.account_id,
+            name:              account.name,
+            official_name:     account.official_name,
+            type:              account.type as any,
+            subtype:           account.subtype,
+            mask:              account.mask,
             iso_currency_code: account.balances?.iso_currency_code || 'USD',
-              current_balance:   account.balances?.current   ?? null,
-              available_balance: account.balances?.available ?? null,
-            });
-            await manager.save(PlaidAccount, entity);
-          } else {
-            existing.current_balance   = account.balances?.current   ?? existing.current_balance;
-            existing.available_balance = account.balances?.available ?? existing.available_balance;
-            await manager.save(PlaidAccount, existing);
-          }
+            current_balance:   account.balances?.current   ?? null,
+            available_balance: account.balances?.available ?? null,
+          });
+          await manager.save(PlaidAccount, entity);
+        } else {
+          existing.current_balance   = account.balances?.current   ?? existing.current_balance;
+          existing.available_balance = account.balances?.available ?? existing.available_balance;
+          await manager.save(PlaidAccount, existing);
+        }
       }
     } catch (error) {
       this.logger.error('Failed to fetch accounts', error?.response?.data);
@@ -348,10 +348,28 @@ export class PlaidService {
     });
     if (!plaidItem) throw new NotFoundException(`Plaid item ${plaidItemId} not found`);
 
-    const access_token  = decryptToken(plaidItem.access_token_encrypted);
-    const cursorRecord  = await this.plaidSyncCursorRepo.findOne({ where: { plaid_item_id: plaidItemId } });
-    let cursor          = cursorRecord?.cursor || undefined;
-    let hasMore         = true;
+    const access_token = decryptToken(plaidItem.access_token_encrypted);
+
+    // ── Refresh account balances on every sync ────────────────────────────
+    try {
+      const balRes = await this.plaidClient.accountsGet({ access_token });
+      for (const acct of balRes.data.accounts) {
+        await this.plaidAccountRepo.update(
+          { account_id: acct.account_id },
+          {
+            current_balance:   acct.balances?.current   ?? undefined,
+            available_balance: acct.balances?.available ?? undefined,
+          },
+        );
+      }
+      this.logger.log(`Balances refreshed for item ${plaidItemId}`);
+    } catch (balErr: any) {
+      this.logger.warn(`Balance refresh skipped for item ${plaidItemId}: ${balErr.message}`);
+    }
+
+    const cursorRecord = await this.plaidSyncCursorRepo.findOne({ where: { plaid_item_id: plaidItemId } });
+    let cursor         = cursorRecord?.cursor || undefined;
+    let hasMore        = true;
 
     const allAdded:    Transaction[]        = [];
     const allModified: Transaction[]        = [];
@@ -422,8 +440,8 @@ export class PlaidService {
       }
 
       if (cursorRecord) {
-        cursorRecord.cursor          = cursor;
-        cursorRecord.last_synced_at  = new Date();
+        cursorRecord.cursor             = cursor;
+        cursorRecord.last_synced_at     = new Date();
         cursorRecord.last_sync_added    = allAdded.length;
         cursorRecord.last_sync_modified = allModified.length;
         cursorRecord.last_sync_removed  = allRemoved.length;
