@@ -3,7 +3,6 @@
 import { useState, useTransition } from 'react';
 import { BudgetCategoryWithSpending } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,8 +28,9 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
   const [isPending, startTransition] = useTransition();
 
   const totalBudgeted = categories.reduce((s, c) => s + (c.monthly_target ?? 0), 0);
-  const totalSpent = categories.reduce((s, c) => s + c.spent_this_month, 0);
-  const overBudget = categories.filter((c) => c.over_budget);
+  const totalSpent    = categories.reduce((s, c) => s + c.spent_this_month, 0);
+  const overBudget    = categories.filter((c) => c.over_budget);
+  const budgetPct     = totalBudgeted > 0 ? Math.min(100, (totalSpent / totalBudgeted) * 100) : 0;
 
   function handleAdd() {
     if (!addForm.name.trim()) { toastError('Category name is required.'); return; }
@@ -38,15 +38,9 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
     if (target !== undefined && isNaN(target)) { toastError('Invalid budget amount.'); return; }
 
     startTransition(async () => {
-      const result = await createBudgetCategory({
-        name: addForm.name.trim(),
-        monthly_target: target,
-      });
+      const result = await createBudgetCategory({ name: addForm.name.trim(), monthly_target: target });
       if (result.success && result.data) {
-        setCategories((prev) => [
-          ...prev,
-          { ...result.data!, spent_this_month: 0, remaining: target ?? null, over_budget: false, percentage_spent: null },
-        ]);
+        setCategories((prev) => [...prev, { ...result.data!, spent_this_month: 0, remaining: target ?? null, over_budget: false, percentage_spent: null }]);
         setAddForm({ name: '', monthly_target: '' });
         setShowAddForm(false);
         toastSuccess(`"${addForm.name}" added.`);
@@ -66,27 +60,18 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
     if (target !== undefined && isNaN(target)) { toastError('Invalid budget amount.'); return; }
 
     startTransition(async () => {
-      const result = await updateBudgetCategory(id, {
-        name: editForm.name.trim() || undefined,
-        monthly_target: target ?? null,
-      });
+      const result = await updateBudgetCategory(id, { name: editForm.name.trim() || undefined, monthly_target: target ?? null });
       if (result.success) {
-        setCategories((prev) =>
-          prev.map((c) =>
-            c.id === id
-              ? {
-                  ...c,
-                  name: editForm.name || c.name,
-                  monthly_target: target ?? null,
-                  remaining: target ? Math.max(0, target - c.spent_this_month) : null,
-                  over_budget: target ? c.spent_this_month > target : false,
-                  percentage_spent: target && target > 0
-                    ? parseFloat(Math.min(100, (c.spent_this_month / target) * 100).toFixed(1))
-                    : null,
-                }
-              : c,
-          ),
-        );
+        setCategories((prev) => prev.map((c) =>
+          c.id === id ? {
+            ...c,
+            name: editForm.name || c.name,
+            monthly_target: target ?? null,
+            remaining: target ? Math.max(0, target - c.spent_this_month) : null,
+            over_budget: target ? c.spent_this_month > target : false,
+            percentage_spent: target && target > 0 ? parseFloat(Math.min(100, (c.spent_this_month / target) * 100).toFixed(1)) : null,
+          } : c,
+        ));
         setEditingId(null);
         toastSuccess('Category updated.');
       } else {
@@ -109,179 +94,133 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Summary bar */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-5">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Total Budgeted</div>
-            <div className="text-2xl font-semibold text-gray-900">{formatCurrency(totalBudgeted)}</div>
-            <div className="text-xs text-gray-400 mt-1">per month</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Spent This Month</div>
-            <div className="text-2xl font-semibold text-gray-900">{formatCurrency(totalSpent)}</div>
-            <div className="text-xs text-gray-400 mt-1">
-              {formatCurrency(Math.max(0, totalBudgeted - totalSpent))} remaining
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-5">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Over Budget</div>
-            <div className={cn('text-2xl font-semibold', overBudget.length > 0 ? 'text-red-500' : 'text-primary')}>
-              {overBudget.length}
-            </div>
-            <div className="text-xs text-gray-400 mt-1">
-              {overBudget.length === 0 ? 'All within limits' : overBudget.map((c) => c.name).join(', ')}
-            </div>
-          </CardContent>
-        </Card>
+
+      {/* ── Emma-style summary hero ── */}
+      <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-5">
+        <div className="flex items-end justify-between mb-3">
+          <div>
+            <p className="text-xs font-medium text-gray-400 dark:text-[#7a7060] uppercase tracking-wider mb-1">This month</p>
+            <p className="text-4xl font-bold text-gray-900 dark:text-[#f0ede8] tabular-nums">{formatCurrency(totalSpent)}</p>
+            <p className="text-sm text-gray-400 dark:text-[#7a7060] mt-1">
+              {totalBudgeted > 0
+                ? `${formatCurrency(Math.max(0, totalBudgeted - totalSpent))} left of ${formatCurrency(totalBudgeted)}`
+                : 'No budget set'}
+            </p>
+          </div>
+          {overBudget.length > 0 && (
+            <span className="text-xs font-semibold text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 px-2.5 py-1 rounded-full">
+              {overBudget.length} over budget
+            </span>
+          )}
+        </div>
+        {totalBudgeted > 0 && (
+          <div className="h-3 bg-gray-100 dark:bg-[#2a2720] rounded-full overflow-hidden">
+            <div
+              className={cn('h-full rounded-full transition-all', budgetPct >= 100 ? 'bg-red-400' : budgetPct >= 80 ? 'bg-amber-400' : 'bg-[#0F6E56]')}
+              style={{ width: `${budgetPct}%` }}
+            />
+          </div>
+        )}
       </div>
 
-      {/* Add form */}
+      {/* ── Add form ── */}
       {showAddForm && (
-        <Card>
-          <CardHeader className="pb-3"><CardTitle>New Category</CardTitle></CardHeader>
-          <CardContent>
-            <div className="flex gap-3 items-end">
-              <div className="flex-1">
-                <Label>Category Name</Label>
-                <Input
-                  placeholder="e.g. Gym & Fitness"
-                  value={addForm.name}
-                  onChange={(e) => setAddForm((p) => ({ ...p, name: e.target.value }))}
-                  className="mt-1"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                />
-              </div>
-              <div className="w-40">
-                <Label>Monthly Budget ($)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="10"
-                  placeholder="Optional"
-                  value={addForm.monthly_target}
-                  onChange={(e) => setAddForm((p) => ({ ...p, monthly_target: e.target.value }))}
-                  className="mt-1"
-                />
-              </div>
-              <Button onClick={handleAdd} disabled={isPending} className="bg-primary text-white hover:bg-primary/90">
-                {isPending ? 'Adding…' : 'Add'}
-              </Button>
-              <Button variant="outline" onClick={() => { setShowAddForm(false); setAddForm({ name: '', monthly_target: '' }); }}>
-                Cancel
-              </Button>
+        <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-5">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-[#f0ede8] mb-3">New category</h3>
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <Label>Category name</Label>
+              <Input placeholder="e.g. Gym & Fitness" value={addForm.name} onChange={(e) => setAddForm((p) => ({ ...p, name: e.target.value }))} className="mt-1" onKeyDown={(e) => e.key === 'Enter' && handleAdd()} />
             </div>
-          </CardContent>
-        </Card>
+            <div className="w-40">
+              <Label>Monthly budget ($)</Label>
+              <Input type="number" min="0" step="10" placeholder="Optional" value={addForm.monthly_target} onChange={(e) => setAddForm((p) => ({ ...p, monthly_target: e.target.value }))} className="mt-1" />
+            </div>
+            <Button onClick={handleAdd} disabled={isPending}>
+              {isPending ? 'Adding…' : 'Add'}
+            </Button>
+            <Button variant="outline" onClick={() => { setShowAddForm(false); setAddForm({ name: '', monthly_target: '' }); }}>Cancel</Button>
+          </div>
+        </div>
       )}
 
-      {/* Category list */}
-      <Card>
-        <CardHeader className="flex-row items-center justify-between pb-3">
-          <CardTitle>All Categories</CardTitle>
+      {/* ── Category list ── */}
+      <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50 dark:border-[#2a2720]">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-[#f0ede8]">All categories</h3>
           {!showAddForm && (
-            <Button onClick={() => setShowAddForm(true)} size="sm" className="bg-primary text-white hover:bg-primary/90">
+            <Button onClick={() => setShowAddForm(true)} size="sm">
               <Plus className="w-4 h-4 mr-1.5" />Add Category
             </Button>
           )}
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex flex-col gap-4">
-            {categories.map((cat) => (
-              <div key={cat.id}>
-                {editingId === cat.id ? (
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      value={editForm.name}
-                      onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
-                      className="flex-1 h-8 text-sm"
-                    />
-                    <Input
-                      type="number"
-                      min="0"
-                      placeholder="Budget $"
-                      value={editForm.monthly_target}
-                      onChange={(e) => setEditForm((p) => ({ ...p, monthly_target: e.target.value }))}
-                      className="w-32 h-8 text-sm"
-                    />
-                    <button onClick={() => handleEdit(cat.id)} disabled={isPending} className="p-1 text-primary hover:text-primary/80">
-                      <Check className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => setEditingId(null)} className="p-1 text-gray-400 hover:text-gray-600">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="group">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
-                        <span className="text-sm font-medium text-gray-800">{cat.name}</span>
-                        {cat.over_budget && (
-                          <span className="text-[10px] font-bold text-red-500 uppercase">Over budget</span>
+        </div>
+
+        <div className="divide-y divide-gray-50 dark:divide-[#2a2720]">
+          {categories.map((cat) => (
+            <div key={cat.id} className="px-5 py-4">
+              {editingId === cat.id ? (
+                <div className="flex gap-2 items-center">
+                  <Input value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} className="flex-1 h-8 text-sm" />
+                  <Input type="number" min="0" placeholder="Budget $" value={editForm.monthly_target} onChange={(e) => setEditForm((p) => ({ ...p, monthly_target: e.target.value }))} className="w-32 h-8 text-sm" />
+                  <button onClick={() => handleEdit(cat.id)} disabled={isPending} className="p-1 text-primary hover:text-primary/80"><Check className="w-4 h-4" /></button>
+                  <button onClick={() => setEditingId(null)} className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-[#c8c0b0]"><X className="w-4 h-4" /></button>
+                </div>
+              ) : (
+                <div className="group">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color ?? '#0F6E56' }} />
+                      <span className="text-sm font-medium text-gray-800 dark:text-[#f0ede8]">{cat.name}</span>
+                      {cat.over_budget && <span className="text-[10px] font-bold text-red-500 uppercase">Over budget</span>}
+                      {cat.monthly_target && (cat.percentage_spent ?? 0) >= 80 && !cat.over_budget && (
+                        <span className="text-[10px] font-bold text-amber-500 uppercase">Almost there</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium text-gray-700 dark:text-[#c8c0b0]">
+                        {formatCurrency(cat.spent_this_month)}
+                        {cat.monthly_target != null && (
+                          <span className="text-gray-400 dark:text-[#7a7060] text-xs"> / {formatCurrency(cat.monthly_target)}</span>
                         )}
-                        {cat.monthly_target && cat.percentage_spent !== null && cat.percentage_spent >= 80 && !cat.over_budget && (
-                          <span className="text-[10px] font-bold text-amber-500 uppercase">Almost there</span>
+                      </span>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => startEdit(cat)} className="p-1 text-gray-400 hover:text-primary"><Pencil className="w-3.5 h-3.5" /></button>
+                        {!cat.is_system && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-3.5 h-3.5" /></button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Remove "{cat.name}"?</AlertDialogTitle>
+                                <AlertDialogDescription>This will deactivate the category. Historical spending data is retained.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDelete(cat.id, cat.name)} className="bg-red-600 hover:bg-red-700 text-white">Remove</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-gray-500">
-                          {formatCurrency(cat.spent_this_month)}
-                          {cat.monthly_target != null && (
-                            <span className="text-gray-400"> / {formatCurrency(cat.monthly_target)}</span>
-                          )}
-                        </span>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => startEdit(cat)} className="p-1 text-gray-400 hover:text-primary">
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                          {!cat.is_system && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <button className="p-1 text-gray-400 hover:text-red-500">
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Remove "{cat.name}"?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This will deactivate the category. Historical spending data is retained.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(cat.id, cat.name)} className="bg-red-600 hover:bg-red-700 text-white">
-                                    Remove
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
                       </div>
                     </div>
-                    {cat.monthly_target != null ? (
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={cn('h-full rounded-full transition-all', cat.over_budget ? 'bg-red-400' : (cat.percentage_spent ?? 0) >= 80 ? 'bg-amber-400' : 'bg-primary')}
-                          style={{ width: `${Math.min(100, cat.percentage_spent ?? 0)}%` }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-1 bg-gray-50 rounded-full" />
-                    )}
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+                  {cat.monthly_target != null ? (
+                    <div className="h-3 bg-gray-100 dark:bg-[#2a2720] rounded-full overflow-hidden">
+                      <div
+                        className={cn('h-full rounded-full transition-all', cat.over_budget ? 'bg-red-400' : (cat.percentage_spent ?? 0) >= 80 ? 'bg-amber-400' : 'bg-[#0F6E56]')}
+                        style={{ width: `${Math.min(100, cat.percentage_spent ?? 0)}%` }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="h-1 bg-gray-50 dark:bg-[#2a2720] rounded-full" />
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
