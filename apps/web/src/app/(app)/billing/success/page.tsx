@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { CheckCircle2, ArrowRight, Calendar, CreditCard } from 'lucide-react';
 import { apiGet } from '@/lib/api';
 import { cookies } from 'next/headers';
@@ -27,9 +27,6 @@ export default async function BillingSuccessPage() {
   const fromOnboarding = cookieStore.get('onboarding_checkout');
 
   if (fromOnboarding) {
-    // Clear the cookie
-    cookieStore.delete('onboarding_checkout');
-
     // Mark onboarding complete so AppLayout no longer redirects to /onboarding
     try {
       const { getToken } = await auth();
