@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   Logger,
   BadRequestException,
@@ -167,9 +167,15 @@ export class PlaidService {
             subtype:       account.subtype,
             mask:          account.mask,
             iso_currency_code: account.balances?.iso_currency_code || 'USD',
-          });
-          await manager.save(PlaidAccount, entity);
-        }
+              current_balance:   account.balances?.current   ?? null,
+              available_balance: account.balances?.available ?? null,
+            });
+            await manager.save(PlaidAccount, entity);
+          } else {
+            existing.current_balance   = account.balances?.current   ?? existing.current_balance;
+            existing.available_balance = account.balances?.available ?? existing.available_balance;
+            await manager.save(PlaidAccount, existing);
+          }
       }
     } catch (error) {
       this.logger.error('Failed to fetch accounts', error?.response?.data);

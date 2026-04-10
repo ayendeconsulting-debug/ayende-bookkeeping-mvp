@@ -46,15 +46,12 @@ export class PlaidAccount {
   @JoinColumn({ name: 'business_id' })
   business: Business;
 
-  // Plaid-assigned account_id (stable identifier for the account)
   @Column({ type: 'varchar', length: 255, unique: true })
   account_id: string;
 
-  // Human-readable name from the institution
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
-  // Official institution name if available
   @Column({ type: 'varchar', length: 255, nullable: true })
   official_name: string;
 
@@ -68,12 +65,18 @@ export class PlaidAccount {
   @Column({ type: 'varchar', length: 100, nullable: true })
   subtype: string;
 
-  // Last 4 digits of account number
   @Column({ type: 'varchar', length: 10, nullable: true })
   mask: string;
 
   @Column({ type: 'varchar', length: 3, default: 'USD' })
   iso_currency_code: string;
+
+  // ── Balances ─────────────────────────────────────────────────────────────
+  @Column({ type: 'decimal', precision: 18, scale: 2, nullable: true })
+  current_balance: number | null;
+
+  @Column({ type: 'decimal', precision: 18, scale: 2, nullable: true })
+  available_balance: number | null;
 
   @Column({ type: 'boolean', default: true })
   is_active: boolean;
