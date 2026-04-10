@@ -1,4 +1,4 @@
-/* ── Business & Auth ──────────────────────────────────────────────────────────────── */
+/* ── Business & Auth ──────────────────────────────────────────────────────────────────────────── */
 
 export type BusinessMode = 'business' | 'freelancer' | 'personal';
 
@@ -15,7 +15,7 @@ export interface Business {
   created_at: string;
 }
 
-/* ── Accounts ─────────────────────────────────────────────────────────────────────── */
+/* ── Accounts ─────────────────────────────────────────────────────────────────────────────────── */
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -42,7 +42,7 @@ export interface Account {
   created_at: string;
 }
 
-/* ── Transactions ─────────────────────────────────────────────────────────────────── */
+/* ── Transactions ─────────────────────────────────────────────────────────────────────────────── */
 
 export type TransactionSource = 'plaid' | 'csv' | 'pdf' | 'manual';
 export type TransactionStatus = 'pending' | 'classified' | 'posted' | 'ignored';
@@ -62,11 +62,12 @@ export interface RawTransaction {
   source_account_name?: string;
   plaid_account_id?: string;
   plaid_category?: string;
-  anomaly_flags?: string[] | null; // Phase 15 — persisted from AI explain job
+  anomaly_flags?: string[] | null; // Phase 15 – persisted from AI explain job
+  personal_category_id?: string | null; // Phase 17 – manual budget category assignment
   created_at: string;
 }
 
-/* ── Split Lines (Phase 14) ───────────────────────────────────────────────────────── */
+/* ── Split Lines (Phase 14) ───────────────────────────────────────────────────────────────────── */
 
 export interface TransactionSplitLine {
   id: string;
@@ -77,7 +78,7 @@ export interface TransactionSplitLine {
   account?: Account;
 }
 
-/* ── Journal Entries ──────────────────────────────────────────────────────────────── */
+/* ── Journal Entries ──────────────────────────────────────────────────────────────────────────── */
 
 export type JournalEntryStatus = 'draft' | 'posted' | 'locked';
 
@@ -102,7 +103,7 @@ export interface JournalEntry {
   created_at: string;
 }
 
-/* ── Tax Codes ────────────────────────────────────────────────────────────────────── */
+/* ── Tax Codes ────────────────────────────────────────────────────────────────────────────────── */
 
 export type TaxType = 'input' | 'output';
 
@@ -117,7 +118,7 @@ export interface TaxCode {
   is_active: boolean;
 }
 
-/* ── Plaid / Bank Connections ─────────────────────────────────────────────────────── */
+/* ── Plaid / Bank Connections ─────────────────────────────────────────────────────────────────── */
 
 export type PlaidItemStatus = 'active' | 'error' | 'disconnected';
 
@@ -145,7 +146,7 @@ export interface PlaidAccount {
   currency_code: string;
 }
 
-/* ── Reports ──────────────────────────────────────────────────────────────────────── */
+/* ── Reports ──────────────────────────────────────────────────────────────────────────────────── */
 
 export interface ReportLine {
   account_id: string;
@@ -195,7 +196,7 @@ export interface TrialBalance {
   is_balanced: boolean;
 }
 
-/* ── Classification ───────────────────────────────────────────────────────────────── */
+/* ── Classification ───────────────────────────────────────────────────────────────────────────── */
 
 export interface ClassificationRule {
   id: string;
@@ -209,7 +210,7 @@ export interface ClassificationRule {
   source?: string; // 'user_learned' | 'manual' | undefined
 }
 
-/* ── AI ───────────────────────────────────────────────────────────────────────────── */
+/* ── AI ───────────────────────────────────────────────────────────────────────────────────────── */
 
 export interface AiClassificationSuggestion {
   raw_transaction_id: string;
@@ -226,7 +227,7 @@ export interface ChatMessage {
   content: string;
 }
 
-/* ── Phase 5 – Invoices ───────────────────────────────────────────────────────────── */
+/* ── Phase 5 – Invoices ───────────────────────────────────────────────────────────────────────── */
 
 export type InvoiceStatus =
   | 'draft' | 'sent' | 'viewed' | 'partially_paid' | 'paid' | 'overdue' | 'void';
@@ -262,7 +263,7 @@ export interface Invoice {
   created_at: string;
 }
 
-/* ── Phase 5 – AR/AP ──────────────────────────────────────────────────────────────── */
+/* ── Phase 5 – AR/AP ──────────────────────────────────────────────────────────────────────────── */
 
 export type ArApType = 'receivable' | 'payable';
 export type ArApStatus = 'outstanding' | 'partially_paid' | 'paid' | 'overdue' | 'void';
@@ -282,7 +283,7 @@ export interface ArApRecord {
   created_at: string;
 }
 
-/* ── Phase 5 – Recurring Transactions ────────────────────────────────────────────── */
+/* ── Phase 5 – Recurring Transactions ────────────────────────────────────────────────────────── */
 
 export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annually';
 export type RecurringStatus = 'active' | 'paused' | 'completed' | 'cancelled';
@@ -305,7 +306,7 @@ export interface RecurringTransaction {
   created_at: string;
 }
 
-/* ── Phase 5 – Budget Categories ─────────────────────────────────────────────────── */
+/* ── Phase 5 – Budget Categories ─────────────────────────────────────────────────────────────── */
 
 export interface BudgetCategory {
   id: string;
@@ -326,7 +327,7 @@ export interface BudgetCategoryWithSpending extends BudgetCategory {
   percentage_spent: number | null;
 }
 
-/* ── Phase 5 – Savings Goals ──────────────────────────────────────────────────────── */
+/* ── Phase 5 – Savings Goals ──────────────────────────────────────────────────────────────────── */
 
 export type SavingsGoalStatus = 'active' | 'paused' | 'completed';
 
@@ -348,7 +349,7 @@ export interface SavingsGoalWithProgress extends SavingsGoal {
   required_monthly_contribution: number | null;
 }
 
-/* ── Phase 5 – Mileage Logs ───────────────────────────────────────────────────────── */
+/* ── Phase 5 – Mileage Logs ───────────────────────────────────────────────────────────────────── */
 
 export interface MileageLog {
   id: string;
@@ -372,7 +373,7 @@ export interface MileageLogResult {
   unit: string;
 }
 
-/* ── Phase 5 – Payment Reminders ─────────────────────────────────────────────────── */
+/* ── Phase 5 – Payment Reminders ─────────────────────────────────────────────────────────────── */
 
 export type PaymentReminderStatus = 'pending' | 'paid' | 'dismissed' | 'snoozed';
 
@@ -388,7 +389,7 @@ export interface PaymentReminder {
   created_at: string;
 }
 
-/* ── Phase 5 – Tax Estimate ───────────────────────────────────────────────────────── */
+/* ── Phase 5 – Tax Estimate ───────────────────────────────────────────────────────────────────── */
 
 export interface QuarterEstimate {
   quarter: number;
@@ -410,7 +411,7 @@ export interface TaxEstimateResult {
   disclaimer: string;
 }
 
-/* ── Phase 5 – Net Worth ──────────────────────────────────────────────────────────── */
+/* ── Phase 5 – Net Worth ──────────────────────────────────────────────────────────────────────── */
 
 export interface PlaidAccountBalance {
   name: string;
@@ -437,7 +438,7 @@ export interface NetWorthResult {
   coa_liabilities: CoaAccountBalance[];
 }
 
-/* ── Phase 5 – Recurring Detection ───────────────────────────────────────────────── */
+/* ── Phase 5 – Recurring Detection ───────────────────────────────────────────────────────────── */
 
 export interface RecurringDetectionCandidate {
   key: string;
@@ -454,7 +455,7 @@ export interface ConfirmedRecurring extends RecurringDetectionCandidate {
   is_due_soon: boolean;
 }
 
-/* ── API Responses ────────────────────────────────────────────────────────────────── */
+/* ── API Responses ────────────────────────────────────────────────────────────────────────────── */
 
 export interface ApiError {
   message: string;
@@ -462,7 +463,7 @@ export interface ApiError {
   statusCode: number;
 }
 
-/* ── Phase 5 – Upcoming Reminders ────────────────────────────────────────────────── */
+/* ── Phase 5 – Upcoming Reminders ────────────────────────────────────────────────────────────── */
 
 export interface UpcomingReminder {
   key: string;

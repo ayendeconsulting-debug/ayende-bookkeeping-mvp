@@ -1,5 +1,5 @@
 import { apiGet } from '@/lib/api';
-import { Account, TaxCode, RawTransaction, Business, BusinessMode } from '@/types';
+import { Account, TaxCode, RawTransaction, Business, BusinessMode, BudgetCategoryWithSpending } from '@/types';
 import { TransactionInbox } from '@/components/transaction-inbox';
 
 interface PageProps {
@@ -51,6 +51,14 @@ async function getMyBusiness() {
   }
 }
 
+async function getBudgetCategories() {
+  try {
+    return await apiGet<BudgetCategoryWithSpending[]>('/personal/budget-categories');
+  } catch {
+    return [];
+  }
+}
+
 export default async function TransactionsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const { status, search, page } = params;
@@ -62,6 +70,11 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     getMyBusiness(),
   ]);
 
+  const mode = (business?.mode ?? 'business') as BusinessMode;
+
+  // Only fetch budget categories for personal mode to avoid unnecessary API call
+  const budgetCategories = mode === 'personal' ? await getBudgetCategories() : [];
+
   return (
     <TransactionInbox
       initialTransactions={txResult.data}
@@ -71,7 +84,8 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
       currentStatus={status ?? 'all'}
       currentSearch={search ?? ''}
       currentPage={parseInt(page ?? '1')}
-      mode={(business?.mode ?? 'business') as BusinessMode}
+      mode={mode}
+      budgetCategories={budgetCategories}
     />
   );
 }

@@ -3,12 +3,13 @@
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight, AlertTriangle } from 'lucide-react';
-import { Account, TaxCode, RawTransaction, BusinessMode } from '@/types';
+import { Account, TaxCode, RawTransaction, BusinessMode, BudgetCategoryWithSpending } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
 import { TransactionExplainerPanel } from '@/components/transaction-explainer-panel';
 import { SplitTransactionModal } from '@/components/split-transaction-modal';
 import { TransferModal } from '@/components/transfer-modal';
+import { PersonalCategoryPanel } from '@/components/personal-category-panel';
 import { AdminOnly } from '@/components/admin-only';
 import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,7 @@ interface TransactionInboxProps {
   currentSearch: string;
   currentPage: number;
   mode?: BusinessMode;
+  budgetCategories?: BudgetCategoryWithSpending[];
 }
 
 const STATUS_TABS = [
@@ -49,6 +51,7 @@ function statusVariant(status: string): 'pending' | 'classified' | 'posted' | 'r
 export function TransactionInbox({
   initialTransactions, totalCount, accounts, taxCodes,
   currentStatus, currentSearch, currentPage, mode = 'business',
+  budgetCategories = [],
 }: TransactionInboxProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -73,14 +76,24 @@ export function TransactionInbox({
   const [transferTx, setTransferTx]       = useState<RawTransaction | null>(null);
   const [transferOpen, setTransferOpen]   = useState(false);
 
+  // Phase 17: Personal category panel state
+  const [personalCatTx, setPersonalCatTx]       = useState<RawTransaction | null>(null);
+  const [personalCatOpen, setPersonalCatOpen]   = useState(false);
+
   // Bulk classification state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAccountId, setBulkAccountId] = useState('');
   const [bulkTaxCodeId, setBulkTaxCodeId] = useState('');
 
   const isFreelancer = mode === 'freelancer';
+  const isPersonal   = mode === 'personal';
   const LIMIT = 20;
   const totalPages = Math.ceil(totalCount / LIMIT);
+
+  // Build a lookup for category name+colour by id
+  const categoryMap = Object.fromEntries(
+    budgetCategories.map((c) => [c.id, c]),
+  );
 
   const selectableTxs = initialTransactions.filter(
     (tx) => tx.status === 'pending' && !tx.is_personal,
@@ -106,7 +119,11 @@ export function TransactionInbox({
   function handleSearch(e: React.FormEvent) { e.preventDefault(); updateParams({ search: searchValue }); }
   function handlePage(page: number) { updateParams({ page: String(page) }); }
 
-  function openClassify(tx: RawTransaction) { setSelectedTx(tx); setPanelOpen(true); }
+  // Business/freelancer classify panel
+  function openClassify(tx: RawTransaction) {
+    if (isPersonal) { setPersonalCatTx(tx); setPersonalCatOpen(true); }
+    else { setSelectedTx(tx); setPanelOpen(true); }
+  }
   function handlePanelClose() { setPanelOpen(false); setSelectedTx(null); }
   function handleSuccess() {
     setPanelOpen(false); setSelectedTx(null);
@@ -131,6 +148,13 @@ export function TransactionInbox({
   function handleTransferClose() { setTransferOpen(false); setTransferTx(null); }
   function handleTransferSuccess() {
     setTransferOpen(false); setTransferTx(null);
+    startTransition(() => router.refresh());
+  }
+
+  // Phase 17: Personal category handlers
+  function handlePersonalCatClose() { setPersonalCatOpen(false); setPersonalCatTx(null); }
+  function handlePersonalCatSuccess() {
+    setPersonalCatOpen(false); setPersonalCatTx(null);
     startTransition(() => router.refresh());
   }
 
@@ -208,18 +232,20 @@ export function TransactionInbox({
           </div>
 
           <div className="flex items-center gap-2">
-            <AdminOnly>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRunRules}
-                disabled={isRunRulesPending}
-                className="border-primary text-primary hover:bg-primary-light"
-              >
-                <Wand2 className="w-4 h-4 mr-1.5" />
-                {isRunRulesPending ? 'Running…' : 'Run Rules'}
-              </Button>
-            </AdminOnly>
+            {!isPersonal && (
+              <AdminOnly>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRunRules}
+                  disabled={isRunRulesPending}
+                  className="border-primary text-primary hover:bg-primary-light"
+                >
+                  <Wand2 className="w-4 h-4 mr-1.5" />
+                  {isRunRulesPending ? 'Running…' : 'Run Rules'}
+                </Button>
+              </AdminOnly>
+            )}
 
             <form onSubmit={handleSearch} className="flex gap-2">
               <div className="relative">
@@ -257,7 +283,7 @@ export function TransactionInbox({
         </div>
       </div>
 
-      {/* Table — hidden on mobile, shown on sm+ */}
+      {/* Table */}
       <div className={cn('flex-1 overflow-auto bg-white', isPending && 'opacity-60 pointer-events-none')}>
         {initialTransactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -275,12 +301,12 @@ export function TransactionInbox({
           </div>
         ) : (
           <>
-            {/* ── Desktop table (sm and above) ─────────────────────────── */}
+            {/* ── Desktop table ─────────────────────────────────────── */}
             <div className="hidden sm:block">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    {selectableTxs.length > 0 && (
+                    {selectableTxs.length > 0 && !isPersonal && (
                       <TableHead className="w-10">
                         <input
                           type="checkbox"
@@ -303,9 +329,10 @@ export function TransactionInbox({
                 <TableBody>
                   {initialTransactions.map((tx) => {
                     const amount = Number(tx.amount);
-                    const isSelectable = tx.status === 'pending' && !tx.is_personal;
+                    const isSelectable = tx.status === 'pending' && !tx.is_personal && !isPersonal;
                     const isSelected = selectedIds.has(tx.id);
-                    const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal;
+                    const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal && !isPersonal;
+                    const assignedCat = tx.personal_category_id ? categoryMap[tx.personal_category_id] : null;
 
                     return (
                       <TableRow
@@ -315,7 +342,7 @@ export function TransactionInbox({
                           isSelected ? 'bg-primary-light/30' : '',
                         )}
                       >
-                        {selectableTxs.length > 0 && (
+                        {selectableTxs.length > 0 && !isPersonal && (
                           <TableCell>
                             {isSelectable ? (
                               <input
@@ -349,12 +376,23 @@ export function TransactionInbox({
                             )}
                             <span className="block truncate text-gray-900">{tx.description}</span>
                           </div>
-                          {tx.plaid_category && (
+                          {/* Phase 17: show assigned category badge in personal mode, else plaid_category */}
+                          {isPersonal && assignedCat ? (
+                            <span className="inline-flex items-center gap-1 mt-0.5">
+                              <span
+                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: assignedCat.color ?? '#0F6E56' }}
+                              />
+                              <span className="text-xs font-medium text-gray-600 dark:text-[#c8c0b0]">
+                                {assignedCat.name}
+                              </span>
+                            </span>
+                          ) : tx.plaid_category ? (
                             <span className="text-xs text-gray-400">{tx.plaid_category}</span>
-                          )}
+                          ) : null}
                         </TableCell>
                         <TableCell className="text-gray-500 text-sm">
-                          {tx.source_account_name ?? '–'}
+                          {tx.source_account_name ?? '—'}
                         </TableCell>
                         <TableCell className="text-right">
                           <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
@@ -386,20 +424,34 @@ export function TransactionInbox({
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5">
-                            {tx.status === 'pending' && !tx.is_personal && (
+                            {/* Personal mode: Categorize button */}
+                            {isPersonal && (
+                              <AdminOnly>
+                                <Button size="sm" variant="outline"
+                                  className="h-7 text-xs border-primary text-primary hover:bg-primary-light"
+                                  onClick={() => openClassify(tx)}>
+                                  {assignedCat ? 'Recategorize' : 'Categorize'}
+                                </Button>
+                              </AdminOnly>
+                            )}
+
+                            {/* Business/freelancer classify flow */}
+                            {!isPersonal && tx.status === 'pending' && !tx.is_personal && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
                                   className="h-7 text-xs border-primary text-primary hover:bg-primary-light"
                                   onClick={() => openClassify(tx)}>Classify</Button>
                               </AdminOnly>
                             )}
-                            {tx.status === 'classified' && (
+                            {!isPersonal && tx.status === 'classified' && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline" className="h-7 text-xs"
                                   onClick={() => openClassify(tx)}>Post</Button>
                               </AdminOnly>
                             )}
-                            {tx.status === 'posted' && <span className="text-xs text-gray-400">Posted</span>}
+                            {!isPersonal && tx.status === 'posted' && (
+                              <span className="text-xs text-gray-400">Posted</span>
+                            )}
                             {tx.status === 'pending' && tx.is_personal && isFreelancer && (
                               <span className="text-xs text-gray-400 italic">Personal</span>
                             )}
@@ -428,15 +480,15 @@ export function TransactionInbox({
               </Table>
             </div>
 
-            {/* ── Mobile card list (below sm) ──────────────────────────── */}
+            {/* ── Mobile card list ───────────────────────────────────── */}
             <div className="sm:hidden divide-y divide-gray-100">
               {initialTransactions.map((tx) => {
                 const amount = Number(tx.amount);
-                const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal;
+                const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal && !isPersonal;
+                const assignedCat = tx.personal_category_id ? categoryMap[tx.personal_category_id] : null;
 
                 return (
                   <div key={tx.id} className="px-4 py-3 bg-white">
-                    {/* Row 1: date + status */}
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-gray-400">
                         {new Date(tx.transaction_date).toLocaleDateString('en-CA', {
@@ -448,7 +500,6 @@ export function TransactionInbox({
                       </Badge>
                     </div>
 
-                    {/* Row 2: description + anomaly */}
                     <div className="flex items-start gap-1.5 mb-1">
                       {tx.anomaly_flags && tx.anomaly_flags.length > 0 && (
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -456,7 +507,14 @@ export function TransactionInbox({
                       <span className="text-sm font-medium text-gray-900 leading-snug">{tx.description}</span>
                     </div>
 
-                    {/* Row 3: amount + source */}
+                    {/* Phase 17: category badge on mobile */}
+                    {isPersonal && assignedCat && (
+                      <span className="inline-flex items-center gap-1 mb-1">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: assignedCat.color ?? '#0F6E56' }} />
+                        <span className="text-xs font-medium text-gray-600">{assignedCat.name}</span>
+                      </span>
+                    )}
+
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs text-gray-400">{tx.source_account_name ?? '—'}</span>
                       <span className={cn('text-sm font-semibold', amount >= 0 ? 'text-primary' : 'text-danger')}>
@@ -464,16 +522,24 @@ export function TransactionInbox({
                       </span>
                     </div>
 
-                    {/* Row 4: actions */}
                     <div className="flex items-center gap-2 min-h-[44px]">
-                      {tx.status === 'pending' && !tx.is_personal && (
+                      {isPersonal && (
+                        <AdminOnly>
+                          <Button size="sm" variant="outline"
+                            className="h-9 text-xs border-primary text-primary hover:bg-primary-light"
+                            onClick={() => openClassify(tx)}>
+                            {assignedCat ? 'Recategorize' : 'Categorize'}
+                          </Button>
+                        </AdminOnly>
+                      )}
+                      {!isPersonal && tx.status === 'pending' && !tx.is_personal && (
                         <AdminOnly>
                           <Button size="sm" variant="outline"
                             className="h-9 text-xs border-primary text-primary hover:bg-primary-light"
                             onClick={() => openClassify(tx)}>Classify</Button>
                         </AdminOnly>
                       )}
-                      {tx.status === 'classified' && (
+                      {!isPersonal && tx.status === 'classified' && (
                         <AdminOnly>
                           <Button size="sm" variant="outline" className="h-9 text-xs"
                             onClick={() => openClassify(tx)}>Post</Button>
@@ -519,8 +585,8 @@ export function TransactionInbox({
         </div>
       )}
 
-      {/* Bulk classification action bar */}
-      {someSelected && (
+      {/* Bulk classification action bar — hidden in personal mode */}
+      {someSelected && !isPersonal && (
         <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-white border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
           <div className="flex items-center gap-2 flex-shrink-0">
             <CheckSquare className="w-4 h-4 text-primary" />
@@ -574,6 +640,7 @@ export function TransactionInbox({
         </div>
       )}
 
+      {/* Business/freelancer classify panel */}
       <ClassifyPanel
         transaction={selectedTx}
         accounts={accounts}
@@ -606,6 +673,15 @@ export function TransactionInbox({
         open={transferOpen}
         onClose={handleTransferClose}
         onSuccess={handleTransferSuccess}
+      />
+
+      {/* Phase 17: Personal Category Panel */}
+      <PersonalCategoryPanel
+        transaction={personalCatTx}
+        categories={budgetCategories}
+        open={personalCatOpen}
+        onClose={handlePersonalCatClose}
+        onSuccess={handlePersonalCatSuccess}
       />
     </div>
   );
