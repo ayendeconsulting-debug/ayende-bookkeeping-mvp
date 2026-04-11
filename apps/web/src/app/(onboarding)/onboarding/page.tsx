@@ -460,9 +460,7 @@ export default function OnboardingPage() {
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Continue <ChevronRight className="w-4 h-4" />
               </Button>
-              <a href="https://www.gettempo.ca" className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-fit">
-                Cancel — return to website
-              </a>
+              <a href="https://gettempo.ca" className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-fit">Cancel — return to website</a>
             </div>
           </div>
         )}
