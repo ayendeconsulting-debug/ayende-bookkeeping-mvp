@@ -408,7 +408,7 @@ export class ClassificationService {
         is_posted: true,
         posted_journal_entry_id: savedEntry.id,
       });
-      await manager.update(RawTransaction, rawTx.id, { anomaly_flags: null });
+        await manager.update(RawTransaction, rawTx.id, { status: RawTransactionStatus.POSTED, anomaly_flags: null });
       return savedEntry;
     });
   }
