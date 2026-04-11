@@ -12,6 +12,7 @@ import {
   acceptLegalDocuments,
   fetchLegalAcceptanceStatus,
   createCheckoutSessionFromOnboarding,
+  cancelOnboarding,
 } from './actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
@@ -447,7 +448,7 @@ export default function OnboardingPage() {
                     <span className="text-xl">{c === 'CA' ? 'ðŸ‡¨ðŸ‡¦' : 'ðŸ‡ºðŸ‡¸'}</span>
                     <div className="text-left">
                       <div className="font-semibold text-sm text-foreground">{c === 'CA' ? 'Canada' : 'United States'}</div>
-                      <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD Â· CRA' : 'USD Â· IRS'}</div>
+                      <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD – CRA' : 'USD – IRS'}</div>
                     </div>
                   </button>
                 ))}
@@ -460,7 +461,7 @@ export default function OnboardingPage() {
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Continue <ChevronRight className="w-4 h-4" />
               </Button>
-              <a href="https://gettempo.ca" className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-fit">Cancel — return to website</a>
+              <button type="button" onClick={async () => { await cancelOnboarding(); window.location.href = 'https://gettempo.ca'; }} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-fit text-left">Cancel — return to website</button>
             </div>
           </div>
         )}

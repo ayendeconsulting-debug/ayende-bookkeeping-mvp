@@ -209,6 +209,11 @@ export async function completeOnboarding(
   redirect(destination);
 }
 
+
+/* ── Cancel onboarding: mark done and sign out ──────────────────────────── */
+export async function cancelOnboarding(): Promise<{ error?: string }> {
+  return patchBusiness({ settings: { mode_selected: true }, mode: 'cancelled' });
+}
 /* ── Legacy — kept for backward compatibility ────────────────────────────── */
 export async function saveModeSelection(
   mode: 'business' | 'freelancer' | 'personal',
