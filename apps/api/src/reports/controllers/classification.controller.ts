@@ -4,6 +4,7 @@
   Post,
   Patch,
   Delete,
+  HttpCode,
   Body,
   Param,
   Query,
@@ -154,6 +155,7 @@ export class ClassificationController {
 
   @Roles('admin')
   @Delete('raw/:id/classify')
+  @HttpCode(204)
   unclassify(@Req() req: Request, @Param('id') id: string) {
     return this.classificationService.unclassify(req.user!.businessId, id);
   }
