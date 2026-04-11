@@ -188,6 +188,18 @@ export class ClassificationController {
     dto.classifiedBy = req.user!.userId;
     return this.classificationService.classify(dto);
   }
+  @Roles('admin')
+  @Post('bulk-classify')
+  bulkClassify(@Req() req: Request, @Body() dto: BulkClassifyDto) {
+    return this.classificationService.bulkClassify(
+      req.user!.businessId,
+      req.user!.userId,
+      dto.rawTransactionIds,
+      dto.accountId,
+      dto.taxCodeId,
+    );
+  }
+
 
   @Roles('admin')
     @Roles('admin')
