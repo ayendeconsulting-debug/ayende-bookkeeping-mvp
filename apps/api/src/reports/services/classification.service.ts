@@ -162,7 +162,7 @@ export class ClassificationService {
       const ids = data.map((t) => t.id);
       const classified = await this.classifiedRepo
         .createQueryBuilder('ct')
-        .select(['ct.raw_transaction_id', 'ct.id', 'ct.source_account_id'])
+        .select(['ct.raw_transaction_id', 'ct.id', 'ct.source_account_id', 'ct.account_id'])
         .where('ct.raw_transaction_id IN (:...ids)', { ids })
         .andWhere('ct.business_id = :businessId', { businessId })
         .getMany();
@@ -172,6 +172,7 @@ export class ClassificationService {
         if (ct) {
           (tx as any).classified_id = ct.id;
           (tx as any).classified_source_account_id = (ct as any).source_account_id ?? null;
+          (tx as any).classified_account_id = (ct as any).account_id ?? null;
         }
       }
     }

@@ -65,6 +65,7 @@ export interface RawTransaction {
   anomaly_flags?: string[] | null; // Phase 15 – persisted from AI explain job
   personal_category_id?: string | null; // Phase 17 – manual budget category assignment
   classified_id?: string | null;
+  classified_account_id?: string | null;
   classified_source_account_id?: string | null;
   created_at: string;
 }

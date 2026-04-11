@@ -692,7 +692,7 @@ export function TransactionInbox({
           initialStep={postMode ? 'post' : 'classify'}
           initialClassifiedId={postMode ? (selectedTx?.classified_id ?? '') : ''}
           initialSourceAccountId={postMode ? (selectedTx?.classified_source_account_id ?? '') : ''}
-          initialAccountId={postMode ? (selectedTx?.classified_id ? (accounts.find(a => a.id === selectedTx?.classified_source_account_id)?.id ?? '') : '') : ''}
+          initialAccountId={postMode ? (selectedTx?.classified_account_id ?? '') : ''}
         />
       <TransactionExplainerPanel transaction={explainerTx} open={explainerOpen} onClose={handleExplainerClose} />
       <SplitTransactionModal transaction={splitTx} accounts={accounts}
