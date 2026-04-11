@@ -1,15 +1,15 @@
+﻿import { Suspense } from 'react';
 import { api } from '@/lib/api';
 import { Invoice, Account, TaxCode } from '@/types';
 import { InvoiceManager } from '@/components/invoice-manager';
 
 interface InvoicesPageProps {
-  searchParams: { status?: string; search?: string; page?: string };
+  searchParams: Promise<{ status?: string; search?: string; page?: string }>;
 }
 
 export default async function InvoicesPage({ searchParams }: InvoicesPageProps) {
-  const { status = 'all', search = '', page = '1' } = searchParams;
+  const { status = 'all', search = '', page = '1' } = await searchParams;
   const offset = (parseInt(page, 10) - 1) * 20;
-
   const params = new URLSearchParams({ status, limit: '20', offset: String(offset) });
   if (search) params.set('search', search);
 
@@ -24,14 +24,16 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
   const taxCodes = taxCodesRes.status === 'fulfilled' ? taxCodesRes.value : [];
 
   return (
-    <InvoiceManager
-      initialInvoices={invoices.data}
-      totalCount={invoices.total}
-      accounts={accounts}
-      taxCodes={taxCodes}
-      currentStatus={status}
-      currentSearch={search}
-      currentPage={parseInt(page, 10)}
-    />
+    <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Loading invoices...</div>}>
+      <InvoiceManager
+        initialInvoices={invoices.data}
+        totalCount={invoices.total}
+        accounts={accounts}
+        taxCodes={taxCodes}
+        currentStatus={status}
+        currentSearch={search}
+        currentPage={parseInt(page, 10)}
+      />
+    </Suspense>
   );
 }
