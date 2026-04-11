@@ -78,7 +78,7 @@ export function ClassifyPanel({
 
 
   const debitAccounts = accounts.filter(
-    (a) => a.account_type === 'expense' || a.account_type === 'asset',
+    (a) => a.account_type === 'expense' || a.account_type === 'asset' || a.account_type === 'revenue',
   );
 
 
@@ -241,7 +241,7 @@ export function ClassifyPanel({
                     <SelectContent>
                       {debitAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
-                          {a.account_code} â€“ {a.account_name}
+                          {a.account_code} - {a.account_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -257,7 +257,7 @@ export function ClassifyPanel({
                     <SelectContent>
                       {bankAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
-                          {a.account_code} â€“ {a.account_name}
+                          {a.account_code} - {a.account_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -275,7 +275,7 @@ export function ClassifyPanel({
                         <SelectItem value="none">None</SelectItem>
                         {activeTaxCodes.map((t) => (
                           <SelectItem key={t.id} value={t.id}>
-                            {t.code} â€“ {t.name} ({(t.rate * 100).toFixed(0)}%)
+                            {t.code} - {t.name} ({(t.rate * 100).toFixed(0)}%)
                           </SelectItem>
                         ))}
                       </SelectContent>
