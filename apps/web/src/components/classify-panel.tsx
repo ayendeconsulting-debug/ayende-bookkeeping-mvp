@@ -64,6 +64,18 @@ export function ClassifyPanel({
   const [isPending, startTransition] = useTransition();
   const [isAiLoading, setIsAiLoading] = useState(false);
 
+  // Auto-select source account when panel opens
+  useEffect(() => {
+    if (!open || initialSourceAccountId || !transaction?.source_account_name) return;
+    const bankAccts = accounts.filter((a) => a.account_subtype === 'bank' || a.account_subtype === 'credit_card');
+    const name = transaction.source_account_name.toLowerCase();
+    const matched = bankAccts.find((a) => {
+      const aName = a.account_name.toLowerCase();
+      return aName.includes(name.substring(0, 6)) || name.includes(aName.substring(0, 6));
+    });
+    if (matched) setSourceAccountId(matched.id);
+  }, [open, transaction?.id]);
+
   if (!transaction) return null;
 
   const bankAccounts = accounts.filter(
@@ -85,16 +97,7 @@ export function ClassifyPanel({
     (a) => a.account_type === 'expense' || a.account_type === 'asset',
   );
 
-  // Auto-select source account from transaction Plaid source on open
-  useEffect(() => {
-    if (!open || initialSourceAccountId || !transaction?.source_account_name) return;
-    const name = transaction.source_account_name.toLowerCase();
-    const matched = bankAccounts.find((a) => {
-      const aName = a.account_name.toLowerCase();
-      return aName.includes(name.substring(0, 6)) || name.includes(aName.substring(0, 6));
-    });
-    if (matched) setSourceAccountId(matched.id);
-  }, [open, transaction?.id]);
+
   const activeTaxCodes = taxCodes.filter((t) => t.is_active);
 
   function handleClose() {
