@@ -156,6 +156,25 @@ export class ClassificationService {
       .skip(offset);
 
     const [data, total] = await qb.getManyAndCount();
+
+    // Enrich with classified_id and classified_source_account_id for Post button
+    if (data.length > 0) {
+      const ids = data.map((t) => t.id);
+      const classified = await this.classifiedRepo
+        .createQueryBuilder('ct')
+        .select(['ct.raw_transaction_id', 'ct.id'])
+        .where('ct.raw_transaction_id IN (:...ids)', { ids })
+        .andWhere('ct.business_id = :businessId', { businessId })
+        .getMany();
+      const classifiedMap = new Map(classified.map((ct) => [ct.raw_transaction_id, ct]));
+      for (const tx of data) {
+        const ct = classifiedMap.get(tx.id);
+        if (ct) {
+          (tx as any).classified_id = ct.id;
+        }
+      }
+    }
+
     return { data, total };
   }
 

@@ -36,6 +36,9 @@ interface ClassifyPanelProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  initialStep?: 'classify' | 'post';
+  initialClassifiedId?: string;
+  initialSourceAccountId?: string;
 }
 
 type Step = 'classify' | 'post' | 'done';
@@ -47,12 +50,15 @@ export function ClassifyPanel({
   open,
   onClose,
   onSuccess,
+  initialStep = 'classify',
+  initialClassifiedId = '',
+  initialSourceAccountId = '',
 }: ClassifyPanelProps) {
-  const [step, setStep] = useState<Step>('classify');
+  const [step, setStep] = useState<Step>(initialStep);
   const [accountId, setAccountId] = useState('');
-  const [sourceAccountId, setSourceAccountId] = useState('');
+  const [sourceAccountId, setSourceAccountId] = useState(initialSourceAccountId);
   const [taxCodeId, setTaxCodeId] = useState('');
-  const [classifiedId, setClassifiedId] = useState('');
+  const [classifiedId, setClassifiedId] = useState(initialClassifiedId);
   const [error, setError] = useState('');
   const [aiSuggestion, setAiSuggestion] = useState<AiClassificationSuggestion | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -63,17 +69,37 @@ export function ClassifyPanel({
   const bankAccounts = accounts.filter(
     (a) => a.account_subtype === 'bank' || a.account_subtype === 'credit_card',
   );
+
+  // Auto-select source account if not already set and transaction has a source account name
+  if (!sourceAccountId && !initialSourceAccountId && transaction?.source_account_name) {
+    const matched = bankAccounts.find((a) =>
+      transaction.source_account_name &&
+      (a.account_name.toLowerCase().includes(transaction.source_account_name.toLowerCase().substring(0, 8)) ||
+       transaction.source_account_name.toLowerCase().includes(a.account_name.toLowerCase().substring(0, 8)))
+    );
+    if (matched) setSourceAccountId(matched.id);
+  }
+
+  // Auto-select source account if not already set and transaction has a source account name
+  if (!sourceAccountId && !initialSourceAccountId && transaction?.source_account_name) {
+    const matched = bankAccounts.find((a) =>
+      transaction.source_account_name &&
+      (a.account_name.toLowerCase().includes(transaction.source_account_name.toLowerCase().substring(0, 8)) ||
+       transaction.source_account_name.toLowerCase().includes(a.account_name.toLowerCase().substring(0, 8)))
+    );
+    if (matched) setSourceAccountId(matched.id);
+  }
   const debitAccounts = accounts.filter(
     (a) => a.account_type === 'expense' || a.account_type === 'asset',
   );
   const activeTaxCodes = taxCodes.filter((t) => t.is_active);
 
   function handleClose() {
-    setStep('classify');
+    setStep(initialStep);
     setAccountId('');
-    setSourceAccountId('');
+    setSourceAccountId(initialSourceAccountId);
     setTaxCodeId('');
-    setClassifiedId('');
+    setClassifiedId(initialClassifiedId);
     setError('');
     setAiSuggestion(null);
     onClose();

@@ -88,6 +88,7 @@ export function TransactionInbox({
   const [searchValue, setSearchValue] = useState(currentSearch);
   const [selectedTx, setSelectedTx] = useState<RawTransaction | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [postMode, setPostMode] = useState(false);
 
   const [explainerTx, setExplainerTx]   = useState<RawTransaction | null>(null);
   const [explainerOpen, setExplainerOpen] = useState(false);
@@ -153,8 +154,14 @@ export function TransactionInbox({
 
   function openClassify(tx: RawTransaction) {
     if (isPersonal) { setPersonalCatTx(tx); setPersonalCatOpen(true); }
-    else { setSelectedTx(tx); setPanelOpen(true); }
+    else { setSelectedTx(tx); setPostMode(false); setPanelOpen(true); }
   }
+  function openPost(tx: RawTransaction) {
+    setSelectedTx(tx);
+    setPostMode(true);
+    setPanelOpen(true);
+  }
+
   function handlePanelClose() { setPanelOpen(false); setSelectedTx(null); }
   function handleSuccess() { setPanelOpen(false); setSelectedTx(null); startTransition(() => router.refresh()); }
   function handleTagToggle() { startTransition(() => router.refresh()); }
@@ -486,7 +493,7 @@ export function TransactionInbox({
                             {!isPersonal && tx.status === 'classified' && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline" className="h-7 text-xs"
-                                  onClick={() => openClassify(tx)}>Post</Button>
+                                  onClick={() => openPost(tx)}>Post</Button>
                               </AdminOnly>
                             )}
                             {!isPersonal && tx.status === 'posted' && <span className="text-xs text-gray-400">Posted</span>}
@@ -581,7 +588,7 @@ export function TransactionInbox({
                       {!isPersonal && tx.status === 'classified' && (
                         <AdminOnly>
                           <Button size="sm" variant="outline" className="h-9 text-xs"
-                            onClick={() => openClassify(tx)}>Post</Button>
+                            onClick={() => openPost(tx)}>Post</Button>
                         </AdminOnly>
                       )}
                       {isActionable && (
@@ -675,8 +682,17 @@ export function TransactionInbox({
         </div>
       )}
 
-      <ClassifyPanel transaction={selectedTx} accounts={accounts} taxCodes={taxCodes}
-        open={panelOpen} onClose={handlePanelClose} onSuccess={handleSuccess} />
+      <ClassifyPanel
+          transaction={selectedTx}
+          accounts={accounts}
+          taxCodes={taxCodes}
+          open={panelOpen}
+          onClose={handlePanelClose}
+          onSuccess={handleSuccess}
+          initialStep={postMode ? 'post' : 'classify'}
+          initialClassifiedId={postMode ? (selectedTx?.classified_id ?? '') : ''}
+          initialSourceAccountId={postMode ? (selectedTx?.classified_source_account_id ?? '') : ''}
+        />
       <TransactionExplainerPanel transaction={explainerTx} open={explainerOpen} onClose={handleExplainerClose} />
       <SplitTransactionModal transaction={splitTx} accounts={accounts}
         open={splitOpen} onClose={handleSplitClose} onSuccess={handleSplitSuccess} />

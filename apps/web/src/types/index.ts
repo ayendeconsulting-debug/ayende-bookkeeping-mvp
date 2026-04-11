@@ -64,6 +64,8 @@ export interface RawTransaction {
   plaid_category?: string;
   anomaly_flags?: string[] | null; // Phase 15 – persisted from AI explain job
   personal_category_id?: string | null; // Phase 17 – manual budget category assignment
+  classified_id?: string | null;
+  classified_source_account_id?: string | null;
   created_at: string;
 }
 
@@ -485,7 +487,7 @@ export interface UpcomingRemindersResult {
   balance_shortfall: number;
 }
 
-/* -- Phase 17 � Personal Cashflow -------------------------------------------------------------- */
+/* -- Phase 17 � Personal Cashflow -------------------------------------------------------------- */
 
 export interface PersonalCashflow {
   money_in: number;
