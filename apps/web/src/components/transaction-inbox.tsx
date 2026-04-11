@@ -481,7 +481,7 @@ export function TransactionInbox({
                             <span className="text-xs text-gray-400">{tx.plaid_category}</span>
                           ) : null}
                         </TableCell>
-                        <TableCell className="text-gray-500 text-sm">{tx.source_account_name ?? 'â€”'}</TableCell>
+                        <TableCell className="text-gray-500 text-sm">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? '—'}</TableCell>
                         <TableCell className="text-right">
                           <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
                             {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
@@ -596,7 +596,7 @@ export function TransactionInbox({
                       </span>
                     )}
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-400">{tx.source_account_name ?? 'â€”'}</span>
+                      <span className="text-xs text-gray-400">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? '—'}</span>
                       <span className={cn('text-sm font-semibold', amount >= 0 ? 'text-primary' : 'text-danger')}>
                         {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
                       </span>
@@ -696,8 +696,8 @@ export function TransactionInbox({
           <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
           <select value={bulkAccountId} onChange={(e) => setBulkAccountId(e.target.value)}
             className="flex-1 max-w-xs h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary">
-            <option value="">Select accountâ€¦</option>
-            {accounts.map((a) => <option key={a.id} value={a.id}>{a.account_code} â€“ {a.account_name}</option>)}
+            <option value="">Select account…</option>
+            {accounts.filter(a => a.account_type === 'expense' || a.account_type === 'asset').map((a) => <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>)}
           </select>
           <select value={bulkTaxCodeId} onChange={(e) => setBulkTaxCodeId(e.target.value)}
             className="w-44 h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary">
@@ -708,7 +708,7 @@ export function TransactionInbox({
           </select>
           <Button onClick={handleBulkClassify} disabled={isBulkPending || !bulkAccountId}
             className="bg-primary text-white hover:bg-primary/90 flex-shrink-0">
-            {isBulkPending ? 'Classifyingâ€¦' : `Classify ${selectedIds.size}`}
+            {isBulkPending ? 'Classifying…' : `Classify ${selectedIds.size}`}
           </Button>
           <Button variant="outline" onClick={() => setSelectedIds(new Set())}
             disabled={isBulkPending} className="flex-shrink-0">Clear</Button>
