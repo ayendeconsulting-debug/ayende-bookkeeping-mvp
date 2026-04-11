@@ -391,9 +391,17 @@ export class ClassificationService {
         const netAmount = parseFloat((absAmount / (1 + rate)).toFixed(2));
         const taxAmount = parseFloat((absAmount - netAmount).toFixed(2));
 
-        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: classified.account_id, debit_amount: netAmount, credit_amount: 0, description: rawTx.description, is_tax_line: false, tax_code_id: null });
-        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: taxCode.tax_account_id, debit_amount: taxAmount, credit_amount: 0, description: `Tax: ${taxCode.code} @ ${(rate * 100).toFixed(2)}%`, is_tax_line: true, tax_code_id: taxCode.id });
-        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 3, account_id: sourceAccountId, debit_amount: 0, credit_amount: absAmount, description: rawTx.description, is_tax_line: false, tax_code_id: null });
+        if (isRevenue) {
+          // Revenue with tax: Debit source (gross), Credit revenue (net), Credit tax payable (tax)
+          lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: sourceAccountId, debit_amount: absAmount, credit_amount: 0, description: rawTx.description, is_tax_line: false, tax_code_id: null });
+          lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: classified.account_id, debit_amount: 0, credit_amount: netAmount, description: rawTx.description, is_tax_line: false, tax_code_id: null });
+          lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 3, account_id: taxCode.tax_account_id, debit_amount: 0, credit_amount: taxAmount, description: `Tax: ${taxCode.code} @ ${(rate * 100).toFixed(2)}%`, is_tax_line: true, tax_code_id: taxCode.id });
+        } else {
+          // Expense with tax: Debit expense (net), Debit tax (tax), Credit source (gross)
+          lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: classified.account_id, debit_amount: netAmount, credit_amount: 0, description: rawTx.description, is_tax_line: false, tax_code_id: null });
+          lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: taxCode.tax_account_id, debit_amount: taxAmount, credit_amount: 0, description: `Tax: ${taxCode.code} @ ${(rate * 100).toFixed(2)}%`, is_tax_line: true, tax_code_id: taxCode.id });
+          lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 3, account_id: sourceAccountId, debit_amount: 0, credit_amount: absAmount, description: rawTx.description, is_tax_line: false, tax_code_id: null });
+        }
 
         const savedLines = await manager.save(JournalLine, lines.map(l => manager.create(JournalLine, l))) as JournalLine[];
         const taxLine = savedLines[1];
