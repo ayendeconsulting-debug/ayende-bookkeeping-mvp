@@ -236,7 +236,7 @@ export function ClassifyPanel({
                   <Label>Category (debit account) *</Label>
                   <Select value={accountId} onValueChange={setAccountId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select expense or asset accountâ€¦" />
+                      <SelectValue placeholder="Select expense or asset account¦" />
                     </SelectTrigger>
                     <SelectContent>
                       {debitAccounts.map((a) => (
@@ -252,7 +252,7 @@ export function ClassifyPanel({
                   <Label>Source account (credit) *</Label>
                   <Select value={sourceAccountId} onValueChange={setSourceAccountId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select bank or credit cardâ€¦" />
+                      <SelectValue placeholder="Select bank or credit card¦" />
                     </SelectTrigger>
                     <SelectContent>
                       {bankAccounts.map((a) => (

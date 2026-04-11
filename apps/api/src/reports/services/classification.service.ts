@@ -361,6 +361,7 @@ export class ClassificationService {
     if (!rawTx) throw new NotFoundException('Raw transaction not found');
 
     const amount = Number(classified.override_amount ?? rawTx.amount);
+    const absAmount = Math.abs(amount);
     await this.checkFiscalYearLock(businessId, rawTx.transaction_date);
     await this.checkHstPeriodLock(businessId, rawTx.transaction_date);
 
@@ -385,22 +386,22 @@ export class ClassificationService {
         if (!taxCode) throw new NotFoundException('Tax code not found');
 
         const rate = Number(taxCode.rate);
-        const netAmount = parseFloat((amount / (1 + rate)).toFixed(2));
-        const taxAmount = parseFloat((amount - netAmount).toFixed(2));
+        const netAmount = parseFloat((absAmount / (1 + rate)).toFixed(2));
+        const taxAmount = parseFloat((absAmount - netAmount).toFixed(2));
 
         lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: classified.account_id, debit_amount: netAmount, credit_amount: 0, description: rawTx.description, is_tax_line: false, tax_code_id: null });
         lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: taxCode.tax_account_id, debit_amount: taxAmount, credit_amount: 0, description: `Tax: ${taxCode.code} @ ${(rate * 100).toFixed(2)}%`, is_tax_line: true, tax_code_id: taxCode.id });
-        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 3, account_id: sourceAccountId, debit_amount: 0, credit_amount: amount, description: rawTx.description, is_tax_line: false, tax_code_id: null });
+        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 3, account_id: sourceAccountId, debit_amount: 0, credit_amount: absAmount, description: rawTx.description, is_tax_line: false, tax_code_id: null });
 
         const savedLines = await manager.save(JournalLine, lines.map(l => manager.create(JournalLine, l))) as JournalLine[];
         const taxLine = savedLines[1];
         await manager.save(TaxTransaction, manager.create(TaxTransaction, {
           business_id: businessId, journal_line_id: taxLine.id, tax_code_id: taxCode.id,
-          net_amount: netAmount, tax_amount: taxAmount, gross_amount: amount,
+          net_amount: netAmount, tax_amount: taxAmount, gross_amount: absAmount,
         }));
       } else {
-        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: classified.account_id, debit_amount: amount, credit_amount: 0, description: rawTx.description, is_tax_line: false });
-        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: sourceAccountId, debit_amount: 0, credit_amount: amount, description: rawTx.description, is_tax_line: false });
+        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: classified.account_id, debit_amount: absAmount, credit_amount: 0, description: rawTx.description, is_tax_line: false });
+        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: sourceAccountId, debit_amount: 0, credit_amount: absAmount, description: rawTx.description, is_tax_line: false });
         await manager.save(JournalLine, lines.map(l => manager.create(JournalLine, l)));
       }
 
@@ -431,6 +432,7 @@ export class ClassificationService {
 
     const amount = Number(rawTx.amount);
     return this.dataSource.transaction(async (manager) => {
+    const absAmount = Math.abs(amount);
       const entry = manager.create(JournalEntry, {
         business_id: dto.businessId, entry_date: rawTx.transaction_date,
         description: `Owner Contribution: ${rawTx.description}`,
@@ -440,8 +442,8 @@ export class ClassificationService {
       });
       const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
       await manager.save(JournalLine, [
-        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: dto.debitAccountId, debit_amount: amount, credit_amount: 0, description: rawTx.description }),
-        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: ownerContribAccount.id, debit_amount: 0, credit_amount: amount, description: `Owner Contribution: ${rawTx.description}` }),
+        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: dto.debitAccountId, debit_amount: absAmount, credit_amount: 0, description: rawTx.description }),
+        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: ownerContribAccount.id, debit_amount: 0, credit_amount: absAmount, description: `Owner Contribution: ${rawTx.description}` }),
       ]);
       return savedEntry;
     });
@@ -465,6 +467,7 @@ export class ClassificationService {
 
     const amount = Number(rawTx.amount);
     return this.dataSource.transaction(async (manager) => {
+    const absAmount = Math.abs(amount);
       const entry = manager.create(JournalEntry, {
         business_id: dto.businessId, entry_date: rawTx.transaction_date,
         description: `Owner Draw: ${rawTx.description}`,
@@ -474,8 +477,8 @@ export class ClassificationService {
       });
       const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
       await manager.save(JournalLine, [
-        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: ownerDrawAccount.id, debit_amount: amount, credit_amount: 0, description: `Owner Draw: ${rawTx.description}` }),
-        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: dto.creditAccountId, debit_amount: 0, credit_amount: amount, description: rawTx.description }),
+        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: ownerDrawAccount.id, debit_amount: absAmount, credit_amount: 0, description: `Owner Draw: ${rawTx.description}` }),
+        manager.create(JournalLine, { business_id: dto.businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: dto.creditAccountId, debit_amount: 0, credit_amount: absAmount, description: rawTx.description }),
       ]);
       return savedEntry;
     });
