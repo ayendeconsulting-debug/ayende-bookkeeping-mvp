@@ -22,16 +22,41 @@ import { Label } from '@/components/ui/label';
 
 const ACCOUNT_TYPES: AccountType[] = ['asset', 'liability', 'equity', 'revenue', 'expense'];
 
-const SUBTYPES = [
-  { value: '', label: 'None' },
-  { value: 'bank', label: 'Bank' },
-  { value: 'credit_card', label: 'Credit Card' },
-  { value: 'owner_contribution', label: 'Owner Contribution' },
-  { value: 'owner_draw', label: 'Owner Draw' },
-  { value: 'tax_payable', label: 'Tax Payable' },
-  { value: 'accounts_receivable', label: 'Accounts Receivable' },
-  { value: 'accounts_payable', label: 'Accounts Payable' },
-];
+const SUBTYPES_BY_TYPE: Record<string, { value: string; label: string }[]> = {
+  asset: [
+    { value: '', label: 'None' },
+    { value: 'bank', label: 'Bank' },
+    { value: 'accounts_receivable', label: 'Accounts Receivable' },
+    { value: 'fixed_asset', label: 'Fixed Asset' },
+    { value: 'general', label: 'General' },
+  ],
+  liability: [
+    { value: '', label: 'None' },
+    { value: 'credit_card', label: 'Credit Card' },
+    { value: 'accounts_payable', label: 'Accounts Payable' },
+    { value: 'tax_payable', label: 'Tax Payable' },
+    { value: 'general', label: 'General' },
+  ],
+  equity: [
+    { value: '', label: 'None' },
+    { value: 'owner_contribution', label: 'Owner Contribution' },
+    { value: 'owner_draw', label: 'Owner Draw' },
+    { value: 'retained_earnings', label: 'Retained Earnings' },
+    { value: 'general', label: 'General' },
+  ],
+  revenue: [
+    { value: '', label: 'None' },
+    { value: 'other_income', label: 'Other Income' },
+    { value: 'general', label: 'General' },
+  ],
+  expense: [
+    { value: '', label: 'None' },
+    { value: 'operating_expense', label: 'Operating Expense' },
+    { value: 'cost_of_goods_sold', label: 'Cost of Goods Sold' },
+    { value: 'other_expense', label: 'Other Expense' },
+    { value: 'general', label: 'General' },
+  ],
+};
 
 const TYPE_COLORS: Record<AccountType, string> = {
   asset:     'text-blue-600 bg-blue-50',
@@ -66,7 +91,6 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
   const [error, setError] = useState<string | null>(null);
   const [collapsedTypes, setCollapsedTypes] = useState<Set<string>>(new Set());
 
-  // Phase 12: seed defaults state
   const [isSeedPending, startSeedTransition] = useTransition();
 
   function openCreate() {
@@ -135,7 +159,6 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
     }
   }
 
-  // Phase 12: Load Default Accounts handler
   function handleSeedDefaults() {
     startSeedTransition(async () => {
       const result = await seedDefaultAccounts();
@@ -164,7 +187,6 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
     return acc;
   }, {} as Record<string, Account[]>);
 
-  // Phase 12: show "Load Default Accounts" only when chart is empty/near-empty (<5 accounts)
   const showLoadDefaults = accounts.length < 5;
 
   return (
@@ -177,7 +199,6 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Phase 12: Load Default Accounts button — admin only, shown when <5 accounts */}
           {showLoadDefaults && (
             <AdminOnly>
               <Button
@@ -187,7 +208,7 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
                 className="flex items-center gap-2 border-primary text-primary hover:bg-primary-light"
               >
                 <Wand2 className="w-4 h-4" />
-                {isSeedPending ? 'Loading…' : 'Load Default Accounts'}
+                {isSeedPending ? 'Loading...' : 'Load Default Accounts'}
               </Button>
             </AdminOnly>
           )}
@@ -200,7 +221,6 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
         </div>
       </div>
 
-      {/* Phase 12: Empty state prompt */}
       {accounts.length === 0 && (
         <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700">
           Your chart of accounts is empty. Click <strong>Load Default Accounts</strong> to add a standard set of 27 accounts, or create them manually.
@@ -320,7 +340,7 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
                 <Label>Account Type</Label>
                 <select
                   value={form.account_type}
-                  onChange={(e) => setForm((f) => ({ ...f, account_type: e.target.value }))}
+                  onChange={(e) => setForm((f) => ({ ...f, account_type: e.target.value, account_subtype: '' }))}
                   disabled={!!editingAccount}
                   className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50 disabled:text-gray-400"
                 >
@@ -346,7 +366,9 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
                   onChange={(e) => setForm((f) => ({ ...f, account_subtype: e.target.value }))}
                   className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56]"
                 >
-                  {SUBTYPES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                  {(SUBTYPES_BY_TYPE[form.account_type] ?? []).map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
                 </select>
               </div>
             )}
@@ -354,7 +376,7 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
             <div className="flex justify-end gap-2 mt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving…' : editingAccount ? 'Save Changes' : 'Create Account'}
+                {saving ? 'Saving...' : editingAccount ? 'Save Changes' : 'Create Account'}
               </Button>
             </div>
           </div>
