@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition } from 'react';
 import { Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, AiClassificationSuggestion } from '@/types';
 import { formatCurrency } from '@/lib/utils';
@@ -39,6 +39,7 @@ interface ClassifyPanelProps {
   initialStep?: 'classify' | 'post';
   initialClassifiedId?: string;
   initialSourceAccountId?: string;
+  initialAccountId?: string;
 }
 
 type Step = 'classify' | 'post' | 'done';
@@ -53,9 +54,10 @@ export function ClassifyPanel({
   initialStep = 'classify',
   initialClassifiedId = '',
   initialSourceAccountId = '',
+  initialAccountId = '',
 }: ClassifyPanelProps) {
   const [step, setStep] = useState<Step>(initialStep);
-  const [accountId, setAccountId] = useState('');
+  const [accountId, setAccountId] = useState(initialAccountId);
   const [sourceAccountId, setSourceAccountId] = useState(initialSourceAccountId);
   const [taxCodeId, setTaxCodeId] = useState('');
   const [classifiedId, setClassifiedId] = useState(initialClassifiedId);
@@ -64,17 +66,7 @@ export function ClassifyPanel({
   const [isPending, startTransition] = useTransition();
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // Auto-select source account when panel opens
-  useEffect(() => {
-    if (!open || initialSourceAccountId || !transaction?.source_account_name) return;
-    const bankAccts = accounts.filter((a) => a.account_subtype === 'bank' || a.account_subtype === 'credit_card');
-    const name = transaction.source_account_name.toLowerCase();
-    const matched = bankAccts.find((a) => {
-      const aName = a.account_name.toLowerCase();
-      return aName.includes(name.substring(0, 6)) || name.includes(aName.substring(0, 6));
-    });
-    if (matched) setSourceAccountId(matched.id);
-  }, [open, transaction?.id]);
+  
 
   if (!transaction) return null;
 
@@ -84,15 +76,7 @@ export function ClassifyPanel({
 
   
 
-  // Auto-select source account if not already set and transaction has a source account name
-  if (!sourceAccountId && !initialSourceAccountId && transaction?.source_account_name) {
-    const matched = bankAccounts.find((a) =>
-      transaction.source_account_name &&
-      (a.account_name.toLowerCase().includes(transaction.source_account_name.toLowerCase().substring(0, 8)) ||
-       transaction.source_account_name.toLowerCase().includes(a.account_name.toLowerCase().substring(0, 8)))
-    );
-    if (matched) setSourceAccountId(matched.id);
-  }
+
   const debitAccounts = accounts.filter(
     (a) => a.account_type === 'expense' || a.account_type === 'asset',
   );
@@ -102,7 +86,7 @@ export function ClassifyPanel({
 
   function handleClose() {
     setStep(initialStep);
-    setAccountId('');
+    setAccountId(initialAccountId);
     setSourceAccountId(initialSourceAccountId);
     setTaxCodeId('');
     setClassifiedId(initialClassifiedId);

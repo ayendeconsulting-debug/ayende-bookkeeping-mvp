@@ -78,6 +78,10 @@ export class ClassifiedTransaction {
   @Column({ type: 'uuid', nullable: true })
   destination_account_id: string;
 
+  // Source bank/credit account used when posting to ledger
+  @Column({ type: 'uuid', nullable: true })
+  source_account_id: string;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 
