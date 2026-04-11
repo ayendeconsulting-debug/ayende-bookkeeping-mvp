@@ -362,6 +362,8 @@ export class ClassificationService {
 
     const amount = Number(classified.override_amount ?? rawTx.amount);
     const absAmount = Math.abs(amount);
+    const categoryAccount = await this.accountRepo.findOne({ where: { id: classified.account_id } });
+    const isRevenue = categoryAccount?.account_type === 'revenue';
     await this.checkFiscalYearLock(businessId, rawTx.transaction_date);
     await this.checkHstPeriodLock(businessId, rawTx.transaction_date);
 
@@ -400,8 +402,13 @@ export class ClassificationService {
           net_amount: netAmount, tax_amount: taxAmount, gross_amount: absAmount,
         }));
       } else {
-        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: classified.account_id, debit_amount: absAmount, credit_amount: 0, description: rawTx.description, is_tax_line: false });
-        lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: sourceAccountId, debit_amount: 0, credit_amount: absAmount, description: rawTx.description, is_tax_line: false });
+        if (isRevenue) {
+          lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: sourceAccountId, debit_amount: absAmount, credit_amount: 0, description: rawTx.description, is_tax_line: false });
+          lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: classified.account_id, debit_amount: 0, credit_amount: absAmount, description: rawTx.description, is_tax_line: false });
+        } else {
+          lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 1, account_id: classified.account_id, debit_amount: absAmount, credit_amount: 0, description: rawTx.description, is_tax_line: false });
+          lines.push({ business_id: businessId, journal_entry_id: savedEntry.id, line_number: 2, account_id: sourceAccountId, debit_amount: 0, credit_amount: absAmount, description: rawTx.description, is_tax_line: false });
+        }
         await manager.save(JournalLine, lines.map(l => manager.create(JournalLine, l)));
       }
 
