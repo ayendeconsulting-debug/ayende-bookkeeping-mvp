@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, AiClassificationSuggestion } from '@/types';
 import { formatCurrency } from '@/lib/utils';
@@ -70,15 +70,7 @@ export function ClassifyPanel({
     (a) => a.account_subtype === 'bank' || a.account_subtype === 'credit_card',
   );
 
-  // Auto-select source account if not already set and transaction has a source account name
-  if (!sourceAccountId && !initialSourceAccountId && transaction?.source_account_name) {
-    const matched = bankAccounts.find((a) =>
-      transaction.source_account_name &&
-      (a.account_name.toLowerCase().includes(transaction.source_account_name.toLowerCase().substring(0, 8)) ||
-       transaction.source_account_name.toLowerCase().includes(a.account_name.toLowerCase().substring(0, 8)))
-    );
-    if (matched) setSourceAccountId(matched.id);
-  }
+  
 
   // Auto-select source account if not already set and transaction has a source account name
   if (!sourceAccountId && !initialSourceAccountId && transaction?.source_account_name) {
@@ -92,6 +84,17 @@ export function ClassifyPanel({
   const debitAccounts = accounts.filter(
     (a) => a.account_type === 'expense' || a.account_type === 'asset',
   );
+
+  // Auto-select source account from transaction Plaid source on open
+  useEffect(() => {
+    if (!open || initialSourceAccountId || !transaction?.source_account_name) return;
+    const name = transaction.source_account_name.toLowerCase();
+    const matched = bankAccounts.find((a) => {
+      const aName = a.account_name.toLowerCase();
+      return aName.includes(name.substring(0, 6)) || name.includes(aName.substring(0, 6));
+    });
+    if (matched) setSourceAccountId(matched.id);
+  }, [open, transaction?.id]);
   const activeTaxCodes = taxCodes.filter((t) => t.is_active);
 
   function handleClose() {
