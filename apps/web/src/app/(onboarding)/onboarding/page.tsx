@@ -487,10 +487,10 @@ export default function OnboardingPage() {
                 <Label>Base Currency</Label>
                 <select value={currency} onChange={(e) => setCurrency(e.target.value)}
                   className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
-                  <option value="CAD">CAD â€” Canadian Dollar</option>
-                  <option value="USD">USD â€” US Dollar</option>
-                  <option value="EUR">EUR â€” Euro</option>
-                  <option value="GBP">GBP â€” British Pound</option>
+                  <option value="CAD">CAD– Canadian Dollar</option>
+                  <option value="USD">USD– US Dollar</option>
+                  <option value="EUR">EUR– Euro</option>
+                  <option value="GBP">GBP– British Pound</option>
                 </select>
               </div>
               {selectedMode !== 'personal' && (
