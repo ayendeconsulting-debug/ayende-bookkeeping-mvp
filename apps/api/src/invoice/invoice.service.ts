@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -35,7 +35,7 @@ export class InvoiceService {
     private readonly dataSource: DataSource,
   ) {}
 
-  // ── Create ────────────────────────────────────────────────────────────────
+  // â”€â”€ Create â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async create(businessId: string, userId: string, dto: CreateInvoiceDto): Promise<Invoice> {
     const invoiceNumber = dto.invoice_number || await this.generateInvoiceNumber(businessId);
@@ -79,11 +79,11 @@ export class InvoiceService {
       );
       await manager.save(InvoiceLineItem, lines);
 
-      return this.findOne(businessId, saved.id);
+      const result = await manager.findOne(Invoice, { where: { id: saved.id, business_id: businessId }, relations: ['lineItems', 'lineItems.taxCode'] }); return result!;
     });
   }
 
-  // ── List ──────────────────────────────────────────────────────────────────
+  // â”€â”€ List â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async findAll(
     businessId: string,
@@ -110,7 +110,7 @@ export class InvoiceService {
     return { data, total };
   }
 
-  // ── Get One ───────────────────────────────────────────────────────────────
+  // â”€â”€ Get One â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async findOne(businessId: string, id: string): Promise<Invoice> {
     const invoice = await this.invoiceRepo.findOne({
@@ -121,7 +121,7 @@ export class InvoiceService {
     return invoice;
   }
 
-  // ── Update (draft only) ───────────────────────────────────────────────────
+  // â”€â”€ Update (draft only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async update(businessId: string, id: string, dto: UpdateInvoiceDto): Promise<Invoice> {
     const invoice = await this.findOne(businessId, id);
@@ -171,7 +171,7 @@ export class InvoiceService {
     });
   }
 
-  // ── Send ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Send â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async markAsSent(businessId: string, id: string): Promise<Invoice> {
     const invoice = await this.findOne(businessId, id);
@@ -185,7 +185,7 @@ export class InvoiceService {
     return invoice;
   }
 
-  // ── Record Payment ────────────────────────────────────────────────────────
+  // â”€â”€ Record Payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async recordPayment(
     businessId: string,
@@ -220,7 +220,7 @@ export class InvoiceService {
       const entry = manager.create(JournalEntry, {
         business_id: businessId,
         entry_date: new Date(dto.payment_date),
-        description: `Payment received — ${invoice.invoice_number} (${invoice.client_name})`,
+        description: `Payment received â€” ${invoice.invoice_number} (${invoice.client_name})`,
         reference_type: 'invoice_payment',
         reference_id: invoice.id,
         status: JournalEntryStatus.POSTED,
@@ -239,7 +239,7 @@ export class InvoiceService {
           account_id: dto.bank_account_id,
           debit_amount: dto.amount,
           credit_amount: 0,
-          description: `${invoice.invoice_number} — ${invoice.client_name}`,
+          description: `${invoice.invoice_number} â€” ${invoice.client_name}`,
           is_tax_line: false,
         }),
         manager.create(JournalLine, {
@@ -249,7 +249,7 @@ export class InvoiceService {
           account_id: dto.revenue_account_id,
           debit_amount: 0,
           credit_amount: dto.amount,
-          description: `${invoice.invoice_number} — ${invoice.client_name}`,
+          description: `${invoice.invoice_number} â€” ${invoice.client_name}`,
           is_tax_line: false,
         }),
       ]);
@@ -268,7 +268,7 @@ export class InvoiceService {
     });
   }
 
-  // ── Void ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Void â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async voidInvoice(businessId: string, id: string): Promise<Invoice> {
     const invoice = await this.findOne(businessId, id);
@@ -285,7 +285,7 @@ export class InvoiceService {
     return invoice;
   }
 
-  // ── PDF Generation ────────────────────────────────────────────────────────
+  // â”€â”€ PDF Generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async generatePdf(businessId: string, id: string): Promise<Buffer> {
     const invoice = await this.findOne(businessId, id);
@@ -303,7 +303,7 @@ export class InvoiceService {
       const gray = '#6B7280';
       const dark = '#111827';
 
-      // ── Header ──
+      // â”€â”€ Header â”€â”€
       doc.fontSize(24).fillColor(teal).text('INVOICE', 50, 50);
       doc
         .fontSize(10)
@@ -332,7 +332,7 @@ export class InvoiceService {
         .fillColor(statusColor)
         .text(invoice.status.toUpperCase().replace('_', ' '), 400, 90);
 
-      // ── Bill To ──
+      // â”€â”€ Bill To â”€â”€
       doc
         .fontSize(10)
         .fillColor(gray)
@@ -345,7 +345,7 @@ export class InvoiceService {
         doc.fontSize(10).fillColor(gray).text(invoice.client_email, 50, 185);
       }
 
-      // ── Line Items Table ──
+      // â”€â”€ Line Items Table â”€â”€
       const tableTop = invoice.client_email ? 220 : 205;
       const col = { desc: 50, qty: 300, price: 370, total: 450 };
 
@@ -392,7 +392,7 @@ export class InvoiceService {
           .stroke();
       }
 
-      // ── Totals ──
+      // â”€â”€ Totals â”€â”€
       const totalsY = y + 10;
       doc
         .fontSize(10)
@@ -438,7 +438,7 @@ export class InvoiceService {
           .text(`$${Number(invoice.balance_due).toFixed(2)}`, col.total, totalY + 38);
       }
 
-      // ── Notes ──
+      // â”€â”€ Notes â”€â”€
       if (invoice.notes) {
         doc
           .fontSize(9)
@@ -455,7 +455,7 @@ export class InvoiceService {
     return Buffer.concat(chunks);
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private async generateInvoiceNumber(businessId: string): Promise<string> {
     const year = new Date().getFullYear();
