@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition, useEffect } from 'react';
 import {
@@ -58,21 +58,21 @@ const TOTAL_STEPS = 7;
 const MODE_CARDS = [
   {
     id: 'business' as Mode,
-    icon: '🏢',
+    icon: 'ðŸ¢',
     title: 'Business',
     subtitle: 'Incorporated companies, partnerships, registered businesses',
     features: ['Full double-entry accounting', 'AP/AR tracking', 'Financial reports', 'Invoice creation', 'Multi-user access'],
   },
   {
     id: 'freelancer' as Mode,
-    icon: '💼',
+    icon: 'ðŸ’¼',
     title: 'Freelancer / Sole Proprietor',
     subtitle: 'Independent contractors, consultants, self-employed',
     features: ['Personal & business split', 'Simplified categories', 'Quarterly tax estimates', 'Invoice creation', 'Mileage tracker'],
   },
   {
     id: 'personal' as Mode,
-    icon: '🏠',
+    icon: 'ðŸ ',
     title: 'Personal Finance',
     subtitle: 'Household budgeting, savings goals, spending tracking',
     features: ['Budget categories', 'Savings goals', 'Net worth tracker', 'Recurring payment detection', 'Upcoming reminders'],
@@ -80,12 +80,12 @@ const MODE_CARDS = [
 ];
 
 const INDUSTRIES = [
-  { id: 'general',      label: 'General / Other',        icon: '📋', description: 'Standard chart of accounts for any business' },
-  { id: 'services',     label: 'Professional Services',  icon: '💼', description: 'Consulting, legal, accounting, IT services' },
-  { id: 'retail',       label: 'Retail',                 icon: '🛒', description: 'Inventory, cost of goods sold, sales' },
-  { id: 'construction', label: 'Construction',           icon: '🏗️', description: 'WIP, contract revenue, subcontractors' },
-  { id: 'restaurant',   label: 'Restaurant / Food',      icon: '🍽️', description: 'Food & beverage, kitchen labor, catering' },
-  { id: 'freelancer',   label: 'Freelancer',             icon: '🧑‍💻', description: 'Home office, tools, mileage, consulting revenue' },
+  { id: 'general',      label: 'General / Other',        icon: 'ðŸ“‹', description: 'Standard chart of accounts for any business' },
+  { id: 'services',     label: 'Professional Services',  icon: 'ðŸ’¼', description: 'Consulting, legal, accounting, IT services' },
+  { id: 'retail',       label: 'Retail',                 icon: 'ðŸ›’', description: 'Inventory, cost of goods sold, sales' },
+  { id: 'construction', label: 'Construction',           icon: 'ðŸ—ï¸', description: 'WIP, contract revenue, subcontractors' },
+  { id: 'restaurant',   label: 'Restaurant / Food',      icon: 'ðŸ½ï¸', description: 'Food & beverage, kitchen labor, catering' },
+  { id: 'freelancer',   label: 'Freelancer',             icon: 'ðŸ§‘â€ðŸ’»', description: 'Home office, tools, mileage, consulting revenue' },
 ];
 
 const TAX_PRESETS: Record<Country, { code: string; name: string; rate: number }[]> = {
@@ -135,7 +135,7 @@ const PLAN_CARDS: {
   },
 ];
 
-/* ── Progress Bar ─────────────────────────────────────────────────────────── */
+/* â”€â”€ Progress Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function ProgressBar({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-2 mb-8">
@@ -159,7 +159,7 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
-/* ── Legal Checkbox ───────────────────────────────────────────────────────── */
+/* â”€â”€ Legal Checkbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function LegalCheckbox({
   doc, checked, preChecked, onChange,
 }: {
@@ -206,7 +206,7 @@ function LegalCheckbox({
   );
 }
 
-/* ── Main Wizard ──────────────────────────────────────────────────────────── */
+/* â”€â”€ Main Wizard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function OnboardingPage() {
   const [step, setStep]              = useState(1);
   const [isPending, startTransition] = useTransition();
@@ -289,7 +289,7 @@ export default function OnboardingPage() {
       const result = await saveModeAndCountry(selectedMode, selectedCountry);
       if (result.error) { setError(result.error); toastError('Could not save', result.error); return; }
       if (!currency) setCurrency(selectedCountry === 'CA' ? 'CAD' : 'USD');
-      toastSuccess('Mode selected', `${selectedMode} mode · ${selectedCountry}`);
+      toastSuccess('Mode selected', `${selectedMode} mode Â· ${selectedCountry}`);
       setStep(2);
     });
   }
@@ -312,9 +312,9 @@ export default function OnboardingPage() {
           hst_reporting_frequency: hstFrequency,
         });
         if (taxResult.error) {
-          toastError('Tax settings not saved', taxResult.error + ' — you can update these in Settings.');
+          toastError('Tax settings not saved', taxResult.error + ' â€” you can update these in Settings.');
         } else {
-          toastSuccess('Tax settings saved', `Province: ${provinceCode} — default tax codes created`);
+          toastSuccess('Tax settings saved', `Province: ${provinceCode} â€” default tax codes created`);
         }
       }
 
@@ -356,7 +356,7 @@ export default function OnboardingPage() {
     });
   }
 
-  // Phase 12: Step 6 — create Stripe checkout and redirect
+  // Phase 12: Step 6 â€” create Stripe checkout and redirect
   function handleStep6() {
     setError(null);
     startTransition(async () => {
@@ -366,7 +366,7 @@ export default function OnboardingPage() {
         toastError('Checkout failed', result.error ?? 'Please try again.');
         return;
       }
-      // Same-window navigation — clean UX, no new tab
+      // Same-window navigation â€” clean UX, no new tab
       window.location.href = result.url;
     });
   }
@@ -404,7 +404,7 @@ export default function OnboardingPage() {
 
         <ProgressBar step={step} />
 
-        {/* ── Step 1: Mode + Country ── */}
+        {/* â”€â”€ Step 1: Mode + Country â”€â”€ */}
         {step === 1 && (
           <div className="flex flex-col gap-6">
             <div>
@@ -422,7 +422,7 @@ export default function OnboardingPage() {
                       <ul className="space-y-0.5">
                         {card.features.map((f) => (
                           <li key={f} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <span className={isSelected ? 'text-[#0F6E56]' : 'text-gray-300'}>✓</span>{f}
+                            <span className={isSelected ? 'text-[#0F6E56]' : 'text-gray-300'}>âœ“</span>{f}
                           </li>
                         ))}
                       </ul>
@@ -444,10 +444,10 @@ export default function OnboardingPage() {
                   <button key={c} onClick={() => setSelectedCountry(c)}
                     className={['flex items-center gap-3 p-3 rounded-xl border-2 transition-all bg-card hover:border-[#0F6E56]',
                       selectedCountry === c ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
-                    <span className="text-xl">{c === 'CA' ? '🇨🇦' : '🇺🇸'}</span>
+                    <span className="text-xl">{c === 'CA' ? 'ðŸ‡¨ðŸ‡¦' : 'ðŸ‡ºðŸ‡¸'}</span>
                     <div className="text-left">
                       <div className="font-semibold text-sm text-foreground">{c === 'CA' ? 'Canada' : 'United States'}</div>
-                      <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD · CRA' : 'USD · IRS'}</div>
+                      <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD Â· CRA' : 'USD Â· IRS'}</div>
                     </div>
                   </button>
                 ))}
@@ -455,16 +455,17 @@ export default function OnboardingPage() {
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
-            <div>
+            <div className="flex flex-col gap-3">
               <Button onClick={handleStep1} disabled={isPending || !selectedMode || !selectedCountry} className="flex items-center gap-2">
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Continue <ChevronRight className="w-4 h-4" />
               </Button>
+              <a href="https://www.gettempo.ca" className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-fit">Cancel &mdash; return to website</a>
             </div>
           </div>
         )}
 
-        {/* ── Step 2: Business Details ── */}
+        {/* â”€â”€ Step 2: Business Details â”€â”€ */}
         {step === 2 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
@@ -483,10 +484,10 @@ export default function OnboardingPage() {
                 <Label>Base Currency</Label>
                 <select value={currency} onChange={(e) => setCurrency(e.target.value)}
                   className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
-                  <option value="CAD">CAD — Canadian Dollar</option>
-                  <option value="USD">USD — US Dollar</option>
-                  <option value="EUR">EUR — Euro</option>
-                  <option value="GBP">GBP — British Pound</option>
+                  <option value="CAD">CAD â€” Canadian Dollar</option>
+                  <option value="USD">USD â€” US Dollar</option>
+                  <option value="EUR">EUR â€” Euro</option>
+                  <option value="GBP">GBP â€” British Pound</option>
                 </select>
               </div>
               {selectedMode !== 'personal' && (
@@ -507,7 +508,7 @@ export default function OnboardingPage() {
                   <Label>Province / Territory <span className="text-muted-foreground font-normal">(recommended)</span></Label>
                   <select value={provinceCode} onChange={(e) => setProvinceCode(e.target.value)}
                     className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
-                    <option value="">— Select province —</option>
+                    <option value="">â€” Select province â€”</option>
                     {provinces.map((p) => (
                       <option key={p.province_code} value={p.province_code}>
                         {p.province_name} ({p.province_code})
@@ -516,7 +517,7 @@ export default function OnboardingPage() {
                   </select>
                   {taxLabel && (
                     <p className="text-xs text-[#0F6E56] font-medium">
-                      ✓ Default tax rate: {taxLabel} — tax codes will be created automatically
+                      âœ“ Default tax rate: {taxLabel} â€” tax codes will be created automatically
                     </p>
                   )}
                 </div>
@@ -550,7 +551,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 3: Seed Accounts ── */}
+        {/* â”€â”€ Step 3: Seed Accounts â”€â”€ */}
         {step === 3 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
@@ -583,7 +584,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 4: First Tax Code ── */}
+        {/* â”€â”€ Step 4: First Tax Code â”€â”€ */}
         {step === 4 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
@@ -603,7 +604,7 @@ export default function OnboardingPage() {
                 </div>
                 <p className="text-xs text-[#085041] dark:text-primary/80">
                   Default HST/GST tax codes for {provinceCode} were set up in the previous step.
-                  You can manage them in Settings → Tax Codes.
+                  You can manage them in Settings â†’ Tax Codes.
                 </p>
               </div>
             ) : (
@@ -618,7 +619,7 @@ export default function OnboardingPage() {
                         taxPreset === preset.code ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
                       <div>
                         <div className="text-sm font-medium text-foreground">{preset.name}</div>
-                        <div className="text-xs text-muted-foreground">{preset.code} · {(preset.rate * 100).toFixed(2)}%</div>
+                        <div className="text-xs text-muted-foreground">{preset.code} Â· {(preset.rate * 100).toFixed(2)}%</div>
                       </div>
                       {taxPreset === preset.code && <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" />}
                     </button>
@@ -635,7 +636,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 5: Legal Agreements ── */}
+        {/* â”€â”€ Step 5: Legal Agreements â”€â”€ */}
         {step === 5 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
@@ -648,7 +649,7 @@ export default function OnboardingPage() {
             {legalLoading ? (
               <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Checking previous agreements…</span>
+                <span className="text-sm">Checking previous agreementsâ€¦</span>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -675,7 +676,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 6: Choose Your Plan (Phase 12 NEW) ── */}
+        {/* â”€â”€ Step 6: Choose Your Plan (Phase 12 NEW) â”€â”€ */}
         {step === 6 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
@@ -683,7 +684,7 @@ export default function OnboardingPage() {
               <h2 className="text-base font-semibold text-foreground">Choose your plan</h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              Start your <strong className="text-foreground">60-day free trial</strong> — no charge until your trial ends. Cancel anytime.
+              Start your <strong className="text-foreground">60-day free trial</strong> â€” no charge until your trial ends. Cancel anytime.
             </p>
 
             {/* Billing cycle toggle */}
@@ -748,7 +749,7 @@ export default function OnboardingPage() {
                     <ul className="space-y-1">
                       {plan.features.map((f) => (
                         <li key={f} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                          <span className={isSelected ? 'text-[#0F6E56] mt-0.5' : 'text-gray-300 mt-0.5'}>✓</span>
+                          <span className={isSelected ? 'text-[#0F6E56] mt-0.5' : 'text-gray-300 mt-0.5'}>âœ“</span>
                           {f}
                         </li>
                       ))}
@@ -779,30 +780,30 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 7: Connect Bank (previously Step 6) ── */}
+        {/* â”€â”€ Step 7: Connect Bank (previously Step 6) â”€â”€ */}
         {step === 7 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
               <h2 className="text-base font-semibold text-foreground mb-1">Connect your bank account</h2>
               <p className="text-sm text-muted-foreground">
-                Link your bank to auto-import transactions. Powered by Plaid — secure and read-only.
+                Link your bank to auto-import transactions. Powered by Plaid â€” secure and read-only.
               </p>
             </div>
             <div className="rounded-xl border border-border bg-muted p-5 flex flex-col items-center gap-3 text-center">
-              <div className="text-3xl">🏦</div>
+              <div className="text-3xl">ðŸ¦</div>
               <div>
                 <p className="text-sm font-medium text-foreground">Secure bank connection via Plaid</p>
                 <p className="text-xs text-muted-foreground mt-1">Works with 12,000+ financial institutions in Canada and the US.</p>
               </div>
               <Button onClick={() => handleComplete('/banks')} disabled={isPending} className="flex items-center gap-2 w-full justify-center">
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Connect Bank →
+                Connect Bank â†’
               </Button>
             </div>
             <div className="text-center">
               <button onClick={() => handleComplete('/dashboard')} disabled={isPending}
                 className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors disabled:opacity-50">
-                Skip for now — go to Dashboard
+                Skip for now â€” go to Dashboard
               </button>
             </div>
             {error && <p className="text-sm text-destructive text-center">{error}</p>}
