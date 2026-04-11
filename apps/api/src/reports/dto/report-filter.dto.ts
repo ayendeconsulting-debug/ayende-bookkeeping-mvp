@@ -1,4 +1,4 @@
-import { IsDateString, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+﻿import { IsDateString, IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export enum ExportFormat {
   PDF = 'pdf',
@@ -7,6 +7,7 @@ export enum ExportFormat {
 
 export class ReportFilterDto {
   @IsString()
+  @IsOptional()
   businessId: string;
 
   @IsDateString()
