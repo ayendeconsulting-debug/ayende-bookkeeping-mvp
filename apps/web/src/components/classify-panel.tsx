@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -132,7 +132,7 @@ export function ClassifyPanel({
         rawTransactionId: transaction!.id,
         accountId,
         sourceAccountId,
-        taxCodeId: taxCodeId || undefined,
+        taxCodeId: taxCodeId && taxCodeId !== 'none' ? taxCodeId : undefined,
         classificationMethod: 'manual',
       });
       if (result.success) {
@@ -207,7 +207,7 @@ export function ClassifyPanel({
                 </span>
                 {transaction.source_account_name && (
                   <>
-                    <span className="text-xs text-gray-300">·</span>
+                    <span className="text-xs text-gray-300">Â·</span>
                     <span className="text-xs text-gray-400">{transaction.source_account_name}</span>
                   </>
                 )}
@@ -236,12 +236,12 @@ export function ClassifyPanel({
                   <Label>Category (debit account) *</Label>
                   <Select value={accountId} onValueChange={setAccountId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select expense or asset account…" />
+                      <SelectValue placeholder="Select expense or asset accountâ€¦" />
                     </SelectTrigger>
                     <SelectContent>
                       {debitAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
-                          {a.account_code} – {a.account_name}
+                          {a.account_code} â€“ {a.account_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -252,12 +252,12 @@ export function ClassifyPanel({
                   <Label>Source account (credit) *</Label>
                   <Select value={sourceAccountId} onValueChange={setSourceAccountId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select bank or credit card…" />
+                      <SelectValue placeholder="Select bank or credit cardâ€¦" />
                     </SelectTrigger>
                     <SelectContent>
                       {bankAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
-                          {a.account_code} – {a.account_name}
+                          {a.account_code} â€“ {a.account_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -272,10 +272,10 @@ export function ClassifyPanel({
                         <SelectValue placeholder="None" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">None</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {activeTaxCodes.map((t) => (
                           <SelectItem key={t.id} value={t.id}>
-                            {t.code} – {t.name} ({(t.rate * 100).toFixed(0)}%)
+                            {t.code} â€“ {t.name} ({(t.rate * 100).toFixed(0)}%)
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -304,7 +304,7 @@ export function ClassifyPanel({
                       {accounts.find((a) => a.id === sourceAccountId)?.account_name ?? sourceAccountId}
                     </span>
                   </div>
-                  {taxCodeId && (
+                  {taxCodeId && taxCodeId !== 'none' && (
                     <div className="flex justify-between">
                       <span className="text-gray-500">Tax code</span>
                       <span className="text-gray-900 font-medium">
