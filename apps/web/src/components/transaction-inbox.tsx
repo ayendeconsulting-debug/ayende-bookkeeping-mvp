@@ -15,7 +15,7 @@ import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { bulkClassifyTransactions, runBatchRules } from '@/app/(app)/transactions/actions';
+import { bulkClassifyTransactions, runBatchRules, unclassifyTransaction } from '@/app/(app)/transactions/actions';
 import { bulkAssignPersonalCategory } from '@/app/(app)/personal/transactions/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
@@ -160,6 +160,18 @@ export function TransactionInbox({
     setSelectedTx(tx);
     setPostMode(true);
     setPanelOpen(true);
+  }
+
+  function handleUnclassify(tx: RawTransaction) {
+    startTransition(async () => {
+      const result = await unclassifyTransaction(tx.id);
+      if (result.success) {
+        toastSuccess('Unclassified', 'Transaction reset to pending.');
+        router.refresh();
+      } else {
+        toastError('Failed to unclassify', result.error ?? 'Unknown error');
+      }
+    });
   }
 
   function handlePanelClose() { setPanelOpen(false); setSelectedTx(null); }
@@ -494,6 +506,7 @@ export function TransactionInbox({
                               <AdminOnly>
                                 <Button size="sm" variant="outline" className="h-7 text-xs"
                                   onClick={() => openPost(tx)}>Post</Button>
+                                  <Button size="sm" variant="outline" className="h-7 text-xs text-gray-400 hover:text-destructive" onClick={() => handleUnclassify(tx)}>Unclassify</Button>
                               </AdminOnly>
                             )}
                             {!isPersonal && tx.status === 'posted' && <span className="text-xs text-gray-400">Posted</span>}

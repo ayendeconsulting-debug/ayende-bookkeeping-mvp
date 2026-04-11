@@ -151,6 +151,12 @@ export class ClassificationController {
     return this.classificationService.updateRule(req.user!.businessId, id, dto);
   }
 
+
+  @Roles('admin')
+  @Delete('raw/:id/classify')
+  unclassify(@Req() req: Request, @Param('id') id: string) {
+    return this.classificationService.unclassify(req.user!.businessId, id);
+  }
   @Roles('admin')
   @Delete('rules/:id')
   deactivateRule(@Req() req: Request, @Param('id') id: string) {

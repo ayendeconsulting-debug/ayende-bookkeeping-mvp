@@ -258,3 +258,15 @@ export async function deleteDocument(documentId: string) {
     return { success: false, error: error.message };
   }
 }
+
+/* ── Unclassify a transaction ──────────────────────────────────────────────────────────────── */
+export async function unclassifyTransaction(rawTransactionId: string) {
+  try {
+    await api(`/classification/raw/${rawTransactionId}/classify`, { method: 'DELETE' });
+    revalidatePath('/transactions');
+    revalidatePath('/dashboard');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

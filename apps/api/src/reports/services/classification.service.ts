@@ -306,6 +306,16 @@ export class ClassificationService {
 
   // â”€â”€ Post to General Ledger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+  // ── Unclassify
+
+  async unclassify(businessId: string, rawTransactionId: string): Promise<void> {
+    const rawTx = await this.rawTxRepo.findOne({ where: { id: rawTransactionId, business_id: businessId } });
+    if (!rawTx) throw new NotFoundException(`Raw transaction ${rawTransactionId} not found`);
+    if (rawTx.status === 'posted') throw new BadRequestException('Cannot unclassify a posted transaction');
+    await this.classifiedRepo.delete({ raw_transaction_id: rawTransactionId, business_id: businessId });
+    await this.rawTxRepo.update(rawTransactionId, { status: RawTransactionStatus.PENDING });
+  }
+
   async postClassifiedTransaction(
     businessId: string,
     classifiedId: string,
