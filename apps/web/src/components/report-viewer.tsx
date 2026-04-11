@@ -15,7 +15,7 @@ import { IncomeStatementChart } from '@/components/charts/income-statement-chart
 import { BalanceSheetChart }    from '@/components/charts/balance-sheet-chart';
 import { getReportNarrative, downloadReport } from '@/app/(app)/reports/[type]/actions';
 
-/* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* */
 
 interface ReportViewerProps {
   type:      string;
@@ -25,7 +25,7 @@ interface ReportViewerProps {
   endDate:   string;
 }
 
-/* â”€â”€ Download helper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/*Download helper */
 
 function triggerDownload(base64: string, filename: string, format: 'pdf' | 'csv') {
   const mimeType = format === 'pdf' ? 'application/pdf' : 'text/csv';
@@ -39,7 +39,7 @@ function triggerDownload(base64: string, filename: string, format: 'pdf' | 'csv'
   URL.revokeObjectURL(url);
 }
 
-/* â”€â”€ Export buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Export buttons */
 
 function ExportButtons({ type, params }: { type: string; params: Record<string, string> }) {
   const [loadingPdf, startPdf] = useTransition();
@@ -73,7 +73,7 @@ function ExportButtons({ type, params }: { type: string; params: Record<string, 
   );
 }
 
-/* â”€â”€ AI Narrative panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* AI Narrative panel */
 
 function NarrativePanel({ type, params }: { type: 'income-statement' | 'balance-sheet'; params: Record<string, string> }) {
   const [open, setOpen]           = useState(false);
@@ -104,17 +104,17 @@ function NarrativePanel({ type, params }: { type: 'income-statement' | 'balance-
             <Sparkles className="w-4 h-4 text-[#0F6E56] dark:text-primary" />
             <span className="text-sm font-medium text-[#0F6E56] dark:text-primary">AI Summary</span>
           </div>
-          {loading  && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Generating narrativeâ€¦</div>}
+          {loading  && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Generating narrative...</div>}
           {error    && <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />{error}</div>}
           {narrative && !loading && <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{narrative}</p>}
-          <p className="text-xs text-muted-foreground mt-3">AI narratives are for guidance only â€” always verify with your accountant.</p>
+          <p className="text-xs text-muted-foreground mt-3">AI narratives are for guidance only - always verify with your accountant.</p>
         </div>
       )}
     </div>
   );
 }
 
-/* â”€â”€ Report tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Report tables  */
 
 function IncomeStatementTable({ data }: { data: any }) {
   return (
@@ -203,8 +203,8 @@ function BalanceSheetTable({ data }: { data: any }) {
       ))}
       <div className="px-4 flex items-center gap-2">
         {data.is_balanced
-          ? <div className="flex items-center gap-1.5 text-sm text-[#0F6E56] dark:text-primary"><CheckCircle2 className="w-4 h-4" />Balance sheet is balanced â€” Assets = Liabilities + Equity</div>
-          : <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />Balance sheet is NOT balanced â€” review journal entries</div>
+          ? <div className="flex items-center gap-1.5 text-sm text-[#0F6E56] dark:text-primary"><CheckCircle2 className="w-4 h-4" />Balance sheet is balanced - Assets = Liabilities + Equity</div>
+          : <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />Balance sheet is NOT balanced - review journal entries</div>
         }
       </div>
     </div>
@@ -227,8 +227,8 @@ function TrialBalanceTable({ data }: { data: any }) {
               <TableCell className="text-xs text-muted-foreground">{line.account_code}</TableCell>
               <TableCell>{line.account_name}</TableCell>
               <TableCell className="capitalize text-muted-foreground text-sm">{line.account_type}</TableCell>
-              <TableCell className="text-right font-medium">{line.total_debits > 0 ? formatCurrency(line.total_debits) : 'â€”'}</TableCell>
-              <TableCell className="text-right font-medium">{line.total_credits > 0 ? formatCurrency(line.total_credits) : 'â€”'}</TableCell>
+              <TableCell className="text-right font-medium">{line.total_debits > 0 ? formatCurrency(line.total_debits) : '-'}</TableCell>
+              <TableCell className="text-right font-medium">{line.total_credits > 0 ? formatCurrency(line.total_credits) : '-'}</TableCell>
             </TableRow>
           ))}
           <TableRow className="bg-muted font-semibold border-t-2 border-border">
@@ -269,10 +269,10 @@ function GeneralLedgerTable({ data }: { data: any }) {
               <TableBody>
                 {(account.lines ?? account.entries ?? []).map((line: any, i: number) => (
                   <TableRow key={i}>
-                    <TableCell className="text-muted-foreground whitespace-nowrap text-sm">{line.entry_date ? formatDate(line.entry_date) : 'â€”'}</TableCell>
-                    <TableCell className="max-w-[180px] truncate text-sm">{line.description ?? 'â€”'}</TableCell>
-                    <TableCell className="text-right text-sm">{line.debit_amount  > 0 ? formatCurrency(line.debit_amount)  : 'â€”'}</TableCell>
-                    <TableCell className="text-right text-sm">{line.credit_amount > 0 ? formatCurrency(line.credit_amount) : 'â€”'}</TableCell>
+                    <TableCell className="text-muted-foreground whitespace-nowrap text-sm">{line.entry_date ? formatDate(line.entry_date) : '-'}</TableCell>
+                    <TableCell className="max-w-[180px] truncate text-sm">{line.description ?? '-'}</TableCell>
+                    <TableCell className="text-right text-sm">{line.debit_amount  > 0 ? formatCurrency(line.debit_amount)  : '-'}</TableCell>
+                    <TableCell className="text-right text-sm">{line.credit_amount > 0 ? formatCurrency(line.credit_amount) : '-'}</TableCell>
                     <TableCell className="text-right font-medium text-sm">{formatCurrency(line.running_balance ?? line.balance ?? 0)}</TableCell>
                   </TableRow>
                 ))}
@@ -286,7 +286,7 @@ function GeneralLedgerTable({ data }: { data: any }) {
   );
 }
 
-/* â”€â”€ Main ReportViewer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Main ReportViewer */
 
 export function ReportViewer({ type, label, data, startDate: initialStart, endDate: initialEnd }: ReportViewerProps) {
   const [startDate, setStartDate] = useState(initialStart);
@@ -307,20 +307,20 @@ export function ReportViewer({ type, label, data, startDate: initialStart, endDa
   return (
     <div className="p-4 md:p-6 max-w-screen-lg mx-auto">
 
-      {/* Header â€” wraps on mobile */}
+      {/* Header - wraps on mobile */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-foreground">{label}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {type === 'balance-sheet'
               ? `As of ${formatDate(endDate)}`
-              : `${formatDate(startDate)} â€” ${formatDate(endDate)}`}
+              : `${formatDate(startDate)} - ${formatDate(endDate)}`}
           </p>
         </div>
         <ExportButtons type={type} params={exportParams} />
       </div>
 
-      {/* Date filters â€” wrap on mobile */}
+      {/* Date filters - wrap on mobile */}
       <Card className="mb-5">
         <CardContent className="pt-4 pb-4">
           <div className="flex flex-wrap items-end gap-3">
