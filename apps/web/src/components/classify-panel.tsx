@@ -298,11 +298,26 @@ export function ClassifyPanel({
                       {accounts.find((a) => a.id === accountId)?.account_name ?? accountId}
                     </span>
                   </div>
-                  <div className="flex justify-between mb-1">
+                  <div className="flex justify-between mb-1 items-center">
                     <span className="text-gray-500">Credit account</span>
-                    <span className="text-gray-900 font-medium">
-                      {accounts.find((a) => a.id === sourceAccountId)?.account_name ?? sourceAccountId}
-                    </span>
+                    {sourceAccountId ? (
+                      <span className="text-gray-900 font-medium">
+                        {accounts.find((a) => a.id === sourceAccountId)?.account_name ?? sourceAccountId}
+                      </span>
+                    ) : (
+                      <Select value={sourceAccountId} onValueChange={setSourceAccountId}>
+                        <SelectTrigger className="w-48 h-7 text-xs">
+                          <SelectValue placeholder="Select account..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {bankAccounts.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>
+                              {a.account_code} - {a.account_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   {taxCodeId && taxCodeId !== 'none' && (
                     <div className="flex justify-between">
