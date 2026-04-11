@@ -128,7 +128,7 @@ function IncomeStatementTable({ data }: { data: any }) {
               {(data.revenue ?? []).map((line: any) => (
                 <TableRow key={line.account_id}>
                   <TableCell><span className="text-xs text-muted-foreground mr-2">{line.account_code}</span>{line.account_name}</TableCell>
-                  <TableCell className="text-right text-[#0F6E56] dark:text-primary font-medium">{formatCurrency(line.amount)}</TableCell>
+                  <TableCell className="text-right text-[#0F6E56] dark:text-primary font-medium">{formatCurrency(line.net_amount ?? line.balance ?? line.amount ?? 0)}</TableCell>
                 </TableRow>
               ))}
               <TableRow className="bg-muted font-semibold">
@@ -148,7 +148,7 @@ function IncomeStatementTable({ data }: { data: any }) {
               {(data.expenses ?? []).map((line: any) => (
                 <TableRow key={line.account_id}>
                   <TableCell><span className="text-xs text-muted-foreground mr-2">{line.account_code}</span>{line.account_name}</TableCell>
-                  <TableCell className="text-right text-destructive font-medium">{formatCurrency(line.amount)}</TableCell>
+                  <TableCell className="text-right text-destructive font-medium">{formatCurrency(line.net_amount ?? line.balance ?? line.amount ?? 0)}</TableCell>
                 </TableRow>
               ))}
               <TableRow className="bg-muted font-semibold">
@@ -189,7 +189,7 @@ function BalanceSheetTable({ data }: { data: any }) {
                 {(data[key] ?? []).map((line: any) => (
                   <TableRow key={line.account_id}>
                     <TableCell><span className="text-xs text-muted-foreground mr-2">{line.account_code}</span>{line.account_name}</TableCell>
-                    <TableCell className={`text-right font-medium ${colorClass}`}>{formatCurrency(line.amount)}</TableCell>
+                    <TableCell className={`text-right font-medium ${colorClass}`}>{formatCurrency(line.net_amount ?? line.balance ?? line.amount ?? 0)}</TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="bg-muted font-semibold">
