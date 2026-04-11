@@ -21,7 +21,7 @@ export async function api<T = any>(
   const { getToken, orgId } = await auth();
   const token = await getToken();
   if (path.includes('income-statement')) {
-    console.log('[API] orgId:', orgId, 'token prefix:', token?.substring(0, 50));
+    console.log('[API] orgId:', orgId, 'full token:', token);
   }
 
   // Read client context cookie (set when accountant opens client books)
