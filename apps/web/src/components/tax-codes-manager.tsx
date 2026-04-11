@@ -75,7 +75,7 @@ export function TaxCodesManager({ initialTaxCodes, taxAccounts }: TaxCodesManage
     setForm({
       code: code.code,
       name: code.name,
-      rate: String(code.rate),
+      rate: String(Math.round(Number(code.rate) * 100)),
       tax_type: code.tax_type,
       tax_account_id: code.tax_account_id,
       // Phase 9 — fallback gracefully if fields not present
@@ -100,7 +100,7 @@ export function TaxCodesManager({ initialTaxCodes, taxAccounts }: TaxCodesManage
     if (!form.code || !form.name || !form.rate || !form.tax_account_id) {
       setError('All fields are required.'); return;
     }
-    const rate = parseFloat(form.rate);
+    const rate = parseFloat(form.rate) / 100;
     if (isNaN(rate) || rate < 0 || rate > 100) { setError('Rate must be between 0 and 100.'); return; }
 
     const itcRatePct = parseFloat(form.itc_rate);
