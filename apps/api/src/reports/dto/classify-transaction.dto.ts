@@ -116,3 +116,13 @@ export class BulkClassifyDto {
   @IsString()
   taxCodeId?: string;
 }
+
+export class BulkPostDto {
+  @IsArray()
+  @IsString({ each: true })
+  rawTransactionIds: string[];
+
+  @IsString()
+  sourceAccountId: string;
+}
+

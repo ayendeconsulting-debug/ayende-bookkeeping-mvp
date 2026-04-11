@@ -298,8 +298,8 @@ export class ClassificationService {
       tax_code_id: dto.taxCodeId,
       override_amount: dto.overrideAmount,
       classified_by: dto.classifiedBy,
-        source_account_id: dto.sourceAccountId ?? null,
-      is_posted: false,
+      source_account_id: dto.sourceAccountId ?? null,
+        is_posted: false,
     });
     return this.classifiedRepo.save(classified);
   }
@@ -314,6 +314,35 @@ export class ClassificationService {
     if (rawTx.status === 'posted') throw new BadRequestException('Cannot unclassify a posted transaction');
     await this.classifiedRepo.delete({ raw_transaction_id: rawTransactionId, business_id: businessId });
     await this.rawTxRepo.update(rawTransactionId, { status: RawTransactionStatus.PENDING });
+  }
+
+  // ── Unclassify
+
+
+  // ── Bulk Post
+
+  async bulkPost(
+    businessId: string,
+    rawTransactionIds: string[],
+    sourceAccountId: string,
+    postedBy: string,
+  ): Promise<{ posted: number; skipped: number; errors: string[] }> {
+    let posted = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+    for (const rawTransactionId of rawTransactionIds) {
+      try {
+        const classified = await this.classifiedRepo.findOne({
+          where: { raw_transaction_id: rawTransactionId, business_id: businessId, is_posted: false },
+        });
+        if (!classified) { skipped++; continue; }
+        await this.postClassifiedTransaction(businessId, classified.id, sourceAccountId, postedBy);
+        posted++;
+      } catch (err: any) {
+        errors.push(`${rawTransactionId}: ${err.message ?? 'Unknown error'}`);
+      }
+    }
+    return { posted, skipped, errors };
   }
 
   async postClassifiedTransaction(

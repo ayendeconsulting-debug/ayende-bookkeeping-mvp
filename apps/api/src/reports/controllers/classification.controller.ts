@@ -19,6 +19,7 @@ import {
   OwnerContributionDto,
   OwnerDrawDto,
   BulkClassifyDto,
+  BulkPostDto,
 } from '../dto/classify-transaction.dto';
 import {
   CreateClassificationRuleDto,
@@ -189,15 +190,16 @@ export class ClassificationController {
   }
 
   @Roles('admin')
-  @Post('bulk-classify')
-  bulkClassify(@Req() req: Request, @Body() dto: BulkClassifyDto) {
-    return this.classificationService.bulkClassify(
-      req.user!.businessId, req.user!.userId,
-      dto.rawTransactionIds, dto.accountId, dto.taxCodeId,
+    @Roles('admin')
+  @Post('bulk-post')
+  bulkPost(@Req() req: Request, @Body() dto: BulkPostDto) {
+    return this.classificationService.bulkPost(
+      req.user!.businessId, dto.rawTransactionIds, dto.sourceAccountId, req.user!.userId,
     );
   }
 
-  @Roles('admin')
+    @Roles('admin')
+    @Roles('admin')
   @Post('post/:id')
   postClassified(
     @Param('id') id: string,

@@ -270,3 +270,22 @@ export async function unclassifyTransaction(rawTransactionId: string) {
     return { success: false, error: error.message };
   }
 }
+
+/* ── Bulk post classified transactions ─────────────────────────────────────────────────── */
+export async function bulkPostTransactions(data: {
+  rawTransactionIds: string[];
+  sourceAccountId: string;
+}) {
+  try {
+    const result = await api<{ posted: number; skipped: number; errors: string[] }>(
+      '/classification/bulk-post',
+      { method: 'POST', body: JSON.stringify(data) },
+    );
+    revalidatePath('/transactions');
+    revalidatePath('/dashboard');
+    revalidatePath('/freelancer/dashboard');
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

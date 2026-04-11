@@ -15,7 +15,7 @@ import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { bulkClassifyTransactions, runBatchRules, unclassifyTransaction } from '@/app/(app)/transactions/actions';
+import { bulkClassifyTransactions, runBatchRules, unclassifyTransaction, bulkPostTransactions } from '@/app/(app)/transactions/actions';
 import { bulkAssignPersonalCategory } from '@/app/(app)/personal/transactions/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
@@ -106,6 +106,7 @@ export function TransactionInbox({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAccountId, setBulkAccountId] = useState('');
   const [bulkTaxCodeId, setBulkTaxCodeId] = useState('');
+  const [bulkSourceAccountId, setBulkSourceAccountId] = useState('');
 
   // Personal bulk
   const [personalSelectedIds, setPersonalSelectedIds] = useState<Set<string>>(new Set());
@@ -140,8 +141,27 @@ export function TransactionInbox({
       if (!('page' in updates)) params.delete('page');
       startTransition(() => { router.push(`${pathname}?${params.toString()}`); });
     },
-    [router, pathname, searchParams],
+    [searchParams, pathname, router],
   );
+
+  function handleBulkPost() {
+      if (!bulkSourceAccountId) { toastError('Please select a source account first.'); return; }
+      if (selectedIds.size === 0) { toastError('No transactions selected.'); return; }
+      startBulkTransition(async () => {
+        const result = await bulkPostTransactions({
+          rawTransactionIds: Array.from(selectedIds),
+          sourceAccountId: bulkSourceAccountId,
+        });
+        if (result.success && result.data) {
+          const { posted, skipped } = result.data;
+          toastSuccess(`${posted} posted${skipped > 0 ? `, ${skipped} skipped` : ''}.`);
+          setSelectedIds(new Set()); setBulkSourceAccountId('');
+          startTransition(() => router.refresh());
+        } else {
+          toastError(result.error ?? 'Bulk post failed.');
+        }
+      });
+    }
 
   function handleStatusTab(status: string) { updateParams({ status }); }
   function handleSearch(e: React.FormEvent) { e.preventDefault(); updateParams({ search: searchValue }); }
