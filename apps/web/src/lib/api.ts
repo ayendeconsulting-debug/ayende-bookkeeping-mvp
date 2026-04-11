@@ -18,8 +18,11 @@ export async function api<T = any>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const { getToken } = await auth();
+  const { getToken, orgId } = await auth();
   const token = await getToken();
+  if (path.includes('income-statement')) {
+    console.log('[API] orgId:', orgId, 'token prefix:', token?.substring(0, 50));
+  }
 
   // Read client context cookie (set when accountant opens client books)
   const cookieStore = await cookies();
