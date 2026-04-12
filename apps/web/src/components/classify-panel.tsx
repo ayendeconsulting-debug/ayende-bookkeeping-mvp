@@ -41,6 +41,7 @@ interface ClassifyPanelProps {
   initialClassifiedId?: string;
   initialSourceAccountId?: string;
   initialAccountId?: string;
+  initialOwnerContribution?: boolean;
 }
 
 type Step = 'classify' | 'post' | 'done';
@@ -56,6 +57,7 @@ export function ClassifyPanel({
   initialClassifiedId = '',
   initialSourceAccountId = '',
   initialAccountId = '',
+  initialOwnerContribution = false,
 }: ClassifyPanelProps) {
   const [step, setStep] = useState<Step>(initialStep);
   const [accountId, setAccountId] = useState(initialAccountId);
@@ -67,8 +69,7 @@ export function ClassifyPanel({
   const [isPending, startTransition] = useTransition();
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  // Owner Contribution / Draw toggles — mutually exclusive
-  const [ownerContribution, setOwnerContribution] = useState(false);
+  const [ownerContribution, setOwnerContribution] = useState(initialOwnerContribution);
   const [ownerDraw, setOwnerDraw] = useState(false);
 
   if (!transaction) return null;
@@ -76,23 +77,13 @@ export function ClassifyPanel({
   const bankAccounts = accounts.filter(
     (a) => a.account_subtype === 'bank' || a.account_subtype === 'credit_card',
   );
-
-  const equityContributionAccounts = accounts.filter(
-    (a) => a.account_subtype === 'owner_contribution',
-  );
-
-  const equityDrawAccounts = accounts.filter(
-    (a) => a.account_subtype === 'owner_draw',
-  );
-
+  const equityContributionAccounts = accounts.filter((a) => a.account_subtype === 'owner_contribution');
+  const equityDrawAccounts = accounts.filter((a) => a.account_subtype === 'owner_draw');
   const debitAccounts = accounts.filter(
     (a) => a.account_type === 'expense' || a.account_type === 'asset' || a.account_type === 'revenue',
   );
-
   const activeTaxCodes = taxCodes.filter((t) => t.is_active);
 
-  // When Owner Contribution is on: source (credit) = equity contribution accounts
-  // When Owner Draw is on: debit = equity draw accounts
   const visibleSourceAccounts = ownerContribution ? equityContributionAccounts : bankAccounts;
   const visibleDebitAccounts = ownerDraw ? equityDrawAccounts : debitAccounts;
 
@@ -100,7 +91,6 @@ export function ClassifyPanel({
     const next = !ownerContribution;
     setOwnerContribution(next);
     if (next) setOwnerDraw(false);
-    // Reset account selections when toggling
     setSourceAccountId('');
     setAccountId('');
   }
@@ -121,7 +111,7 @@ export function ClassifyPanel({
     setClassifiedId(initialClassifiedId);
     setError('');
     setAiSuggestion(null);
-    setOwnerContribution(false);
+    setOwnerContribution(initialOwnerContribution);
     setOwnerDraw(false);
     onClose();
   }
@@ -194,8 +184,6 @@ export function ClassifyPanel({
   }
 
   const amount = Number(transaction.amount);
-
-  // Labels that change based on toggle state
   const debitLabel = ownerDraw ? 'Owner Draw account (debit) *' : 'Category (debit account) *';
   const debitPlaceholder = ownerDraw ? 'Select owner draw account\u2026' : 'Select expense or asset account\u2026';
   const sourceLabel = ownerContribution ? 'Owner Contribution account (credit) *' : 'Source account (credit) *';
@@ -206,12 +194,14 @@ export function ClassifyPanel({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {step === 'classify' && 'Classify Transaction'}
+            {step === 'classify' && (ownerContribution ? 'Owner Contribution' : ownerDraw ? 'Owner Draw' : 'Classify Transaction')}
             {step === 'post' && 'Post to Ledger'}
             {step === 'done' && 'Posted Successfully'}
           </DialogTitle>
           <DialogDescription>
-            {step === 'classify' && 'Assign an account category to this transaction.'}
+            {step === 'classify' && ownerContribution && 'Record a personal payment made on behalf of the business.'}
+            {step === 'classify' && ownerDraw && 'Record a withdrawal from the business by the owner.'}
+            {step === 'classify' && !ownerContribution && !ownerDraw && 'Assign an account category to this transaction.'}
             {step === 'post' && 'Review and post the classified transaction.'}
             {step === 'done' && 'The transaction has been posted to the general ledger.'}
           </DialogDescription>
@@ -226,7 +216,6 @@ export function ClassifyPanel({
 
         {step !== 'done' && (
           <>
-            {/* Transaction summary */}
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 flex flex-col gap-1.5 dark:bg-[#1e1c18] dark:border-[#3a3730]">
               <div className="flex justify-between items-start gap-2">
                 <span className="text-sm font-medium text-gray-900 dark:text-[#f0ede8] flex-1 leading-snug">
@@ -251,7 +240,6 @@ export function ClassifyPanel({
               </div>
             </div>
 
-            {/* AI suggestion banner */}
             {aiSuggestion && (
               <Alert variant="info">
                 <Sparkles className="w-4 h-4" />
@@ -269,8 +257,6 @@ export function ClassifyPanel({
 
             {step === 'classify' && (
               <div className="flex flex-col gap-4">
-
-                {/* Owner Contribution / Draw toggles */}
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -300,7 +286,6 @@ export function ClassifyPanel({
                   </button>
                 </div>
 
-                {/* Helper text when a toggle is active */}
                 {ownerContribution && (
                   <p className="text-xs text-emerald-600 dark:text-emerald-400 -mt-2">
                     Owner Contribution: Debit expense/asset &rarr; Credit owner equity. Select the equity contribution account below.
@@ -363,7 +348,6 @@ export function ClassifyPanel({
                   </div>
                 )}
 
-                {/* Document attachments */}
                 <Separator />
                 <DocumentAttachments rawTransactionId={transaction?.id ?? ''} />
               </div>
@@ -371,7 +355,6 @@ export function ClassifyPanel({
 
             {step === 'post' && (
               <div className="flex flex-col gap-3">
-                {/* Owner Contribution / Draw label on post step */}
                 {(ownerContribution || ownerDraw) && (
                   <div className={cn(
                     'rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-1.5',
@@ -448,7 +431,7 @@ export function ClassifyPanel({
                   <AdminOnly fallback={<Button disabled>Classify</Button>}>
                     <Button onClick={handleClassify} disabled={isPending}>
                       {isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                      Classify
+                      {ownerContribution ? 'Record Contribution' : ownerDraw ? 'Record Draw' : 'Classify'}
                     </Button>
                   </AdminOnly>
                 </>

@@ -1,8 +1,8 @@
-﻿'use client';
+'use client';
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight, AlertTriangle, Tag, X } from 'lucide-react';
+import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight, AlertTriangle, Tag, X, ArrowDownToLine } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, BusinessMode, BudgetCategoryWithSpending } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
@@ -47,7 +47,6 @@ function getStatusTabs(isPersonal: boolean) {
   ];
 }
 
-// Generate last 24 months as YYYY-MM options
 function generateMonthOptions(): { value: string; label: string }[] {
   const options: { value: string; label: string }[] = [];
   const now = new Date();
@@ -90,7 +89,7 @@ export function TransactionInbox({
   const [panelOpen, setPanelOpen] = useState(false);
   const [postMode, setPostMode] = useState(false);
 
-  const [explainerTx, setExplainerTx]   = useState<RawTransaction | null>(null);
+  const [explainerTx, setExplainerTx]     = useState<RawTransaction | null>(null);
   const [explainerOpen, setExplainerOpen] = useState(false);
 
   const [splitTx, setSplitTx]   = useState<RawTransaction | null>(null);
@@ -101,6 +100,10 @@ export function TransactionInbox({
 
   const [personalCatTx, setPersonalCatTx]     = useState<RawTransaction | null>(null);
   const [personalCatOpen, setPersonalCatOpen] = useState(false);
+
+  // Owner Contribution panel (Freelancer mode)
+  const [ownerContribTx, setOwnerContribTx]     = useState<RawTransaction | null>(null);
+  const [ownerContribOpen, setOwnerContribOpen] = useState(false);
 
   // Business bulk
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -145,23 +148,23 @@ export function TransactionInbox({
   );
 
   function handleBulkPost() {
-      if (!bulkSourceAccountId) { toastError('Please select a source account first.'); return; }
-      if (selectedIds.size === 0) { toastError('No transactions selected.'); return; }
-      startBulkTransition(async () => {
-        const result = await bulkPostTransactions({
-          rawTransactionIds: Array.from(selectedIds),
-          sourceAccountId: bulkSourceAccountId,
-        });
-        if (result.success && result.data) {
-          const { posted, skipped } = result.data;
-          toastSuccess(`${posted} posted${skipped > 0 ? `, ${skipped} skipped` : ''}.`);
-          setSelectedIds(new Set()); setBulkSourceAccountId('');
-          startTransition(() => router.refresh());
-        } else {
-          toastError(result.error ?? 'Bulk post failed.');
-        }
+    if (!bulkSourceAccountId) { toastError('Please select a source account first.'); return; }
+    if (selectedIds.size === 0) { toastError('No transactions selected.'); return; }
+    startBulkTransition(async () => {
+      const result = await bulkPostTransactions({
+        rawTransactionIds: Array.from(selectedIds),
+        sourceAccountId: bulkSourceAccountId,
       });
-    }
+      if (result.success && result.data) {
+        const { posted, skipped } = result.data;
+        toastSuccess(`${posted} posted${skipped > 0 ? `, ${skipped} skipped` : ''}.`);
+        setSelectedIds(new Set()); setBulkSourceAccountId('');
+        startTransition(() => router.refresh());
+      } else {
+        toastError(result.error ?? 'Bulk post failed.');
+      }
+    });
+  }
 
   function handleStatusTab(status: string) { updateParams({ status }); }
   function handleSearch(e: React.FormEvent) { e.preventDefault(); updateParams({ search: searchValue }); }
@@ -177,11 +180,8 @@ export function TransactionInbox({
     else { setSelectedTx(tx); setPostMode(false); setPanelOpen(true); }
   }
   function openPost(tx: RawTransaction) {
-    setSelectedTx(tx);
-    setPostMode(true);
-    setPanelOpen(true);
+    setSelectedTx(tx); setPostMode(true); setPanelOpen(true);
   }
-
   function handleUnclassify(tx: RawTransaction) {
     startTransition(async () => {
       const result = await unclassifyTransaction(tx.id);
@@ -211,6 +211,10 @@ export function TransactionInbox({
 
   function handlePersonalCatClose() { setPersonalCatOpen(false); setPersonalCatTx(null); }
   function handlePersonalCatSuccess() { setPersonalCatOpen(false); setPersonalCatTx(null); startTransition(() => router.refresh()); }
+
+  function openOwnerContrib(tx: RawTransaction) { setOwnerContribTx(tx); setOwnerContribOpen(true); }
+  function handleOwnerContribClose() { setOwnerContribOpen(false); setOwnerContribTx(null); }
+  function handleOwnerContribSuccess() { setOwnerContribOpen(false); setOwnerContribTx(null); startTransition(() => router.refresh()); }
 
   function handleToggleAll() {
     if (allSelected) setSelectedIds(new Set());
@@ -285,15 +289,15 @@ export function TransactionInbox({
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
-      <div className="px-6 py-5 border-b border-gray-200 bg-white">
+      <div className="px-6 py-5 border-b border-gray-200 bg-white dark:bg-[#1a1814] dark:border-[#3a3730]">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">Transactions</h1>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {totalCount} total Â· {pendingCount} pending review
+            <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Transactions</h1>
+            <p className="text-sm text-gray-500 dark:text-[#a09888] mt-0.5">
+              {totalCount} total &middot; {pendingCount} pending review
               {isFreelancer && (
                 <span className="ml-2 text-purple-500 text-xs font-medium">
-                  Â· Tag each transaction as Business or Personal
+                  &middot; Tag each transaction as Business or Personal
                 </span>
               )}
             </p>
@@ -306,14 +310,14 @@ export function TransactionInbox({
                   disabled={isRunRulesPending}
                   className="border-primary text-primary hover:bg-primary-light">
                   <Wand2 className="w-4 h-4 mr-1.5" />
-                  {isRunRulesPending ? 'Runningâ€¦' : 'Run Rules'}
+                  {isRunRulesPending ? 'Running\u2026' : 'Run Rules'}
                 </Button>
               </AdminOnly>
             )}
             <form onSubmit={handleSearch} className="flex gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-                <Input className="pl-8 w-56" placeholder="Search transactionsâ€¦"
+                <Input className="pl-8 w-56" placeholder="Search transactions\u2026"
                   value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
               </div>
               <Button type="submit" variant="outline" size="sm">
@@ -323,13 +327,12 @@ export function TransactionInbox({
           </div>
         </div>
 
-        {/* â”€â”€ Account + Month filters â”€â”€ */}
+        {/* Account + Month filters */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          {/* Source account dropdown */}
           <select
             value={currentSourceAccount}
             onChange={(e) => handleSourceAccount(e.target.value)}
-            className="h-8 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary min-w-[180px] max-w-xs"
+            className="h-8 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary min-w-[180px] max-w-xs dark:bg-[#222019] dark:border-[#3a3730] dark:text-[#f0ede8]"
           >
             <option value="">All accounts</option>
             {sourceAccounts.map((a) => (
@@ -337,11 +340,10 @@ export function TransactionInbox({
             ))}
           </select>
 
-          {/* Month dropdown */}
           <select
             value={currentMonth}
             onChange={(e) => handleMonth(e.target.value)}
-            className="h-8 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary min-w-[160px]"
+            className="h-8 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary min-w-[160px] dark:bg-[#222019] dark:border-[#3a3730] dark:text-[#f0ede8]"
           >
             <option value="">All months</option>
             {transactionMonths.map((m) => (
@@ -349,7 +351,6 @@ export function TransactionInbox({
             ))}
           </select>
 
-          {/* Active filter chips + clear */}
           {hasActiveFilters && (
             <button
               onClick={clearFilters}
@@ -378,13 +379,13 @@ export function TransactionInbox({
       </div>
 
       {/* Table */}
-      <div className={cn('flex-1 overflow-auto bg-white', isPending && 'opacity-60 pointer-events-none')}>
+      <div className={cn('flex-1 overflow-auto bg-white dark:bg-[#1a1814]', isPending && 'opacity-60 pointer-events-none')}>
         {initialTransactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
               <Search className="w-5 h-5 text-gray-400" />
             </div>
-            <p className="text-sm font-medium text-gray-900 mb-1">No transactions found</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-[#f0ede8] mb-1">No transactions found</p>
             <p className="text-sm text-gray-500">
               {currentSearch ? `No results for "${currentSearch}"`
                 : currentSourceAccount ? `No transactions for "${currentSourceAccount}"`
@@ -395,7 +396,7 @@ export function TransactionInbox({
           </div>
         ) : (
           <>
-            {/* â”€â”€ Desktop table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* Desktop table */}
             <div className="hidden sm:block">
               <Table>
                 <TableHeader>
@@ -420,7 +421,7 @@ export function TransactionInbox({
                     <TableHead className="text-right">Amount</TableHead>
                     {isFreelancer && <TableHead className="w-44">Type</TableHead>}
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-52">Actions</TableHead>
+                    <TableHead className="w-64">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -469,7 +470,7 @@ export function TransactionInbox({
                                 </div>
                               </div>
                             )}
-                            <span className="block truncate text-gray-900">{tx.description}</span>
+                            <span className="block truncate text-gray-900 dark:text-[#f0ede8]">{tx.description}</span>
                           </div>
                           {isPersonal && assignedCat ? (
                             <span className="inline-flex items-center gap-1 mt-0.5">
@@ -481,7 +482,7 @@ export function TransactionInbox({
                             <span className="text-xs text-gray-400">{tx.plaid_category}</span>
                           ) : null}
                         </TableCell>
-                        <TableCell className="text-gray-500 text-sm">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? '—'}</TableCell>
+                        <TableCell className="text-gray-500 text-sm">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? '\u2014'}</TableCell>
                         <TableCell className="text-right">
                           <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
                             {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
@@ -505,7 +506,7 @@ export function TransactionInbox({
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
                             {isPersonal && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
@@ -522,11 +523,22 @@ export function TransactionInbox({
                                   onClick={() => openClassify(tx)}>Classify</Button>
                               </AdminOnly>
                             )}
+                            {/* Owner Contribution button — Freelancer mode, business-tagged, pending */}
+                            {isFreelancer && !isPersonal && tx.status === 'pending' && !tx.is_personal && (
+                              <AdminOnly>
+                                <Button size="sm" variant="outline"
+                                  className="h-7 text-xs border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+                                  onClick={() => openOwnerContrib(tx)}>
+                                  <ArrowDownToLine className="w-3 h-3 mr-1" />Contribution
+                                </Button>
+                              </AdminOnly>
+                            )}
                             {!isPersonal && tx.status === 'classified' && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline" className="h-7 text-xs"
                                   onClick={() => openPost(tx)}>Post</Button>
-                                  <Button size="sm" variant="outline" className="h-7 text-xs text-gray-400 hover:text-destructive" onClick={() => handleUnclassify(tx)}>Unclassify</Button>
+                                <Button size="sm" variant="outline" className="h-7 text-xs text-gray-400 hover:text-destructive"
+                                  onClick={() => handleUnclassify(tx)}>Unclassify</Button>
                               </AdminOnly>
                             )}
                             {!isPersonal && tx.status === 'posted' && <span className="text-xs text-gray-400">Posted</span>}
@@ -558,7 +570,7 @@ export function TransactionInbox({
               </Table>
             </div>
 
-            {/* â”€â”€ Mobile card list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* Mobile card list */}
             <div className="sm:hidden divide-y divide-gray-100">
               {initialTransactions.map((tx) => {
                 const amount = Number(tx.amount);
@@ -567,7 +579,7 @@ export function TransactionInbox({
                 const isPersonalSelected = personalSelectedIds.has(tx.id);
 
                 return (
-                  <div key={tx.id} className={cn('px-4 py-3 bg-white', isPersonalSelected && 'bg-primary-light/20')}>
+                  <div key={tx.id} className={cn('px-4 py-3 bg-white dark:bg-[#1a1814]', isPersonalSelected && 'bg-primary-light/20')}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         {isPersonal && (
@@ -587,7 +599,7 @@ export function TransactionInbox({
                       {tx.anomaly_flags && tx.anomaly_flags.length > 0 && (
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
                       )}
-                      <span className="text-sm font-medium text-gray-900 leading-snug">{tx.description}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-[#f0ede8] leading-snug">{tx.description}</span>
                     </div>
                     {isPersonal && assignedCat && (
                       <span className="inline-flex items-center gap-1 mb-1">
@@ -596,12 +608,12 @@ export function TransactionInbox({
                       </span>
                     )}
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-400">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? '—'}</span>
+                      <span className="text-xs text-gray-400">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? '\u2014'}</span>
                       <span className={cn('text-sm font-semibold', amount >= 0 ? 'text-primary' : 'text-danger')}>
                         {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 min-h-[44px]">
+                    <div className="flex items-center gap-2 flex-wrap min-h-[44px]">
                       {isPersonal && (
                         <AdminOnly>
                           <Button size="sm" variant="outline"
@@ -616,6 +628,16 @@ export function TransactionInbox({
                           <Button size="sm" variant="outline"
                             className="h-9 text-xs border-primary text-primary hover:bg-primary-light"
                             onClick={() => openClassify(tx)}>Classify</Button>
+                        </AdminOnly>
+                      )}
+                      {/* Owner Contribution button — mobile, Freelancer mode */}
+                      {isFreelancer && !isPersonal && tx.status === 'pending' && !tx.is_personal && (
+                        <AdminOnly>
+                          <Button size="sm" variant="outline"
+                            className="h-9 text-xs border-emerald-500 text-emerald-600 hover:bg-emerald-50"
+                            onClick={() => openOwnerContrib(tx)}>
+                            <ArrowDownToLine className="w-3.5 h-3.5 mr-1" />Contribution
+                          </Button>
                         </AdminOnly>
                       )}
                       {!isPersonal && tx.status === 'classified' && (
@@ -651,8 +673,8 @@ export function TransactionInbox({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white">
-          <span className="text-sm text-gray-500">Page {currentPage} of {totalPages} Â· {totalCount} transactions</span>
+        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white dark:bg-[#1a1814] dark:border-[#3a3730]">
+          <span className="text-sm text-gray-500">&Page {currentPage} of {totalPages} &middot; {totalCount} transactions</span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={currentPage <= 1}
               onClick={() => handlePage(currentPage - 1)}>Previous</Button>
@@ -662,7 +684,7 @@ export function TransactionInbox({
         </div>
       )}
 
-      {/* â”€â”€ Personal bulk bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Personal bulk bar */}
       {somePersonalSelected && isPersonal && (
         <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-white border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -672,21 +694,21 @@ export function TransactionInbox({
           <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
           <select value={bulkCategoryId} onChange={(e) => setBulkCategoryId(e.target.value)}
             className="flex-1 max-w-xs h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary">
-            <option value="">Select categoryâ€¦</option>
+            <option value="">Select category\u2026</option>
             {budgetCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <Button onClick={handlePersonalBulkCategorize}
             disabled={isPersonalBulkPending || !bulkCategoryId}
             className="bg-primary text-white hover:bg-primary/90 flex-shrink-0">
             <Tag className="w-3.5 h-3.5 mr-1.5" />
-            {isPersonalBulkPending ? 'Savingâ€¦' : `Categorize ${personalSelectedIds.size}`}
+            {isPersonalBulkPending ? 'Saving\u2026' : `Categorize ${personalSelectedIds.size}`}
           </Button>
           <Button variant="outline" onClick={() => setPersonalSelectedIds(new Set())}
             disabled={isPersonalBulkPending} className="flex-shrink-0">Clear</Button>
         </div>
       )}
 
-      {/* â”€â”€ Business bulk bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Business bulk bar */}
       {someSelected && !isPersonal && (
         <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-white border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -696,8 +718,10 @@ export function TransactionInbox({
           <div className="h-5 w-px bg-gray-200 flex-shrink-0" />
           <select value={bulkAccountId} onChange={(e) => setBulkAccountId(e.target.value)}
             className="flex-1 max-w-xs h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary">
-            <option value="">Select account…</option>
-            {accounts.filter(a => a.account_type === 'expense' || a.account_type === 'asset').map((a) => <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>)}
+            <option value="">Select account\u2026</option>
+            {accounts.filter(a => a.account_type === 'expense' || a.account_type === 'asset').map((a) => (
+              <option key={a.id} value={a.id}>{a.account_code} \u2013 {a.account_name}</option>
+            ))}
           </select>
           <select value={bulkTaxCodeId} onChange={(e) => setBulkTaxCodeId(e.target.value)}
             className="w-44 h-9 rounded-md border border-gray-200 px-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-primary">
@@ -708,25 +732,38 @@ export function TransactionInbox({
           </select>
           <Button onClick={handleBulkClassify} disabled={isBulkPending || !bulkAccountId}
             className="bg-primary text-white hover:bg-primary/90 flex-shrink-0">
-            {isBulkPending ? 'Classifying…' : `Classify ${selectedIds.size}`}
+            {isBulkPending ? 'Classifying\u2026' : `Classify ${selectedIds.size}`}
           </Button>
           <Button variant="outline" onClick={() => setSelectedIds(new Set())}
             disabled={isBulkPending} className="flex-shrink-0">Clear</Button>
         </div>
       )}
 
+      {/* Main classify panel */}
       <ClassifyPanel
-          transaction={selectedTx}
-          accounts={accounts}
-          taxCodes={taxCodes}
-          open={panelOpen}
-          onClose={handlePanelClose}
-          onSuccess={handleSuccess}
-          initialStep={postMode ? 'post' : 'classify'}
-          initialClassifiedId={postMode ? (selectedTx?.classified_id ?? '') : ''}
-          initialSourceAccountId={postMode ? (selectedTx?.classified_source_account_id ?? '') : ''}
-          initialAccountId={postMode ? (selectedTx?.classified_account_id ?? '') : ''}
-        />
+        transaction={selectedTx}
+        accounts={accounts}
+        taxCodes={taxCodes}
+        open={panelOpen}
+        onClose={handlePanelClose}
+        onSuccess={handleSuccess}
+        initialStep={postMode ? 'post' : 'classify'}
+        initialClassifiedId={postMode ? (selectedTx?.classified_id ?? '') : ''}
+        initialSourceAccountId={postMode ? (selectedTx?.classified_source_account_id ?? '') : ''}
+        initialAccountId={postMode ? (selectedTx?.classified_account_id ?? '') : ''}
+      />
+
+      {/* Owner Contribution panel — Freelancer mode */}
+      <ClassifyPanel
+        transaction={ownerContribTx}
+        accounts={accounts}
+        taxCodes={taxCodes}
+        open={ownerContribOpen}
+        onClose={handleOwnerContribClose}
+        onSuccess={handleOwnerContribSuccess}
+        initialOwnerContribution={true}
+      />
+
       <TransactionExplainerPanel transaction={explainerTx} open={explainerOpen} onClose={handleExplainerClose} />
       <SplitTransactionModal transaction={splitTx} accounts={accounts}
         open={splitOpen} onClose={handleSplitClose} onSuccess={handleSplitSuccess} />
