@@ -16,15 +16,19 @@ import { FirmStaff } from '../entities/firm-staff.entity';
  * accountant is operating in client context mode.
  *
  * When present:
- * 1. Verifies the requesting Clerk user is an active staff member of a firm.
- * 2. Verifies that firm has an active firm_client record for the requested businessId.
- * 3. Overwrites req.user.businessId with the client businessId so all downstream
+ * 1. Decodes the Clerk JWT from the Authorization header to extract the userId.
+ *    (Full cryptographic verification is handled by JwtAuthGuard — here we only
+ *    need the sub claim to identify the actor. We never trust data that hasn't
+ *    been verified by the guard downstream.)
+ * 2. Verifies the requesting Clerk user is an active staff member of a firm.
+ * 3. Verifies that firm has an active firm_client record for the requested businessId.
+ * 4. Overwrites req.user.businessId with the client businessId so all downstream
  *    controllers and services operate on the client's data transparently.
  *
  * When absent: no-op — normal businessId from JWT is used.
  *
- * This middleware runs AFTER JwtAuthGuard has validated the token and
- * populated req.user, so req.user.userId is always available here.
+ * NOTE: This middleware runs BEFORE JwtAuthGuard. We decode (not verify) the JWT
+ * payload to get the Clerk userId early. Full verification happens in the guard.
  */
 @Injectable()
 export class ClientContextMiddleware implements NestMiddleware {
@@ -43,8 +47,9 @@ export class ClientContextMiddleware implements NestMiddleware {
       return next();
     }
 
-    // req.user is populated by JwtAuthGuard before this middleware runs
-    const clerkUserId = (req as any).user?.userId;
+    // ── Extract Clerk userId from JWT payload (decode only, not verify) ──────
+    // JwtAuthGuard handles full cryptographic verification later in the pipeline.
+    const clerkUserId = this.extractClerkUserIdFromJwt(req);
     if (!clerkUserId) {
       return next();
     }
@@ -76,8 +81,36 @@ export class ClientContextMiddleware implements NestMiddleware {
     }
 
     // ── Overwrite businessId — all downstream services use client context ────
-    (req as any).user.businessId = clientBusinessId;
+    // req.user may not be populated yet (guard runs later), so we store the
+    // client context in a custom property that JwtStrategy.validate() will
+    // apply when populating req.user.
+    (req as any).__clientBusinessId = clientBusinessId;
 
     next();
+  }
+
+  /**
+   * Decodes (does not verify) the JWT payload from the Authorization header.
+   * Returns the Clerk user ID (sub claim) or null if not present/decodable.
+   */
+  private extractClerkUserIdFromJwt(req: Request): string | null {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+
+      const token = authHeader.slice(7);
+      const parts = token.split('.');
+      if (parts.length !== 3) return null;
+
+      // Base64url decode the payload (second part)
+      const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf8');
+      const payload = JSON.parse(payloadJson);
+
+      // Clerk sets the user ID as the 'sub' claim
+      return payload.sub ?? null;
+    } catch {
+      return null;
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
@@ -26,7 +26,6 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { LegalAcceptanceGuard } from './legal/legal-acceptance.guard';
 import { HealthController } from './health.controller';
-import { ClientContextMiddleware } from './firms/client-context.middleware';
 
 function getRedisBullMQConnection() {
   const redisUrl = process.env.REDIS_URL;
@@ -79,12 +78,4 @@ function getRedisBullMQConnection() {
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    // Apply client context switching to all routes.
-    // When X-Client-Business-Id header is present, req.user.businessId is
-    // overwritten with the client's businessId so all downstream services
-    // transparently operate on the client's data.
-    consumer.apply(ClientContextMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}
