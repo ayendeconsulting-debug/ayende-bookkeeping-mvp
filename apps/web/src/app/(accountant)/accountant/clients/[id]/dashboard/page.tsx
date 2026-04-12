@@ -1,8 +1,9 @@
-﻿import { notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getClientOverview, getClientDetails } from './actions';
 import { ClientSummaryCards } from '@/components/client-summary-cards';
 import { ClientDashboardTabs } from '@/components/client-dashboard-tabs';
+import { ClientContextSetter } from '@/components/client-context-setter';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ExternalLink, Building2 } from 'lucide-react';
@@ -25,6 +26,12 @@ export default async function ClientDashboardPage({ params }: Props) {
 
   return (
     <div className="space-y-6 pb-10">
+
+      {/* Sets client-business-id cookie while on this page */}
+      <ClientContextSetter
+        businessId={businessId}
+        businessName={overview.businessName}
+      />
 
       {/* ── Top navigation bar ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
