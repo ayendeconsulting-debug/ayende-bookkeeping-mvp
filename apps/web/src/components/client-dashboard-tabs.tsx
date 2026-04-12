@@ -1,17 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { ClientOverview } from '@/app/(accountant)/accountant/clients/[id]/dashboard/actions';
+import { ClientOverview, getClientAuditLog } from '@/app/(accountant)/accountant/clients/[id]/dashboard/actions';
 import { ClientListItem } from '@/app/(accountant)/accountant/clients/actions';
 import { ClientOverviewCard } from '@/components/client-overview-card';
 import {
   ArrowLeftRight, TrendingUp, Scale, ClipboardList,
   BookOpen, Receipt, AlertTriangle, Clock,
-  ChevronRight, ExternalLink,
+  ChevronRight, ExternalLink, Loader2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface ClientDashboardTabsProps {
   overview: ClientOverview;
@@ -26,6 +25,21 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'hst',      label: 'HST / Tax' },
   { id: 'audit',    label: 'Audit Log' },
 ];
+
+function ActionBadge({ action }: { action: string }) {
+  const cfg: Record<string, string> = {
+    classify:      'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+    post:          'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
+    unclassify:    'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
+    bulk_classify: 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400',
+    bulk_post:     'bg-teal-50 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400',
+  };
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg[action] ?? 'bg-gray-100 text-gray-600 dark:bg-[#2a2720] dark:text-[#a09888]'}`}>
+      {action.replace(/_/g, ' ')}
+    </span>
+  );
+}
 
 // Quick action rows for the overview tab
 function QuickActions({ businessId }: { businessId: string }) {
@@ -138,7 +152,6 @@ function HstTab({ overview, currency }: { overview: ClientOverview; currency: st
 
   return (
     <div className="space-y-4">
-      {/* Balance card */}
       <div className={cn(
         'rounded-xl border p-5',
         overview.outstandingHst > 0
@@ -176,12 +189,11 @@ function HstTab({ overview, currency }: { overview: ClientOverview; currency: st
         {overview.outstandingHst > 0 && (
           <p className="text-xs text-amber-700 dark:text-amber-400 mt-2 flex items-center gap-1">
             <AlertTriangle className="w-3.5 h-3.5" />
-            Tax payable balance — review HST periods before remittance
+            Tax payable balance &mdash; review HST periods before remittance
           </p>
         )}
       </div>
 
-      {/* Link to full HST report */}
       <Link
         href="/reports/hst"
         className="flex items-center justify-between p-4 rounded-xl border border-[#e5e1d8] dark:border-[#3a3730] bg-white dark:bg-[#242220] hover:bg-[#faf9f7] dark:hover:bg-[#2e2c28] transition-colors group"
@@ -201,19 +213,85 @@ function HstTab({ overview, currency }: { overview: ClientOverview; currency: st
   );
 }
 
-// Audit log tab — placeholder for Phase 18
-function AuditTab() {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="w-12 h-12 rounded-xl bg-[#f0ede8] dark:bg-[#2e2c28] flex items-center justify-center mb-4">
-        <Clock className="w-6 h-6 text-[#888070] dark:text-[#7a7268]" />
+// Audit log tab — real data
+function AuditTab({ businessId }: { businessId: string }) {
+  const [logs, setLogs] = useState<any[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [isPending, startTransition] = useTransition();
+  const [loaded, setLoaded] = useState(false);
+
+  // Load on first render of this tab
+  if (!loaded && !isPending) {
+    setLoaded(true);
+    startTransition(async () => {
+      const result = await getClientAuditLog(businessId);
+      setLogs(result.data ?? []);
+      setTotal(result.total ?? 0);
+    });
+  }
+
+  if (isPending || logs === null) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-6 h-6 animate-spin text-[#0F6E56]" />
       </div>
-      <h3 className="text-base font-semibold text-[#1a1814] dark:text-[#f0ede8] mb-1">
-        Audit Log Coming Soon
-      </h3>
-      <p className="text-sm text-[#888070] dark:text-[#7a7268] max-w-xs">
-        Full activity audit trail — every classification, post, and journal entry change — is planned for Phase 18.
+    );
+  }
+
+  if (logs.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-12 h-12 rounded-xl bg-[#f0ede8] dark:bg-[#2e2c28] flex items-center justify-center mb-4">
+          <Clock className="w-6 h-6 text-[#888070] dark:text-[#7a7268]" />
+        </div>
+        <h3 className="text-base font-semibold text-[#1a1814] dark:text-[#f0ede8] mb-1">No activity yet</h3>
+        <p className="text-sm text-[#888070] dark:text-[#7a7268] max-w-xs">
+          Classify or post transactions to start building an audit trail for this client.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-[#888070] dark:text-[#7a7268]">
+        {total} action{total !== 1 ? 's' : ''} recorded for this client.
       </p>
+      <div className="rounded-xl border border-[#e5e1d8] dark:border-[#3a3730] overflow-hidden bg-white dark:bg-[#242220]">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-[#e5e1d8] dark:border-[#3a3730]">
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[#888070] dark:text-[#7a7268]">Time</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[#888070] dark:text-[#7a7268]">Action</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[#888070] dark:text-[#7a7268]">Entity</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[#888070] dark:text-[#7a7268]">User</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#f0ede8] dark:divide-[#2a2720]">
+            {logs.map((log: any) => (
+              <tr key={log.id} className="hover:bg-[#faf9f7] dark:hover:bg-[#2e2c28] transition-colors">
+                <td className="px-4 py-3 text-xs text-[#888070] dark:text-[#7a7268] whitespace-nowrap">
+                  {new Date(log.created_at).toLocaleString('en-CA', {
+                    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                  })}
+                </td>
+                <td className="px-4 py-3">
+                  <ActionBadge action={log.action} />
+                </td>
+                <td className="px-4 py-3">
+                  <span className="text-[#1a1814] dark:text-[#c8c0b0]">{log.entity_type}</span>
+                  <span className="ml-2 font-mono text-xs text-[#888070] dark:text-[#7a7268]">
+                    {String(log.entity_id).slice(0, 8)}&hellip;
+                  </span>
+                </td>
+                <td className="px-4 py-3 font-mono text-xs text-[#888070] dark:text-[#7a7268]">
+                  {String(log.user_id).slice(0, 16)}&hellip;
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -245,11 +323,9 @@ export function ClientDashboardTabs({ overview, client }: ClientDashboardTabsPro
       {/* Tab content */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {/* Left: quick actions */}
           <div className="lg:col-span-2">
             <QuickActions businessId={overview.businessId} />
           </div>
-          {/* Right: client info card */}
           <div>
             <ClientOverviewCard client={client} />
           </div>
@@ -262,7 +338,9 @@ export function ClientDashboardTabs({ overview, client }: ClientDashboardTabsPro
         <HstTab overview={overview} currency={currency} />
       )}
 
-      {activeTab === 'audit' && <AuditTab />}
+      {activeTab === 'audit' && (
+        <AuditTab businessId={overview.businessId} />
+      )}
     </div>
   );
 }
