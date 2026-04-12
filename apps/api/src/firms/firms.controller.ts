@@ -41,7 +41,7 @@ export class UpdateFirmDto {
   @IsString() @IsOptional() @MaxLength(100)
   @Matches(/^[a-z0-9-]+$/, { message: 'Subdomain may only contain lowercase letters, numbers, and hyphens.' })
   subdomain?: string;
-  @IsString() @IsOptional() @MaxLength(500) logo_url?: string;
+  @IsString() @IsOptional() logo_url?: string;
   @IsString() @IsOptional()
   @Matches(/^#[0-9A-Fa-f]{6}$/, { message: 'brand_colour must be a valid hex colour (e.g. #2C4A8C).' })
   brand_colour?: string;

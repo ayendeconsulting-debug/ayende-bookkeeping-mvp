@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -25,7 +25,7 @@ export class AccountantFirm {
   subdomain: string;
 
   // Uploaded firm logo URL (Railway volume or S3)
-  @Column({ type: 'varchar', length: 500, nullable: true })
+  @Column({ type: 'text', nullable: true })
   logo_url: string | null;
 
   // Hex brand colour e.g. #2C4A8C — injected as CSS var on subdomain
