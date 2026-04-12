@@ -1,7 +1,7 @@
-﻿'use client';
+'use client';
 
 import { useState, useTransition } from 'react';
-import { Sparkles, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Loader2, AlertCircle, CheckCircle2, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, AiClassificationSuggestion } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { toastSuccess, toastError } from '@/lib/toast';
@@ -28,6 +28,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 interface ClassifyPanelProps {
   transaction: RawTransaction | null;
@@ -66,7 +67,9 @@ export function ClassifyPanel({
   const [isPending, startTransition] = useTransition();
   const [isAiLoading, setIsAiLoading] = useState(false);
 
-  
+  // Owner Contribution / Draw toggles — mutually exclusive
+  const [ownerContribution, setOwnerContribution] = useState(false);
+  const [ownerDraw, setOwnerDraw] = useState(false);
 
   if (!transaction) return null;
 
@@ -74,15 +77,41 @@ export function ClassifyPanel({
     (a) => a.account_subtype === 'bank' || a.account_subtype === 'credit_card',
   );
 
-  
+  const equityContributionAccounts = accounts.filter(
+    (a) => a.account_subtype === 'owner_contribution',
+  );
 
+  const equityDrawAccounts = accounts.filter(
+    (a) => a.account_subtype === 'owner_draw',
+  );
 
   const debitAccounts = accounts.filter(
     (a) => a.account_type === 'expense' || a.account_type === 'asset' || a.account_type === 'revenue',
   );
 
-
   const activeTaxCodes = taxCodes.filter((t) => t.is_active);
+
+  // When Owner Contribution is on: source (credit) = equity contribution accounts
+  // When Owner Draw is on: debit = equity draw accounts
+  const visibleSourceAccounts = ownerContribution ? equityContributionAccounts : bankAccounts;
+  const visibleDebitAccounts = ownerDraw ? equityDrawAccounts : debitAccounts;
+
+  function toggleOwnerContribution() {
+    const next = !ownerContribution;
+    setOwnerContribution(next);
+    if (next) setOwnerDraw(false);
+    // Reset account selections when toggling
+    setSourceAccountId('');
+    setAccountId('');
+  }
+
+  function toggleOwnerDraw() {
+    const next = !ownerDraw;
+    setOwnerDraw(next);
+    if (next) setOwnerContribution(false);
+    setSourceAccountId('');
+    setAccountId('');
+  }
 
   function handleClose() {
     setStep(initialStep);
@@ -92,6 +121,8 @@ export function ClassifyPanel({
     setClassifiedId(initialClassifiedId);
     setError('');
     setAiSuggestion(null);
+    setOwnerContribution(false);
+    setOwnerDraw(false);
     onClose();
   }
 
@@ -164,6 +195,12 @@ export function ClassifyPanel({
 
   const amount = Number(transaction.amount);
 
+  // Labels that change based on toggle state
+  const debitLabel = ownerDraw ? 'Owner Draw account (debit) *' : 'Category (debit account) *';
+  const debitPlaceholder = ownerDraw ? 'Select owner draw account\u2026' : 'Select expense or asset account\u2026';
+  const sourceLabel = ownerContribution ? 'Owner Contribution account (credit) *' : 'Source account (credit) *';
+  const sourcePlaceholder = ownerContribution ? 'Select owner contribution account\u2026' : 'Select bank or credit card\u2026';
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -190,9 +227,9 @@ export function ClassifyPanel({
         {step !== 'done' && (
           <>
             {/* Transaction summary */}
-            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 flex flex-col gap-1.5">
+            <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 flex flex-col gap-1.5 dark:bg-[#1e1c18] dark:border-[#3a3730]">
               <div className="flex justify-between items-start gap-2">
-                <span className="text-sm font-medium text-gray-900 flex-1 leading-snug">
+                <span className="text-sm font-medium text-gray-900 dark:text-[#f0ede8] flex-1 leading-snug">
                   {transaction.description}
                 </span>
                 <span className={`text-sm font-semibold flex-shrink-0 ${amount >= 0 ? 'text-primary' : 'text-danger'}`}>
@@ -207,7 +244,7 @@ export function ClassifyPanel({
                 </span>
                 {transaction.source_account_name && (
                   <>
-                    <span className="text-xs text-gray-300">Â·</span>
+                    <span className="text-xs text-gray-300">&middot;</span>
                     <span className="text-xs text-gray-400">{transaction.source_account_name}</span>
                   </>
                 )}
@@ -232,14 +269,57 @@ export function ClassifyPanel({
 
             {step === 'classify' && (
               <div className="flex flex-col gap-4">
+
+                {/* Owner Contribution / Draw toggles */}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleOwnerContribution}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                      ownerContribution
+                        ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-400'
+                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300 dark:bg-[#1e1c18] dark:border-[#3a3730] dark:text-[#a09888] dark:hover:border-[#4a4438]',
+                    )}
+                  >
+                    <ArrowDownToLine className="w-3.5 h-3.5" />
+                    Owner Contribution
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleOwnerDraw}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                      ownerDraw
+                        ? 'bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-400'
+                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300 dark:bg-[#1e1c18] dark:border-[#3a3730] dark:text-[#a09888] dark:hover:border-[#4a4438]',
+                    )}
+                  >
+                    <ArrowUpFromLine className="w-3.5 h-3.5" />
+                    Owner Draw
+                  </button>
+                </div>
+
+                {/* Helper text when a toggle is active */}
+                {ownerContribution && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 -mt-2">
+                    Owner Contribution: Debit expense/asset &rarr; Credit owner equity. Select the equity contribution account below.
+                  </p>
+                )}
+                {ownerDraw && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 -mt-2">
+                    Owner Draw: Debit owner draw equity &rarr; Credit bank. Select the equity draw account below.
+                  </p>
+                )}
+
                 <div className="flex flex-col gap-1.5">
-                  <Label>Category (debit account) *</Label>
+                  <Label>{debitLabel}</Label>
                   <Select value={accountId} onValueChange={setAccountId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select expense or asset account¦" />
+                      <SelectValue placeholder={debitPlaceholder} />
                     </SelectTrigger>
                     <SelectContent>
-                      {debitAccounts.map((a) => (
+                      {visibleDebitAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
                           {a.account_code} - {a.account_name}
                         </SelectItem>
@@ -249,13 +329,13 @@ export function ClassifyPanel({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label>Source account (credit) *</Label>
+                  <Label>{sourceLabel}</Label>
                   <Select value={sourceAccountId} onValueChange={setSourceAccountId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select bank or credit card¦" />
+                      <SelectValue placeholder={sourcePlaceholder} />
                     </SelectTrigger>
                     <SelectContent>
-                      {bankAccounts.map((a) => (
+                      {visibleSourceAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id}>
                           {a.account_code} - {a.account_name}
                         </SelectItem>
@@ -291,17 +371,30 @@ export function ClassifyPanel({
 
             {step === 'post' && (
               <div className="flex flex-col gap-3">
-                <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-sm">
+                {/* Owner Contribution / Draw label on post step */}
+                {(ownerContribution || ownerDraw) && (
+                  <div className={cn(
+                    'rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-1.5',
+                    ownerContribution
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800',
+                  )}>
+                    {ownerContribution
+                      ? <><ArrowDownToLine className="w-3.5 h-3.5" /> Owner Contribution entry</>
+                      : <><ArrowUpFromLine className="w-3.5 h-3.5" /> Owner Draw entry</>}
+                  </div>
+                )}
+                <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-sm dark:bg-[#1e1c18] dark:border-[#3a3730]">
                   <div className="flex justify-between mb-1">
-                    <span className="text-gray-500">Debit account</span>
-                    <span className="text-gray-900 font-medium">
+                    <span className="text-gray-500 dark:text-[#a09888]">Debit account</span>
+                    <span className="text-gray-900 dark:text-[#f0ede8] font-medium">
                       {accounts.find((a) => a.id === accountId)?.account_name ?? accountId}
                     </span>
                   </div>
                   <div className="flex justify-between mb-1 items-center">
-                    <span className="text-gray-500">Credit account</span>
+                    <span className="text-gray-500 dark:text-[#a09888]">Credit account</span>
                     {sourceAccountId ? (
-                      <span className="text-gray-900 font-medium">
+                      <span className="text-gray-900 dark:text-[#f0ede8] font-medium">
                         {accounts.find((a) => a.id === sourceAccountId)?.account_name ?? sourceAccountId}
                       </span>
                     ) : (
@@ -321,8 +414,8 @@ export function ClassifyPanel({
                   </div>
                   {taxCodeId && taxCodeId !== 'none' && (
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Tax code</span>
-                      <span className="text-gray-900 font-medium">
+                      <span className="text-gray-500 dark:text-[#a09888]">Tax code</span>
+                      <span className="text-gray-900 dark:text-[#f0ede8] font-medium">
                         {taxCodes.find((t) => t.id === taxCodeId)?.code}
                       </span>
                     </div>
