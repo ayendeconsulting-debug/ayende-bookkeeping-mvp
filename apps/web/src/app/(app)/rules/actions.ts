@@ -1,5 +1,4 @@
 'use server';
-
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
 
@@ -8,6 +7,7 @@ export async function createRule(data: {
   match_value: string;
   target_account_id: string;
   priority: number;
+  tax_code_id?: string;
 }) {
   try {
     const matchTypeLabel = data.match_type.charAt(0).toUpperCase() + data.match_type.slice(1);
@@ -24,6 +24,7 @@ export async function updateRule(id: string, data: {
   match_value?: string;
   target_account_id?: string;
   priority?: number;
+  tax_code_id?: string;
 }) {
   try {
     await api(`/classification/rules/${id}`, { method: 'PATCH', body: JSON.stringify(data) });

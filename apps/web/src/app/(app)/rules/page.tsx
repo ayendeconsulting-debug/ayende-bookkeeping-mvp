@@ -1,5 +1,5 @@
 import { apiGet } from '@/lib/api';
-import { ClassificationRule, Account } from '@/types';
+import { ClassificationRule, Account, TaxCode } from '@/types';
 import { RulesManager } from '@/components/rules-manager';
 
 async function getRules(): Promise<ClassificationRule[]> {
@@ -18,7 +18,15 @@ async function getAccounts(): Promise<Account[]> {
   }
 }
 
+async function getTaxCodes(): Promise<TaxCode[]> {
+  try {
+    return await apiGet('/tax/codes');
+  } catch {
+    return [];
+  }
+}
+
 export default async function RulesPage() {
-  const [rules, accounts] = await Promise.all([getRules(), getAccounts()]);
-  return <RulesManager initialRules={rules} accounts={accounts} />;
+  const [rules, accounts, taxCodes] = await Promise.all([getRules(), getAccounts(), getTaxCodes()]);
+  return <RulesManager initialRules={rules} accounts={accounts} taxCodes={taxCodes} />;
 }

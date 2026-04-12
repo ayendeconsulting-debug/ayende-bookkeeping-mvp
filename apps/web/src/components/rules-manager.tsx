@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Pencil, Trash2, Filter, Wand2 } from 'lucide-react';
-import { ClassificationRule, Account } from '@/types';
+import { ClassificationRule, Account, TaxCode } from '@/types';
 import { createRule, updateRule, deleteRule } from '@/app/(app)/rules/actions';
 import { AdminOnly } from '@/components/admin-only';
 import { toastSuccess, toastError } from '@/lib/toast';
@@ -20,13 +20,25 @@ import { cn } from '@/lib/utils';
 interface RulesManagerProps {
   initialRules: ClassificationRule[];
   accounts: Account[];
+  taxCodes: TaxCode[];
 }
 
 interface RuleFormData {
-  match_type: string; match_value: string; target_account_id: string; priority: string;
+  match_type: string;
+  match_value: string;
+  target_account_id: string;
+  priority: string;
+  tax_code_id: string;
 }
 
-const EMPTY_FORM: RuleFormData = { match_type: 'keyword', match_value: '', target_account_id: '', priority: '10' };
+const EMPTY_FORM: RuleFormData = {
+  match_type: 'keyword',
+  match_value: '',
+  target_account_id: '',
+  priority: '10',
+  tax_code_id: '',
+};
+
 const MATCH_TYPE_LABELS: Record<string, string> = { keyword: 'Keyword', vendor: 'Vendor', account: 'Account' };
 
 function SourceBadge({ source }: { source?: string }) {
@@ -47,7 +59,7 @@ function SourceBadge({ source }: { source?: string }) {
 
 const selectCls = "text-sm border border-gray-200 rounded-lg px-3 py-2 w-full outline-none bg-white text-gray-900 focus:border-[#0F6E56] disabled:bg-gray-50 dark:bg-[#222019] dark:border-[#3a3730] dark:text-[#f0ede8] dark:focus:border-[#0F6E56] dark:disabled:bg-[#1a1714]";
 
-export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
+export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerProps) {
   const router = useRouter();
   const [rules, setRules] = useState<ClassificationRule[]>(
     [...initialRules].sort((a, b) => a.priority - b.priority),
@@ -67,7 +79,13 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
 
   function openEdit(rule: ClassificationRule) {
     setEditingRule(rule);
-    setForm({ match_type: rule.match_type, match_value: rule.match_value, target_account_id: rule.target_account_id, priority: String(rule.priority) });
+    setForm({
+      match_type: rule.match_type,
+      match_value: rule.match_value,
+      target_account_id: rule.target_account_id,
+      priority: String(rule.priority),
+      tax_code_id: rule.tax_code_id ?? '',
+    });
     setError(null);
     setDialogOpen(true);
   }
@@ -78,9 +96,11 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
     if (isNaN(priority) || priority < 1) { setError('Priority must be a positive number.'); return; }
 
     setSaving(true); setError(null);
+    const taxCodeId = form.tax_code_id || undefined;
+
     const result = editingRule
-      ? await updateRule(editingRule.id, { match_value: form.match_value, target_account_id: form.target_account_id, priority })
-      : await createRule({ match_type: form.match_type, match_value: form.match_value, target_account_id: form.target_account_id, priority });
+      ? await updateRule(editingRule.id, { match_value: form.match_value, target_account_id: form.target_account_id, priority, tax_code_id: taxCodeId })
+      : await createRule({ match_type: form.match_type, match_value: form.match_value, target_account_id: form.target_account_id, priority, tax_code_id: taxCodeId });
     setSaving(false);
 
     if (!result.success) {
@@ -106,6 +126,7 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
   }
 
   const accountMap = Object.fromEntries(accounts.map((a) => [a.id, a]));
+  const taxCodeMap = Object.fromEntries(taxCodes.map((t) => [t.id, t]));
   const learnedCount = rules.filter((r) => r.source === 'user_learned').length;
   const manualCount  = rules.filter((r) => r.source !== 'user_learned').length;
 
@@ -154,12 +175,14 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
                   <TableHead>Match Type</TableHead>
                   <TableHead>Match Value</TableHead>
                   <TableHead>Target Account</TableHead>
+                  <TableHead>Tax Code</TableHead>
                   <TableHead className="w-24" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rules.map((rule) => {
                   const account = accountMap[rule.target_account_id];
+                  const taxCode = rule.tax_code_id ? taxCodeMap[rule.tax_code_id] : null;
                   return (
                     <TableRow key={rule.id} className={cn(rule.source === 'user_learned' && 'bg-amber-50/30 dark:bg-amber-900/10')}>
                       <TableCell className="font-mono text-sm text-gray-500 dark:text-[#a09888]">{rule.priority}</TableCell>
@@ -172,6 +195,11 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
                         {account
                           ? <span><span className="text-gray-400 dark:text-[#7a7060] mr-1.5">{account.account_code}</span>{account.account_name}</span>
                           : <span className="text-gray-400 dark:text-[#7a7060]">Unknown account</span>}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {taxCode
+                          ? <Badge variant="outline">{taxCode.name} ({taxCode.rate}%)</Badge>
+                          : <span className="text-gray-400 dark:text-[#7a7060]">—</span>}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -259,6 +287,19 @@ export function RulesManager({ initialRules, accounts }: RulesManagerProps) {
                 <option value="">Select account…</option>
                 {accounts.filter((a) => a.is_active).map((a) => (
                   <option key={a.id} value={a.id}>{a.account_code} – {a.account_name} ({a.account_type})</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Tax Code <span className="text-gray-400 text-xs font-normal">(optional)</span></Label>
+              <select
+                value={form.tax_code_id}
+                onChange={(e) => setForm((f) => ({ ...f, tax_code_id: e.target.value }))}
+                className={selectCls}
+              >
+                <option value="">No tax code</option>
+                {taxCodes.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.rate}%)</option>
                 ))}
               </select>
             </div>
