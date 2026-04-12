@@ -19,7 +19,8 @@ export class AuditLog {
   @Column({ type: 'uuid', nullable: true })
   business_id: string;
 
-  @Column({ type: 'uuid' })
+  // Clerk user ID — varchar not uuid
+  @Column({ type: 'varchar', length: 255 })
   user_id: string;
 
   @Column({ type: 'varchar', length: 50 })
@@ -28,26 +29,25 @@ export class AuditLog {
   @Column({ type: 'varchar', length: 50 })
   entity_type: string;
 
-  @Column({ type: 'uuid' })
+  // varchar to support both UUIDs and string IDs
+  @Column({ type: 'varchar', length: 255 })
   entity_id: string;
 
   @Column({ type: 'jsonb', nullable: true })
-  old_values: Record<string, any>;
+  old_values: Record<string, any> | null;
 
   @Column({ type: 'jsonb', nullable: true })
-  new_values: Record<string, any>;
+  new_values: Record<string, any> | null;
 
-  // PostgreSQL inet type — stores as string in TypeScript
   @Column({ type: 'inet', nullable: true })
-  ip_address: string;
+  ip_address: string | null;
 
   @Column({ type: 'text', nullable: true })
-  user_agent: string;
+  user_agent: string | null;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 
-  // Relationships
   @ManyToOne(() => Business, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'business_id' })
   business: Business;

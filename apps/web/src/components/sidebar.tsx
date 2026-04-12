@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -42,6 +42,7 @@ const businessSettingsItems = [
   { href: '/rules',                        label: 'Classification Rules', icon: Filter },
   { href: '/ai',                           label: 'AI Assistant',         icon: Sparkles },
   { href: '/settings/fiscal-year-lock',    label: 'Fiscal Year Lock',     icon: Lock },
+  { href: '/settings/audit-log',           label: 'Audit Log',            icon: ClipboardList },
   { href: '/settings',                     label: 'Settings',             icon: Settings },
 ];
 const freelancerItems = [

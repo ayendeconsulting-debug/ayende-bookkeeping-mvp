@@ -23,6 +23,7 @@ import {
 import { CreateClassificationRuleDto, UpdateClassificationRuleDto } from '../dto/create-classification-rule.dto';
 import { LearnClassificationRuleDto } from '../dto/learn-classification-rule.dto';
 import { HstPeriodService } from './hst-period.service';
+import { GeneralAuditService } from './general-audit.service';
 
 @Injectable()
 export class ClassificationService {
@@ -47,6 +48,7 @@ export class ClassificationService {
     private readonly fiscalYearRepo: Repository<FiscalYear>,
     private readonly dataSource: DataSource,
     private readonly hstPeriodService: HstPeriodService,
+    private readonly generalAuditService: GeneralAuditService,
   ) {}
 
   // â”€â”€ Classification Rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -307,6 +309,10 @@ export class ClassificationService {
   // â”€â”€ Post to General Ledger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   // ── Unclassify
+
+  async getAuditLogs(businessId: string, limit = 50, offset = 0) {
+    return this.generalAuditService.listForBusiness(businessId, limit, offset);
+  }
 
   async unclassify(businessId: string, rawTransactionId: string): Promise<void> {
     const rawTx = await this.rawTxRepo.findOne({ where: { id: rawTransactionId, business_id: businessId } });

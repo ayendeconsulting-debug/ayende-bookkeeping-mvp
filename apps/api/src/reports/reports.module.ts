@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 
@@ -52,6 +52,7 @@ import { HstExportService } from './services/hst-export.service';
 import { PdfJobsProcessor, PDF_JOBS_QUEUE } from '../reports/pdf-jobs.processor';
 import { PdfJobsService } from '../reports/pdf-jobs.service';
 
+import { GeneralAuditService } from './services/general-audit.service';
 // Phase 11: Year-End PDF export (lives here to avoid circular dep with AiModule)
 import { YearEndExportService } from '../ai/services/year-end-export.service';
 
@@ -108,6 +109,7 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
     PdfJobsService,
     // Phase 11
     YearEndExportService,
+    GeneralAuditService,
   ],
   exports: [
     // Phase 12: exported so PlaidModule can inject ClassificationService
@@ -124,10 +126,11 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
     ItcService,
     HstReportService,
     HstExportService,
-    // Phase 10 – exported so AiModule can inject PdfJobsService
+    // Phase 10 â€“ exported so AiModule can inject PdfJobsService
     PdfJobsService,
     // Phase 11
     YearEndExportService,
+    GeneralAuditService,
   ],
 })
 export class ReportsModule {}

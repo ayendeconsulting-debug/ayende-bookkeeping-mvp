@@ -234,6 +234,19 @@ export class ClassificationController {
   }
 
   @Roles('admin')
+  @Get('audit-logs')
+  getAuditLogs(
+    @Req() req: Request,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.classificationService.getAuditLogs(
+      req.user!.businessId,
+      limit ? parseInt(limit) : 50,
+      offset ? parseInt(offset) : 0,
+    );
+  }
+
   @Post('owner-draw')
   ownerDraw(@Req() req: Request, @Body() dto: OwnerDrawDto) {
     dto.businessId = req.user!.businessId;
