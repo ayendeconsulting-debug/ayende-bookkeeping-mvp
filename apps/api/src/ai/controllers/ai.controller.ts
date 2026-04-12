@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Post,
   Get,
@@ -80,6 +80,24 @@ export class AiController {
       req.user!.businessId,
       dto.startDate,
       dto.endDate,
+    );
+  }
+
+  /**
+   * GET /ai/anomalies
+   * Dashboard: runs anomaly detection for YTD automatically
+   */
+  @Get('anomalies')
+  @UseGuards(AiUsageGuard)
+  @AiFeatureType(AiFeature.ANOMALY)
+  async getAnomalies(@Req() req: Request) {
+    const today = new Date();
+    const startDate = `${today.getFullYear()}-01-01`;
+    const endDate = today.toISOString().split('T')[0];
+    return this.anomalyService.detect(
+      req.user!.businessId,
+      startDate,
+      endDate,
     );
   }
 
