@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { ShieldAlert, AlertTriangle, Info, TrendingUp, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -25,7 +26,10 @@ function severityBadgeClass(s: AnomalyFlag['severity']) {
   return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-900';
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+
 export function AnomalyCard() {
+  const { getToken } = useAuth();
   const [anomalies, setAnomalies] = useState<AnomalyResult | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +37,14 @@ export function AnomalyCard() {
     let cancelled = false;
     async function fetchAnomalies() {
       try {
-        const res = await fetch('/api/proxy/ai/anomalies');
+        const token = await getToken();
+        const res = await fetch(`${API_URL}/ai/anomalies`, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          cache: 'no-store',
+        });
         if (!res.ok) throw new Error('Failed');
         const data = await res.json();
         if (!cancelled) setAnomalies(data);
@@ -45,7 +56,7 @@ export function AnomalyCard() {
     }
     fetchAnomalies();
     return () => { cancelled = true; };
-  }, []);
+  }, [getToken]);
 
   return (
     <Card>
