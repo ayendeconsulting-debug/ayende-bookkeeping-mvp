@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   Delete,
@@ -102,19 +102,19 @@ export class FirmsController {
 
   @Get('me')
   async getMyFirm(@Req() req: Request) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.firmsService.getMyFirm(clerkUserId);
   }
 
   @Post()
   async createFirm(@Req() req: Request, @Body() dto: CreateFirmDto) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.firmsService.createFirm(clerkUserId, dto);
   }
 
   @Patch('me')
   async updateFirm(@Req() req: Request, @Body() dto: UpdateFirmDto) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.firmsService.updateFirm(clerkUserId, dto);
   }
 
@@ -130,13 +130,13 @@ export class FirmsController {
 
   @Get('me/clients')
   async listClients(@Req() req: Request) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.firmClientService.listClients(clerkUserId);
   }
 
   @Post('me/clients')
   async createClient(@Req() req: Request, @Body() dto: CreateClientDto) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.firmClientService.createClient(clerkUserId, dto);
   }
 
@@ -145,20 +145,20 @@ export class FirmsController {
     @Req() req: Request,
     @Param('businessId') businessId: string,
   ) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.firmClientService.getClientOverview(clerkUserId, businessId);
   }
 
   @Delete('me/clients/:id')
   async archiveClient(@Req() req: Request, @Param('id') firmClientId: string) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     await this.firmClientService.archiveClient(clerkUserId, firmClientId);
     return { success: true };
   }
 
   @Get('me/billing-summary')
   async getBillingSummary(@Req() req: Request) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.firmClientService.getBillingSummary(clerkUserId);
   }
 
@@ -173,7 +173,7 @@ export class FirmsController {
     @Req() req: Request,
     @Body() dto: CreateAccessRequestDto,
   ) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.accessRequestService.createRequest(clerkUserId, dto);
   }
 
@@ -186,7 +186,7 @@ export class FirmsController {
     @Req() req: Request,
     @Param('businessId') businessId: string,
   ) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.accessRequestService.listRequestsForClient(clerkUserId, businessId);
   }
 
@@ -199,7 +199,7 @@ export class FirmsController {
     @Req() req: Request,
     @Param('requestId') requestId: string,
   ) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     await this.accessRequestService.revokeRequest(clerkUserId, requestId);
     return { success: true };
   }
@@ -217,7 +217,7 @@ export class FirmsController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     const firm = await this.firmsService.getMyFirm(clerkUserId);
     return this.auditLogService.listForClient(firm.id, businessId, {
       startDate,
@@ -231,26 +231,26 @@ export class FirmsController {
 
   @Get('me/staff')
   async listStaff(@Req() req: Request) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.firmStaffService.listStaff(clerkUserId);
   }
 
   @Post('me/staff/invite')
   async inviteStaff(@Req() req: Request, @Body() dto: InviteStaffDto) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     return this.firmStaffService.inviteStaff(clerkUserId, dto);
   }
 
   @Patch('me/staff/accept-invite')
   async acceptInvite(@Req() req: Request, @Body() dto: AcceptInviteDto) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     const result = await this.firmStaffService.acceptInvite(clerkUserId, dto.email);
     return result ?? { message: 'No pending invite found for this email.' };
   }
 
   @Delete('me/staff/:id')
   async removeStaff(@Req() req: Request, @Param('id') staffRowId: string) {
-    const clerkUserId = (req as any).auth?.userId;
+    const clerkUserId = req.user!.userId;
     await this.firmStaffService.removeStaff(clerkUserId, staffRowId);
     return { success: true };
   }
