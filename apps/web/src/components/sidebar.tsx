@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -56,6 +56,9 @@ const freelancerMainItems = [
   { href: '/invoices',     label: 'Invoices',             icon: FileText },
   { href: '/recurring',    label: 'Recurring',            icon: RefreshCw },
   { href: '/banks',        label: 'Bank Accounts',        icon: Building2 },
+];
+const freelancerReportItems = [
+  { href: '/reports/income-statement', label: 'Reports', icon: TrendingUp },
 ];
 const freelancerSettingsItems = [
   { href: '/accounts', label: 'Chart of Accounts', icon: BookOpen },
@@ -134,6 +137,8 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
             {freelancerItems.map((i) => <NavItem key={i.href} {...i} active={isActive(i.href)} onClose={onClose} />)}
             <NavSection label="Main" />
             {freelancerMainItems.map((i) => <NavItem key={i.href} {...i} active={isActive(i.href)} onClose={onClose} />)}
+            <NavSection label="Reports" />
+            {freelancerReportItems.map((i) => <NavItem key={i.href} {...i} active={isActive(i.href)} onClose={onClose} />)}
             <NavSection label="Settings" />
             {freelancerSettingsItems.map((i) => <NavItem key={i.href} {...i} active={isActive(i.href)} onClose={onClose} />)}
           </>)}
