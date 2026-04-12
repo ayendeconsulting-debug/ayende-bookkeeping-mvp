@@ -25,14 +25,48 @@ interface Props {
   initialError?: string;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers ------------------------------------------------------------------
+
+function pad(n: number) { return String(n).padStart(2, '0'); }
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function periodLabel(p: HstPeriod) {
-  return `${formatDate(p.period_start)} → ${formatDate(p.period_end)} (${p.frequency})`;
+  return `${formatDate(p.period_start)} \u2192 ${formatDate(p.period_end)} (${p.frequency})`;
+}
+
+/** Returns CRA-aligned start/end dates for the given frequency based on today's date. */
+function getDatesForFrequency(freq: 'monthly' | 'quarterly' | 'annual'): { start: string; end: string } {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth(); // 0-based
+
+  if (freq === 'monthly') {
+    const lastDay = new Date(y, m + 1, 0).getDate();
+    return {
+      start: `${y}-${pad(m + 1)}-01`,
+      end:   `${y}-${pad(m + 1)}-${pad(lastDay)}`,
+    };
+  }
+
+  if (freq === 'quarterly') {
+    // CRA quarters: Q1=Jan-Mar, Q2=Apr-Jun, Q3=Jul-Sep, Q4=Oct-Dec
+    const qStartMonth = Math.floor(m / 3) * 3; // 0, 3, 6, or 9
+    const qEndMonth   = qStartMonth + 2;
+    const lastDay = new Date(y, qEndMonth + 1, 0).getDate();
+    return {
+      start: `${y}-${pad(qStartMonth + 1)}-01`,
+      end:   `${y}-${pad(qEndMonth + 1)}-${pad(lastDay)}`,
+    };
+  }
+
+  // annual
+  return {
+    start: `${y}-01-01`,
+    end:   `${y}-12-31`,
+  };
 }
 
 function StatusBadge({ status }: { status: HstPeriod['status'] }) {
@@ -48,7 +82,7 @@ function StatusBadge({ status }: { status: HstPeriod['status'] }) {
   );
 }
 
-// ── GST34 Line Row ────────────────────────────────────────────────────────────
+// -- GST34 Line Row -----------------------------------------------------------
 
 function Gst34Row({
   line, label, amount, highlight, editable, editValue, onEditChange,
@@ -94,28 +128,30 @@ function Gst34Row({
   );
 }
 
-// ── Create Period Modal ───────────────────────────────────────────────────────
+// -- Create Period Form -------------------------------------------------------
 
 function CreatePeriodForm({ onCreated }: { onCreated: (p: HstPeriod) => void }) {
   const [open, setOpen]       = useState(false);
+  const [freq, setFreq]       = useState<'monthly' | 'quarterly' | 'annual'>('quarterly');
   const [start, setStart]     = useState('');
   const [end, setEnd]         = useState('');
-  const [freq, setFreq]       = useState<'monthly' | 'quarterly' | 'annual'>('quarterly');
   const [saving, startSaving] = useTransition();
   const [error, setError]     = useState<string | null>(null);
 
-  // Default to current quarter on open
   function handleOpen() {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth();
-    const qStart = Math.floor(m / 3) * 3;
-    const qEnd = qStart + 2;
-    const lastDay = new Date(y, qEnd + 1, 0).getDate();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    setStart(`${y}-${pad(qStart + 1)}-01`);
-    setEnd(`${y}-${pad(qEnd + 1)}-${pad(lastDay)}`);
+    const dates = getDatesForFrequency('quarterly');
+    setFreq('quarterly');
+    setStart(dates.start);
+    setEnd(dates.end);
+    setError(null);
     setOpen(true);
+  }
+
+  function handleFreqChange(newFreq: 'monthly' | 'quarterly' | 'annual') {
+    setFreq(newFreq);
+    const dates = getDatesForFrequency(newFreq);
+    setStart(dates.start);
+    setEnd(dates.end);
   }
 
   function handleCreate() {
@@ -145,18 +181,10 @@ function CreatePeriodForm({ onCreated }: { onCreated: (p: HstPeriod) => void }) 
       <h3 className="text-sm font-semibold text-foreground">Create HST Period</h3>
       <div className="grid grid-cols-3 gap-3">
         <div className="flex flex-col gap-1">
-          <Label className="text-xs">Start Date</Label>
-          <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="h-8 text-sm" />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label className="text-xs">End Date</Label>
-          <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="h-8 text-sm" />
-        </div>
-        <div className="flex flex-col gap-1">
           <Label className="text-xs">Frequency</Label>
           <select
             value={freq}
-            onChange={(e) => setFreq(e.target.value as typeof freq)}
+            onChange={(e) => handleFreqChange(e.target.value as typeof freq)}
             className="text-sm border border-border rounded-lg px-2 py-1.5 h-8 bg-background text-foreground outline-none focus:border-[#0F6E56]"
           >
             <option value="monthly">Monthly</option>
@@ -164,7 +192,18 @@ function CreatePeriodForm({ onCreated }: { onCreated: (p: HstPeriod) => void }) 
             <option value="annual">Annual</option>
           </select>
         </div>
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs">Start Date</Label>
+          <Input type="date" value={start} onChange={(e) => setStart(e.target.value)} className="h-8 text-sm" />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label className="text-xs">End Date</Label>
+          <Input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className="h-8 text-sm" />
+        </div>
       </div>
+      <p className="text-xs text-muted-foreground -mt-1">
+        Dates auto-populate based on frequency. You can adjust them manually if needed.
+      </p>
       {error && <p className="text-xs text-destructive">{error}</p>}
       <div className="flex items-center gap-2">
         <Button size="sm" onClick={handleCreate} disabled={saving} className="flex items-center gap-1.5">
@@ -177,16 +216,16 @@ function CreatePeriodForm({ onCreated }: { onCreated: (p: HstPeriod) => void }) 
   );
 }
 
-// ── Main Client Component ─────────────────────────────────────────────────────
+// -- Main Client Component ----------------------------------------------------
 
 export function HstReportClient({ initialPeriods, initialError }: Props) {
-  const [periods, setPeriods]             = useState<HstPeriod[]>(initialPeriods);
-  const [selectedId, setSelectedId]       = useState<string>(initialPeriods[0]?.id ?? '');
-  const [report, setReport]               = useState<CraReport | null>(null);
-  const [instalments, setInstalments]     = useState('0');
-  const [loading, startLoading]           = useTransition();
-  const [actionPending, startAction]      = useTransition();
-  const [error, setError]                 = useState<string | null>(initialError ?? null);
+  const [periods, setPeriods]         = useState<HstPeriod[]>(initialPeriods);
+  const [selectedId, setSelectedId]   = useState<string>(initialPeriods[0]?.id ?? '');
+  const [report, setReport]           = useState<CraReport | null>(null);
+  const [instalments, setInstalments] = useState('0');
+  const [loading, startLoading]       = useTransition();
+  const [actionPending, startAction]  = useTransition();
+  const [error, setError]             = useState<string | null>(initialError ?? null);
 
   const selectedPeriod = periods.find((p) => p.id === selectedId) ?? null;
 
@@ -266,7 +305,6 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
       {/* Period selector + controls */}
       <div className="flex flex-col gap-4 mb-6">
         <div className="flex flex-wrap items-end gap-3">
-          {/* Period dropdown */}
           <div className="flex flex-col gap-1 min-w-[280px]">
             <Label className="text-xs">HST Period</Label>
             <div className="relative">
@@ -275,7 +313,7 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
                 onChange={(e) => { setSelectedId(e.target.value); setReport(null); }}
                 className="w-full appearance-none text-sm border border-border rounded-lg px-3 py-2 pr-8 outline-none focus:border-[#0F6E56] bg-background text-foreground"
               >
-                {periods.length === 0 && <option value="">— No periods —</option>}
+                {periods.length === 0 && <option value="">&mdash; No periods &mdash;</option>}
                 {periods.map((p) => (
                   <option key={p.id} value={p.id}>{periodLabel(p)}</option>
                 ))}
@@ -284,9 +322,8 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
             </div>
           </div>
 
-          {/* Line 111 — instalments */}
           <div className="flex flex-col gap-1 w-40">
-            <Label className="text-xs">Line 111 — Instalments Paid</Label>
+            <Label className="text-xs">Line 111 &mdash; Instalments Paid</Label>
             <Input
               type="number"
               min="0"
@@ -300,11 +337,10 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
 
           <Button onClick={handleLoad} disabled={loading || !selectedId} className="flex items-center gap-2 h-9">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Receipt className="w-4 h-4" />}
-            {loading ? 'Loading…' : 'Generate Report'}
+            {loading ? 'Loading\u2026' : 'Generate Report'}
           </Button>
         </div>
 
-        {/* Create period + period actions */}
         <div className="flex flex-wrap items-center gap-2">
           <CreatePeriodForm onCreated={handlePeriodCreated} />
           {selectedPeriod && (
@@ -345,22 +381,19 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
         </Card>
       )}
 
-      {/* Report */}
       {report && (
         <div className="flex flex-col gap-5">
 
-          {/* Unposted warning */}
           {report.unposted_transaction_count > 0 && (
             <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 px-4 py-3">
               <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-amber-700 dark:text-amber-400">
                 {report.unposted_transaction_count} unposted transaction{report.unposted_transaction_count > 1 ? 's' : ''} exist within this period.
-                This report may be incomplete — post all transactions before filing.
+                This report may be incomplete &mdash; post all transactions before filing.
               </p>
             </div>
           )}
 
-          {/* GST34 Lines */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">GST/HST Return Summary</CardTitle>
@@ -374,21 +407,23 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
               <div className="h-px bg-border mx-4 my-1" />
               <Gst34Row line="106" label="Input Tax Credits (ITCs)"         amount={report.line_106_itc_claimed} />
               <div className="h-px bg-border mx-4 my-1" />
-              <Gst34Row line="109" label="Net Tax (Line 103 − Line 106)"   amount={report.line_109_net_tax} highlight />
+              <Gst34Row line="109" label="Net Tax (Line 103 \u2212 Line 106)" amount={report.line_109_net_tax} highlight />
               <Gst34Row
                 line="111"
                 label="Instalments Already Paid"
                 amount={report.line_111_instalments}
                 editable
                 editValue={instalments}
-                onEditChange={(v) => { setInstalments(v); setReport({ ...report, line_111_instalments: parseFloat(v) || 0, line_113_balance: report.line_109_net_tax - (parseFloat(v) || 0) }); }}
+                onEditChange={(v) => {
+                  setInstalments(v);
+                  setReport({ ...report, line_111_instalments: parseFloat(v) || 0, line_113_balance: report.line_109_net_tax - (parseFloat(v) || 0) });
+                }}
               />
               <div className="h-px bg-border mx-4 my-1" />
-              <Gst34Row line="113" label="Balance Owing / Refund Claimed"  amount={report.line_113_balance} highlight />
+              <Gst34Row line="113" label="Balance Owing / Refund Claimed" amount={report.line_113_balance} highlight />
             </CardContent>
           </Card>
 
-          {/* ITC Summary */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">ITC Summary</CardTitle>
@@ -411,7 +446,6 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
             </CardContent>
           </Card>
 
-          {/* Transaction Breakdown */}
           {report.transactions.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
@@ -446,7 +480,7 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
                           </TableCell>
                           <TableCell className="text-right text-sm tabular-nums">${tx.tax_amount.toFixed(2)}</TableCell>
                           <TableCell className="text-right text-sm tabular-nums text-[#0F6E56]">
-                            {tx.itc_amount > 0 ? `$${tx.itc_amount.toFixed(2)}` : '—'}
+                            {tx.itc_amount > 0 ? `$${tx.itc_amount.toFixed(2)}` : '\u2014'}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -465,7 +499,6 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
             </Card>
           )}
 
-          {/* Disclaimer */}
           <p className="text-xs text-muted-foreground px-1">{report.disclaimer}</p>
         </div>
       )}
