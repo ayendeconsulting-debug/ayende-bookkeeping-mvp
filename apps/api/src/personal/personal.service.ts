@@ -95,7 +95,9 @@ export class PersonalService {
 
   async getBudgetCategories(businessId: string) {
     const count = await this.budgetCategoryRepo.count({ where: { business_id: businessId } });
+    const incomeCount = await this.budgetCategoryRepo.count({ where: { business_id: businessId, category_type: 'income' } });
     if (count === 0) await this.seedDefaultCategories(businessId);
+    else if (incomeCount === 0) await this.seedIncomeCategories(businessId);
 
     const categories = await this.budgetCategoryRepo.find({
       where: { business_id: businessId, is_active: true },
@@ -579,6 +581,21 @@ export class PersonalService {
         d.includes('hydro') || d.includes('utility') || d.includes('bell') ||
         d.includes('rogers') || d.includes('telus')) return 'utilities';
     return 'recurring';
+  }
+
+  private async seedIncomeCategories(businessId: string): Promise<void> {
+    const maxOrder = await this.budgetCategoryRepo
+      .createQueryBuilder('bc').where('bc.business_id = :businessId', { businessId })
+      .select('MAX(bc.sort_order)', 'max').getRawOne();
+    const incomeCats = DEFAULT_INCOME_CATEGORIES.map((c, i) =>
+      this.budgetCategoryRepo.create({
+        business_id: businessId, name: c.name, color: c.color,
+        category_type: 'income',
+        monthly_target: null, is_system: true, is_active: true,
+        sort_order: (Number(maxOrder?.max) || 0) + i + 1,
+      }),
+    );
+    await this.budgetCategoryRepo.save(incomeCats);
   }
 
   private async seedDefaultCategories(businessId: string): Promise<void> {
