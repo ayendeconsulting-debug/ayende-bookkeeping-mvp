@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useEffect } from 'react';
 
 interface ClientContextSetterProps {
@@ -19,13 +19,9 @@ interface ClientContextSetterProps {
 export function ClientContextSetter({ businessId, businessName }: ClientContextSetterProps) {
   useEffect(() => {
     // Set cookies — SameSite=Strict, no HttpOnly so JS can clear on unmount
-    document.cookie = `client-business-id=${businessId}; path=/; SameSite=Strict`;
-    document.cookie = `client-business-name=${encodeURIComponent(businessName)}; path=/; SameSite=Strict`;
-    return () => {
-      // Clear cookies when accountant leaves client context
-      document.cookie = 'client-business-id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
-      document.cookie = 'client-business-name=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict';
-    };
+    document.cookie = `client-business-id=${businessId}; path=/; SameSite=Strict; max-age=14400`;
+    document.cookie = `client-business-name=${encodeURIComponent(businessName)}; path=/; SameSite=Strict; max-age=14400`;
+
   }, [businessId, businessName]);
 
   // Renders nothing — side-effect only
