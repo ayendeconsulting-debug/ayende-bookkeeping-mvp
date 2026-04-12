@@ -315,9 +315,9 @@ export default function OnboardingPage() {
           hst_reporting_frequency: hstFrequency,
         });
         if (taxResult.error) {
-          toastError('Tax settings not saved', taxResult.error + ' â€” you can update these in Settings.');
+          toastError('Tax settings not saved', taxResult.error + 'you can update these in Settings.');
         } else {
-          toastSuccess('Tax settings saved', `Province: ${provinceCode} â€” default tax codes created`);
+          toastSuccess('Tax settings saved', `Province: ${provinceCode} default tax codes created`);
         }
       }
 
@@ -520,7 +520,7 @@ export default function OnboardingPage() {
                   </select>
                   {taxLabel && (
                     <p className="text-xs text-[#0F6E56] font-medium">
-                      ✓ Default tax rate: {taxLabel} â€” tax codes will be created automatically
+                      ✓ Default tax rate: {taxLabel} - tax codes will be created automatically
                     </p>
                   )}
                 </div>
