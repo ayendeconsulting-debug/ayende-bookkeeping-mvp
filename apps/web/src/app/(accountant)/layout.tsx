@@ -33,9 +33,9 @@ export default async function AccountantLayout({
   const token = await getToken();
   if (!token) redirect('/sign-in');
 
-  // Firm guard — only users with a firm_staff row may access the portal
+  // Firm guard — users without a firm are sent to setup
   const firm = await getMyFirm(token);
-  if (!firm) redirect('/dashboard');
+  if (!firm) redirect('/accountant-setup');
 
   return (
     <AccountantShell firm={firm}>
