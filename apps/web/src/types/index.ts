@@ -1,4 +1,4 @@
-/* ── Business & Auth ──────────────────────────────────────────────────────────────────────────── */
+﻿/* â”€â”€ Business & Auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type BusinessMode = 'business' | 'freelancer' | 'personal';
 
@@ -15,7 +15,7 @@ export interface Business {
   created_at: string;
 }
 
-/* ── Accounts ─────────────────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Accounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -42,7 +42,7 @@ export interface Account {
   created_at: string;
 }
 
-/* ── Transactions ─────────────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type TransactionSource = 'plaid' | 'csv' | 'pdf' | 'manual';
 export type TransactionStatus = 'pending' | 'classified' | 'posted' | 'ignored';
@@ -62,15 +62,15 @@ export interface RawTransaction {
   source_account_name?: string;
   plaid_account_id?: string;
   plaid_category?: string;
-  anomaly_flags?: string[] | null; // Phase 15 – persisted from AI explain job
-  personal_category_id?: string | null; // Phase 17 – manual budget category assignment
+  anomaly_flags?: string[] | null; // Phase 15 â€“ persisted from AI explain job
+  personal_category_id?: string | null; // Phase 17 â€“ manual budget category assignment
   classified_id?: string | null;
   classified_account_id?: string | null;
   classified_source_account_id?: string | null;
   created_at: string;
 }
 
-/* ── Split Lines (Phase 14) ───────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Split Lines (Phase 14) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface TransactionSplitLine {
   id: string;
@@ -81,7 +81,7 @@ export interface TransactionSplitLine {
   account?: Account;
 }
 
-/* ── Journal Entries ──────────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Journal Entries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type JournalEntryStatus = 'draft' | 'posted' | 'locked';
 
@@ -106,7 +106,7 @@ export interface JournalEntry {
   created_at: string;
 }
 
-/* ── Tax Codes ────────────────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Tax Codes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type TaxType = 'input' | 'output';
 
@@ -121,7 +121,7 @@ export interface TaxCode {
   is_active: boolean;
 }
 
-/* ── Plaid / Bank Connections ─────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Plaid / Bank Connections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type PlaidItemStatus = 'active' | 'error' | 'disconnected';
 
@@ -149,7 +149,7 @@ export interface PlaidAccount {
   currency_code: string;
 }
 
-/* ── Reports ──────────────────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Reports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface ReportLine {
   account_id: string;
@@ -199,7 +199,7 @@ export interface TrialBalance {
   is_balanced: boolean;
 }
 
-/* ── Classification ───────────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Classification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface ClassificationRule {
   id: string;
@@ -213,7 +213,7 @@ export interface ClassificationRule {
   source?: string; // 'user_learned' | 'manual' | undefined
 }
 
-/* ── AI ───────────────────────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ AI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface AiClassificationSuggestion {
   raw_transaction_id: string;
@@ -230,7 +230,7 @@ export interface ChatMessage {
   content: string;
 }
 
-/* ── Phase 5 – Invoices ───────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ Invoices â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type InvoiceStatus =
   | 'draft' | 'sent' | 'viewed' | 'partially_paid' | 'paid' | 'overdue' | 'void';
@@ -266,7 +266,7 @@ export interface Invoice {
   created_at: string;
 }
 
-/* ── Phase 5 – AR/AP ──────────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ AR/AP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type ArApType = 'receivable' | 'payable';
 export type ArApStatus = 'outstanding' | 'partially_paid' | 'paid' | 'overdue' | 'void';
@@ -286,7 +286,7 @@ export interface ArApRecord {
   created_at: string;
 }
 
-/* ── Phase 5 – Recurring Transactions ────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ Recurring Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type RecurringFrequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annually';
 export type RecurringStatus = 'active' | 'paused' | 'completed' | 'cancelled';
@@ -309,7 +309,7 @@ export interface RecurringTransaction {
   created_at: string;
 }
 
-/* ── Phase 5 – Budget Categories ─────────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ Budget Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface BudgetCategory {
   id: string;
@@ -330,7 +330,7 @@ export interface BudgetCategoryWithSpending extends BudgetCategory {
   percentage_spent: number | null;
 }
 
-/* ── Phase 5 – Savings Goals ──────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ Savings Goals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type SavingsGoalStatus = 'active' | 'paused' | 'completed';
 
@@ -352,7 +352,7 @@ export interface SavingsGoalWithProgress extends SavingsGoal {
   required_monthly_contribution: number | null;
 }
 
-/* ── Phase 5 – Mileage Logs ───────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ Mileage Logs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface MileageLog {
   id: string;
@@ -376,7 +376,7 @@ export interface MileageLogResult {
   unit: string;
 }
 
-/* ── Phase 5 – Payment Reminders ─────────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ Payment Reminders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export type PaymentReminderStatus = 'pending' | 'paid' | 'dismissed' | 'snoozed';
 
@@ -392,7 +392,7 @@ export interface PaymentReminder {
   created_at: string;
 }
 
-/* ── Phase 5 – Tax Estimate ───────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ Tax Estimate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface QuarterEstimate {
   quarter: number;
@@ -414,7 +414,7 @@ export interface TaxEstimateResult {
   disclaimer: string;
 }
 
-/* ── Phase 5 – Net Worth ──────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ Net Worth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface PlaidAccountBalance {
   name: string;
@@ -441,7 +441,7 @@ export interface NetWorthResult {
   coa_liabilities: CoaAccountBalance[];
 }
 
-/* ── Phase 5 – Recurring Detection ───────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ Recurring Detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface RecurringDetectionCandidate {
   key: string;
@@ -458,7 +458,7 @@ export interface ConfirmedRecurring extends RecurringDetectionCandidate {
   is_due_soon: boolean;
 }
 
-/* ── API Responses ────────────────────────────────────────────────────────────────────────────── */
+/* â”€â”€ API Responses â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface ApiError {
   message: string;
@@ -466,7 +466,7 @@ export interface ApiError {
   statusCode: number;
 }
 
-/* ── Phase 5 – Upcoming Reminders ────────────────────────────────────────────────────────────── */
+/* â”€â”€ Phase 5 â€“ Upcoming Reminders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 export interface UpcomingReminder {
   key: string;
@@ -488,7 +488,7 @@ export interface UpcomingRemindersResult {
   balance_shortfall: number;
 }
 
-/* -- Phase 17 � Personal Cashflow -------------------------------------------------------------- */
+/* -- Phase 17 ï¿½ Personal Cashflow -------------------------------------------------------------- */
 
 export interface PersonalCashflow {
   money_in: number;
