@@ -1,4 +1,5 @@
 ﻿import { AccessRequestBanner } from '@/components/access-request-banner';
+import { AnomalyCard } from '@/components/anomaly-card';
 import { getAccessRequests } from '@/app/(app)/settings/actions';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
@@ -93,9 +94,9 @@ function severityBadgeClass(s: AnomalyFlag['severity']) {
 }
 
 export default async function DashboardPage() {
-  const [business, trialBalance, transactions, banks, anomalies, sparklines, hstPosition, accessRequests] = await Promise.all([
+  const [business, trialBalance, transactions, banks, sparklines, hstPosition, accessRequests] = await Promise.all([
     getMyBusiness(), getTrialBalance(), getRecentTransactions(),
-    getConnectedBanks(), getAnomalies(), getSparklineData(), getHstPosition(), getAccessRequests(),
+    getConnectedBanks(), getSparklineData(), getHstPosition(), getAccessRequests(),
   ]);
 
   if (business?.mode === 'freelancer') redirect('/freelancer/dashboard');
@@ -103,7 +104,7 @@ export default async function DashboardPage() {
 
   const { revenue, expenses, netIncome } = deriveMetrics(trialBalance);
   const pendingCount  = transactions.filter((t) => t.status === 'pending').length;
-  const highAnomalies = anomalies?.flags.filter((f) => f.severity === 'high') ?? [];
+  const highAnomalies: any[] = [];
 
   const revenueSparkline  = sparklines?.revenue.map((p) => p.value)  ?? [];
   const expensesSparkline = sparklines?.expenses.map((p) => p.value) ?? [];
@@ -236,43 +237,7 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex-row items-center justify-between pb-3">
-              <CardTitle className="flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-muted-foreground" />
-                AI Anomaly Detection
-              </CardTitle>
-              {anomalies && (
-                <span className="text-xs text-muted-foreground">
-                  {anomalies.flags.length} flag{anomalies.flags.length !== 1 ? 's' : ''}
-                </span>
-              )}
-            </CardHeader>
-            <CardContent className="pt-0">
-              {!anomalies && <EmptyState icon={ShieldAlert} message="Anomaly detection unavailable." compact />}
-              {anomalies?.flags.length === 0 && (
-                <div className="flex items-center gap-2 py-3 text-sm text-primary">
-                  <div className="w-5 h-5 rounded-full bg-primary-light flex items-center justify-center">
-                    <TrendingUp className="w-3 h-3 text-primary" />
-                  </div>
-                  No anomalies detected — your books look clean.
-                </div>
-              )}
-              {anomalies && anomalies.flags.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  {anomalies.flags.slice(0, 5).map((flag, i) => (
-                    <div key={i} className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 ${severityBadgeClass(flag.severity)}`}>
-                      {severityIcon(flag.severity)}
-                      <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium truncate">{flag.description || flag.entry_number}</div>
-                        <div className="text-xs mt-0.5 opacity-80">{flag.reason}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <AnomalyCard />
         </div>
 
         {/* Right — banks + P&L + HST Position */}
