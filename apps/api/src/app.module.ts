@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
@@ -22,6 +22,7 @@ import { LegalModule } from './legal/legal.module';
 import { BillingModule } from './billing/billing.module';
 import { FirmsModule } from './firms/firms.module';
 import { FiscalYearModule } from './fiscal-year/fiscal-year.module';
+import { CcaModule } from './cca/cca.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { LegalAcceptanceGuard } from './legal/legal-acceptance.guard';
@@ -68,6 +69,7 @@ function getRedisBullMQConnection() {
     BillingModule,
     FirmsModule,
     FiscalYearModule,
+    CcaModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

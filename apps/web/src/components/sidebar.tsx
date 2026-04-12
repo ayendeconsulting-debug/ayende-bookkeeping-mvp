@@ -42,6 +42,7 @@ const businessSettingsItems = [
   { href: '/rules',                        label: 'Classification Rules', icon: Filter },
   { href: '/ai',                           label: 'AI Assistant',         icon: Sparkles },
   { href: '/settings/fiscal-year-lock',    label: 'Fiscal Year Lock',     icon: Lock },
+  { href: '/cca',                          label: 'CCA Schedule',         icon: Calculator },
   { href: '/settings/audit-log',           label: 'Audit Log',            icon: ClipboardList },
   { href: '/settings',                     label: 'Settings',             icon: Settings },
 ];
