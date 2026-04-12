@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import { Check, X, Tag } from 'lucide-react';
+import { Check, X, Tag, TrendingUp, TrendingDown } from 'lucide-react';
 import { RawTransaction, BudgetCategoryWithSpending } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { toastSuccess, toastError } from '@/lib/toast';
@@ -33,7 +33,6 @@ export function PersonalCategoryPanel({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // Sync selected to current transaction assignment when panel opens
   useEffect(() => {
     if (open && transaction) {
       setSelectedId(transaction.personal_category_id ?? null);
@@ -43,6 +42,10 @@ export function PersonalCategoryPanel({
   if (!transaction) return null;
 
   const amount = Number(transaction.amount);
+
+  // Split categories into income and expense
+  const incomeCategories  = categories.filter((c) => c.category_type === 'income');
+  const expenseCategories = categories.filter((c) => c.category_type !== 'income');
 
   function handleSave(categoryId: string | null) {
     startTransition(async () => {
@@ -57,6 +60,49 @@ export function PersonalCategoryPanel({
         toastError(result.error ?? 'Failed to assign category');
       }
     });
+  }
+
+  function CategoryButton({ cat }: { cat: BudgetCategoryWithSpending }) {
+    const isSelected = selectedId === cat.id;
+    return (
+      <button
+        key={cat.id}
+        onClick={() => setSelectedId(isSelected ? null : cat.id)}
+        disabled={isPending}
+        className={cn(
+          'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all',
+          isSelected
+            ? 'bg-[#0F6E56]/10 dark:bg-[#0F6E56]/20 ring-1 ring-[#0F6E56]/30'
+            : 'hover:bg-gray-50 dark:hover:bg-[#2a2720]',
+        )}
+      >
+        <div
+          className="w-3 h-3 rounded-full flex-shrink-0"
+          style={{ backgroundColor: cat.color ?? '#0F6E56' }}
+        />
+        <div className="flex-1 min-w-0">
+          <p className={cn(
+            'text-sm font-medium truncate',
+            isSelected
+              ? 'text-[#0F6E56] dark:text-[#4ade80]'
+              : 'text-gray-800 dark:text-[#f0ede8]',
+          )}>
+            {cat.name}
+          </p>
+          {cat.spent_this_month > 0 && (
+            <p className="text-xs text-gray-400 dark:text-[#7a7060]">
+              {formatCurrency(cat.spent_this_month)} this month
+              {cat.monthly_target
+                ? ` / ${formatCurrency(cat.monthly_target)} budget`
+                : ''}
+            </p>
+          )}
+        </div>
+        {isSelected && (
+          <Check className="w-4 h-4 text-[#0F6E56] flex-shrink-0" />
+        )}
+      </button>
+    );
   }
 
   return (
@@ -80,7 +126,7 @@ export function PersonalCategoryPanel({
                 {new Date(transaction.transaction_date).toLocaleDateString('en-CA', {
                   month: 'long', day: 'numeric', year: 'numeric',
                 })}
-                {transaction.source_account_name && ` · ${transaction.source_account_name}`}
+                {transaction.source_account_name && ` \u00b7 ${transaction.source_account_name}`}
               </p>
             </div>
             <span className={cn(
@@ -101,48 +147,43 @@ export function PersonalCategoryPanel({
         {/* Category list */}
         <div className="flex-1 overflow-y-auto px-3 py-3">
           <div className="flex flex-col gap-1">
-            {categories.map((cat) => {
-              const isSelected = selectedId === cat.id;
-              return (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedId(isSelected ? null : cat.id)}
-                  disabled={isPending}
-                  className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all',
-                    isSelected
-                      ? 'bg-[#0F6E56]/10 dark:bg-[#0F6E56]/20 ring-1 ring-[#0F6E56]/30'
-                      : 'hover:bg-gray-50 dark:hover:bg-[#2a2720]',
-                  )}
-                >
-                  <div
-                    className="w-3 h-3 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: cat.color ?? '#0F6E56' }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      'text-sm font-medium truncate',
-                      isSelected
-                        ? 'text-[#0F6E56] dark:text-[#4ade80]'
-                        : 'text-gray-800 dark:text-[#f0ede8]',
-                    )}>
-                      {cat.name}
-                    </p>
-                    {cat.spent_this_month > 0 && (
-                      <p className="text-xs text-gray-400 dark:text-[#7a7060]">
-                        {formatCurrency(cat.spent_this_month)} this month
-                        {cat.monthly_target
-                          ? ` / ${formatCurrency(cat.monthly_target)} budget`
-                          : ''}
-                      </p>
-                    )}
+
+            {/* Income section */}
+            {incomeCategories.length > 0 && (
+              <>
+                <div className="flex items-center gap-2 px-2 pt-1 pb-1">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                    Income
+                  </span>
+                </div>
+                {incomeCategories.map((cat) => (
+                  <CategoryButton key={cat.id} cat={cat} />
+                ))}
+
+                {expenseCategories.length > 0 && (
+                  <div className="border-t border-gray-100 dark:border-[#2a2720] my-2" />
+                )}
+              </>
+            )}
+
+            {/* Expense section */}
+            {expenseCategories.length > 0 && (
+              <>
+                {incomeCategories.length > 0 && (
+                  <div className="flex items-center gap-2 px-2 pt-1 pb-1">
+                    <TrendingDown className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#7a7060]">
+                      Expenses
+                    </span>
                   </div>
-                  {isSelected && (
-                    <Check className="w-4 h-4 text-[#0F6E56] flex-shrink-0" />
-                  )}
-                </button>
-              );
-            })}
+                )}
+                {expenseCategories.map((cat) => (
+                  <CategoryButton key={cat.id} cat={cat} />
+                ))}
+              </>
+            )}
+
           </div>
         </div>
 
@@ -173,7 +214,7 @@ export function PersonalCategoryPanel({
             className="bg-[#0F6E56] hover:bg-[#0F6E56]/90 text-white"
           >
             <Tag className="w-3.5 h-3.5 mr-1.5" />
-            {isPending ? 'Saving…' : 'Save'}
+            {isPending ? 'Saving\u2026' : 'Save'}
           </Button>
         </div>
       </DialogContent>

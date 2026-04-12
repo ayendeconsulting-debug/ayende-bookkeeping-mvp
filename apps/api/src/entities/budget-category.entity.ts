@@ -19,6 +19,10 @@ export class BudgetCategory {
   @Column({ type: 'varchar', length: 255 })
   name: string;
 
+  // 'expense' (default) or 'income'
+  @Column({ type: 'varchar', length: 20, default: 'expense' })
+  category_type: string;
+
   // null = tracking only (no budget cap enforced)
   @Column({ type: 'decimal', precision: 12, scale: 2, nullable: true })
   monthly_target: number | null;

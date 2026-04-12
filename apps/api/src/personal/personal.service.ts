@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -15,7 +15,7 @@ import {
   ConfirmDetectionDto,
 } from './dto/personal.dto';
 
-const DEFAULT_CATEGORIES = [
+const DEFAULT_EXPENSE_CATEGORIES = [
   { name: 'Housing',          color: '#6366f1' },
   { name: 'Food & Groceries', color: '#22c55e' },
   { name: 'Transportation',   color: '#f59e0b' },
@@ -29,6 +29,13 @@ const DEFAULT_CATEGORIES = [
   { name: 'Education',        color: '#84cc16' },
   { name: 'Savings',          color: '#0F6E56' },
   { name: 'Other',            color: '#9ca3af' },
+];
+
+const DEFAULT_INCOME_CATEGORIES = [
+  { name: 'Employment Income',   color: '#0F6E56' },
+  { name: 'Government Benefits', color: '#3b82f6' },
+  { name: 'Investment Income',   color: '#a855f7' },
+  { name: 'Other Income',        color: '#9ca3af' },
 ];
 
 export interface RecurringCandidate {
@@ -84,7 +91,7 @@ export class PersonalService {
     private readonly dataSource: DataSource,
   ) {}
 
-  // ── Budget Categories ─────────────────────────────────────────────
+  // â”€â”€ Budget Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getBudgetCategories(businessId: string) {
     const count = await this.budgetCategoryRepo.count({ where: { business_id: businessId } });
@@ -99,7 +106,7 @@ export class PersonalService {
     const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
     const monthEnd = today.toISOString().split('T')[0];
 
-    // ── Primary: explicit personal_category_id assignments ────────────────
+    // â”€â”€ Primary: explicit personal_category_id assignments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const assignedRows = await this.dataSource.query(
       `SELECT rt.personal_category_id AS category_id,
               SUM(ABS(rt.amount)) AS total_spent
@@ -118,7 +125,7 @@ export class PersonalService {
       assignedMap[row.category_id] = Number(row.total_spent);
     }
 
-    // ── Secondary: plaid_category fuzzy match for unassigned transactions ─
+    // â”€â”€ Secondary: plaid_category fuzzy match for unassigned transactions â”€
     const spendingRows = await this.dataSource.query(
       `SELECT LOWER(COALESCE(plaid_category, 'other')) AS cat,
               SUM(ABS(amount)) AS total_spent
@@ -158,6 +165,7 @@ export class PersonalService {
       .select('MAX(bc.sort_order)', 'max').getRawOne();
     const cat = this.budgetCategoryRepo.create({
       business_id: businessId, name: dto.name,
+      category_type: dto.category_type ?? 'expense',
       monthly_target: dto.monthly_target ?? null, color: dto.color ?? '#9ca3af',
       is_system: false, is_active: true, sort_order: (Number(maxOrder?.max) || 0) + 1,
     });
@@ -182,8 +190,8 @@ export class PersonalService {
     return { deleted: true };
   }
 
-  // ── Phase 17: Personal Cashflow ───────────────────────────────────
-  // Reads raw_transactions directly — no journal entries required.
+  // â”€â”€ Phase 17: Personal Cashflow â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Reads raw_transactions directly â€” no journal entries required.
 
   async getCashflow(businessId: string, startDate: string, endDate: string): Promise<PersonalCashflow> {
     const rows = await this.dataSource.query(
@@ -207,7 +215,7 @@ export class PersonalService {
     };
   }
 
-  // ── Phase 17: Assign Personal Category ───────────────────────────
+  // â”€â”€ Phase 17: Assign Personal Category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async assignPersonalCategory(
     businessId: string,
@@ -241,7 +249,7 @@ export class PersonalService {
     return updated[0];
   }
 
-  // ── Savings Goals ─────────────────────────────────────────────────
+  // â”€â”€ Savings Goals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getSavingsGoals(businessId: string) {
     const goals = await this.savingsGoalRepo.find({
@@ -303,7 +311,7 @@ export class PersonalService {
     return { deleted: true };
   }
 
-  // ── Net Worth ─────────────────────────────────────────────────────
+  // â”€â”€ Net Worth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getNetWorth(businessId: string) {
     const plaidAccounts = await this.dataSource.query(
@@ -347,7 +355,7 @@ export class PersonalService {
     };
   }
 
-  // ── Recurring Detection ───────────────────────────────────────────
+  // â”€â”€ Recurring Detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async detectRecurringPayments(businessId: string): Promise<RecurringCandidate[]> {
     const settings = await this.getSettings(businessId);
@@ -430,7 +438,7 @@ export class PersonalService {
     }));
   }
 
-  // ── Upcoming Reminders ────────────────────────────────────────────
+  // â”€â”€ Upcoming Reminders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getUpcomingReminders(businessId: string): Promise<UpcomingRemindersResult> {
     const settings = await this.getSettings(businessId);
@@ -503,7 +511,7 @@ export class PersonalService {
     await this.mergeSettings(businessId, { dismissed_reminders_personal: dismissed });
   }
 
-  // ── Private helpers ───────────────────────────────────────────────
+  // â”€â”€ Private helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private projectDueDates(lastDate: string, frequency: string, daysAhead: number): string[] {
     const dates: string[] = [];
@@ -574,12 +582,21 @@ export class PersonalService {
   }
 
   private async seedDefaultCategories(businessId: string): Promise<void> {
-    const cats = DEFAULT_CATEGORIES.map((c, i) =>
+    const expenseCats = DEFAULT_EXPENSE_CATEGORIES.map((c, i) =>
       this.budgetCategoryRepo.create({
         business_id: businessId, name: c.name, color: c.color,
+        category_type: 'expense',
         monthly_target: null, is_system: true, is_active: true, sort_order: i + 1,
       }),
     );
-    await this.budgetCategoryRepo.save(cats);
+    const incomeCats = DEFAULT_INCOME_CATEGORIES.map((c, i) =>
+      this.budgetCategoryRepo.create({
+        business_id: businessId, name: c.name, color: c.color,
+        category_type: 'income',
+        monthly_target: null, is_system: true, is_active: true,
+        sort_order: DEFAULT_EXPENSE_CATEGORIES.length + i + 1,
+      }),
+    );
+    await this.budgetCategoryRepo.save([...expenseCats, ...incomeCats]);
   }
 }

@@ -1,9 +1,10 @@
-﻿import {
+import {
   IsString,
   IsNumber,
   IsOptional,
   IsDateString,
   IsUUID,
+  IsIn,
   Min,
   ValidateIf,
 } from 'class-validator';
@@ -12,6 +13,11 @@ import { Type } from 'class-transformer';
 export class CreateBudgetCategoryDto {
   @IsString()
   name: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['expense', 'income'])
+  category_type?: string;
 
   @IsOptional()
   @IsNumber()
@@ -28,6 +34,11 @@ export class UpdateBudgetCategoryDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['expense', 'income'])
+  category_type?: string;
 
   @IsOptional()
   @IsNumber()
@@ -142,13 +153,10 @@ export class DismissReminderDto {
   due_date: string;
 }
 
-// â”€â”€â”€ Phase 17: Personal Category Assignment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Phase 17: Personal Category Assignment ---
 export class AssignPersonalCategoryDto {
   // category_id can be a UUID string to assign, or null to clear
   @ValidateIf((o) => o.category_id !== null)
   @IsUUID()
   category_id: string | null;
 }
-
-
-

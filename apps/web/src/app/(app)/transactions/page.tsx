@@ -1,4 +1,4 @@
-﻿import { Suspense } from 'react';
+import { Suspense } from 'react';
 import { apiGet } from '@/lib/api';
 import { Account, TaxCode, RawTransaction, Business, BusinessMode, BudgetCategoryWithSpending } from '@/types';
 import { TransactionInbox } from '@/components/transaction-inbox';
@@ -82,25 +82,28 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
   ]);
 
   const mode = (business?.mode ?? 'business') as BusinessMode;
-  const budgetCategories = mode === 'personal' ? await getBudgetCategories() : [];
+
+  // Fetch budget categories for personal AND freelancer modes
+  const budgetCategories =
+    mode === 'personal' || mode === 'freelancer' ? await getBudgetCategories() : [];
 
   return (
     <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Loading transactions...</div>}>
-    <TransactionInbox
-      initialTransactions={txResult.data}
-      totalCount={txResult.total}
-      accounts={accounts}
-      taxCodes={taxCodes}
-      currentStatus={status ?? 'all'}
-      currentSearch={search ?? ''}
-      currentPage={parseInt(page ?? '1')}
-      mode={mode}
-      budgetCategories={budgetCategories}
-      sourceAccounts={sourceAccounts}
-      transactionMonths={transactionMonths}
-      currentSourceAccount={sourceAccountName ?? ''}
-      currentMonth={month ?? ''}
-    />
+      <TransactionInbox
+        initialTransactions={txResult.data}
+        totalCount={txResult.total}
+        accounts={accounts}
+        taxCodes={taxCodes}
+        currentStatus={status ?? 'all'}
+        currentSearch={search ?? ''}
+        currentPage={parseInt(page ?? '1')}
+        mode={mode}
+        budgetCategories={budgetCategories}
+        sourceAccounts={sourceAccounts}
+        transactionMonths={transactionMonths}
+        currentSourceAccount={sourceAccountName ?? ''}
+        currentMonth={month ?? ''}
+      />
     </Suspense>
   );
 }

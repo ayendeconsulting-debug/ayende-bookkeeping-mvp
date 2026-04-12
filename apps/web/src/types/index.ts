@@ -211,6 +211,7 @@ export interface ClassificationRule {
   priority: number;
   is_active: boolean;
   source?: string; // 'user_learned' | 'manual' | undefined
+  tax_code_id?: string;
 }
 
 /* â”€â”€ AI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -321,6 +322,7 @@ export interface BudgetCategory {
   is_system: boolean;
   is_active: boolean;
   sort_order: number;
+  category_type?: 'expense' | 'income';
 }
 
 export interface BudgetCategoryWithSpending extends BudgetCategory {

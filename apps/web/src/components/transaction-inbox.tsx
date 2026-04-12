@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -523,7 +523,7 @@ export function TransactionInbox({
                                   onClick={() => openClassify(tx)}>Classify</Button>
                               </AdminOnly>
                             )}
-                            {/* Owner Contribution button — Freelancer mode, business-tagged, pending */}
+                            {/* Owner Contribution button â€” Freelancer mode, business-tagged, pending */}
                             {isFreelancer && !isPersonal && tx.status === 'pending' && !tx.is_personal && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
@@ -543,7 +543,13 @@ export function TransactionInbox({
                             )}
                             {!isPersonal && tx.status === 'posted' && <span className="text-xs text-gray-400">Posted</span>}
                             {tx.status === 'pending' && tx.is_personal && isFreelancer && (
-                              <span className="text-xs text-gray-400 italic">Personal</span>
+                          <AdminOnly>
+                            <Button size="sm" variant="outline"
+                              className="h-7 text-xs border-purple-400 text-purple-600 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                              onClick={() => openClassify(tx)}>
+                              Categorize
+                            </Button>
+                          </AdminOnly>
                             )}
                             {isActionable && (
                               <AdminOnly>
@@ -630,7 +636,7 @@ export function TransactionInbox({
                             onClick={() => openClassify(tx)}>Classify</Button>
                         </AdminOnly>
                       )}
-                      {/* Owner Contribution button — mobile, Freelancer mode */}
+                      {/* Owner Contribution button â€” mobile, Freelancer mode */}
                       {isFreelancer && !isPersonal && tx.status === 'pending' && !tx.is_personal && (
                         <AdminOnly>
                           <Button size="sm" variant="outline"
@@ -753,7 +759,7 @@ export function TransactionInbox({
         initialAccountId={postMode ? (selectedTx?.classified_account_id ?? '') : ''}
       />
 
-      {/* Owner Contribution panel — Freelancer mode */}
+      {/* Owner Contribution panel â€” Freelancer mode */}
       <ClassifyPanel
         transaction={ownerContribTx}
         accounts={accounts}
