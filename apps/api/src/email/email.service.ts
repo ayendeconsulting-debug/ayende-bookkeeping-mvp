@@ -5,6 +5,7 @@ import { welcomeTemplate, WelcomeTemplateVars } from './templates/welcome';
 import { trialEndingTemplate, TrialEndingTemplateVars } from './templates/trial-ending';
 import { paymentFailedTemplate, PaymentFailedTemplateVars } from './templates/payment-failed';
 import { abandonedCartTemplate, AbandonedCartTemplateVars } from './templates/abandoned-cart';
+import { invoiceEmailTemplate, InvoiceEmailVars } from './templates/invoice-email';
 
 export interface StaffInviteTemplateVars {
   firstName: string;
@@ -45,6 +46,11 @@ export class EmailService {
 
   async sendPaymentFailed(to: string, vars: PaymentFailedTemplateVars): Promise<void> {
     await this.send(to, 'Action required â€” payment failed for your Tempo subscription', paymentFailedTemplate(vars));
+  }
+
+  async sendInvoice(to: string, vars: InvoiceEmailVars): Promise<void> {
+    const { subject, html } = invoiceEmailTemplate(vars);
+    await this.send(to, subject, html);
   }
 
   async sendAbandonedCart(to: string, vars: AbandonedCartTemplateVars): Promise<void> {

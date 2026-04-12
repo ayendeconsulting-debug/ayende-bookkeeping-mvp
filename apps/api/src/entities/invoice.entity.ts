@@ -30,7 +30,6 @@ export class Invoice {
   @Column({ type: 'uuid' })
   business_id: string;
 
-  // Auto-generated: INV-YYYY-NNN, user can override
   @Column({ type: 'varchar', length: 50 })
   invoice_number: string;
 
@@ -66,16 +65,36 @@ export class Invoice {
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   amount_paid: number;
 
-  // balance_due = total - amount_paid (computed in service layer, stored for query convenience)
   @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
   balance_due: number;
 
   @Column({ type: 'text', nullable: true })
   notes: string | null;
 
-  // Set when invoice is marked as paid — links to the posted journal entry
   @Column({ type: 'uuid', nullable: true })
   linked_journal_entry_id: string | null;
+
+  // ── Phase 18: Recurring Invoice Automation ──────────────────────────────
+
+  // When true, the daily job will auto-generate a new invoice on recurring_next_date
+  @Column({ type: 'boolean', default: false })
+  is_recurring: boolean;
+
+  // 'weekly' | 'monthly' | 'quarterly' — null if not recurring
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  recurring_frequency: string | null;
+
+  // Date when the next auto-generated invoice should be created
+  @Column({ type: 'date', nullable: true })
+  recurring_next_date: Date | null;
+
+  // When true, auto-send the invoice via email when generated
+  @Column({ type: 'boolean', default: false })
+  auto_send: boolean;
+
+  // Optional Stripe payment link URL included in invoice emails
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  stripe_payment_link: string | null;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
