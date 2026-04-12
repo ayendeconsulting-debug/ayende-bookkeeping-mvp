@@ -1,4 +1,4 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { CheckCircle2, ArrowRight, Calendar, CreditCard } from 'lucide-react';
 import { apiGet } from '@/lib/api';
 import { cookies } from 'next/headers';
@@ -25,6 +25,7 @@ const API_URL = process.env.API_URL || 'http://localhost:3005';
 export default async function BillingSuccessPage() {
   const cookieStore = await cookies();
   const fromOnboarding = cookieStore.get('onboarding_checkout');
+  const onboardingPlan = cookieStore.get('onboarding_plan')?.value;
 
   if (fromOnboarding) {
     // Mark onboarding complete so AppLayout no longer redirects to /onboarding
@@ -46,6 +47,12 @@ export default async function BillingSuccessPage() {
       console.error('[billing/success] Failed to mark onboarding complete:', err);
     }
 
+    // Accountant plan users go to firm setup first
+    if (onboardingPlan === 'accountant') {
+      redirect('/accountant-setup');
+    }
+
+    // All other plans go to bank connection
     redirect('/banks');
   }
 

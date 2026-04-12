@@ -28,7 +28,7 @@ async function patchBusiness(data: Record<string, unknown>) {
   return {};
 }
 
-/* ── Step 1: Save mode + country ─────────────────────────────────────────── */
+/* ── Step 1: Save mode + country ──────────────────────────────────────────── */
 export async function saveModeAndCountry(
   mode: 'business' | 'freelancer' | 'personal',
   country: 'CA' | 'US',
@@ -45,7 +45,7 @@ export async function saveBusinessDetails(data: {
   return patchBusiness(data);
 }
 
-/* ── Phase 9: Get provinces for onboarding dropdown ─────────────────────── */
+/* ── Phase 9: Get provinces for onboarding dropdown ──────────────────────── */
 export async function getProvincesForOnboarding(): Promise<{
   data?: Array<{
     province_code: string;
@@ -69,7 +69,7 @@ export async function getProvincesForOnboarding(): Promise<{
   }
 }
 
-/* ── Phase 9: Save tax settings (province, HST number, frequency) ────────── */
+/* ── Phase 9: Save tax settings ──────────────────────────────────────────── */
 export async function saveTaxSettings(data: {
   province_code?: string;
   hst_registration_number?: string;
@@ -152,7 +152,7 @@ export async function fetchLegalAcceptanceStatus(): Promise<{
   }
 }
 
-/* ── Step 5: Accept legal documents ──────────────────────────────────────── */
+/* ── Step 5: Accept legal documents ─────────────────────────────────────── */
 export async function acceptLegalDocuments(
   documents: {
     document_type: string;
@@ -172,8 +172,7 @@ export async function acceptLegalDocuments(
   return {};
 }
 
-/* ── Phase 12 Step 6: Create Stripe checkout from onboarding ────────────── */
-// Sets onboarding_checkout cookie so billing/success redirects to /banks
+/* ── Phase 12 Step 6: Create Stripe checkout from onboarding ─────────────── */
 export async function createCheckoutSessionFromOnboarding(
   plan: 'starter' | 'pro' | 'accountant',
   billing_cycle: 'monthly' | 'annual',
@@ -189,11 +188,20 @@ export async function createCheckoutSessionFromOnboarding(
   }
   const data = await res.json();
 
-  // Mark this checkout as coming from onboarding so /billing/success
-  // redirects to /banks (Step 7) instead of /dashboard
   const cookieStore = await cookies();
+
+  // Mark this checkout as coming from onboarding so /billing/success
+  // redirects correctly (to /accountant-setup for accountant plan, /banks otherwise)
   cookieStore.set('onboarding_checkout', '1', {
-    maxAge: 60 * 30, // 30 minutes — enough time to complete Stripe checkout
+    maxAge: 60 * 30,
+    path: '/',
+    sameSite: 'lax',
+  });
+
+  // Store the selected plan so billing/success can route accountant users
+  // to /accountant-setup instead of /banks
+  cookieStore.set('onboarding_plan', plan, {
+    maxAge: 60 * 30,
     path: '/',
     sameSite: 'lax',
   });
@@ -209,11 +217,11 @@ export async function completeOnboarding(
   redirect(destination);
 }
 
-
-/* ── Cancel onboarding: mark done and sign out ──────────────────────────── */
+/* ── Cancel onboarding ───────────────────────────────────────────────────── */
 export async function cancelOnboarding(): Promise<{ error?: string }> {
   return patchBusiness({ settings: { mode_selected: true }, mode: 'cancelled' });
 }
+
 /* ── Legacy — kept for backward compatibility ────────────────────────────── */
 export async function saveModeSelection(
   mode: 'business' | 'freelancer' | 'personal',
