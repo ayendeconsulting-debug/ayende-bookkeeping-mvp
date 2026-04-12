@@ -8,11 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, ExternalLink, Building2 } from 'lucide-react';
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default async function ClientDashboardPage({ params }: Props) {
-  const { id: businessId } = params;
+  const { id: businessId } = await params;
 
   const [overview, client] = await Promise.all([
     getClientOverview(businessId),
