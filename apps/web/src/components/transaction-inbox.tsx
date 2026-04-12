@@ -176,7 +176,7 @@ export function TransactionInbox({
   const hasActiveFilters = !!(currentSourceAccount || currentMonth || currentSearch);
 
   function openClassify(tx: RawTransaction) {
-    if (isPersonal) { setPersonalCatTx(tx); setPersonalCatOpen(true); }
+    if (isPersonal || (isFreelancer && tx.is_personal)) { setPersonalCatTx(tx); setPersonalCatOpen(true); }
     else { setSelectedTx(tx); setPostMode(false); setPanelOpen(true); }
   }
   function openPost(tx: RawTransaction) {
