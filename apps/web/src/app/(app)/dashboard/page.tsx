@@ -1,4 +1,4 @@
-import { AccessRequestBanner } from '@/components/access-request-banner';
+﻿import { AccessRequestBanner } from '@/components/access-request-banner';
 import { getAccessRequests } from '@/app/(app)/settings/actions';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
@@ -264,7 +264,7 @@ export default async function DashboardPage() {
                     <div key={i} className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 ${severityBadgeClass(flag.severity)}`}>
                       {severityIcon(flag.severity)}
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium truncate">{flag.entry_number} — {flag.description}</div>
+                        <div className="text-xs font-medium truncate">{flag.description || flag.entry_number}</div>
                         <div className="text-xs mt-0.5 opacity-80">{flag.reason}</div>
                       </div>
                     </div>
