@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@clerk/nextjs';
+import { createFirm } from './actions';
 import { Building2, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,6 @@ import { Label } from '@/components/ui/label';
 
 export default function AccountantSetupPage() {
   const router = useRouter();
-  const { getToken } = useAuth();
 
   const [name, setName] = useState('');
   const [subdomain, setSubdomain] = useState('');
@@ -39,25 +38,14 @@ export default function AccountantSetupPage() {
 
     setSubmitting(true);
     try {
-      const token = await getToken();
-      const res = await fetch('/api/proxy/firms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: name.trim(), subdomain: subdomain.trim() }),
-      });
+      const result = await createFirm(name.trim(), subdomain.trim());
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data?.message ?? 'Failed to create firm. Please try again.');
+      if (!result.success) {
+        setError(result.error);
         setSubmitting(false);
         return;
       }
 
-      // Firm created — go straight to the portal
       router.push('/accountant/clients');
     } catch {
       setError('An unexpected error occurred. Please try again.');
