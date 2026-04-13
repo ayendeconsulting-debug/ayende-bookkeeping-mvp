@@ -137,6 +137,9 @@ export class InvoiceService {
       if (dto.issue_date) invoice.issue_date = new Date(dto.issue_date);
       if (dto.due_date) invoice.due_date = new Date(dto.due_date);
       if (dto.notes !== undefined) invoice.notes = dto.notes ?? null;
+      if (dto.is_recurring !== undefined) invoice.is_recurring = dto.is_recurring;
+      if (dto.recurring_frequency !== undefined) invoice.recurring_frequency = dto.recurring_frequency ?? null;
+      if (dto.auto_send !== undefined) invoice.auto_send = dto.auto_send;
 
       // Recalculate if line items provided
       if (dto.line_items) {

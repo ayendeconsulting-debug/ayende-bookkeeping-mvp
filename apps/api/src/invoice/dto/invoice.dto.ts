@@ -1,4 +1,4 @@
-import {
+﻿import {
   IsString,
   IsOptional,
   IsNumber,
@@ -54,6 +54,16 @@ export class CreateInvoiceDto {
   @IsOptional()
   notes?: string;
 
+  @IsOptional()
+  is_recurring?: boolean;
+
+  @IsString()
+  @IsOptional()
+  recurring_frequency?: string;
+
+  @IsOptional()
+  auto_send?: boolean;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateInvoiceLineItemDto)
@@ -81,6 +91,16 @@ export class UpdateInvoiceDto {
   @IsOptional()
   notes?: string;
 
+  @IsOptional()
+  is_recurring?: boolean;
+
+  @IsString()
+  @IsOptional()
+  recurring_frequency?: string;
+
+  @IsOptional()
+  auto_send?: boolean;
+
   @IsArray()
   @IsOptional()
   @ValidateNested({ each: true })
@@ -107,6 +127,16 @@ export class RecordPaymentDto {
   @IsString()
   @IsOptional()
   notes?: string;
+
+  @IsOptional()
+  is_recurring?: boolean;
+
+  @IsString()
+  @IsOptional()
+  recurring_frequency?: string;
+
+  @IsOptional()
+  auto_send?: boolean;
 }
 
 export class InvoiceFilterDto {
