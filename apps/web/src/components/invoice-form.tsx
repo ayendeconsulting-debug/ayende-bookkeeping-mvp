@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition, useEffect } from 'react';
 import { Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
@@ -156,7 +156,7 @@ export function InvoiceForm({
       if (result.success) {
         toastSuccess(
           editingInvoice ? 'Invoice updated' : 'Invoice created',
-          `${invoiceNumber || 'INV'} – ${clientName}`,
+          `${invoiceNumber || 'INV'} â€“ ${clientName}`,
         );
         handleClose();
         onSuccess();
@@ -220,7 +220,7 @@ export function InvoiceForm({
                 }`}
               >
                 <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                  isRecurring ? 'translate-x-4.5' : 'translate-x-0.5'
+                  isRecurring ? 'translate-x-4' : 'translate-x-0.5'
                 }`} />
               </button>
             </div>
@@ -252,7 +252,7 @@ export function InvoiceForm({
                       }`}
                     >
                       <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                        autoSend ? 'translate-x-4.5' : 'translate-x-0.5'
+                        autoSend ? 'translate-x-4' : 'translate-x-0.5'
                       }`} />
                     </button>
                   </div>

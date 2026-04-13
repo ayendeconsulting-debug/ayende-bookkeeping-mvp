@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -76,7 +76,16 @@ export function InvoiceManager({
     updateParams({ search: searchValue });
   }
 
-  function openEdit(invoice: Invoice) { setEditingInvoice(invoice); setFormOpen(true); }
+  async function openEdit(invoice: Invoice) {
+    try {
+      const res = await fetch(`/api/proxy/invoices/${invoice.id}`);
+      const full = await res.json();
+      setEditingInvoice(full);
+    } catch {
+      setEditingInvoice(invoice);
+    }
+    setFormOpen(true);
+  }
   function openPay(invoice: Invoice) { setPayingInvoice(invoice); setPayDialogOpen(true); }
 
   async function handleSend(invoice: Invoice) {
@@ -109,14 +118,14 @@ export function InvoiceManager({
             <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Invoices</h1>
             <p className="text-sm text-gray-500 dark:text-[#a09888] mt-0.5">
               {totalCount} total
-              {outstanding > 0 && ` · ${formatCurrency(outstanding)} outstanding`}
+              {outstanding > 0 && ` Â· ${formatCurrency(outstanding)} outstanding`}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <form onSubmit={handleSearch} className="flex gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400 dark:text-[#7a7060]" />
-                <Input className="pl-8 w-56" placeholder="Search client…" value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
+                <Input className="pl-8 w-56" placeholder="Search clientâ€¦" value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
               </div>
               <Button type="submit" variant="outline" size="sm">Filter</Button>
             </form>
@@ -181,7 +190,7 @@ export function InvoiceManager({
                   </TableCell>
                   <TableCell className="text-right font-medium text-sm">{formatCurrency(Number(invoice.total))}</TableCell>
                   <TableCell className={cn('text-right font-medium text-sm', Number(invoice.balance_due) > 0 ? 'text-orange-600' : 'text-gray-400 dark:text-[#7a7060]')}>
-                    {Number(invoice.balance_due) > 0 ? formatCurrency(Number(invoice.balance_due)) : '–'}
+                    {Number(invoice.balance_due) > 0 ? formatCurrency(Number(invoice.balance_due)) : 'â€“'}
                   </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANTS[invoice.status] ?? 'pending'}>
@@ -239,7 +248,7 @@ export function InvoiceManager({
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white dark:border-[#3a3730] dark:bg-[#222019]">
-          <span className="text-sm text-gray-500 dark:text-[#a09888]">Page {currentPage} of {totalPages} · {totalCount} invoices</span>
+          <span className="text-sm text-gray-500 dark:text-[#a09888]">Page {currentPage} of {totalPages} Â· {totalCount} invoices</span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => updateParams({ page: String(currentPage - 1) })}>Previous</Button>
             <Button size="sm" variant="outline" disabled={currentPage >= totalPages} onClick={() => updateParams({ page: String(currentPage + 1) })}>Next</Button>
