@@ -6,6 +6,7 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { BudgetCategory } from '../entities/budget-category.entity';
+import { PersonalRule } from '../entities/personal-rule.entity';
 import { SavingsGoal } from '../entities/savings-goal.entity';
 import {
   CreateBudgetCategoryDto,
@@ -13,6 +14,8 @@ import {
   CreateSavingsGoalDto,
   UpdateSavingsGoalDto,
   ConfirmDetectionDto,
+  CreatePersonalRuleDto,
+  UpdatePersonalRuleDto,
 } from './dto/personal.dto';
 
 const DEFAULT_EXPENSE_CATEGORIES = [
@@ -88,6 +91,8 @@ export class PersonalService {
     private readonly budgetCategoryRepo: Repository<BudgetCategory>,
     @InjectRepository(SavingsGoal)
     private readonly savingsGoalRepo: Repository<SavingsGoal>,
+    @InjectRepository(PersonalRule)
+    private readonly personalRuleRepo: Repository<PersonalRule>,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -596,6 +601,94 @@ export class PersonalService {
       }),
     );
     await this.budgetCategoryRepo.save(incomeCats);
+  }
+
+  // â”€â”€ Personal Classification Rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  async getPersonalRules(businessId: string) {
+    return this.personalRuleRepo.find({
+      where: { business_id: businessId, is_active: true },
+      order: { priority: 'ASC' },
+    });
+  }
+
+  async createPersonalRule(businessId: string, dto: CreatePersonalRuleDto) {
+    const rule = this.personalRuleRepo.create({
+      business_id: businessId,
+      match_type: dto.match_type,
+      match_value: dto.match_value,
+      budget_category_id: dto.budget_category_id,
+      priority: dto.priority ?? 10,
+      is_active: true,
+    });
+    return this.personalRuleRepo.save(rule);
+  }
+
+  async updatePersonalRule(businessId: string, id: string, dto: UpdatePersonalRuleDto) {
+    const rule = await this.personalRuleRepo.findOne({ where: { id, business_id: businessId } });
+    if (!rule) throw new NotFoundException(`Personal rule ${id} not found`);
+    if (dto.match_value !== undefined) rule.match_value = dto.match_value;
+    if (dto.budget_category_id !== undefined) rule.budget_category_id = dto.budget_category_id;
+    if (dto.priority !== undefined) rule.priority = dto.priority;
+    if (dto.is_active !== undefined) rule.is_active = dto.is_active;
+    return this.personalRuleRepo.save(rule);
+  }
+
+  async deletePersonalRule(businessId: string, id: string) {
+    const rule = await this.personalRuleRepo.findOne({ where: { id, business_id: businessId } });
+    if (!rule) throw new NotFoundException(`Personal rule ${id} not found`);
+    rule.is_active = false;
+    await this.personalRuleRepo.save(rule);
+    return { deleted: true };
+  }
+
+  async runPersonalRules(businessId: string): Promise<{ matched: number; skipped: number }> {
+    const rules = await this.personalRuleRepo.find({
+      where: { business_id: businessId, is_active: true },
+      order: { priority: 'ASC' },
+    });
+    if (rules.length === 0) return { matched: 0, skipped: 0 };
+
+    // Fetch pending personal-tagged transactions with no category assigned
+    const txs = await this.dataSource.query(
+      `SELECT id, description FROM raw_transactions
+       WHERE business_id = $1
+         AND is_personal = true
+         AND status = 'pending'
+         AND personal_category_id IS NULL
+         AND status != 'ignored'`,
+      [businessId],
+    );
+
+    let matched = 0;
+    let skipped = 0;
+
+    for (const tx of txs) {
+      const desc: string = (tx.description ?? '').toLowerCase();
+      let assigned = false;
+
+      for (const rule of rules) {
+        const val = rule.match_value.toLowerCase();
+        const hits =
+          rule.match_type === 'keyword' ? desc.includes(val) :
+          rule.match_type === 'vendor'  ? desc === val :
+          false;
+
+        if (hits) {
+          await this.dataSource.query(
+            `UPDATE raw_transactions SET personal_category_id = $1, updated_at = NOW() WHERE id = $2`,
+            [rule.budget_category_id, tx.id],
+          );
+          matched++;
+          assigned = true;
+          break;
+        }
+      }
+
+      if (!assigned) skipped++;
+    }
+
+    return { matched, skipped };
   }
 
   private async seedDefaultCategories(businessId: string): Promise<void> {

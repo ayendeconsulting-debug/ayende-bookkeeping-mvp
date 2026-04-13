@@ -499,3 +499,15 @@ export interface PersonalCashflow {
   start_date: string;
   end_date: string;
 }
+
+export interface PersonalRule {
+  id: string;
+  business_id: string;
+  match_type: string;
+  match_value: string;
+  budget_category_id: string;
+  priority: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}

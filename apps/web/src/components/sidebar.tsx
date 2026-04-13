@@ -51,6 +51,7 @@ const freelancerItems = [
   { href: '/freelancer/mileage',    label: 'Mileage Tracker', icon: Car },
   { href: '/freelancer/tax',        label: 'Tax Estimate',    icon: Calculator },
   { href: '/freelancer/categories', label: 'Categories',      icon: Tag },
+  { href: '/personal/rules',        label: 'Personal Rules',   icon: Filter },
 ];
 const freelancerMainItems = [
   { href: '/transactions', label: 'Transactions',        icon: ArrowLeftRight },

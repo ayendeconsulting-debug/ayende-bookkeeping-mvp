@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller, Get, Post, Patch, Delete, Body, Param, Req, Query,
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -16,7 +16,7 @@ import { Roles } from '../auth/roles.decorator';
 export class PersonalController {
   constructor(private readonly personalService: PersonalService) {}
 
-  // ── Budget Categories ─────────────────────────────────────────────────────
+  // â”€â”€ Budget Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Get('budget-categories')
   getBudgetCategories(@Req() req: Request) {
@@ -41,7 +41,7 @@ export class PersonalController {
     return this.personalService.deleteBudgetCategory(req.user!.businessId, id);
   }
 
-  // ── Savings Goals ─────────────────────────────────────────────────────────
+  // â”€â”€ Savings Goals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Get('savings-goals')
   getSavingsGoals(@Req() req: Request) {
@@ -66,14 +66,14 @@ export class PersonalController {
     return this.personalService.deleteSavingsGoal(req.user!.businessId, id);
   }
 
-  // ── Net Worth ─────────────────────────────────────────────────────────────
+  // â”€â”€ Net Worth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Get('net-worth')
   getNetWorth(@Req() req: Request) {
     return this.personalService.getNetWorth(req.user!.businessId);
   }
 
-  // ── Phase 17: Cashflow (Money In / Money Out from raw transactions) ───────
+  // â”€â”€ Phase 17: Cashflow (Money In / Money Out from raw transactions) â”€â”€â”€â”€â”€â”€â”€
 
   @Get('cashflow')
   getCashflow(
@@ -91,7 +91,7 @@ export class PersonalController {
     );
   }
 
-  // ── Phase 17: Personal Transaction Category Assignment ────────────────────
+  // â”€â”€ Phase 17: Personal Transaction Category Assignment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Roles('admin')
   @Patch('transactions/:id/category')
@@ -107,7 +107,7 @@ export class PersonalController {
     );
   }
 
-  // ── Recurring Detection ───────────────────────────────────────────────────
+  // â”€â”€ Recurring Detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Get('recurring-detections')
   detectRecurringPayments(@Req() req: Request) {
@@ -131,7 +131,7 @@ export class PersonalController {
     return this.personalService.getConfirmedRecurring(req.user!.businessId);
   }
 
-  // ── Upcoming Reminders ────────────────────────────────────────────────────
+  // â”€â”€ Upcoming Reminders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   @Get('upcoming-reminders')
   getUpcomingReminders(@Req() req: Request) {
