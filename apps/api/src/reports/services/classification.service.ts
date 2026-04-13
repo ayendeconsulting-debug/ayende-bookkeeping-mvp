@@ -303,7 +303,16 @@ export class ClassificationService {
       source_account_id: dto.sourceAccountId ?? null,
         is_posted: false,
     });
-    return this.classifiedRepo.save(classified);
+    const saved = await this.classifiedRepo.save(classified);
+    await this.generalAuditService.log({
+      businessId: dto.businessId,
+      userId: dto.classifiedBy ?? 'system',
+      action: 'classify',
+      entityType: 'raw_transaction',
+      entityId: dto.rawTransactionId,
+      newValues: { account_id: dto.accountId, tax_code_id: dto.taxCodeId },
+    });
+    return saved;
   }
 
   // â”€â”€ Post to General Ledger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -320,6 +329,14 @@ export class ClassificationService {
     if (rawTx.status === 'posted') throw new BadRequestException('Cannot unclassify a posted transaction');
     await this.classifiedRepo.delete({ raw_transaction_id: rawTransactionId, business_id: businessId });
     await this.rawTxRepo.update(rawTransactionId, { status: RawTransactionStatus.PENDING });
+    await this.generalAuditService.log({
+      businessId,
+      userId: 'system',
+      action: 'unclassify',
+      entityType: 'raw_transaction',
+      entityId: rawTransactionId,
+      newValues: null,
+    });
   }
 
   // ── Unclassify
@@ -431,6 +448,14 @@ export class ClassificationService {
         posted_journal_entry_id: savedEntry.id,
       });
         await manager.update(RawTransaction, rawTx.id, { status: RawTransactionStatus.POSTED, anomaly_flags: null });
+      await this.generalAuditService.log({
+        businessId,
+        userId: postedBy ?? 'system',
+        action: 'post',
+        entityType: 'raw_transaction',
+        entityId: rawTx.id,
+        newValues: { journal_entry_id: savedEntry.id },
+      });
       return savedEntry;
     });
   }
