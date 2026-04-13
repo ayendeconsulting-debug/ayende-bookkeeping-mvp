@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { useState, useTransition, useEffect } from 'react';
+import { Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
 import { Account, TaxCode, Invoice } from '@/types';
 import { createInvoice, updateInvoice } from '@/app/(app)/invoices/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
@@ -31,6 +31,8 @@ interface InvoiceFormProps {
   editingInvoice?: Invoice | null;
 }
 
+const selectCls = "text-sm border border-gray-200 rounded-lg px-3 py-2 w-full outline-none bg-white text-gray-900 focus:border-[#0F6E56] dark:bg-[#222019] dark:border-[#3a3730] dark:text-[#f0ede8]";
+
 export function InvoiceForm({
   open,
   onClose,
@@ -42,28 +44,45 @@ export function InvoiceForm({
   const today = new Date().toISOString().split('T')[0];
   const net30 = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
 
-  const [clientName, setClientName] = useState(editingInvoice?.client_name ?? '');
-  const [clientEmail, setClientEmail] = useState(editingInvoice?.client_email ?? '');
-  const [issueDate, setIssueDate] = useState(
-    editingInvoice?.issue_date ? String(editingInvoice.issue_date).slice(0, 10) : today,
-  );
-  const [dueDate, setDueDate] = useState(
-    editingInvoice?.due_date ? String(editingInvoice.due_date).slice(0, 10) : net30,
-  );
-  const [invoiceNumber, setInvoiceNumber] = useState(editingInvoice?.invoice_number ?? '');
-  const [notes, setNotes] = useState(editingInvoice?.notes ?? '');
-  const [lineItems, setLineItems] = useState<LineItem[]>(
-    editingInvoice?.line_items?.length
-      ? editingInvoice.line_items.map((li) => ({
-          description: li.description,
-          quantity: String(li.quantity),
-          unit_price: String(li.unit_price),
-          tax_code_id: li.tax_code_id ?? '',
-        }))
-      : [{ ...EMPTY_LINE }],
-  );
+  const [clientName, setClientName] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [issueDate, setIssueDate] = useState(today);
+  const [dueDate, setDueDate] = useState(net30);
+  const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [notes, setNotes] = useState('');
+  const [lineItems, setLineItems] = useState<LineItem[]>([{ ...EMPTY_LINE }]);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState('monthly');
+  const [autoSend, setAutoSend] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Reset form whenever dialog opens or editingInvoice changes
+  useEffect(() => {
+    if (!open) return;
+    const inv = editingInvoice;
+    setClientName(inv?.client_name ?? '');
+    setClientEmail(inv?.client_email ?? '');
+    setIssueDate(inv?.issue_date ? String(inv.issue_date).slice(0, 10) : today);
+    setDueDate(inv?.due_date ? String(inv.due_date).slice(0, 10) : net30);
+    setInvoiceNumber(inv?.invoice_number ?? '');
+    setNotes(inv?.notes ?? '');
+    setIsRecurring(inv?.is_recurring ?? false);
+    setRecurringFrequency(inv?.recurring_frequency ?? 'monthly');
+    setAutoSend(inv?.auto_send ?? false);
+    setLineItems(
+      inv?.line_items?.length
+        ? inv.line_items.map((li) => ({
+            description: li.description,
+            quantity: String(li.quantity),
+            unit_price: String(li.unit_price),
+            tax_code_id: li.tax_code_id ?? '',
+          }))
+        : [{ ...EMPTY_LINE }],
+    );
+    setError(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editingInvoice?.id]);
 
   const activeTaxCodes = taxCodes.filter((t) => t.is_active);
 
@@ -118,6 +137,9 @@ export function InvoiceForm({
         due_date: dueDate,
         invoice_number: invoiceNumber || undefined,
         notes: notes || undefined,
+        is_recurring: isRecurring,
+        recurring_frequency: isRecurring ? recurringFrequency : undefined,
+        auto_send: isRecurring ? autoSend : false,
         line_items: validLines.map((l, idx) => ({
           description: l.description,
           quantity: parseFloat(l.quantity) || 1,
@@ -134,7 +156,7 @@ export function InvoiceForm({
       if (result.success) {
         toastSuccess(
           editingInvoice ? 'Invoice updated' : 'Invoice created',
-          `${invoiceNumber || 'INV'} — ${clientName}`,
+          `${invoiceNumber || 'INV'} – ${clientName}`,
         );
         handleClose();
         onSuccess();
@@ -183,6 +205,64 @@ export function InvoiceForm({
 
           <Separator />
 
+          {/* Recurring settings */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-gray-400" />
+                <Label className="cursor-pointer">Recurring Invoice</Label>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsRecurring((v) => !v)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
+                  isRecurring ? 'bg-[#0F6E56]' : 'bg-gray-200 dark:bg-[#3a3730]'
+                }`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                  isRecurring ? 'translate-x-4.5' : 'translate-x-0.5'
+                }`} />
+              </button>
+            </div>
+
+            {isRecurring && (
+              <div className="grid grid-cols-2 gap-3 pl-6 border-l-2 border-[#0F6E56]/20">
+                <div className="flex flex-col gap-1.5">
+                  <Label>Frequency</Label>
+                  <select
+                    value={recurringFrequency}
+                    onChange={(e) => setRecurringFrequency(e.target.value)}
+                    className={selectCls}
+                  >
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Bi-weekly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="annually">Annually</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5 justify-end">
+                  <div className="flex items-center justify-between h-10 px-3 border border-gray-200 dark:border-[#3a3730] rounded-lg">
+                    <Label className="cursor-pointer text-sm">Auto-send when generated</Label>
+                    <button
+                      type="button"
+                      onClick={() => setAutoSend((v) => !v)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none flex-shrink-0 ml-2 ${
+                        autoSend ? 'bg-[#0F6E56]' : 'bg-gray-200 dark:bg-[#3a3730]'
+                      }`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+                        autoSend ? 'translate-x-4.5' : 'translate-x-0.5'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
           {/* Line Items */}
           <div>
             <div className="flex items-center justify-between mb-3">
@@ -193,7 +273,6 @@ export function InvoiceForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              {/* Header */}
               <div className="grid grid-cols-12 gap-2 text-xs text-gray-400 px-1">
                 <span className="col-span-5">Description</span>
                 <span className="col-span-2">Qty</span>
@@ -243,7 +322,7 @@ export function InvoiceForm({
                       >
                         <option value="">None</option>
                         {activeTaxCodes.map((t) => (
-                          <option key={t.id} value={t.id}>{t.code} ({(t.rate * 100).toFixed(0)}%)</option>
+                          <option key={t.id} value={t.id}>{t.code} ({(Number(t.rate) * 100).toFixed(0)}%)</option>
                         ))}
                       </select>
                     </div>
@@ -260,7 +339,6 @@ export function InvoiceForm({
               })}
             </div>
 
-            {/* Totals preview */}
             <div className="mt-4 flex flex-col gap-1 items-end text-sm">
               <div className="flex gap-8 text-gray-500">
                 <span>Subtotal</span>

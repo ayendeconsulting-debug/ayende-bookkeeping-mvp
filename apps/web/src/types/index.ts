@@ -265,6 +265,10 @@ export interface Invoice {
   linked_journal_entry_id?: string;
   line_items: InvoiceLineItem[];
   created_at: string;
+  is_recurring?: boolean;
+  recurring_frequency?: string;
+  recurring_next_date?: string;
+  auto_send?: boolean;
 }
 
 /* â”€â”€ Phase 5 â€“ AR/AP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
