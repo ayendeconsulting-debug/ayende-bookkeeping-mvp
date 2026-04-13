@@ -71,8 +71,8 @@ export function InvoiceForm({
     setRecurringFrequency(inv?.recurring_frequency ?? 'monthly');
     setAutoSend(inv?.auto_send ?? false);
     setLineItems(
-      inv?.line_items?.length
-        ? inv.line_items.map((li) => ({
+      (inv?.line_items ?? inv?.lineItems)?.length
+        ? (inv.line_items ?? inv.lineItems!).map((li) => ({
             description: li.description,
             quantity: String(li.quantity),
             unit_price: String(li.unit_price),

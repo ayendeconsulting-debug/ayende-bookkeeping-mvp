@@ -264,6 +264,7 @@ export interface Invoice {
   notes?: string;
   linked_journal_entry_id?: string;
   line_items: InvoiceLineItem[];
+  lineItems?: InvoiceLineItem[];
   created_at: string;
   is_recurring?: boolean;
   recurring_frequency?: string;
