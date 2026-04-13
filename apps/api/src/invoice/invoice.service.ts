@@ -169,6 +169,7 @@ export class InvoiceService {
         await manager.save(InvoiceLineItem, lines);
       }
 
+      invoice.lineItems = [];
       await manager.save(Invoice, invoice);
       return this.findOne(businessId, id);
     });
