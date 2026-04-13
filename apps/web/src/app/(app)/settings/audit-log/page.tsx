@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { clerkClient } from '@clerk/nextjs/server';
 import { apiGet } from '@/lib/api';
 
 interface AuditLogEntry {
@@ -20,13 +21,31 @@ async function getAuditLogs(): Promise<{ data: AuditLogEntry[]; total: number }>
   }
 }
 
+async function resolveUserNames(userIds: string[]): Promise<Record<string, string>> {
+  const map: Record<string, string> = {};
+  const client = await clerkClient();
+  await Promise.all(
+    userIds.map(async (id) => {
+      if (!id || id === 'system') { map[id] = 'System'; return; }
+      try {
+        const user = await client.users.getUser(id);
+        const name = [user.firstName, user.lastName].filter(Boolean).join(' ');
+        map[id] = name || user.emailAddresses?.[0]?.emailAddress || id.slice(0, 16);
+      } catch {
+        map[id] = id.slice(0, 16) + '…';
+      }
+    }),
+  );
+  return map;
+}
+
 function ActionBadge({ action }: { action: string }) {
   const cfg: Record<string, string> = {
-    classify:   'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
-    post:       'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
-    unclassify: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
+    classify:      'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+    post:          'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
+    unclassify:    'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
     bulk_classify: 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400',
-    bulk_post:  'bg-teal-50 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400',
+    bulk_post:     'bg-teal-50 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400',
   };
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg[action] ?? 'bg-gray-100 text-gray-600 dark:bg-[#2a2720] dark:text-[#a09888]'}`}>
@@ -37,6 +56,9 @@ function ActionBadge({ action }: { action: string }) {
 
 export default async function AuditLogPage() {
   const { data: logs, total } = await getAuditLogs();
+
+  const uniqueUserIds = [...new Set(logs.map((l) => l.user_id))];
+  const userMap = await resolveUserNames(uniqueUserIds);
 
   return (
     <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Loading...</div>}>
@@ -80,8 +102,8 @@ export default async function AuditLogPage() {
                       <span className="text-gray-700 dark:text-[#c8c0b0]">{log.entity_type}</span>
                       <span className="ml-2 font-mono text-xs text-gray-400 dark:text-[#7a7060]">{log.entity_id.slice(0, 8)}&hellip;</span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-400 dark:text-[#7a7060]">
-                      {log.user_id.slice(0, 16)}&hellip;
+                    <td className="px-4 py-3 text-xs text-gray-700 dark:text-[#c8c0b0]">
+                      {userMap[log.user_id] ?? log.user_id.slice(0, 16) + '…'}
                     </td>
                   </tr>
                 ))}
