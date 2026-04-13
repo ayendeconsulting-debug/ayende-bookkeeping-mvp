@@ -169,8 +169,8 @@ export class InvoiceService {
         await manager.save(InvoiceLineItem, lines);
       }
 
-      invoice.lineItems = [];
-      await manager.save(Invoice, invoice);
+      // clear lineItems handled by direct update below
+      await manager.update(Invoice, invoice.id, { client_name: invoice.client_name, client_email: invoice.client_email, issue_date: invoice.issue_date, due_date: invoice.due_date, notes: invoice.notes, subtotal: invoice.subtotal, tax_amount: invoice.tax_amount, total: invoice.total, balance_due: invoice.balance_due, is_recurring: invoice.is_recurring, recurring_frequency: invoice.recurring_frequency, auto_send: invoice.auto_send });
       return this.findOne(businessId, id);
     });
   }
