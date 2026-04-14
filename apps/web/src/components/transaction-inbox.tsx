@@ -551,7 +551,7 @@ export function TransactionInbox({
                           {isFreelancer && tx.is_personal
                             ? <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">Personal</span>
                             : <Badge variant={statusVariant(tx.status)}>{tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}</Badge>
-                          }
+                          }</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {isPersonal && (
@@ -647,6 +647,7 @@ export function TransactionInbox({
                         ? <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">Personal</span>
                         : <Badge variant={statusVariant(tx.status)}>{tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}</Badge>
                       }
+                    </div>
                     <div className="flex items-start gap-1.5 mb-1">
                       {tx.anomaly_flags && tx.anomaly_flags.length > 0 && (
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
