@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -23,7 +23,7 @@ import {
   bulkPostTransactions,
   findSimilarTransactions,
 } from '@/app/(app)/transactions/actions';
-import { bulkAssignPersonalCategory } from '@/app/(app)/personal/transactions/actions';
+import { bulkAssignPersonalCategory, findSimilarPersonalTransactions } from '@/app/(app)/personal/transactions/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -241,7 +241,20 @@ export function TransactionInbox({
   function handleTransferSuccess() { setTransferOpen(false); setTransferTx(null); startTransition(() => router.refresh()); }
 
   function handlePersonalCatClose() { setPersonalCatOpen(false); setPersonalCatTx(null); }
-  function handlePersonalCatSuccess() { setPersonalCatOpen(false); setPersonalCatTx(null); startTransition(() => router.refresh()); }
+  function handlePersonalCatSuccess() {
+    const justCategorizedId = personalCatTx?.id ?? null;
+    setPersonalCatOpen(false);
+    setPersonalCatTx(null);
+    startTransition(() => router.refresh());
+    if (justCategorizedId) {
+      findSimilarPersonalTransactions(justCategorizedId).then((res) => {
+        if (res.success && res.data && res.data.similar.length > 0) {
+          setSimilarResult({ ...res.data, mode: 'personal' });
+          setSimilarOpen(true);
+        }
+      });
+    }
+  }
 
   function openOwnerContrib(tx: RawTransaction) { setOwnerContribTx(tx); setOwnerContribOpen(true); }
   function handleOwnerContribClose() { setOwnerContribOpen(false); setOwnerContribTx(null); }
