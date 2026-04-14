@@ -92,7 +92,7 @@ export function AiChatWidget() {
       <button
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          'fixed bottom-6 right-4 sm:right-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200',
+          'fixed bottom-20 right-4 sm:right-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200',
           open ? 'bg-gray-700 hover:bg-gray-800' : 'bg-[#0F6E56] hover:bg-[#0a5a45]',
         )}
         aria-label="Toggle AI Assistant"

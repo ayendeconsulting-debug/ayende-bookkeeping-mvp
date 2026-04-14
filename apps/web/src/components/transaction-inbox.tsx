@@ -475,6 +475,7 @@ export function TransactionInbox({
                   {initialTransactions.map((tx) => {
                     const amount = Number(tx.amount);
                     const isSelectable = tx.status === 'pending' && !tx.is_personal && !isPersonal;
+                    const isPersonalSelectable = isFreelancer && tx.is_personal && tx.status === 'pending';
                     const isSelected = selectedIds.has(tx.id);
                     const isPersonalSelected = personalSelectedIds.has(tx.id);
                     const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal && !isPersonal;
@@ -737,7 +738,7 @@ export function TransactionInbox({
       )}
 
       {/* Personal bulk bar */}
-      {somePersonalSelected && isPersonal && (
+      {somePersonalSelected && (isPersonal || isFreelancer) && (
         <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-white border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
           <div className="flex items-center gap-2 flex-shrink-0">
             <CheckSquare className="w-4 h-4 text-primary" />
