@@ -328,12 +328,7 @@ export async function createClassificationRule(data: {
   try {
     await api('/classification/rules', {
       method: 'POST',
-      body: JSON.stringify({
-        matchType: data.match_type,
-        matchValue: data.match_value,
-        accountId: data.account_id,
-        priority: data.priority ?? 10,
-      }),
+      body: JSON.stringify({ name: `Auto: ${data.match_value}`, match_type: data.match_type, match_value: data.match_value, target_account_id: data.account_id, priority: data.priority ?? 10 }),
     });
     revalidatePath('/transactions');
     return { success: true };
