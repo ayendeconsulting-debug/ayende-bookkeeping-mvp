@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller, Get, Post, Patch, Delete, Body, Param, Req, Query,
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -30,6 +30,15 @@ export class PersonalController {
     return this.personalService.createBudgetCategory(req.user!.businessId, dto);
   }
 
+
+  @Roles('admin')
+  @Post('budget-categories/reorder')
+  reorderBudgetCategories(
+    @Req() req: Request,
+    @Body() body: { items: { id: string; sort_order: number }[] },
+  ) {
+    return this.personalService.reorderBudgetCategories(req.user!.businessId, body.items);
+  }
   @Roles('admin')
   @Patch('budget-categories/:id')
   updateBudgetCategory(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdateBudgetCategoryDto) {
@@ -40,15 +49,6 @@ export class PersonalController {
   @Delete('budget-categories/:id')
   deleteBudgetCategory(@Req() req: Request, @Param('id') id: string) {
     return this.personalService.deleteBudgetCategory(req.user!.businessId, id);
-  }
-
-  @Roles('admin')
-  @Post('budget-categories/reorder')
-  reorderBudgetCategories(
-    @Req() req: Request,
-    @Body() body: { items: { id: string; sort_order: number }[] },
-  ) {
-    return this.personalService.reorderBudgetCategories(req.user!.businessId, body.items);
   }
 
   // ── Savings Goals ─────────────────────────────────────────────────────

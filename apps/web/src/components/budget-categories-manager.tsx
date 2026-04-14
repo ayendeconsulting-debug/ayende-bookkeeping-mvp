@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition, useRef } from 'react';
 import { BudgetCategoryWithSpending } from '@/types';
@@ -340,7 +340,7 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-700 dark:text-[#c8c0b0]">
+                      <span className="text-sm font-medium text-gray-700 dark:text-[#c8c0b0] tabular-nums text-right min-w-[80px]">
                         {formatCurrency(cat.spent_this_month)}
                         {cat.monthly_target != null && (
                           <span className="text-gray-400 dark:text-[#7a7060] text-xs"> / {formatCurrency(cat.monthly_target)}</span>

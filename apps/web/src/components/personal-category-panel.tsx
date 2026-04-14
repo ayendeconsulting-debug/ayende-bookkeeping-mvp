@@ -20,7 +20,7 @@ interface PersonalCategoryPanelProps {
   categories: BudgetCategoryWithSpending[];
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (data?: { categoryId?: string }) => void;
 }
 
 export function PersonalCategoryPanel({
@@ -55,7 +55,7 @@ export function PersonalCategoryPanel({
         toastSuccess(
           categoryId ? `Categorized as "${cat?.name}"` : 'Category cleared',
         );
-        onSuccess();
+        onSuccess({ categoryId: categoryId ?? undefined });
       } else {
         toastError(result.error ?? 'Failed to assign category');
       }
