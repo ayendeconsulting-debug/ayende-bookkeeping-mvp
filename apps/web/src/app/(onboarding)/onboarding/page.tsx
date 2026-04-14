@@ -137,7 +137,7 @@ const PLAN_CARDS: {
   },
 ];
 
-/* â”€â”€ Progress Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Progress Bar ─────────────────────────────────────────────────────── */
 function ProgressBar({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-2 mb-8">
@@ -161,7 +161,7 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
-/* â”€â”€ Legal Checkbox â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Legal Checkbox ───────────────────────────────────────────────────── */
 function LegalCheckbox({
   doc, checked, preChecked, onChange,
 }: {
@@ -208,7 +208,7 @@ function LegalCheckbox({
   );
 }
 
-/* â”€â”€ Main Wizard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ── Main Wizard ──────────────────────────────────────────────────────── */
 export default function OnboardingPage() {
   const { signOut } = useClerk();
   const [step, setStep]              = useState(1);
@@ -292,7 +292,7 @@ export default function OnboardingPage() {
       const result = await saveModeAndCountry(selectedMode, selectedCountry);
       if (result.error) { setError(result.error); toastError('Could not save', result.error); return; }
       if (!currency) setCurrency(selectedCountry === 'CA' ? 'CAD' : 'USD');
-      toastSuccess('Mode selected', `${selectedMode} mode Â· ${selectedCountry}`);
+      toastSuccess('Mode selected', `${selectedMode} mode · ${selectedCountry}`);
       setStep(2);
     });
   }
@@ -359,7 +359,7 @@ export default function OnboardingPage() {
     });
   }
 
-  // Phase 12: Step 6 â€” create Stripe checkout and redirect
+  // Phase 12: Step 6 — create Stripe checkout and redirect
   function handleStep6() {
     setError(null);
     startTransition(async () => {
@@ -369,7 +369,7 @@ export default function OnboardingPage() {
         toastError('Checkout failed', result.error ?? 'Please try again.');
         return;
       }
-      // Same-window navigation â€” clean UX, no new tab
+      // Same-window navigation — clean UX, no new tab
       window.location.href = result.url;
     });
   }
@@ -407,7 +407,7 @@ export default function OnboardingPage() {
 
         <ProgressBar step={step} />
 
-        {/* â”€â”€ Step 1: Mode + Country â”€â”€ */}
+        {/* ── Step 1: Mode + Country ── */}
         {step === 1 && (
           <div className="flex flex-col gap-6">
             <div>
@@ -447,7 +447,7 @@ export default function OnboardingPage() {
                   <button key={c} onClick={() => setSelectedCountry(c)}
                     className={['flex items-center gap-3 p-3 rounded-xl border-2 transition-all bg-card hover:border-[#0F6E56]',
                       selectedCountry === c ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
-                    <span className="text-xl">{c === 'CA' ? 'ðŸ‡¨ðŸ‡¦' : 'ðŸ‡ºðŸ‡¸'}</span>
+                    <span className="text-xl">{c === 'CA' ? '🇨🇦' : '🇺🇸'}</span>
                     <div className="text-left">
                       <div className="font-semibold text-sm text-foreground">{c === 'CA' ? 'Canada' : 'United States'}</div>
                       <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD · CRA' : 'USD · IRS'}</div>
@@ -468,7 +468,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* â”€â”€ Step 2: Business Details â”€â”€ */}
+        {/* ── Step 2: Business Details ── */}
         {step === 2 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
@@ -511,7 +511,7 @@ export default function OnboardingPage() {
                   <Label>Province / Territory <span className="text-muted-foreground font-normal">(recommended)</span></Label>
                   <select value={provinceCode} onChange={(e) => setProvinceCode(e.target.value)}
                     className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
-                    <option value="">â€” Select province â€”</option>
+                    <option value="">— Select province —</option>
                     {provinces.map((p) => (
                       <option key={p.province_code} value={p.province_code}>
                         {p.province_name} ({p.province_code})
@@ -554,7 +554,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* â”€â”€ Step 3: Seed Accounts â”€â”€ */}
+        {/* ── Step 3: Seed Accounts ── */}
         {step === 3 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
@@ -587,7 +587,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* â”€â”€ Step 4: First Tax Code â”€â”€ */}
+        {/* ── Step 4: First Tax Code ── */}
         {step === 4 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
@@ -607,7 +607,7 @@ export default function OnboardingPage() {
                 </div>
                 <p className="text-xs text-[#085041] dark:text-primary/80">
                   Default HST/GST tax codes for {provinceCode} were set up in the previous step.
-                  You can manage them in Settings â†’ Tax Codes.
+                  You can manage them in Settings → Tax Codes.
                 </p>
               </div>
             ) : (
@@ -622,7 +622,7 @@ export default function OnboardingPage() {
                         taxPreset === preset.code ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
                       <div>
                         <div className="text-sm font-medium text-foreground">{preset.name}</div>
-                        <div className="text-xs text-muted-foreground">{preset.code} Â· {(preset.rate * 100).toFixed(2)}%</div>
+                        <div className="text-xs text-muted-foreground">{preset.code} · {(preset.rate * 100).toFixed(2)}%</div>
                       </div>
                       {taxPreset === preset.code && <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" />}
                     </button>
@@ -639,7 +639,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* â”€â”€ Step 5: Legal Agreements â”€â”€ */}
+        {/* ── Step 5: Legal Agreements ── */}
         {step === 5 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
@@ -652,7 +652,7 @@ export default function OnboardingPage() {
             {legalLoading ? (
               <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Checking previous agreementsâ€¦</span>
+                <span className="text-sm">Checking previous agreements…</span>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
@@ -679,7 +679,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* â”€â”€ Step 6: Choose Your Plan (Phase 12 NEW) â”€â”€ */}
+        {/* ── Step 6: Choose Your Plan (Phase 12 NEW) ── */}
         {step === 6 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
@@ -687,7 +687,7 @@ export default function OnboardingPage() {
               <h2 className="text-base font-semibold text-foreground">Choose your plan</h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              Start your <strong className="text-foreground">60-day free trial</strong> â€” no charge until your trial ends. Cancel anytime.
+              Start your <strong className="text-foreground">60-day free trial</strong> — no charge until your trial ends. Cancel anytime.
             </p>
 
             {/* Billing cycle toggle */}
@@ -783,30 +783,30 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* â”€â”€ Step 7: Connect Bank (previously Step 6) â”€â”€ */}
+        {/* ── Step 7: Connect Bank (previously Step 6) ── */}
         {step === 7 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
               <h2 className="text-base font-semibold text-foreground mb-1">Connect your bank account</h2>
               <p className="text-sm text-muted-foreground">
-                Link your bank to auto-import transactions. Powered by Plaid â€” secure and read-only.
+                Link your bank to auto-import transactions. Powered by Plaid — secure and read-only.
               </p>
             </div>
             <div className="rounded-xl border border-border bg-muted p-5 flex flex-col items-center gap-3 text-center">
-              <div className="text-3xl">ðŸ¦</div>
+              <div className="text-3xl">🏦</div>
               <div>
                 <p className="text-sm font-medium text-foreground">Secure bank connection via Plaid</p>
                 <p className="text-xs text-muted-foreground mt-1">Works with 12,000+ financial institutions in Canada and the US.</p>
               </div>
               <Button onClick={() => handleComplete('/banks')} disabled={isPending} className="flex items-center gap-2 w-full justify-center">
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Connect Bank â†’
+                Connect Bank →
               </Button>
             </div>
             <div className="text-center">
               <button onClick={() => handleComplete('/dashboard')} disabled={isPending}
                 className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors disabled:opacity-50">
-                Skip for now â€” go to Dashboard
+                Skip for now — go to Dashboard
               </button>
             </div>
             {error && <p className="text-sm text-destructive text-center">{error}</p>}
