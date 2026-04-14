@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -47,10 +47,11 @@ const businessSettingsItems = [
   { href: '/settings',                     label: 'Settings',             icon: Settings },
 ];
 const freelancerItems = [
-  { href: '/freelancer/dashboard',  label: 'Dashboard',       icon: LayoutDashboard },
-  { href: '/freelancer/mileage',    label: 'Mileage Tracker', icon: Car },
-  { href: '/freelancer/tax',        label: 'Tax Estimate',    icon: Calculator },
-  { href: '/freelancer/categories', label: 'Categories',      icon: Tag },
+  { href: '/freelancer/dashboard',  label: 'Dashboard',        icon: LayoutDashboard },
+  { href: '/freelancer/mileage',    label: 'Mileage Tracker',  icon: Car },
+  { href: '/freelancer/vehicles',   label: 'Vehicles',         icon: Car },
+  { href: '/freelancer/tax',        label: 'Tax Estimate',     icon: Calculator },
+  { href: '/freelancer/categories', label: 'Categories',       icon: Tag },
   { href: '/personal/rules',        label: 'Personal Rules',   icon: Filter },
 ];
 const freelancerMainItems = [
@@ -70,12 +71,13 @@ const freelancerSettingsItems = [
   { href: '/settings', label: 'Settings',           icon: Settings },
 ];
 const personalItems = [
-  { href: '/personal/dashboard',  label: 'My Dashboard',      icon: LayoutDashboard },
-  { href: '/personal/budget',     label: 'Budget',             icon: PieChart },
-  { href: '/personal/goals',      label: 'Savings Goals',      icon: Target },
-  { href: '/personal/networth',   label: 'Net Worth',          icon: Landmark },
-  { href: '/personal/recurring',  label: 'Recurring Payments', icon: RefreshCw },
-  { href: '/personal/reminders',  label: 'Upcoming Payments',  icon: Bell },
+  { href: '/personal/dashboard',  label: 'My Dashboard',       icon: LayoutDashboard },
+  { href: '/personal/budget',     label: 'Budget',              icon: PieChart },
+  { href: '/personal/goals',      label: 'Savings Goals',       icon: Target },
+  { href: '/personal/vehicles',   label: 'Vehicles',            icon: Car },
+  { href: '/personal/networth',   label: 'Net Worth',           icon: Landmark },
+  { href: '/personal/recurring',  label: 'Recurring Payments',  icon: RefreshCw },
+  { href: '/personal/reminders',  label: 'Upcoming Payments',   icon: Bell },
   { href: '/transactions',        label: 'Transactions',        icon: ArrowLeftRight },
   { href: '/rules',               label: 'Classification Rules', icon: Filter },
 ];
