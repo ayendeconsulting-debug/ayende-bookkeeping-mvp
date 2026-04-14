@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller, Get, Post, Patch, Delete, Body, Param, Req, Query,
 } from '@nestjs/common';
 import { Request } from 'express';
@@ -9,6 +9,7 @@ import {
   ConfirmDetectionDto, DismissDetectionDto,
   SnoozeReminderDto, DismissReminderDto,
   AssignPersonalCategoryDto,
+  CreatePersonalRuleDto, UpdatePersonalRuleDto,
 } from './dto/personal.dto';
 import { Roles } from '../auth/roles.decorator';
 
@@ -16,7 +17,7 @@ import { Roles } from '../auth/roles.decorator';
 export class PersonalController {
   constructor(private readonly personalService: PersonalService) {}
 
-  // â”€â”€ Budget Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Budget Categories ─────────────────────────────────────────────────
 
   @Get('budget-categories')
   getBudgetCategories(@Req() req: Request) {
@@ -41,7 +42,7 @@ export class PersonalController {
     return this.personalService.deleteBudgetCategory(req.user!.businessId, id);
   }
 
-  // â”€â”€ Savings Goals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Savings Goals ─────────────────────────────────────────────────────
 
   @Get('savings-goals')
   getSavingsGoals(@Req() req: Request) {
@@ -66,14 +67,14 @@ export class PersonalController {
     return this.personalService.deleteSavingsGoal(req.user!.businessId, id);
   }
 
-  // â”€â”€ Net Worth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Net Worth ─────────────────────────────────────────────────────────
 
   @Get('net-worth')
   getNetWorth(@Req() req: Request) {
     return this.personalService.getNetWorth(req.user!.businessId);
   }
 
-  // â”€â”€ Phase 17: Cashflow (Money In / Money Out from raw transactions) â”€â”€â”€â”€â”€â”€â”€
+  // ── Phase 17: Cashflow (Money In / Money Out from raw transactions) ───
 
   @Get('cashflow')
   getCashflow(
@@ -91,7 +92,7 @@ export class PersonalController {
     );
   }
 
-  // â”€â”€ Phase 17: Personal Transaction Category Assignment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Phase 17: Personal Transaction Category Assignment ────────────────
 
   @Roles('admin')
   @Patch('transactions/:id/category')
@@ -107,7 +108,7 @@ export class PersonalController {
     );
   }
 
-  // â”€â”€ Recurring Detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Recurring Detection ───────────────────────────────────────────────
 
   @Get('recurring-detections')
   detectRecurringPayments(@Req() req: Request) {
@@ -131,7 +132,7 @@ export class PersonalController {
     return this.personalService.getConfirmedRecurring(req.user!.businessId);
   }
 
-  // â”€â”€ Upcoming Reminders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Upcoming Reminders ────────────────────────────────────────────────
 
   @Get('upcoming-reminders')
   getUpcomingReminders(@Req() req: Request) {
@@ -152,5 +153,36 @@ export class PersonalController {
     return this.personalService.dismissReminder(
       req.user!.businessId, dto.key, dto.due_date,
     );
+  }
+
+  // ── Personal Classification Rules ─────────────────────────────────────
+
+  @Get('rules')
+  getPersonalRules(@Req() req: Request) {
+    return this.personalService.getPersonalRules(req.user!.businessId);
+  }
+
+  @Roles('admin')
+  @Post('rules/run')
+  runPersonalRules(@Req() req: Request) {
+    return this.personalService.runPersonalRules(req.user!.businessId);
+  }
+
+  @Roles('admin')
+  @Post('rules')
+  createPersonalRule(@Req() req: Request, @Body() dto: CreatePersonalRuleDto) {
+    return this.personalService.createPersonalRule(req.user!.businessId, dto);
+  }
+
+  @Roles('admin')
+  @Patch('rules/:id')
+  updatePersonalRule(@Req() req: Request, @Param('id') id: string, @Body() dto: UpdatePersonalRuleDto) {
+    return this.personalService.updatePersonalRule(req.user!.businessId, id, dto);
+  }
+
+  @Roles('admin')
+  @Delete('rules/:id')
+  deletePersonalRule(@Req() req: Request, @Param('id') id: string) {
+    return this.personalService.deletePersonalRule(req.user!.businessId, id);
   }
 }
