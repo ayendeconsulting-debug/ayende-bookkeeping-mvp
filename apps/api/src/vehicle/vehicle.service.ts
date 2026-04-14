@@ -31,16 +31,7 @@ export class VehicleService {
       where: { business_id: businessId },
       order: { created_at: 'DESC' },
     });
-    return vehicles.map((v) => ({
-      ...v,
-      loan_amount:       Number(v.loan_amount),
-      purchase_price:    Number(v.purchase_price),
-      down_payment:      Number(v.down_payment),
-      monthly_payment:   Number(v.monthly_payment),
-      remaining_balance: Number(v.remaining_balance),
-      business_use_pct:  Number(v.business_use_pct),
-      interest_rate:     Number(v.interest_rate),
-    }));
+    return vehicles.map((v) => this.serializeVehicle(v));
   }
 
   // ── Create + Opening Journal Entry ───────────────────────────────────
@@ -55,10 +46,8 @@ export class VehicleService {
 
     return this.dataSource.transaction(async (em) => {
       // 1. Create Vehicle asset account
-      // DB columns: code, name, account_type, account_subtype, currency_code, is_active
       const assetResult = await em.query(
-        `INSERT INTO accounts
-           (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
+        `INSERT INTO accounts (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
          VALUES ($1, $2, $3, 'asset', 'fixed_asset', 'CAD', true, NOW(), NOW())
          RETURNING id`,
         [businessId, `VEH-${Date.now()}`, `Vehicle – ${dto.name}`],
@@ -67,8 +56,7 @@ export class VehicleService {
 
       // 2. Create Vehicle Loan Payable liability account
       const liabResult = await em.query(
-        `INSERT INTO accounts
-           (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
+        `INSERT INTO accounts (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
          VALUES ($1, $2, $3, 'liability', 'general', 'CAD', true, NOW(), NOW())
          RETURNING id`,
         [businessId, `VLOAN-${Date.now()}`, `Vehicle Loan – ${dto.name}`],
@@ -77,16 +65,13 @@ export class VehicleService {
 
       // 3. Find or create Owner Contribution equity account
       const ocRows = await em.query(
-        `SELECT id FROM accounts
-         WHERE business_id = $1 AND account_subtype = 'owner_contribution' AND is_active = true
-         LIMIT 1`,
+        `SELECT id FROM accounts WHERE business_id = $1 AND account_subtype = 'owner_contribution' AND is_active = true LIMIT 1`,
         [businessId],
       );
       let ownerContribId: string;
       if (ocRows.length === 0) {
         const oc = await em.query(
-          `INSERT INTO accounts
-             (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
+          `INSERT INTO accounts (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
            VALUES ($1, 'OWN-CONTRIB', 'Owner Contribution', 'equity', 'owner_contribution', 'CAD', true, NOW(), NOW())
            RETURNING id`,
           [businessId],
@@ -119,33 +104,32 @@ export class VehicleService {
       // CR Vehicle Loan   = loan_amount
       // CR Owner Contrib  = down_payment (if > 0)
       const jeResult = await em.query(
-        `INSERT INTO journal_entries
-           (business_id, entry_date, description, status, reference_type, reference_id, created_at, updated_at)
-         VALUES ($1, $2, $3, 'posted', 'vehicle_opening', $4, NOW(), NOW())
+        `INSERT INTO journal_entries (business_id, entry_date, description, status, reference_type, reference_id, created_by, created_at)
+         VALUES ($1, $2, $3, 'posted', 'vehicle_opening', $4, 'system', NOW())
          RETURNING id`,
         [businessId, dto.loan_start_date, `Vehicle setup – ${dto.name}`, savedVehicle.id],
       );
       const jeId: string = jeResult[0].id;
 
       await em.query(
-        `INSERT INTO journal_lines (journal_entry_id, account_id, debit_amount, credit_amount, description, created_at, updated_at)
-         VALUES ($1, $2, $3, 0, $4, NOW(), NOW())`,
-        [jeId, assetAccountId, dto.purchase_price, `Vehicle asset – ${dto.name}`],
+        `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+         VALUES ($1, $2, 1, $3, $4, 0, $5)`,
+        [businessId, jeId, assetAccountId, dto.purchase_price, `Vehicle asset – ${dto.name}`],
       );
       await em.query(
-        `INSERT INTO journal_lines (journal_entry_id, account_id, debit_amount, credit_amount, description, created_at, updated_at)
-         VALUES ($1, $2, 0, $3, $4, NOW(), NOW())`,
-        [jeId, loanAccountId, loanAmount, `Vehicle loan – ${dto.name}`],
+        `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+         VALUES ($1, $2, 2, $3, 0, $4, $5)`,
+        [businessId, jeId, loanAccountId, loanAmount, `Vehicle loan – ${dto.name}`],
       );
       if (downPayment > 0) {
         await em.query(
-          `INSERT INTO journal_lines (journal_entry_id, account_id, debit_amount, credit_amount, description, created_at, updated_at)
-           VALUES ($1, $2, 0, $3, $4, NOW(), NOW())`,
-          [jeId, ownerContribId, downPayment, `Down payment – ${dto.name}`],
+          `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+           VALUES ($1, $2, 3, $3, 0, $4, $5)`,
+          [businessId, jeId, ownerContribId, downPayment, `Down payment – ${dto.name}`],
         );
       }
 
-      return { ...savedVehicle, opening_journal_entry_id: jeId };
+      return { ...this.serializeVehicle(savedVehicle), opening_journal_entry_id: jeId };
     });
   }
 
@@ -163,21 +147,8 @@ export class VehicleService {
     });
 
     return {
-      ...vehicle,
-      loan_amount:       Number(vehicle.loan_amount),
-      purchase_price:    Number(vehicle.purchase_price),
-      down_payment:      Number(vehicle.down_payment),
-      monthly_payment:   Number(vehicle.monthly_payment),
-      remaining_balance: Number(vehicle.remaining_balance),
-      business_use_pct:  Number(vehicle.business_use_pct),
-      interest_rate:     Number(vehicle.interest_rate),
-      payments: payments.map((p) => ({
-        ...p,
-        total_payment:    Number(p.total_payment),
-        principal_amount: Number(p.principal_amount),
-        interest_amount:  Number(p.interest_amount),
-        balance_after:    Number(p.balance_after),
-      })),
+      ...this.serializeVehicle(vehicle),
+      payments: payments.map((p) => this.serializePayment(p)),
     };
   }
 
@@ -188,11 +159,9 @@ export class VehicleService {
       where: { id: vehicleId, business_id: businessId },
     });
     if (!vehicle) throw new NotFoundException(`Vehicle ${vehicleId} not found`);
-
     if (dto.business_use_pct !== undefined) vehicle.business_use_pct = dto.business_use_pct;
     if (dto.status           !== undefined) vehicle.status           = dto.status;
     if (dto.monthly_payment  !== undefined) vehicle.monthly_payment  = dto.monthly_payment;
-
     return this.vehicleRepo.save(vehicle);
   }
 
@@ -207,45 +176,36 @@ export class VehicleService {
       throw new BadRequestException('Vehicle loan is already paid off');
     }
 
-    const total     = parseFloat(dto.total_payment.toFixed(2));
-    const principal = parseFloat(dto.principal_amount.toFixed(2));
-    const interest  = parseFloat(dto.interest_amount.toFixed(2));
+    const total     = parseFloat(Number(dto.total_payment).toFixed(2));
+    const principal = parseFloat(Number(dto.principal_amount).toFixed(2));
+    const interest  = parseFloat(Number(dto.interest_amount).toFixed(2));
 
     if (Math.abs(total - (principal + interest)) > 0.02) {
       throw new BadRequestException('Principal + interest must equal total payment');
     }
 
-    const balanceAfter = parseFloat(
-      (Number(vehicle.remaining_balance) - principal).toFixed(2),
-    );
+    const balanceAfter = parseFloat((Number(vehicle.remaining_balance) - principal).toFixed(2));
 
     return this.dataSource.transaction(async (em) => {
       // Find Owner Contribution account
       const ocRows = await em.query(
-        `SELECT id FROM accounts
-         WHERE business_id = $1 AND account_subtype = 'owner_contribution' AND is_active = true
-         LIMIT 1`,
+        `SELECT id FROM accounts WHERE business_id = $1 AND account_subtype = 'owner_contribution' AND is_active = true LIMIT 1`,
         [businessId],
       );
       if (!ocRows.length) {
-        throw new BadRequestException(
-          'Owner Contribution account not found. Please set up your chart of accounts.',
-        );
+        throw new BadRequestException('Owner Contribution account not found. Please set up your chart of accounts.');
       }
       const ownerContribId: string = ocRows[0].id;
 
       // Find or create Interest Expense account
       let interestRows = await em.query(
-        `SELECT id FROM accounts
-         WHERE business_id = $1 AND LOWER(name) LIKE '%interest%' AND account_type = 'expense' AND is_active = true
-         LIMIT 1`,
+        `SELECT id FROM accounts WHERE business_id = $1 AND LOWER(name) LIKE '%interest%' AND account_type = 'expense' AND is_active = true LIMIT 1`,
         [businessId],
       );
       let interestAccountId: string;
       if (interestRows.length === 0) {
         const ia = await em.query(
-          `INSERT INTO accounts
-             (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
+          `INSERT INTO accounts (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
            VALUES ($1, 'INT-EXP', 'Interest Expense', 'expense', 'other_expense', 'CAD', true, NOW(), NOW())
            RETURNING id`,
           [businessId],
@@ -260,30 +220,30 @@ export class VehicleService {
       // DR Interest Expense     = interest
       // CR Owner Contribution   = total
       const jeResult = await em.query(
-        `INSERT INTO journal_entries
-           (business_id, entry_date, description, status, reference_type, reference_id, created_at, updated_at)
-         VALUES ($1, $2, $3, 'posted', 'vehicle_payment', $4, NOW(), NOW())
+        `INSERT INTO journal_entries (business_id, entry_date, description, status, reference_type, reference_id, created_by, created_at)
+         VALUES ($1, $2, $3, 'posted', 'vehicle_payment', $4, 'system', NOW())
          RETURNING id`,
         [businessId, dto.payment_date, `Vehicle payment – ${vehicle.name}`, vehicleId],
       );
       const jeId: string = jeResult[0].id;
 
+      let lineNum = 1;
       await em.query(
-        `INSERT INTO journal_lines (journal_entry_id, account_id, debit_amount, credit_amount, description, created_at, updated_at)
-         VALUES ($1, $2, $3, 0, $4, NOW(), NOW())`,
-        [jeId, vehicle.loan_account_id, principal, `Principal – ${vehicle.name}`],
+        `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+         VALUES ($1, $2, $3, $4, $5, 0, $6)`,
+        [businessId, jeId, lineNum++, vehicle.loan_account_id, principal, `Principal – ${vehicle.name}`],
       );
       if (interest > 0) {
         await em.query(
-          `INSERT INTO journal_lines (journal_entry_id, account_id, debit_amount, credit_amount, description, created_at, updated_at)
-           VALUES ($1, $2, $3, 0, $4, NOW(), NOW())`,
-          [jeId, interestAccountId, interest, `Interest – ${vehicle.name}`],
+          `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+           VALUES ($1, $2, $3, $4, $5, 0, $6)`,
+          [businessId, jeId, lineNum++, interestAccountId, interest, `Interest – ${vehicle.name}`],
         );
       }
       await em.query(
-        `INSERT INTO journal_lines (journal_entry_id, account_id, debit_amount, credit_amount, description, created_at, updated_at)
-         VALUES ($1, $2, 0, $3, $4, NOW(), NOW())`,
-        [jeId, ownerContribId, total, `Vehicle payment contribution – ${vehicle.name}`],
+        `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+         VALUES ($1, $2, $3, $4, 0, $5, $6)`,
+        [businessId, jeId, lineNum, ownerContribId, total, `Vehicle payment contribution – ${vehicle.name}`],
       );
 
       // Save payment record
@@ -304,7 +264,7 @@ export class VehicleService {
       if (balanceAfter <= 0) vehicle.status = 'paid_off';
       await em.save(FinancedVehicle, vehicle);
 
-      return { ...payment, journal_entry_id: jeId, balance_after: balanceAfter };
+      return { ...this.serializePayment(payment), journal_entry_id: jeId, balance_after: balanceAfter };
     });
   }
 
@@ -319,7 +279,6 @@ export class VehicleService {
     const businessPct = Number(vehicle.business_use_pct) / 100;
     const personalPct = 1 - businessPct;
 
-    // Sum interest posted for this vehicle in the period
     const rows = await this.dataSource.query(
       `SELECT COALESCE(SUM(jl.debit_amount), 0) AS total_interest
        FROM journal_lines jl
@@ -336,11 +295,7 @@ export class VehicleService {
     const totalInterest = parseFloat(Number(rows[0]?.total_interest ?? 0).toFixed(2));
 
     if (totalInterest === 0) {
-      return {
-        message: 'No vehicle expense found in this period to allocate.',
-        business_amount: 0,
-        personal_amount: 0,
-      };
+      return { message: 'No vehicle expense found in this period to allocate.', business_amount: 0, personal_amount: 0 };
     }
 
     const businessAmount = parseFloat((totalInterest * businessPct).toFixed(2));
@@ -349,16 +304,13 @@ export class VehicleService {
     return this.dataSource.transaction(async (em) => {
       // Find or create Vehicle Expense account
       let veRows = await em.query(
-        `SELECT id FROM accounts
-         WHERE business_id = $1 AND LOWER(name) LIKE '%vehicle%' AND account_type = 'expense' AND is_active = true
-         LIMIT 1`,
+        `SELECT id FROM accounts WHERE business_id = $1 AND LOWER(name) LIKE '%vehicle%' AND account_type = 'expense' AND is_active = true LIMIT 1`,
         [businessId],
       );
       let vehicleExpenseId: string;
       if (veRows.length === 0) {
         const ve = await em.query(
-          `INSERT INTO accounts
-             (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
+          `INSERT INTO accounts (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
            VALUES ($1, 'VEH-EXP', 'Vehicle Expense', 'expense', 'other_expense', 'CAD', true, NOW(), NOW())
            RETURNING id`,
           [businessId],
@@ -370,16 +322,13 @@ export class VehicleService {
 
       // Find or create Owner Draw equity account
       let odRows = await em.query(
-        `SELECT id FROM accounts
-         WHERE business_id = $1 AND account_subtype = 'owner_draw' AND is_active = true
-         LIMIT 1`,
+        `SELECT id FROM accounts WHERE business_id = $1 AND account_subtype = 'owner_draw' AND is_active = true LIMIT 1`,
         [businessId],
       );
       let ownerDrawId: string;
       if (odRows.length === 0) {
         const od = await em.query(
-          `INSERT INTO accounts
-             (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
+          `INSERT INTO accounts (business_id, code, name, account_type, account_subtype, currency_code, is_active, created_at, updated_at)
            VALUES ($1, 'OWN-DRAW', 'Owner Draw', 'equity', 'owner_draw', 'CAD', true, NOW(), NOW())
            RETURNING id`,
           [businessId],
@@ -391,22 +340,18 @@ export class VehicleService {
 
       // Find Interest Expense account
       const ieRows = await em.query(
-        `SELECT id FROM accounts
-         WHERE business_id = $1 AND LOWER(name) LIKE '%interest%' AND account_type = 'expense' AND is_active = true
-         LIMIT 1`,
+        `SELECT id FROM accounts WHERE business_id = $1 AND LOWER(name) LIKE '%interest%' AND account_type = 'expense' AND is_active = true LIMIT 1`,
         [businessId],
       );
       if (!ieRows.length) throw new BadRequestException('Interest Expense account not found');
       const interestExpenseId: string = ieRows[0].id;
 
-      // Journal entry:
       // DR Vehicle Expense  = business portion
       // DR Owner Draw       = personal portion
       // CR Interest Expense = total (clearing)
       const jeResult = await em.query(
-        `INSERT INTO journal_entries
-           (business_id, entry_date, description, status, reference_type, reference_id, created_at, updated_at)
-         VALUES ($1, $2, $3, 'posted', 'vehicle_allocation', $4, NOW(), NOW())
+        `INSERT INTO journal_entries (business_id, entry_date, description, status, reference_type, reference_id, created_by, created_at)
+         VALUES ($1, $2, $3, 'posted', 'vehicle_allocation', $4, 'system', NOW())
          RETURNING id`,
         [
           businessId,
@@ -417,24 +362,25 @@ export class VehicleService {
       );
       const jeId: string = jeResult[0].id;
 
+      let lineNum = 1;
       if (businessAmount > 0) {
         await em.query(
-          `INSERT INTO journal_lines (journal_entry_id, account_id, debit_amount, credit_amount, description, created_at, updated_at)
-           VALUES ($1, $2, $3, 0, $4, NOW(), NOW())`,
-          [jeId, vehicleExpenseId, businessAmount, `Business use ${vehicle.business_use_pct}% – ${vehicle.name}`],
+          `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+           VALUES ($1, $2, $3, $4, $5, 0, $6)`,
+          [businessId, jeId, lineNum++, vehicleExpenseId, businessAmount, `Business use ${vehicle.business_use_pct}% – ${vehicle.name}`],
         );
       }
       if (personalAmount > 0) {
         await em.query(
-          `INSERT INTO journal_lines (journal_entry_id, account_id, debit_amount, credit_amount, description, created_at, updated_at)
-           VALUES ($1, $2, $3, 0, $4, NOW(), NOW())`,
-          [jeId, ownerDrawId, personalAmount, `Personal use ${100 - Number(vehicle.business_use_pct)}% – ${vehicle.name}`],
+          `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+           VALUES ($1, $2, $3, $4, $5, 0, $6)`,
+          [businessId, jeId, lineNum++, ownerDrawId, personalAmount, `Personal use ${100 - Number(vehicle.business_use_pct)}% – ${vehicle.name}`],
         );
       }
       await em.query(
-        `INSERT INTO journal_lines (journal_entry_id, account_id, debit_amount, credit_amount, description, created_at, updated_at)
-         VALUES ($1, $2, 0, $3, $4, NOW(), NOW())`,
-        [jeId, interestExpenseId, totalInterest, `Interest clearing – ${vehicle.name}`],
+        `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+         VALUES ($1, $2, $3, $4, 0, $5, $6)`,
+        [businessId, jeId, lineNum, interestExpenseId, totalInterest, `Interest clearing – ${vehicle.name}`],
       );
 
       return {
@@ -456,14 +402,10 @@ export class VehicleService {
       .findOne({ where: { id: vehicleId, business_id: businessId } })
       .then((vehicle) => {
         if (!vehicle) throw new NotFoundException(`Vehicle ${vehicleId} not found`);
-
         const monthlyRate = Number(vehicle.interest_rate) / 12;
         const payment     = Number(vehicle.monthly_payment);
         let balance       = Number(vehicle.loan_amount);
-        const schedule: {
-          period: number; payment: number; principal: number; interest: number; balance: number;
-        }[] = [];
-
+        const schedule: { period: number; payment: number; principal: number; interest: number; balance: number }[] = [];
         let period = 1;
         while (balance > 0.01 && period <= 360) {
           const interest  = parseFloat((balance * monthlyRate).toFixed(2));
@@ -474,5 +416,30 @@ export class VehicleService {
         }
         return schedule;
       });
+  }
+
+  // ── Serializers ───────────────────────────────────────────────────────
+
+  private serializeVehicle(v: FinancedVehicle) {
+    return {
+      ...v,
+      loan_amount:       Number(v.loan_amount),
+      purchase_price:    Number(v.purchase_price),
+      down_payment:      Number(v.down_payment),
+      monthly_payment:   Number(v.monthly_payment),
+      remaining_balance: Number(v.remaining_balance),
+      business_use_pct:  Number(v.business_use_pct),
+      interest_rate:     Number(v.interest_rate),
+    };
+  }
+
+  private serializePayment(p: VehiclePayment) {
+    return {
+      ...p,
+      total_payment:    Number(p.total_payment),
+      principal_amount: Number(p.principal_amount),
+      interest_amount:  Number(p.interest_amount),
+      balance_after:    Number(p.balance_after),
+    };
   }
 }
