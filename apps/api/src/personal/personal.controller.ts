@@ -74,7 +74,7 @@ export class PersonalController {
     return this.personalService.getNetWorth(req.user!.businessId);
   }
 
-  // ── Phase 17: Cashflow (Money In / Money Out from raw transactions) ───
+  // ── Cashflow ──────────────────────────────────────────────────────────
 
   @Get('cashflow')
   getCashflow(
@@ -92,7 +92,7 @@ export class PersonalController {
     );
   }
 
-  // ── Phase 17: Personal Transaction Category Assignment ────────────────
+  // ── Personal Transaction Category Assignment ──────────────────────────
 
   @Roles('admin')
   @Patch('transactions/:id/category')
@@ -105,6 +105,20 @@ export class PersonalController {
       req.user!.businessId,
       id,
       dto.category_id,
+    );
+  }
+
+  // ── Similar Personal Transactions (Phase 22) ──────────────────────────
+
+  @Roles('admin')
+  @Post('similar')
+  findSimilarPersonal(
+    @Req() req: Request,
+    @Body() body: { rawTransactionId: string },
+  ) {
+    return this.personalService.findSimilarPersonalTransactions(
+      req.user!.businessId,
+      body.rawTransactionId,
     );
   }
 

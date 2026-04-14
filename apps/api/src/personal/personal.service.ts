@@ -653,7 +653,6 @@ export class PersonalService {
     const txs = await this.dataSource.query(
       `SELECT id, description FROM raw_transactions
        WHERE business_id = $1
-         AND is_personal = true
          AND status = 'pending'
          AND personal_category_id IS NULL
          AND status != 'ignored'`,
@@ -709,4 +708,26 @@ export class PersonalService {
     );
     await this.budgetCategoryRepo.save([...expenseCats, ...incomeCats]);
   }
+  async findSimilarPersonalTransactions(businessId: string, rawTransactionId: string): Promise<{ similar: any[]; category_id: string | null; category_name: string | null; category_color: string | null; keyword: string }> {
+    const catRows = await this.dataSource.query(
+      'SELECT rt.personal_category_id, bc.name AS category_name, bc.color AS category_color FROM raw_transactions rt LEFT JOIN budget_categories bc ON bc.id = rt.personal_category_id WHERE rt.id = $1 AND rt.business_id = $2 LIMIT 1',
+      [rawTransactionId, businessId],
+    );
+    const categoryId = catRows[0]?.personal_category_id ?? null;
+    const categoryName = catRows[0]?.category_name ?? null;
+    const categoryColor = catRows[0]?.category_color ?? null;
+    if (!categoryId) return { similar: [], category_id: null, category_name: null, category_color: null, keyword: '' };
+    const srcRows = await this.dataSource.query('SELECT description FROM raw_transactions WHERE id = $1 LIMIT 1', [rawTransactionId]);
+    if (!srcRows.length) return { similar: [], category_id: categoryId, category_name: categoryName, category_color: categoryColor, keyword: '' };
+    const STOP_WORDS = new Set(['the', 'and', 'for', 'from', 'with', 'via', 'inc', 'ltd', 'llc', 'pos', 'purchase']);
+    const words = (srcRows[0].description || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w: string) => w.length >= 3 && !STOP_WORDS.has(w));
+    if (!words.length) return { similar: [], category_id: categoryId, category_name: categoryName, category_color: categoryColor, keyword: '' };
+    const keyword = words[0];
+    const similar = await this.dataSource.query(
+      'SELECT id, transaction_date, description, amount FROM raw_transactions WHERE business_id = $1 AND id != $2 AND status = ' + "'" + 'pending' + "'" + ' AND personal_category_id IS NULL AND LOWER(description) LIKE $3 ORDER BY transaction_date DESC LIMIT 10',
+      [businessId, rawTransactionId, '%' + keyword + '%'],
+    );
+    return { similar: similar.map((tx: any) => ({ ...tx, amount: Number(tx.amount) })), category_id: categoryId, category_name: categoryName, category_color: categoryColor, keyword };
+  }
+
 }
