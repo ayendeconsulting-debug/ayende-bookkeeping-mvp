@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller,
   Get,
   Post,
@@ -28,6 +28,7 @@ import {
 import { LearnClassificationRuleDto } from '../dto/learn-classification-rule.dto';
 import { SplitTransactionDto } from '../dto/split-transaction.dto';
 import { MarkTransferDto } from '../dto/transfer-transaction.dto';
+import { FindSimilarTransactionsDto } from '../dto/similar-transaction.dto';
 import { Roles } from '../../auth/roles.decorator';
 
 @Controller('classification')
@@ -38,14 +39,8 @@ export class ClassificationController {
     private readonly transferService: TransferService,
   ) {}
 
-  // â”€â”€ Raw Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Raw Transactions ──────────────────────────────────────────────────
 
-  /**
-   * GET /classification/raw/source-accounts
-   * Returns distinct source_account_name values for the business.
-   * MUST be declared before GET raw/:id to avoid NestJS treating
-   * 'source-accounts' as an :id parameter.
-   */
   @Get('raw/source-accounts')
   getSourceAccounts(@Req() req: Request) {
     return this.classificationService.getSourceAccounts(req.user!.businessId);
@@ -56,7 +51,6 @@ export class ClassificationController {
     return this.classificationService.getTransactionMonths(req.user!.businessId);
   }
 
-  /** GET /classification/raw â€” all roles */
   @Get('raw')
   getRawTransactions(
     @Req() req: Request,
@@ -81,7 +75,6 @@ export class ClassificationController {
     });
   }
 
-  /** PATCH /classification/raw/:id/tag â€” admin only */
   @Roles('admin')
   @Patch('raw/:id/tag')
   tagTransaction(
@@ -96,7 +89,7 @@ export class ClassificationController {
     );
   }
 
-  // â”€â”€ Phase 14: Split Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Phase 14: Split Transactions ──────────────────────────────────────
 
   @Roles('admin', 'accountant')
   @Patch('raw/:id/split')
@@ -115,7 +108,7 @@ export class ClassificationController {
     return this.splitTransactionService.getSplitLines(req.user!.businessId, id);
   }
 
-  // â”€â”€ Phase 14: Transfer Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Phase 14: Transfer Transactions ───────────────────────────────────
 
   @Roles('admin', 'accountant')
   @Patch('raw/:id/mark-transfer')
@@ -129,7 +122,7 @@ export class ClassificationController {
     );
   }
 
-  // â”€â”€ Rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Rules ─────────────────────────────────────────────────────────────
 
   @Roles('admin')
   @Post('rules')
@@ -153,13 +146,13 @@ export class ClassificationController {
     return this.classificationService.updateRule(req.user!.businessId, id, dto);
   }
 
-
   @Roles('admin')
   @Delete('raw/:id/classify')
   @HttpCode(204)
   unclassify(@Req() req: Request, @Param('id') id: string) {
     return this.classificationService.unclassify(req.user!.businessId, id);
   }
+
   @Roles('admin')
   @Delete('rules/:id')
   deactivateRule(@Req() req: Request, @Param('id') id: string) {
@@ -179,7 +172,19 @@ export class ClassificationController {
     return this.classificationService.runBatchRules(req.user!.businessId);
   }
 
-  // â”€â”€ Classification & Posting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Similar Transactions (Phase 22) ───────────────────────────────────
+
+  @Roles('admin')
+  @Post('similar')
+  findSimilar(@Req() req: Request, @Body() dto: FindSimilarTransactionsDto) {
+    return this.classificationService.findSimilarTransactions(
+      req.user!.businessId,
+      dto.rawTransactionId,
+      dto.accountId,
+    );
+  }
+
+  // ── Classification & Posting ──────────────────────────────────────────
 
   @Roles('admin')
   @Post('classify')
@@ -188,6 +193,7 @@ export class ClassificationController {
     dto.classifiedBy = req.user!.userId;
     return this.classificationService.classify(dto);
   }
+
   @Roles('admin')
   @Post('bulk-classify')
   bulkClassify(@Req() req: Request, @Body() dto: BulkClassifyDto) {
@@ -200,9 +206,7 @@ export class ClassificationController {
     );
   }
 
-
   @Roles('admin')
-    @Roles('admin')
   @Post('bulk-post')
   bulkPost(@Req() req: Request, @Body() dto: BulkPostDto) {
     return this.classificationService.bulkPost(
@@ -210,8 +214,7 @@ export class ClassificationController {
     );
   }
 
-    @Roles('admin')
-    @Roles('admin')
+  @Roles('admin')
   @Post('post/:id')
   postClassified(
     @Param('id') id: string,
@@ -223,7 +226,7 @@ export class ClassificationController {
     );
   }
 
-  // â”€â”€ Owner Equity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Owner Equity ──────────────────────────────────────────────────────
 
   @Roles('admin')
   @Post('owner-contribution')

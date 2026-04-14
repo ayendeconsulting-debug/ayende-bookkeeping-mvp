@@ -688,4 +688,67 @@ export class ClassificationService {
       );
     }
   }
+
+  // â”€â”€ Similar Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Called after manual classification. Finds unclassified transactions
+  // whose descriptions share significant keywords with the just-classified one.
+
+  async findSimilarTransactions(
+    businessId: string,
+    rawTransactionId: string,
+    accountId: string,
+  ): Promise<{
+    similar: any[];
+    account: any;
+    keyword: string;
+  }> {
+    // 1. Get the source transaction
+    const sourceTx = await this.rawTxRepo.findOne({
+      where: { id: rawTransactionId, business_id: businessId },
+    });
+    if (!sourceTx) return { similar: [], account: null, keyword: '' };
+
+    // 2. Extract keyword â€” take first 3 non-trivial words (â‰¥3 chars)
+    const STOP_WORDS = new Set(['the', 'and', 'for', 'from', 'with', 'via', 'inc', 'ltd', 'llc']);
+    const words = (sourceTx.description || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length >= 3 && !STOP_WORDS.has(w));
+
+    if (words.length === 0) return { similar: [], account: null, keyword: '' };
+
+    const keyword = words[0]; // Use first significant word for broadest match
+
+    // 3. Find pending unclassified transactions with similar descriptions
+    const similar = await this.dataSource.query(
+      `SELECT id, transaction_date, description, amount, source_account_name, plaid_category
+       FROM raw_transactions
+       WHERE business_id = 
+         AND id != $2
+         AND status = 'pending'
+         AND LOWER(description) LIKE $3
+       ORDER BY transaction_date DESC
+       LIMIT 10`,
+      [businessId, rawTransactionId, `%${keyword}%`],
+    );
+
+    // 4. Fetch the account details for display
+    const accountRows = await this.dataSource.query(
+      `SELECT id, code AS account_code, name AS account_name, account_type, account_subtype
+       FROM accounts WHERE id =  LIMIT 1`,
+      [accountId],
+    );
+    const account = accountRows[0] || null;
+
+    return {
+      similar: similar.map((tx: any) => ({
+        ...tx,
+        amount: Number(tx.amount),
+      })),
+      account,
+      keyword,
+    };
+  }
+
 }
