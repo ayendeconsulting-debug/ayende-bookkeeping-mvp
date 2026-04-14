@@ -1,14 +1,14 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { Job } from 'bullmq';
 import { PlaidService } from '../services/plaid.service';
 import { PlaidWebhookLog, WebhookProcessingStatus } from '../../entities/plaid-webhook-log.entity';
 import { PlaidItem } from '../../entities/plaid-item.entity';
 import { CurrencyService } from '../../currency/currency.service';
-// Phase 12: auto-classification on sync
 import { ClassificationService } from '../../reports/services/classification.service';
+import { PersonalService } from '../../personal/personal.service';
 
 export interface PlaidSyncJobData {
   plaidItemId: string;
@@ -22,12 +22,13 @@ export class PlaidSyncProcessor extends WorkerHost {
   constructor(
     private readonly plaidService: PlaidService,
     private readonly currencyService: CurrencyService,
-    // Phase 12
     private readonly classificationService: ClassificationService,
+    private readonly personalService: PersonalService,
     @InjectRepository(PlaidWebhookLog)
     private webhookLogRepo: Repository<PlaidWebhookLog>,
     @InjectRepository(PlaidItem)
     private plaidItemRepo: Repository<PlaidItem>,
+    private readonly dataSource: DataSource,
   ) {
     super();
   }
@@ -43,51 +44,65 @@ export class PlaidSyncProcessor extends WorkerHost {
         `Sync job ${job.id} complete: +${result.added} ~${result.modified} -${result.removed}`,
       );
 
-      // Step 2: Convert any newly synced foreign currency transactions
       if (result.added > 0 || result.modified > 0) {
-        try {
-          const plaidItem = await this.plaidItemRepo.findOne({
-            where: { item_id: plaidItemId },
-          });
+        // Step 2: Look up business_id and mode
+        const plaidItem = await this.plaidItemRepo.findOne({
+          where: { id: plaidItemId },
+        });
 
-          if (plaidItem?.business_id) {
-            const converted = await this.currencyService.convertPendingTransactions(
-              plaidItem.business_id,
-            );
+        if (plaidItem?.business_id) {
+          const businessId = plaidItem.business_id;
+
+          // Step 3: Convert foreign currency transactions
+          try {
+            const converted = await this.currencyService.convertPendingTransactions(businessId);
             if (converted > 0) {
               this.logger.log(
-                `Currency conversion: ${converted} foreign transactions converted for business ${plaidItem.business_id}`,
+                `Currency conversion: ${converted} foreign transactions converted for business ${businessId}`,
               );
             }
+          } catch (currencyErr: any) {
+            this.logger.warn(`Currency conversion skipped for job ${job.id}: ${currencyErr.message}`);
+          }
 
-            // Phase 12: apply classification rules to all newly pending transactions
-            if (result.added > 0) {
-              try {
-                const batchResult = await this.classificationService.runBatchRules(
-                  plaidItem.business_id,
-                );
-                if (batchResult.classified > 0) {
+          // Step 4: Auto-classify newly added transactions
+          if (result.added > 0) {
+            try {
+              // Look up business mode
+              const bizRows = await this.dataSource.query(
+                `SELECT mode FROM businesses WHERE id = $1 LIMIT 1`,
+                [businessId],
+              );
+              const mode: string = bizRows[0]?.mode ?? 'business';
+
+              if (mode === 'personal') {
+                // Personal mode — run budget category rules
+                const personalResult = await this.personalService.runPersonalRules(businessId);
+                if (personalResult.matched > 0) {
                   this.logger.log(
-                    `Auto-classification: ${batchResult.classified}/${batchResult.total} transactions classified for business ${plaidItem.business_id}`,
+                    `Auto-classify (personal): ${personalResult.matched} transactions matched for business ${businessId}`,
                   );
                 }
-              } catch (classifyErr: any) {
-                // Non-fatal — log and continue
-                this.logger.warn(
-                  `Auto-classification skipped for job ${job.id}: ${classifyErr.message}`,
-                );
+              } else {
+                // Business or freelancer mode — run chart-of-accounts classification rules
+                const batchResult = await this.classificationService.runBatchRules(businessId);
+                if (batchResult.classified > 0) {
+                  this.logger.log(
+                    `Auto-classify (${mode}): ${batchResult.classified}/${batchResult.total} transactions classified for business ${businessId}`,
+                  );
+                }
               }
+            } catch (classifyErr: any) {
+              // Non-fatal — log and continue
+              this.logger.warn(
+                `Auto-classification skipped for job ${job.id}: ${classifyErr.message}`,
+              );
             }
           }
-        } catch (currencyErr: any) {
-          // Non-fatal — log and continue
-          this.logger.warn(
-            `Currency conversion skipped for job ${job.id}: ${currencyErr.message}`,
-          );
         }
       }
 
-      // Step 3: Update webhook log to processed
+      // Step 5: Update webhook log to processed
       if (webhookLogId) {
         await this.webhookLogRepo.update(webhookLogId, {
           status: WebhookProcessingStatus.PROCESSED,
