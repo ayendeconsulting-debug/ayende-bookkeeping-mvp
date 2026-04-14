@@ -210,18 +210,21 @@ export function TransactionInbox({
   function handlePanelClose() { setPanelOpen(false); setSelectedTx(null); }
 
   // Phase 22: after manual classify, check for similar transactions
-  function handleSuccess() {
+  function handleSuccess(data?: { accountId?: string; sourceAccountId?: string }) {
     const justClassifiedId = selectedTx?.id ?? null;
+    const passedAccountId  = data?.accountId ?? null;
     setPanelOpen(false);
     setSelectedTx(null);
     startTransition(() => router.refresh());
 
-    // Only trigger similar prompt for manual classification (not post mode)
     if (justClassifiedId && !postMode && !isPersonal) {
       setLastClassifiedTxId(justClassifiedId);
       findSimilarTransactions(justClassifiedId).then((res) => {
         if (res.success && res.data && res.data.similar.length > 0) {
-          setSimilarResult(res.data);
+          setSimilarResult({
+            ...res.data,
+            suggested_account_id: passedAccountId ?? res.data.suggested_account_id,
+          });
           setSimilarOpen(true);
         }
       });

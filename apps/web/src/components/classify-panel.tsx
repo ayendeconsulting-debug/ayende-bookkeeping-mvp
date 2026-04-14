@@ -36,7 +36,7 @@ interface ClassifyPanelProps {
   taxCodes: TaxCode[];
   open: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (data?: { accountId?: string; sourceAccountId?: string }) => void;
   initialStep?: 'classify' | 'post';
   initialClassifiedId?: string;
   initialSourceAccountId?: string;
@@ -169,12 +169,17 @@ export function ClassifyPanel({
   }
 
   function handlePost() {
+    const capturedAccountId    = accountId;
+    const capturedSourceId     = sourceAccountId;
     startTransition(async () => {
       const result = await postTransaction({ classifiedId, sourceAccountId });
       if (result.success) {
         setStep('done');
         toastSuccess('Posted to ledger', 'Journal entry created successfully.');
-        setTimeout(() => { handleClose(); onSuccess(); }, 1200);
+        setTimeout(() => {
+          handleClose();
+          onSuccess({ accountId: capturedAccountId, sourceAccountId: capturedSourceId });
+        }, 1200);
       } else {
         const msg = result.error ?? 'Posting failed';
         setError(msg);
