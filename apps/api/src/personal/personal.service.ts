@@ -132,6 +132,24 @@ export class PersonalService {
       assignedMap[row.category_id] = Number(row.total_spent);
     }
 
+    // Income aggregation for income categories
+    const incomeRows = await this.dataSource.query(
+      `SELECT rt.personal_category_id AS category_id,
+              SUM(rt.amount) AS total_income
+       FROM raw_transactions rt
+       WHERE rt.business_id = $1
+         AND rt.transaction_date BETWEEN $2 AND $3
+         AND rt.amount > 0
+         AND rt.status != 'ignored'
+         AND rt.personal_category_id IS NOT NULL
+       GROUP BY rt.personal_category_id`,
+      [businessId, monthStart, monthEnd],
+    );
+    const incomeMap: Record<string, number> = {};
+    for (const row of incomeRows) {
+      incomeMap[row.category_id] = Number(row.total_income);
+    }
+
     // â”€â”€ Secondary: plaid_category fuzzy match for unassigned transactions â”€
     const spendingRows = await this.dataSource.query(
       `SELECT LOWER(COALESCE(plaid_category, 'other')) AS cat,
@@ -150,7 +168,8 @@ export class PersonalService {
     for (const row of spendingRows) spendingMap[row.cat] = Number(row.total_spent);
 
     return categories.map((cat) => {
-      const assignedSpend = assignedMap[cat.id] ?? 0;
+      const isIncomeCat = cat.category_type === 'income';
+            const assignedSpend = isIncomeCat ? (incomeMap[cat.id] ?? 0) : (assignedMap[cat.id] ?? 0);
       const catLower = cat.name.toLowerCase();
       let fuzzySpend = 0;
       for (const [plaidCat, amount] of Object.entries(spendingMap)) {

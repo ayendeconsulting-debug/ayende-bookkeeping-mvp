@@ -191,7 +191,7 @@ export function TransactionInbox({
 
   function openClassify(tx: RawTransaction) {
     if (isPersonal || (isFreelancer && tx.is_personal)) { setPersonalCatTx(tx); setPersonalCatOpen(true); }
-    else { setSelectedTx(tx); setPostMode(false); setPanelOpen(true); }
+    else { setSelectedTx(tx); setLastClassifiedTxId(tx.id); setPostMode(false); setPanelOpen(true); }
   }
   function openPost(tx: RawTransaction) { setSelectedTx(tx); setPostMode(true); setPanelOpen(true); }
 
@@ -211,7 +211,7 @@ export function TransactionInbox({
 
   // Phase 22: after manual classify, check for similar transactions
   function handleSuccess(data?: { accountId?: string; sourceAccountId?: string }) {
-    const justClassifiedId = selectedTx?.id ?? null;
+    const justClassifiedId = lastClassifiedTxId;
     const passedAccountId  = data?.accountId ?? null;
     setPanelOpen(false);
     setSelectedTx(null);
