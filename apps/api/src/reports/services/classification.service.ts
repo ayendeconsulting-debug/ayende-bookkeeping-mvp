@@ -686,69 +686,31 @@ export class ClassificationService {
         `(${lockedPeriod.period_start} to ${lockedPeriod.period_end}). ` +
         `Locked periods cannot accept new journal entries.`,
       );
-    }
+    } 
+
   }
 
-  // â”€â”€ Similar Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Called after manual classification. Finds unclassified transactions
-  // whose descriptions share significant keywords with the just-classified one.
-
+  // Similar Transactions (Phase 22)
   async findSimilarTransactions(
     businessId: string,
     rawTransactionId: string,
-    accountId: string,
-  ): Promise<{
-    similar: any[];
-    account: any;
-    keyword: string;
-  }> {
-    // 1. Get the source transaction
-    const sourceTx = await this.rawTxRepo.findOne({
-      where: { id: rawTransactionId, business_id: businessId },
-    });
-    if (!sourceTx) return { similar: [], account: null, keyword: '' };
-
-    // 2. Extract keyword â€” take first 3 non-trivial words (â‰¥3 chars)
-    const STOP_WORDS = new Set(['the', 'and', 'for', 'from', 'with', 'via', 'inc', 'ltd', 'llc']);
-    const words = (sourceTx.description || '')
-      .toLowerCase()
-      .replace(/[^a-z0-9\s]/g, ' ')
-      .split(/\s+/)
-      .filter((w) => w.length >= 3 && !STOP_WORDS.has(w));
-
-    if (words.length === 0) return { similar: [], account: null, keyword: '' };
-
-    const keyword = words[0]; // Use first significant word for broadest match
-
-    // 3. Find pending unclassified transactions with similar descriptions
+  ): Promise<{ similar: any[]; suggested_account_id: string | null; suggested_account_name: string | null; suggested_account_code: string | null; suggested_source_account_id: string | null; keyword: string }> {
+    const sourceTx = await this.rawTxRepo.findOne({ where: { id: rawTransactionId, business_id: businessId } });
+    if (!sourceTx) { return { similar: [], suggested_account_id: null, suggested_account_name: null, suggested_account_code: null, suggested_source_account_id: null, keyword: '' }; }
+    const ctRows = await this.dataSource.query(
+      `SELECT ct.account_id, ct.source_account_id, a.name AS account_name, a.code AS account_code FROM classified_transactions ct LEFT JOIN accounts a ON a.id = ct.account_id WHERE ct.raw_transaction_id = $1 ORDER BY ct.created_at DESC LIMIT 1`,
+      [rawTransactionId],
+    );
+    const ct = ctRows[0] ?? null;
+    const STOP_WORDS = new Set(['the', 'and', 'for', 'from', 'with', 'via', 'inc', 'ltd', 'llc', 'pos', 'purchase']);
+    const words = (sourceTx.description || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter((w: string) => w.length >= 3 && !STOP_WORDS.has(w));
+    if (words.length === 0) { return { similar: [], suggested_account_id: ct?.account_id ?? null, suggested_account_name: ct?.account_name ?? null, suggested_account_code: ct?.account_code ?? null, suggested_source_account_id: ct?.source_account_id ?? null, keyword: '' }; }
+    const keyword = words[0];
     const similar = await this.dataSource.query(
-      `SELECT id, transaction_date, description, amount, source_account_name, plaid_category
-       FROM raw_transactions
-       WHERE business_id = 
-         AND id != $2
-         AND status = 'pending'
-         AND LOWER(description) LIKE $3
-       ORDER BY transaction_date DESC
-       LIMIT 10`,
+      `SELECT id, transaction_date, description, amount, source_account_name, plaid_category FROM raw_transactions WHERE business_id = $1 AND id != $2 AND status = 'pending' AND LOWER(description) LIKE $3 ORDER BY transaction_date DESC LIMIT 10`,
       [businessId, rawTransactionId, `%${keyword}%`],
     );
-
-    // 4. Fetch the account details for display
-    const accountRows = await this.dataSource.query(
-      `SELECT id, code AS account_code, name AS account_name, account_type, account_subtype
-       FROM accounts WHERE id =  LIMIT 1`,
-      [accountId],
-    );
-    const account = accountRows[0] || null;
-
-    return {
-      similar: similar.map((tx: any) => ({
-        ...tx,
-        amount: Number(tx.amount),
-      })),
-      account,
-      keyword,
-    };
+    return { similar: similar.map((tx: any) => ({ ...tx, amount: Number(tx.amount) })), suggested_account_id: ct?.account_id ?? null, suggested_account_name: ct?.account_name ?? null, suggested_account_code: ct?.account_code ?? null, suggested_source_account_id: ct?.source_account_id ?? null, keyword };
   }
 
-}
+} 

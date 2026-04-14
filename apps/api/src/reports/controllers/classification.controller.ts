@@ -82,14 +82,10 @@ export class ClassificationController {
     @Param('id') id: string,
     @Body() body: { is_personal: boolean },
   ) {
-    return this.classificationService.tagTransaction(
-      req.user!.businessId,
-      id,
-      body.is_personal,
-    );
+    return this.classificationService.tagTransaction(req.user!.businessId, id, body.is_personal);
   }
 
-  // ── Phase 14: Split Transactions ──────────────────────────────────────
+  // ── Split Transactions ────────────────────────────────────────────────
 
   @Roles('admin', 'accountant')
   @Patch('raw/:id/split')
@@ -108,7 +104,7 @@ export class ClassificationController {
     return this.splitTransactionService.getSplitLines(req.user!.businessId, id);
   }
 
-  // ── Phase 14: Transfer Transactions ───────────────────────────────────
+  // ── Transfer Transactions ─────────────────────────────────────────────
 
   @Roles('admin', 'accountant')
   @Patch('raw/:id/mark-transfer')
@@ -180,7 +176,6 @@ export class ClassificationController {
     return this.classificationService.findSimilarTransactions(
       req.user!.businessId,
       dto.rawTransactionId,
-      dto.accountId,
     );
   }
 
@@ -189,7 +184,7 @@ export class ClassificationController {
   @Roles('admin')
   @Post('classify')
   classify(@Req() req: Request, @Body() dto: ClassifyTransactionDto) {
-    dto.businessId = req.user!.businessId;
+    dto.businessId   = req.user!.businessId;
     dto.classifiedBy = req.user!.userId;
     return this.classificationService.classify(dto);
   }
@@ -231,7 +226,7 @@ export class ClassificationController {
   @Roles('admin')
   @Post('owner-contribution')
   ownerContribution(@Req() req: Request, @Body() dto: OwnerContributionDto) {
-    dto.businessId = req.user!.businessId;
+    dto.businessId   = req.user!.businessId;
     dto.classifiedBy = req.user!.userId;
     return this.classificationService.postOwnerContribution(dto);
   }
@@ -252,7 +247,7 @@ export class ClassificationController {
 
   @Post('owner-draw')
   ownerDraw(@Req() req: Request, @Body() dto: OwnerDrawDto) {
-    dto.businessId = req.user!.businessId;
+    dto.businessId   = req.user!.businessId;
     dto.classifiedBy = req.user!.userId;
     return this.classificationService.postOwnerDraw(dto);
   }

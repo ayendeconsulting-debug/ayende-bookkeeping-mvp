@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -10,12 +10,19 @@ import { TransactionExplainerPanel } from '@/components/transaction-explainer-pa
 import { SplitTransactionModal } from '@/components/split-transaction-modal';
 import { TransferModal } from '@/components/transfer-modal';
 import { PersonalCategoryPanel } from '@/components/personal-category-panel';
+import { SimilarTransactionsModal } from '@/components/similar-transactions-modal';
 import { AdminOnly } from '@/components/admin-only';
 import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { bulkClassifyTransactions, runBatchRules, unclassifyTransaction, bulkPostTransactions } from '@/app/(app)/transactions/actions';
+import {
+  bulkClassifyTransactions,
+  runBatchRules,
+  unclassifyTransaction,
+  bulkPostTransactions,
+  findSimilarTransactions,
+} from '@/app/(app)/transactions/actions';
 import { bulkAssignPersonalCategory } from '@/app/(app)/personal/transactions/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
@@ -40,9 +47,9 @@ interface TransactionInboxProps {
 
 function getStatusTabs(isPersonal: boolean) {
   return [
-    { key: 'all',          label: 'All' },
-    { key: 'pending',      label: 'Pending' },
-    { key: 'classified',   label: 'Classified' },
+    { key: 'all',        label: 'All' },
+    { key: 'pending',    label: 'Pending' },
+    { key: 'classified', label: 'Classified' },
     { key: isPersonal ? 'categorized' : 'posted', label: isPersonal ? 'Categorized' : 'Posted' },
   ];
 }
@@ -92,7 +99,7 @@ export function TransactionInbox({
   const [explainerTx, setExplainerTx]     = useState<RawTransaction | null>(null);
   const [explainerOpen, setExplainerOpen] = useState(false);
 
-  const [splitTx, setSplitTx]   = useState<RawTransaction | null>(null);
+  const [splitTx, setSplitTx]     = useState<RawTransaction | null>(null);
   const [splitOpen, setSplitOpen] = useState(false);
 
   const [transferTx, setTransferTx]     = useState<RawTransaction | null>(null);
@@ -101,19 +108,23 @@ export function TransactionInbox({
   const [personalCatTx, setPersonalCatTx]     = useState<RawTransaction | null>(null);
   const [personalCatOpen, setPersonalCatOpen] = useState(false);
 
-  // Owner Contribution panel (Freelancer mode)
   const [ownerContribTx, setOwnerContribTx]     = useState<RawTransaction | null>(null);
   const [ownerContribOpen, setOwnerContribOpen] = useState(false);
 
+  // Phase 22: Similar transactions modal state
+  const [similarResult, setSimilarResult]   = useState<any | null>(null);
+  const [similarOpen, setSimilarOpen]       = useState(false);
+  const [lastClassifiedTxId, setLastClassifiedTxId] = useState<string | null>(null);
+
   // Business bulk
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkAccountId, setBulkAccountId] = useState('');
-  const [bulkTaxCodeId, setBulkTaxCodeId] = useState('');
+  const [selectedIds, setSelectedIds]               = useState<Set<string>>(new Set());
+  const [bulkAccountId, setBulkAccountId]           = useState('');
+  const [bulkTaxCodeId, setBulkTaxCodeId]           = useState('');
   const [bulkSourceAccountId, setBulkSourceAccountId] = useState('');
 
   // Personal bulk
   const [personalSelectedIds, setPersonalSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkCategoryId, setBulkCategoryId] = useState('');
+  const [bulkCategoryId, setBulkCategoryId]           = useState('');
 
   const isFreelancer = mode === 'freelancer';
   const isPersonal   = mode === 'personal';
@@ -171,7 +182,10 @@ export function TransactionInbox({
   function handlePage(page: number) { updateParams({ page: String(page) }); }
   function handleSourceAccount(val: string) { updateParams({ sourceAccountName: val }); }
   function handleMonth(val: string) { updateParams({ month: val }); }
-  function clearFilters() { updateParams({ sourceAccountName: undefined, month: undefined, search: undefined, status: undefined }); setSearchValue(''); }
+  function clearFilters() {
+    updateParams({ sourceAccountName: undefined, month: undefined, search: undefined, status: undefined });
+    setSearchValue('');
+  }
 
   const hasActiveFilters = !!(currentSourceAccount || currentMonth || currentSearch);
 
@@ -179,9 +193,8 @@ export function TransactionInbox({
     if (isPersonal || (isFreelancer && tx.is_personal)) { setPersonalCatTx(tx); setPersonalCatOpen(true); }
     else { setSelectedTx(tx); setPostMode(false); setPanelOpen(true); }
   }
-  function openPost(tx: RawTransaction) {
-    setSelectedTx(tx); setPostMode(true); setPanelOpen(true);
-  }
+  function openPost(tx: RawTransaction) { setSelectedTx(tx); setPostMode(true); setPanelOpen(true); }
+
   function handleUnclassify(tx: RawTransaction) {
     startTransition(async () => {
       const result = await unclassifyTransaction(tx.id);
@@ -195,10 +208,28 @@ export function TransactionInbox({
   }
 
   function handlePanelClose() { setPanelOpen(false); setSelectedTx(null); }
-  function handleSuccess() { setPanelOpen(false); setSelectedTx(null); startTransition(() => router.refresh()); }
+
+  // Phase 22: after manual classify, check for similar transactions
+  function handleSuccess() {
+    const justClassifiedId = selectedTx?.id ?? null;
+    setPanelOpen(false);
+    setSelectedTx(null);
+    startTransition(() => router.refresh());
+
+    // Only trigger similar prompt for manual classification (not post mode)
+    if (justClassifiedId && !postMode && !isPersonal) {
+      setLastClassifiedTxId(justClassifiedId);
+      findSimilarTransactions(justClassifiedId).then((res) => {
+        if (res.success && res.data && res.data.similar.length > 0) {
+          setSimilarResult(res.data);
+          setSimilarOpen(true);
+        }
+      });
+    }
+  }
+
   function handleTagToggle() { startTransition(() => router.refresh()); }
 
-  function openExplainer(tx: RawTransaction) { setExplainerTx(tx); setExplainerOpen(true); }
   function handleExplainerClose() { setExplainerOpen(false); setExplainerTx(null); }
 
   function openSplit(tx: RawTransaction) { setSplitTx(tx); setSplitOpen(true); }
@@ -523,7 +554,6 @@ export function TransactionInbox({
                                   onClick={() => openClassify(tx)}>Classify</Button>
                               </AdminOnly>
                             )}
-                            {/* Owner Contribution button â€” Freelancer mode, business-tagged, pending */}
                             {isFreelancer && !isPersonal && tx.status === 'pending' && !tx.is_personal && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
@@ -543,13 +573,13 @@ export function TransactionInbox({
                             )}
                             {!isPersonal && tx.status === 'posted' && <span className="text-xs text-gray-400">Posted</span>}
                             {tx.status === 'pending' && tx.is_personal && isFreelancer && (
-                          <AdminOnly>
-                            <Button size="sm" variant="outline"
-                              className="h-7 text-xs border-purple-400 text-purple-600 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
-                              onClick={() => openClassify(tx)}>
-                              Categorize
-                            </Button>
-                          </AdminOnly>
+                              <AdminOnly>
+                                <Button size="sm" variant="outline"
+                                  className="h-7 text-xs border-purple-400 text-purple-600 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                                  onClick={() => openClassify(tx)}>
+                                  Categorize
+                                </Button>
+                              </AdminOnly>
                             )}
                             {isActionable && (
                               <AdminOnly>
@@ -563,7 +593,7 @@ export function TransactionInbox({
                                 </button>
                               </AdminOnly>
                             )}
-                            <button onClick={() => openExplainer(tx)} title="Explain with AI"
+                            <button onClick={() => { setExplainerTx(tx); setExplainerOpen(true); }} title="Explain with AI"
                               className="p-1 rounded hover:bg-gray-100 transition-colors text-gray-400 hover:text-primary">
                               <Sparkles className="w-3.5 h-3.5" />
                             </button>
@@ -636,7 +666,6 @@ export function TransactionInbox({
                             onClick={() => openClassify(tx)}>Classify</Button>
                         </AdminOnly>
                       )}
-                      {/* Owner Contribution button â€” mobile, Freelancer mode */}
                       {isFreelancer && !isPersonal && tx.status === 'pending' && !tx.is_personal && (
                         <AdminOnly>
                           <Button size="sm" variant="outline"
@@ -664,7 +693,7 @@ export function TransactionInbox({
                           </button>
                         </AdminOnly>
                       )}
-                      <button onClick={() => openExplainer(tx)} title="Explain with AI"
+                      <button onClick={() => { setExplainerTx(tx); setExplainerOpen(true); }} title="Explain with AI"
                         className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded hover:bg-gray-100 text-gray-400 hover:text-primary ml-auto">
                         <Sparkles className="w-4 h-4" />
                       </button>
@@ -680,7 +709,7 @@ export function TransactionInbox({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white dark:bg-[#1a1814] dark:border-[#3a3730]">
-          <span className="text-sm text-gray-500">&Page {currentPage} of {totalPages} &middot; {totalCount} transactions</span>
+          <span className="text-sm text-gray-500">Page {currentPage} of {totalPages} &middot; {totalCount} transactions</span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={currentPage <= 1}
               onClick={() => handlePage(currentPage - 1)}>Previous</Button>
@@ -759,7 +788,7 @@ export function TransactionInbox({
         initialAccountId={postMode ? (selectedTx?.classified_account_id ?? '') : ''}
       />
 
-      {/* Owner Contribution panel â€” Freelancer mode */}
+      {/* Owner Contribution panel */}
       <ClassifyPanel
         transaction={ownerContribTx}
         accounts={accounts}
@@ -777,6 +806,20 @@ export function TransactionInbox({
         open={transferOpen} onClose={handleTransferClose} onSuccess={handleTransferSuccess} />
       <PersonalCategoryPanel transaction={personalCatTx} categories={budgetCategories}
         open={personalCatOpen} onClose={handlePersonalCatClose} onSuccess={handlePersonalCatSuccess} />
+
+      {/* Phase 22: Similar transactions modal */}
+      {similarOpen && similarResult && (
+        <SimilarTransactionsModal
+          similar={similarResult.similar}
+          keyword={similarResult.keyword}
+          suggested_account_id={similarResult.suggested_account_id}
+          suggested_account_name={similarResult.suggested_account_name}
+          suggested_account_code={similarResult.suggested_account_code}
+          suggested_source_account_id={similarResult.suggested_source_account_id}
+          onClose={() => { setSimilarOpen(false); setSimilarResult(null); }}
+          onApplied={() => { setSimilarOpen(false); setSimilarResult(null); startTransition(() => router.refresh()); }}
+        />
+      )}
     </div>
   );
 }

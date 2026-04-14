@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
@@ -285,6 +285,58 @@ export async function bulkPostTransactions(data: {
     revalidatePath('/dashboard');
     revalidatePath('/freelancer/dashboard');
     return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function findSimilarTransactions(rawTransactionId: string): Promise<{
+  success: boolean;
+  data?: {
+    similar: Array<{
+      id: string;
+      transaction_date: string;
+      description: string;
+      amount: number;
+      source_account_name: string;
+    }>;
+    suggested_account_id: string | null;
+    suggested_account_name: string | null;
+    suggested_account_code: string | null;
+    suggested_source_account_id: string | null;
+    keyword: string;
+  };
+  error?: string;
+}> {
+  try {
+    const result = await api('/classification/similar', {
+      method: 'POST',
+      body: JSON.stringify({ rawTransactionId }),
+    });
+    return { success: true, data: result as any };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function createClassificationRule(data: {
+  match_type: string;
+  match_value: string;
+  account_id: string;
+  priority?: number;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    await api('/classification/rules', {
+      method: 'POST',
+      body: JSON.stringify({
+        matchType: data.match_type,
+        matchValue: data.match_value,
+        accountId: data.account_id,
+        priority: data.priority ?? 10,
+      }),
+    });
+    revalidatePath('/transactions');
+    return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
