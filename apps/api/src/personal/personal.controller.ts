@@ -42,6 +42,15 @@ export class PersonalController {
     return this.personalService.deleteBudgetCategory(req.user!.businessId, id);
   }
 
+  @Roles('admin')
+  @Post('budget-categories/reorder')
+  reorderBudgetCategories(
+    @Req() req: Request,
+    @Body() body: { items: { id: string; sort_order: number }[] },
+  ) {
+    return this.personalService.reorderBudgetCategories(req.user!.businessId, body.items);
+  }
+
   // ── Savings Goals ─────────────────────────────────────────────────────
 
   @Get('savings-goals')

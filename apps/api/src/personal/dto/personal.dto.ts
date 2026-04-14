@@ -1,4 +1,4 @@
-import {
+﻿import {
   IsString,
   IsNumber,
   IsOptional,
@@ -41,6 +41,11 @@ export class UpdateBudgetCategoryDto {
   @IsOptional()
   @IsString()
   color?: string;
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  sort_order?: number;
 }
 export class CreateSavingsGoalDto {
   @IsString()

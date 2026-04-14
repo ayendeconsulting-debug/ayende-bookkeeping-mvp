@@ -204,6 +204,7 @@ export class PersonalService {
     if (dto.name !== undefined) cat.name = dto.name;
     if (dto.monthly_target !== undefined) cat.monthly_target = dto.monthly_target ?? null;
     if (dto.color !== undefined) cat.color = dto.color;
+    if (dto.sort_order !== undefined) cat.sort_order = dto.sort_order;
     return this.budgetCategoryRepo.save(cat);
   }
 
@@ -749,4 +750,12 @@ export class PersonalService {
     return { similar: similar.map((tx: any) => ({ ...tx, amount: Number(tx.amount) })), category_id: categoryId, category_name: categoryName, category_color: categoryColor, keyword };
   }
 
+  async reorderBudgetCategories(businessId: string, items: { id: string; sort_order: number }[]): Promise<void> {
+    for (const item of items) {
+      await this.budgetCategoryRepo.update(
+        { id: item.id, business_id: businessId },
+        { sort_order: item.sort_order },
+      );
+    }
+  }
 }
