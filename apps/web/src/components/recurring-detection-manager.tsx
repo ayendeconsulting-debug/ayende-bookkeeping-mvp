@@ -128,15 +128,15 @@ export function RecurringDetectionManager({
         </div>
       )}
 
-      {/* Detected candidates — awaiting confirmation */}
+      {/* Detected candidates – awaiting confirmation */}
       {candidates.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <RefreshCw className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-gray-800">
+            <h2 className="text-sm font-semibold text-gray-800 dark:text-[#f0ede8]">
               Detected Patterns ({candidates.length})
             </h2>
-            <span className="text-xs text-gray-400">— confirm or dismiss each one</span>
+            <span className="text-xs text-gray-400">– confirm to create a recurring template, or dismiss to hide</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {candidates.map((candidate) => (
@@ -144,11 +144,14 @@ export function RecurringDetectionManager({
                 <CardContent className="pt-4 pb-3">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">
+                      <p className="text-[10px] font-medium text-gray-400 dark:text-[#a09888] uppercase tracking-wider mb-0.5">
+                        Vendor
+                      </p>
+                      <p className="text-base font-bold text-gray-900 dark:text-[#f0ede8] truncate">
                         {candidate.merchant}
                       </p>
                       <p className="text-xs text-gray-400 mt-0.5">
-                        {candidate.occurrence_count} transactions detected
+                        {candidate.occurrence_count} occurrences detected
                       </p>
                     </div>
                     <span
@@ -162,7 +165,7 @@ export function RecurringDetectionManager({
                   </div>
 
                   <div className="flex items-center gap-3 mb-3">
-                    <span className="text-lg font-bold text-gray-900">
+                    <span className="text-lg font-bold text-gray-900 dark:text-[#f0ede8]">
                       {formatCurrency(candidate.amount)}
                     </span>
                     <Badge variant="pending" className="text-[10px]">
@@ -221,7 +224,7 @@ export function RecurringDetectionManager({
       {/* Confirmed recurring payments list */}
       {confirmed.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-800 mb-3">
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-[#f0ede8] mb-3">
             Confirmed Recurring Payments ({confirmed.length})
           </h2>
           <Card>
@@ -251,7 +254,7 @@ export function RecurringDetectionManager({
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-gray-900 dark:text-[#f0ede8] truncate">
                             {item.merchant}
                           </p>
                           {item.is_due_soon && (
@@ -267,7 +270,7 @@ export function RecurringDetectionManager({
                       </div>
 
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-[#f0ede8]">
                           {formatCurrency(item.amount)}
                         </p>
                         <p className="text-xs text-gray-400">
