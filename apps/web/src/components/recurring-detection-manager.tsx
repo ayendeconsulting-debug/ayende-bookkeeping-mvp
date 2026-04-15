@@ -3,12 +3,12 @@
 import { useState, useTransition } from 'react';
 import { RecurringDetectionCandidate, ConfirmedRecurring } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { confirmDetection, dismissDetection } from '@/app/(app)/personal/recurring/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
-import { Check, X, RefreshCw, Calendar, AlertCircle } from 'lucide-react';
+import { Check, X, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface RecurringDetectionManagerProps {
   initialCandidates: RecurringDetectionCandidate[];
@@ -46,7 +46,7 @@ export function RecurringDetectionManager({
   initialConfirmed,
 }: RecurringDetectionManagerProps) {
   const [candidates, setCandidates] = useState(initialCandidates);
-  const [confirmed, setConfirmed] = useState(initialConfirmed);
+  const [confirmed, setConfirmed]   = useState(initialConfirmed);
   const [isPending, startTransition] = useTransition();
 
   function handleConfirm(candidate: RecurringDetectionCandidate) {
@@ -102,25 +102,25 @@ export function RecurringDetectionManager({
         <div className="grid grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-5">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Monthly Cost</div>
-              <div className="text-2xl font-semibold text-gray-900">{formatCurrency(totalMonthly)}</div>
-              <div className="text-xs text-gray-400 mt-1">{confirmed.length} confirmed payments</div>
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Monthly Cost</div>
+              <div className="text-2xl font-semibold text-foreground">{formatCurrency(totalMonthly)}</div>
+              <div className="text-xs text-muted-foreground mt-1">{confirmed.length} confirmed payments</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-5">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Annual Cost</div>
-              <div className="text-2xl font-semibold text-gray-900">{formatCurrency(totalMonthly * 12)}</div>
-              <div className="text-xs text-gray-400 mt-1">projected yearly total</div>
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Annual Cost</div>
+              <div className="text-2xl font-semibold text-foreground">{formatCurrency(totalMonthly * 12)}</div>
+              <div className="text-xs text-muted-foreground mt-1">projected yearly total</div>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-5">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Due This Week</div>
-              <div className={cn('text-2xl font-semibold', dueSoon.length > 0 ? 'text-amber-600' : 'text-gray-900')}>
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Due This Week</div>
+              <div className={cn('text-2xl font-semibold', dueSoon.length > 0 ? 'text-amber-600' : 'text-foreground')}>
                 {dueSoon.length}
               </div>
-              <div className="text-xs text-gray-400 mt-1">
+              <div className="text-xs text-muted-foreground mt-1">
                 {dueSoon.length > 0 ? dueSoon.map((d) => d.merchant).join(', ') : 'None due soon'}
               </div>
             </CardContent>
@@ -128,92 +128,93 @@ export function RecurringDetectionManager({
         </div>
       )}
 
-      {/* Detected candidates – awaiting confirmation */}
+      {/* Detected candidates – single-column detail list */}
       {candidates.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <RefreshCw className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-gray-800 dark:text-[#f0ede8]">
+            <h2 className="text-sm font-semibold text-foreground">
               Detected Patterns ({candidates.length})
             </h2>
-            <span className="text-xs text-gray-400">– confirm to create a recurring template, or dismiss to hide</span>
+            <span className="text-xs text-muted-foreground">– confirm to create a recurring template, or dismiss to hide</span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {candidates.map((candidate) => (
-              <Card key={candidate.key} className="border-primary/20">
-                <CardContent className="pt-4 pb-3">
-                  <div className="flex items-start justify-between mb-2">
+
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
+                {candidates.map((candidate) => (
+                  <div key={candidate.key} className="flex items-center gap-3 px-4 py-3.5">
+
+                    {/* Vendor + meta */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-medium text-gray-400 dark:text-[#a09888] uppercase tracking-wider mb-0.5">
-                        Vendor
-                      </p>
-                      <p className="text-base font-bold text-gray-900 dark:text-[#f0ede8] truncate">
-                        {candidate.merchant}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {candidate.occurrence_count} occurrences detected
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-foreground truncate">
+                          {candidate.merchant}
+                        </p>
+                        <Badge variant="pending" className="text-[10px] flex-shrink-0">
+                          {FREQUENCY_LABELS[candidate.frequency]}
+                        </Badge>
+                        <span
+                          className={cn(
+                            'text-[10px] font-medium px-1.5 py-0.5 rounded border flex-shrink-0',
+                            TYPE_COLORS[candidate.type] ?? TYPE_COLORS.recurring,
+                          )}
+                        >
+                          {candidate.type}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {candidate.occurrence_count} occurrences · Next:{' '}
+                        {new Date(candidate.next_date).toLocaleDateString('en-CA', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                        })}
                       </p>
                     </div>
-                    <span
-                      className={cn(
-                        'text-[10px] font-medium px-1.5 py-0.5 rounded border ml-2 flex-shrink-0',
-                        TYPE_COLORS[candidate.type] ?? TYPE_COLORS.recurring,
-                      )}
-                    >
-                      {candidate.type}
-                    </span>
-                  </div>
 
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-lg font-bold text-gray-900 dark:text-[#f0ede8]">
-                      {formatCurrency(candidate.amount)}
-                    </span>
-                    <Badge variant="pending" className="text-[10px]">
-                      {FREQUENCY_LABELS[candidate.frequency]}
-                    </Badge>
-                  </div>
+                    {/* Amount */}
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-bold text-foreground">
+                        {formatCurrency(candidate.amount)}
+                      </p>
+                    </div>
 
-                  <div className="text-xs text-gray-400 mb-3">
-                    Next estimated:{' '}
-                    {new Date(candidate.next_date).toLocaleDateString('en-CA', {
-                      month: 'short', day: 'numeric', year: 'numeric',
-                    })}
-                  </div>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Button
+                        size="sm"
+                        onClick={() => handleConfirm(candidate)}
+                        disabled={isPending}
+                        className="h-7 px-3 text-xs bg-primary text-white hover:bg-primary/90"
+                      >
+                        <Check className="w-3 h-3 mr-1" />
+                        Confirm
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDismiss(candidate.key, candidate.merchant)}
+                        disabled={isPending}
+                        className="h-7 px-3 text-xs text-muted-foreground"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Dismiss
+                      </Button>
+                    </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => handleConfirm(candidate)}
-                      disabled={isPending}
-                      className="flex-1 h-7 text-xs bg-primary text-white hover:bg-primary/90"
-                    >
-                      <Check className="w-3 h-3 mr-1" />
-                      Confirm
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDismiss(candidate.key, candidate.merchant)}
-                      disabled={isPending}
-                      className="h-7 text-xs text-gray-500"
-                    >
-                      <X className="w-3 h-3 mr-1" />
-                      Dismiss
-                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {candidates.length === 0 && confirmed.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
-            <RefreshCw className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-700 mb-1">No recurring patterns detected</p>
-            <p className="text-sm text-gray-400">
+            <RefreshCw className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
+            <p className="text-sm font-medium text-foreground mb-1">No recurring patterns detected</p>
+            <p className="text-sm text-muted-foreground">
               Connect a bank and import at least 3 months of transactions to detect subscriptions
               and recurring bills.
             </p>
@@ -224,14 +225,14 @@ export function RecurringDetectionManager({
       {/* Confirmed recurring payments list */}
       {confirmed.length > 0 && (
         <div>
-          <h2 className="text-sm font-semibold text-gray-800 dark:text-[#f0ede8] mb-3">
+          <h2 className="text-sm font-semibold text-foreground mb-3">
             Confirmed Recurring Payments ({confirmed.length})
           </h2>
           <Card>
             <CardContent className="p-0">
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-border">
                 {confirmed.map((item) => {
-                  const nextDate = new Date(item.next_date);
+                  const nextDate      = new Date(item.next_date);
                   const formattedNext = nextDate.toLocaleDateString('en-CA', {
                     month: 'short', day: 'numeric',
                   });
@@ -240,7 +241,7 @@ export function RecurringDetectionManager({
                       key={item.key}
                       className={cn(
                         'flex items-center gap-4 px-4 py-3 group',
-                        item.is_due_soon ? 'bg-amber-50' : '',
+                        item.is_due_soon ? 'bg-amber-50 dark:bg-amber-950/20' : '',
                       )}
                     >
                       <div
@@ -254,7 +255,7 @@ export function RecurringDetectionManager({
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-gray-900 dark:text-[#f0ede8] truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {item.merchant}
                           </p>
                           {item.is_due_soon && (
@@ -264,16 +265,16 @@ export function RecurringDetectionManager({
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           {FREQUENCY_LABELS[item.frequency]} · Next: {formattedNext}
                         </p>
                       </div>
 
                       <div className="text-right flex-shrink-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-[#f0ede8]">
+                        <p className="text-sm font-semibold text-foreground">
                           {formatCurrency(item.amount)}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-muted-foreground">
                           ≈ {formatCurrency(calcMonthlyEquivalent(item.amount, item.frequency))}/mo
                         </p>
                       </div>
@@ -281,7 +282,7 @@ export function RecurringDetectionManager({
                       <button
                         onClick={() => handleRemoveConfirmed(item.key)}
                         disabled={isPending}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-gray-300 hover:text-red-400"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground/40 hover:text-red-400"
                         title="Remove"
                       >
                         <X className="w-4 h-4" />
