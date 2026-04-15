@@ -346,8 +346,8 @@ export function RecurringManager({
         description: candidate.description,
         amount: candidate.averageAmount,
         frequency: candidate.frequency,
-        debitAccountId: debitAccountId || candidate.key, // fallback for personal (not used)
-        creditAccountId: creditAccountId || candidate.key,
+        debitAccountId: isPersonal ? '' : debitAccountId,
+        creditAccountId: isPersonal ? '' : creditAccountId,
         isPersonal,
         businessRatio,
       });

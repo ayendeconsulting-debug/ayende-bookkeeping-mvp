@@ -48,11 +48,12 @@ export class RecurringTransaction {
   @Column({ type: 'varchar', length: 3, default: 'CAD' })
   currency_code: string;
 
-  @Column({ type: 'uuid' })
-  debit_account_id: string;
+  // Nullable to support personal-only recurring items (no journal entry posted)
+  @Column({ type: 'uuid', nullable: true })
+  debit_account_id: string | null;
 
-  @Column({ type: 'uuid' })
-  credit_account_id: string;
+  @Column({ type: 'uuid', nullable: true })
+  credit_account_id: string | null;
 
   @Column({
     type: 'enum',
@@ -92,10 +93,9 @@ export class RecurringTransaction {
 
   /**
    * Freelancer mode: ratio of the amount that is business expense (0.0–1.0).
-   * 1.0 = 100% business (default, existing behaviour)
-   * 0.0 = 100% personal (same effect as is_personal = true)
-   * 0.0 < ratio < 1.0 = split — business portion debits debit_account_id,
-   *   personal portion debits Owner Draw, full amount credits credit_account_id.
+   * 1.0 = 100% business (default)
+   * 0.0 = 100% personal (no journal entry)
+   * 0 < ratio < 1 = split
    */
   @Column({ type: 'decimal', precision: 5, scale: 4, default: 1.0 })
   business_ratio: number;
@@ -117,11 +117,11 @@ export class RecurringTransaction {
   @JoinColumn({ name: 'business_id' })
   business: Business;
 
-  @ManyToOne(() => Account, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Account, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'debit_account_id' })
-  debitAccount: Account;
+  debitAccount: Account | null;
 
-  @ManyToOne(() => Account, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Account, { onDelete: 'RESTRICT', nullable: true })
   @JoinColumn({ name: 'credit_account_id' })
-  creditAccount: Account;
+  creditAccount: Account | null;
 }
