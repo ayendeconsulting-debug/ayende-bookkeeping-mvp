@@ -127,7 +127,7 @@ export class AdminService {
         source_account_name: SYNTHETIC_SOURCE,
         hash_signature: hash,
         status: RawTransactionStatus.PENDING,
-        source: 'manual' as RawTransactionSource,
+        source: RawTransactionSource.CSV,
       });
 
       await this.rawTxRepo.save(raw);
