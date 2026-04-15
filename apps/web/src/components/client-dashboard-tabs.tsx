@@ -35,13 +35,12 @@ function ActionBadge({ action }: { action: string }) {
     bulk_post:     'bg-teal-50 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400',
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg[action] ?? 'bg-gray-100 text-gray-600 dark:bg-[#2a2720] dark:text-[#a09888]'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg[action] ?? 'bg-muted text-muted-foreground'}`}>
       {action.replace(/_/g, ' ')}
     </span>
   );
 }
 
-// Quick action rows for the overview tab
 function QuickActions({ businessId }: { businessId: string }) {
   const actions = [
     {
@@ -49,8 +48,8 @@ function QuickActions({ businessId }: { businessId: string }) {
       desc: 'View, classify, and post transactions',
       icon: ArrowLeftRight,
       href: '/transactions',
-      color: 'text-[#0F6E56] dark:text-[#4abe94]',
-      bg: 'bg-[#EDF7F2] dark:bg-[#0F6E56]/20',
+      color: 'text-primary',
+      bg: 'bg-primary-light dark:bg-primary/20',
     },
     {
       label: 'Income Statement',
@@ -80,7 +79,7 @@ function QuickActions({ businessId }: { businessId: string }) {
 
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-[#888070] dark:text-[#7a7268] mb-3">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
         Quick Actions
       </h3>
       {actions.map((action) => {
@@ -89,16 +88,16 @@ function QuickActions({ businessId }: { businessId: string }) {
           <Link
             key={action.label}
             href={action.href}
-            className="flex items-center gap-3 p-3 rounded-lg border border-[#e5e1d8] dark:border-[#3a3730] bg-white dark:bg-[#242220] hover:bg-[#faf9f7] dark:hover:bg-[#2e2c28] transition-colors group"
+            className="flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted transition-colors group"
           >
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${action.bg}`}>
               <Icon className={`w-4 h-4 ${action.color}`} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#1a1814] dark:text-[#f0ede8]">{action.label}</p>
-              <p className="text-xs text-[#888070] dark:text-[#7a7268] truncate">{action.desc}</p>
+              <p className="text-sm font-medium text-foreground">{action.label}</p>
+              <p className="text-xs text-muted-foreground truncate">{action.desc}</p>
             </div>
-            <ChevronRight className="w-4 h-4 text-[#c8c0b0] dark:text-[#605850] group-hover:text-[#4A4438] dark:group-hover:text-[#c8c0b0] transition-colors flex-shrink-0" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0" />
           </Link>
         );
       })}
@@ -106,7 +105,6 @@ function QuickActions({ businessId }: { businessId: string }) {
   );
 }
 
-// Reports tab content
 function ReportsTab() {
   const reports = [
     { label: 'Income Statement',  icon: TrendingUp,    href: '/reports/income-statement', desc: 'P&L for any date range' },
@@ -117,7 +115,7 @@ function ReportsTab() {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-[#888070] dark:text-[#7a7268]">
+      <p className="text-sm text-muted-foreground">
         All reports are generated from posted journal entries only.
       </p>
       <div className="grid gap-2">
@@ -127,16 +125,16 @@ function ReportsTab() {
             <Link
               key={r.label}
               href={r.href}
-              className="flex items-center gap-3 p-4 rounded-xl border border-[#e5e1d8] dark:border-[#3a3730] bg-white dark:bg-[#242220] hover:bg-[#faf9f7] dark:hover:bg-[#2e2c28] hover:border-[#0F6E56]/40 transition-all group"
+              className="flex items-center gap-3 p-4 rounded-xl border border-border bg-card hover:bg-muted hover:border-primary/40 transition-all group"
             >
-              <div className="w-9 h-9 rounded-lg bg-[#EDF7F2] dark:bg-[#0F6E56]/20 flex items-center justify-center flex-shrink-0">
-                <Icon className="w-4 h-4 text-[#0F6E56] dark:text-[#4abe94]" />
+              <div className="w-9 h-9 rounded-lg bg-primary-light dark:bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-4 h-4 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[#1a1814] dark:text-[#f0ede8]">{r.label}</p>
-                <p className="text-xs text-[#888070] dark:text-[#7a7268]">{r.desc}</p>
+                <p className="text-sm font-semibold text-foreground">{r.label}</p>
+                <p className="text-xs text-muted-foreground">{r.desc}</p>
               </div>
-              <ExternalLink className="w-3.5 h-3.5 text-[#c8c0b0] dark:text-[#605850] group-hover:text-[#0F6E56] dark:group-hover:text-[#4abe94] transition-colors flex-shrink-0" />
+              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
             </Link>
           );
         })}
@@ -145,7 +143,6 @@ function ReportsTab() {
   );
 }
 
-// HST tab content
 function HstTab({ overview, currency }: { overview: ClientOverview; currency: string }) {
   const fmt = (n: number) =>
     new Intl.NumberFormat('en-CA', { style: 'currency', currency, minimumFractionDigits: 2 }).format(n);
@@ -156,18 +153,18 @@ function HstTab({ overview, currency }: { overview: ClientOverview; currency: st
         'rounded-xl border p-5',
         overview.outstandingHst > 0
           ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30'
-          : 'border-[#e5e1d8] dark:border-[#3a3730] bg-white dark:bg-[#242220]',
+          : 'border-border bg-card',
       )}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-[#888070] dark:text-[#7a7268] mb-1">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-1">
               Outstanding HST / GST Balance
             </p>
             <p className={cn(
               'text-3xl font-bold tabular-nums',
               overview.outstandingHst > 0
                 ? 'text-amber-700 dark:text-amber-400'
-                : 'text-[#1a1814] dark:text-[#f0ede8]',
+                : 'text-foreground',
             )}>
               {fmt(overview.outstandingHst)}
             </p>
@@ -176,51 +173,49 @@ function HstTab({ overview, currency }: { overview: ClientOverview; currency: st
             'w-12 h-12 rounded-xl flex items-center justify-center',
             overview.outstandingHst > 0
               ? 'bg-amber-100 dark:bg-amber-900/40'
-              : 'bg-[#EDF7F2] dark:bg-[#0F6E56]/20',
+              : 'bg-primary-light dark:bg-primary/20',
           )}>
             <Receipt className={cn(
               'w-6 h-6',
               overview.outstandingHst > 0
                 ? 'text-amber-600 dark:text-amber-400'
-                : 'text-[#0F6E56] dark:text-[#4abe94]',
+                : 'text-primary',
             )} />
           </div>
         </div>
         {overview.outstandingHst > 0 && (
           <p className="text-xs text-amber-700 dark:text-amber-400 mt-2 flex items-center gap-1">
             <AlertTriangle className="w-3.5 h-3.5" />
-            Tax payable balance &mdash; review HST periods before remittance
+            Tax payable balance — review HST periods before remittance
           </p>
         )}
       </div>
 
       <Link
         href="/reports/hst"
-        className="flex items-center justify-between p-4 rounded-xl border border-[#e5e1d8] dark:border-[#3a3730] bg-white dark:bg-[#242220] hover:bg-[#faf9f7] dark:hover:bg-[#2e2c28] transition-colors group"
+        className="flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-muted transition-colors group"
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 flex items-center justify-center">
             <Receipt className="w-4 h-4 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <p className="text-sm font-medium text-[#1a1814] dark:text-[#f0ede8]">Open Full HST Report</p>
-            <p className="text-xs text-[#888070] dark:text-[#7a7268]">Periods, ITCs, and remittance summary</p>
+            <p className="text-sm font-medium text-foreground">Open Full HST Report</p>
+            <p className="text-xs text-muted-foreground">Periods, ITCs, and remittance summary</p>
           </div>
         </div>
-        <ExternalLink className="w-4 h-4 text-[#c8c0b0] group-hover:text-[#0F6E56] dark:group-hover:text-[#4abe94] transition-colors" />
+        <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
       </Link>
     </div>
   );
 }
 
-// Audit log tab — real data
 function AuditTab({ businessId }: { businessId: string }) {
   const [logs, setLogs] = useState<any[] | null>(null);
   const [total, setTotal] = useState(0);
   const [isPending, startTransition] = useTransition();
   const [loaded, setLoaded] = useState(false);
 
-  // Load on first render of this tab
   if (!loaded && !isPending) {
     setLoaded(true);
     startTransition(async () => {
@@ -233,7 +228,7 @@ function AuditTab({ businessId }: { businessId: string }) {
   if (isPending || logs === null) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin text-[#0F6E56]" />
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
       </div>
     );
   }
@@ -241,11 +236,11 @@ function AuditTab({ businessId }: { businessId: string }) {
   if (logs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
-        <div className="w-12 h-12 rounded-xl bg-[#f0ede8] dark:bg-[#2e2c28] flex items-center justify-center mb-4">
-          <Clock className="w-6 h-6 text-[#888070] dark:text-[#7a7268]" />
+        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-4">
+          <Clock className="w-6 h-6 text-muted-foreground" />
         </div>
-        <h3 className="text-base font-semibold text-[#1a1814] dark:text-[#f0ede8] mb-1">No activity yet</h3>
-        <p className="text-sm text-[#888070] dark:text-[#7a7268] max-w-xs">
+        <h3 className="text-base font-semibold text-foreground mb-1">No activity yet</h3>
+        <p className="text-sm text-muted-foreground max-w-xs">
           Classify or post transactions to start building an audit trail for this client.
         </p>
       </div>
@@ -254,23 +249,23 @@ function AuditTab({ businessId }: { businessId: string }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-[#888070] dark:text-[#7a7268]">
+      <p className="text-xs text-muted-foreground">
         {total} action{total !== 1 ? 's' : ''} recorded for this client.
       </p>
-      <div className="rounded-xl border border-[#e5e1d8] dark:border-[#3a3730] overflow-hidden bg-white dark:bg-[#242220]">
+      <div className="rounded-xl border border-border overflow-hidden bg-card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[#e5e1d8] dark:border-[#3a3730]">
-              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[#888070] dark:text-[#7a7268]">Time</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[#888070] dark:text-[#7a7268]">Action</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[#888070] dark:text-[#7a7268]">Entity</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-[#888070] dark:text-[#7a7268]">User</th>
+            <tr className="border-b border-border">
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Time</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Entity</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">User</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#f0ede8] dark:divide-[#2a2720]">
+          <tbody className="divide-y divide-border">
             {logs.map((log: any) => (
-              <tr key={log.id} className="hover:bg-[#faf9f7] dark:hover:bg-[#2e2c28] transition-colors">
-                <td className="px-4 py-3 text-xs text-[#888070] dark:text-[#7a7268] whitespace-nowrap">
+              <tr key={log.id} className="hover:bg-muted transition-colors">
+                <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                   {new Date(log.created_at).toLocaleString('en-CA', {
                     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                   })}
@@ -279,12 +274,12 @@ function AuditTab({ businessId }: { businessId: string }) {
                   <ActionBadge action={log.action} />
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-[#1a1814] dark:text-[#c8c0b0]">{log.entity_type}</span>
-                  <span className="ml-2 font-mono text-xs text-[#888070] dark:text-[#7a7268]">
+                  <span className="text-foreground">{log.entity_type}</span>
+                  <span className="ml-2 font-mono text-xs text-muted-foreground">
                     {String(log.entity_id).slice(0, 8)}&hellip;
                   </span>
                 </td>
-                <td className="px-4 py-3 font-mono text-xs text-[#888070] dark:text-[#7a7268]">
+                <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
                   {String(log.user_id).slice(0, 16)}&hellip;
                 </td>
               </tr>
@@ -303,7 +298,7 @@ export function ClientDashboardTabs({ overview, client }: ClientDashboardTabsPro
   return (
     <div className="space-y-5">
       {/* Tab bar */}
-      <div className="flex gap-0.5 bg-[#f0ede8] dark:bg-[#2e2c28] rounded-lg p-1 w-fit">
+      <div className="flex gap-0.5 bg-muted rounded-lg p-1 w-fit">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -311,8 +306,8 @@ export function ClientDashboardTabs({ overview, client }: ClientDashboardTabsPro
             className={cn(
               'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
               activeTab === tab.id
-                ? 'bg-white dark:bg-[#242220] text-[#1a1814] dark:text-[#f0ede8] shadow-sm'
-                : 'text-[#888070] dark:text-[#7a7268] hover:text-[#4A4438] dark:hover:text-[#c8c0b0]',
+                ? 'bg-card text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
             )}
           >
             {tab.label}
@@ -320,7 +315,6 @@ export function ClientDashboardTabs({ overview, client }: ClientDashboardTabsPro
         ))}
       </div>
 
-      {/* Tab content */}
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="lg:col-span-2">
@@ -333,14 +327,8 @@ export function ClientDashboardTabs({ overview, client }: ClientDashboardTabsPro
       )}
 
       {activeTab === 'reports' && <ReportsTab />}
-
-      {activeTab === 'hst' && (
-        <HstTab overview={overview} currency={currency} />
-      )}
-
-      {activeTab === 'audit' && (
-        <AuditTab businessId={overview.businessId} />
-      )}
+      {activeTab === 'hst' && <HstTab overview={overview} currency={currency} />}
+      {activeTab === 'audit' && <AuditTab businessId={overview.businessId} />}
     </div>
   );
 }
