@@ -279,6 +279,12 @@ export function RecurringManager({
       return;
     }
 
+    if (!editingItem && result.data) {
+      setRecurring((prev) => [result.data as RecurringTransaction, ...prev]);
+    } else if (editingItem && result.data) {
+      setRecurring((prev) => prev.map((r) => r.id === editingItem.id ? result.data as RecurringTransaction : r));
+    }
+
     toastSuccess(editingItem ? 'Recurring updated' : 'Recurring created', form.description);
     setDialogOpen(false);
     router.refresh();
@@ -354,6 +360,9 @@ export function RecurringManager({
 
       if (result.success) {
         setDetections((prev) => prev.filter((d) => d.key !== candidate.key));
+        if (result.data) {
+          setRecurring((prev) => [result.data as RecurringTransaction, ...prev]);
+        }
         setConfirmDialog({ open: false, candidate: null, debitAccountId: '', creditAccountId: '', usageType: 'business', businessPct: 100 });
         toastSuccess(`"${candidate.description}" added to recurring transactions.`);
         router.refresh();

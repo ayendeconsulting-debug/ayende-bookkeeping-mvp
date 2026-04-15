@@ -14,11 +14,11 @@ export async function createRecurring(data: {
   is_personal?: boolean;
   business_ratio?: number;
   notes?: string;
-}): Promise<{ success: boolean; error?: string }> {
+}): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    await api('/recurring', { method: 'POST', body: JSON.stringify(data) });
+    const result = await api('/recurring', { method: 'POST', body: JSON.stringify(data) });
     revalidatePath('/recurring');
-    return { success: true };
+    return { success: true, data: result };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -34,11 +34,11 @@ export async function updateRecurring(
     business_ratio?: number;
     notes?: string;
   },
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    await api(`/recurring/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    const result = await api(`/recurring/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
     revalidatePath('/recurring');
-    return { success: true };
+    return { success: true, data: result };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
@@ -85,14 +85,14 @@ export async function confirmBusinessDetection(data: {
   creditAccountId: string;
   isPersonal?: boolean;
   businessRatio?: number;
-}): Promise<{ success: boolean; error?: string }> {
+}): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    await api('/recurring/detections/confirm', {
+    const result = await api('/recurring/detections/confirm', {
       method: 'POST',
       body: JSON.stringify(data),
     });
     revalidatePath('/recurring');
-    return { success: true };
+    return { success: true, data: result };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
