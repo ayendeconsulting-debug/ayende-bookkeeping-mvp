@@ -31,33 +31,23 @@ interface RuleFormData {
   tax_code_id: string;
 }
 
-const EMPTY_FORM: RuleFormData = {
-  match_type: 'keyword',
-  match_value: '',
-  target_account_id: '',
-  priority: '10',
-  tax_code_id: '',
-};
-
+const EMPTY_FORM: RuleFormData = { match_type: 'keyword', match_value: '', target_account_id: '', priority: '10', tax_code_id: '' };
 const MATCH_TYPE_LABELS: Record<string, string> = { keyword: 'Keyword', vendor: 'Vendor', account: 'Account' };
 
 function SourceBadge({ source }: { source?: string }) {
   if (source === 'user_learned') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
-        <Wand2 className="w-3 h-3" />
-        Learned
+        <Wand2 className="w-3 h-3" />Learned
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200 dark:bg-[#2a2720] dark:text-[#a09888] dark:border-[#3a3730]">
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
       Manual
     </span>
   );
 }
-
-const selectCls = "text-sm border border-gray-200 rounded-lg px-3 py-2 w-full outline-none bg-white text-gray-900 focus:border-[#0F6E56] disabled:bg-gray-50 dark:bg-[#222019] dark:border-[#3a3730] dark:text-[#f0ede8] dark:focus:border-[#0F6E56] dark:disabled:bg-[#1a1714]";
 
 export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerProps) {
   const router = useRouter();
@@ -70,24 +60,15 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function openCreate() {
-    setEditingRule(null);
-    setForm({ ...EMPTY_FORM, priority: String((rules.length + 1) * 10) });
-    setError(null);
-    setDialogOpen(true);
-  }
+  const selectCls = 'text-sm border border-input rounded-lg px-3 py-2 w-full outline-none bg-card text-foreground focus:border-primary disabled:bg-muted disabled:opacity-60';
 
+  function openCreate() {
+    setEditingRule(null); setForm({ ...EMPTY_FORM, priority: String((rules.length + 1) * 10) }); setError(null); setDialogOpen(true);
+  }
   function openEdit(rule: ClassificationRule) {
     setEditingRule(rule);
-    setForm({
-      match_type: rule.match_type,
-      match_value: rule.match_value,
-      target_account_id: rule.target_account_id,
-      priority: String(rule.priority),
-      tax_code_id: rule.tax_code_id ?? '',
-    });
-    setError(null);
-    setDialogOpen(true);
+    setForm({ match_type: rule.match_type, match_value: rule.match_value, target_account_id: rule.target_account_id, priority: String(rule.priority), tax_code_id: rule.tax_code_id ?? '' });
+    setError(null); setDialogOpen(true);
   }
 
   async function handleSave() {
@@ -97,7 +78,6 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
 
     setSaving(true); setError(null);
     const taxCodeId = form.tax_code_id || undefined;
-
     const result = editingRule
       ? await updateRule(editingRule.id, { match_value: form.match_value, target_account_id: form.target_account_id, priority, tax_code_id: taxCodeId })
       : await createRule({ match_type: form.match_type, match_value: form.match_value, target_account_id: form.target_account_id, priority, tax_code_id: taxCodeId });
@@ -105,28 +85,20 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
 
     if (!result.success) {
       const msg = result.error ?? 'Operation failed.';
-      setError(msg);
-      toastError(editingRule ? 'Failed to update rule' : 'Failed to create rule', msg);
-      return;
+      setError(msg); toastError(editingRule ? 'Failed to update rule' : 'Failed to create rule', msg); return;
     }
-
     toastSuccess(editingRule ? 'Rule updated' : 'Rule created', `Match: ${form.match_value}`);
-    setDialogOpen(false);
-    router.refresh();
+    setDialogOpen(false); router.refresh();
   }
 
   async function handleDelete(rule: ClassificationRule) {
     const result = await deleteRule(rule.id);
-    if (result.success) {
-      setRules((prev) => prev.filter((r) => r.id !== rule.id));
-      toastSuccess('Rule deleted', rule.match_value);
-    } else {
-      toastError('Failed to delete rule', result.error ?? 'Please try again.');
-    }
+    if (result.success) { setRules((prev) => prev.filter((r) => r.id !== rule.id)); toastSuccess('Rule deleted', rule.match_value); }
+    else toastError('Failed to delete rule', result.error ?? 'Please try again.');
   }
 
-  const accountMap = Object.fromEntries(accounts.map((a) => [a.id, a]));
-  const taxCodeMap = Object.fromEntries(taxCodes.map((t) => [t.id, t]));
+  const accountMap  = Object.fromEntries(accounts.map((a) => [a.id, a]));
+  const taxCodeMap  = Object.fromEntries(taxCodes.map((t) => [t.id, t]));
   const learnedCount = rules.filter((r) => r.source === 'user_learned').length;
   const manualCount  = rules.filter((r) => r.source !== 'user_learned').length;
 
@@ -134,11 +106,11 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Classification Rules</h1>
-          <p className="text-sm text-gray-500 dark:text-[#a09888] mt-0.5">
+          <h1 className="text-xl font-semibold text-foreground">Classification Rules</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Auto-classify transactions by keyword, vendor, or account match
             {rules.length > 0 && (
-              <span className="ml-2 text-gray-400 dark:text-[#7a7060]">
+              <span className="ml-2 text-muted-foreground/60">
                 · {manualCount} manual{learnedCount > 0 ? `, ${learnedCount} learned` : ''}
               </span>
             )}
@@ -153,7 +125,7 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
 
       <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400">
         Rules are applied in priority order (lowest number first). The first matching rule wins.
-        <span className="ml-2 text-blue-500 dark:text-blue-400">
+        <span className="ml-2">
           <Wand2 className="inline w-3.5 h-3.5 mr-0.5" />
           Learned rules are created automatically when you classify a transaction and confirm the suggestion.
         </span>
@@ -163,8 +135,8 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
         <CardContent className="p-0">
           {rules.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Filter className="w-8 h-8 text-gray-300 dark:text-[#3a3730] mb-3" />
-              <p className="text-sm text-gray-400 dark:text-[#7a7060]">No rules yet. Add rules to auto-classify transactions.</p>
+              <Filter className="w-8 h-8 text-muted-foreground/20 mb-3" />
+              <p className="text-sm text-muted-foreground">No rules yet. Add rules to auto-classify transactions.</p>
             </div>
           ) : (
             <Table>
@@ -185,33 +157,29 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
                   const taxCode = rule.tax_code_id ? taxCodeMap[rule.tax_code_id] : null;
                   return (
                     <TableRow key={rule.id} className={cn(rule.source === 'user_learned' && 'bg-amber-50/30 dark:bg-amber-900/10')}>
-                      <TableCell className="font-mono text-sm text-gray-500 dark:text-[#a09888]">{rule.priority}</TableCell>
+                      <TableCell className="font-mono text-sm text-muted-foreground">{rule.priority}</TableCell>
                       <TableCell><SourceBadge source={rule.source} /></TableCell>
-                      <TableCell>
-                        <Badge variant="pending">{MATCH_TYPE_LABELS[rule.match_type] ?? rule.match_type}</Badge>
-                      </TableCell>
+                      <TableCell><Badge variant="pending">{MATCH_TYPE_LABELS[rule.match_type] ?? rule.match_type}</Badge></TableCell>
                       <TableCell className="font-medium">{rule.match_value}</TableCell>
                       <TableCell className="text-sm">
                         {account
-                          ? <span><span className="text-gray-400 dark:text-[#7a7060] mr-1.5">{account.account_code}</span>{account.account_name}</span>
-                          : <span className="text-gray-400 dark:text-[#7a7060]">Unknown account</span>}
+                          ? <span><span className="text-muted-foreground mr-1.5">{account.account_code}</span>{account.account_name}</span>
+                          : <span className="text-muted-foreground">Unknown account</span>}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {taxCode
-                          ? <Badge variant="outline">{taxCode.name} ({taxCode.rate}%)</Badge>
-                          : <span className="text-gray-400 dark:text-[#7a7060]">—</span>}
+                        {taxCode ? <Badge variant="outline">{taxCode.name} ({taxCode.rate}%)</Badge> : <span className="text-muted-foreground">–</span>}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <AdminOnly>
-                            <Button variant="ghost" size="sm" onClick={() => openEdit(rule)} className="text-gray-400 hover:text-gray-600 dark:text-[#7a7060] dark:hover:text-[#c8c0b0]">
+                            <Button variant="ghost" size="sm" onClick={() => openEdit(rule)} className="text-muted-foreground hover:text-foreground">
                               <Pencil className="w-3.5 h-3.5" />
                             </Button>
                           </AdminOnly>
                           <AdminOnly>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500 dark:text-[#7a7060] dark:hover:text-red-400">
+                                <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive">
                                   <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -226,9 +194,7 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(rule)} className="bg-red-500 hover:bg-red-600 text-white">
-                                    Delete
-                                  </AlertDialogAction>
+                                  <AlertDialogAction onClick={() => handleDelete(rule)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Delete</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -253,12 +219,8 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Match Type</Label>
-                <select
-                  value={form.match_type}
-                  onChange={(e) => setForm((f) => ({ ...f, match_type: e.target.value }))}
-                  disabled={!!editingRule}
-                  className={selectCls}
-                >
+                <select value={form.match_type} onChange={(e) => setForm((f) => ({ ...f, match_type: e.target.value }))}
+                  disabled={!!editingRule} className={selectCls}>
                   <option value="keyword">Keyword (description contains)</option>
                   <option value="vendor">Vendor (exact match)</option>
                   <option value="account">Account (source account)</option>
@@ -271,19 +233,12 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Match Value</Label>
-              <Input
-                value={form.match_value}
-                onChange={(e) => setForm((f) => ({ ...f, match_value: e.target.value }))}
-                placeholder={form.match_type === 'keyword' ? 'e.g. Shopify, AWS' : form.match_type === 'vendor' ? 'e.g. Amazon.ca' : 'e.g. account name'}
-              />
+              <Input value={form.match_value} onChange={(e) => setForm((f) => ({ ...f, match_value: e.target.value }))}
+                placeholder={form.match_type === 'keyword' ? 'e.g. Shopify, AWS' : form.match_type === 'vendor' ? 'e.g. Amazon.ca' : 'e.g. account name'} />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Target Account</Label>
-              <select
-                value={form.target_account_id}
-                onChange={(e) => setForm((f) => ({ ...f, target_account_id: e.target.value }))}
-                className={selectCls}
-              >
+              <select value={form.target_account_id} onChange={(e) => setForm((f) => ({ ...f, target_account_id: e.target.value }))} className={selectCls}>
                 <option value="">Select account…</option>
                 {accounts.filter((a) => a.is_active).map((a) => (
                   <option key={a.id} value={a.id}>{a.account_code} – {a.account_name} ({a.account_type})</option>
@@ -291,19 +246,13 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Tax Code <span className="text-gray-400 text-xs font-normal">(optional)</span></Label>
-              <select
-                value={form.tax_code_id}
-                onChange={(e) => setForm((f) => ({ ...f, tax_code_id: e.target.value }))}
-                className={selectCls}
-              >
+              <Label>Tax Code <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
+              <select value={form.tax_code_id} onChange={(e) => setForm((f) => ({ ...f, tax_code_id: e.target.value }))} className={selectCls}>
                 <option value="">No tax code</option>
-                {taxCodes.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name} ({t.rate}%)</option>
-                ))}
+                {taxCodes.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.rate}%)</option>)}
               </select>
             </div>
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex justify-end gap-2 mt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
               <Button onClick={handleSave} disabled={saving}>
