@@ -509,7 +509,7 @@ export function TransactionInbox({
                             {tx.anomaly_flags && tx.anomaly_flags.length > 0 && (
                               <div className="flex-shrink-0 relative group" title={tx.anomaly_flags.join('\n')}>
                                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500 cursor-help" />
-                                <div className="absolute left-0 top-5 z-20 hidden group-hover:block w-56 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-xl pointer-events-none">
+                                <div className="absolute left-0 top-5 z-20 hidden group-hover:block w-56 bg-foreground text-background text-xs rounded-lg px-3 py-2 shadow-xl pointer-events-none">
                                   <p className="font-medium mb-1 text-amber-300">Anomaly flags:</p>
                                   {tx.anomaly_flags.map((flag, i) => <p key={i} className="leading-snug">{flag}</p>)}
                                 </div>
@@ -835,3 +835,4 @@ export function TransactionInbox({
     </div>
   );
 }
+

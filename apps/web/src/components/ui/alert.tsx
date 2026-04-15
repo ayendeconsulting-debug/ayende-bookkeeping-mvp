@@ -12,16 +12,14 @@ const alertVariants = cva(
         destructive:
           'border-danger-light bg-danger-light text-danger dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400',
         success:
-          'border-primary-light bg-primary-light text-primary dark:border-primary/30 dark:bg-primary/10 dark:text-[#4abe94]',
+          'border-primary-light bg-primary-light text-primary dark:border-primary/30 dark:bg-primary/10 dark:text-emerald-400',
         warning:
           'border-warning-light bg-warning-light text-warning dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-400',
         info:
           'border-info-light bg-info-light text-info dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-400',
       },
     },
-    defaultVariants: {
-      variant: 'default',
-    },
+    defaultVariants: { variant: 'default' },
   },
 );
 

@@ -88,7 +88,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     mode === 'personal' || mode === 'freelancer' ? await getBudgetCategories() : [];
 
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Loading transactions...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading transactions...</div>}>
       <TransactionInbox
         initialTransactions={txResult.data}
         totalCount={txResult.total}
@@ -107,3 +107,4 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     </Suspense>
   );
 }
+

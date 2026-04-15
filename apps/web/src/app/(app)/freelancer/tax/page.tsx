@@ -3,23 +3,16 @@ import { TaxEstimateResult } from '@/types';
 import { TaxEstimateWidget } from '@/components/tax-estimate-widget';
 
 async function getTaxEstimate(): Promise<TaxEstimateResult | null> {
-  try {
-    return await apiGet<TaxEstimateResult>('/freelancer/tax-estimate');
-  } catch {
-    return null;
-  }
+  try { return await apiGet<TaxEstimateResult>('/freelancer/tax-estimate'); } catch { return null; }
 }
 
 export default async function TaxEstimatePage() {
   const estimate = await getTaxEstimate();
-
   return (
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-gray-900">Tax Estimate</h1>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Quarterly tax estimates based on your posted income and expenses.
-        </p>
+        <h1 className="text-xl font-semibold text-foreground">Tax Estimate</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Quarterly tax estimates based on your posted income and expenses.</p>
       </div>
       <TaxEstimateWidget estimate={estimate} />
     </div>

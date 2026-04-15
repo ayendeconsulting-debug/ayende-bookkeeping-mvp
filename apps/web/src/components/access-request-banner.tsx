@@ -6,9 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { respondToAccessRequest, AccessRequest } from '@/app/(app)/settings/actions';
 
-interface AccessRequestBannerProps {
-  request: AccessRequest;
-}
+interface AccessRequestBannerProps { request: AccessRequest; }
 
 export function AccessRequestBanner({ request }: AccessRequestBannerProps) {
   const [dismissed, setDismissed] = useState(false);
@@ -25,9 +23,7 @@ export function AccessRequestBanner({ request }: AccessRequestBannerProps) {
       if (result.success) {
         toastSuccess(
           decision === 'approved' ? 'Access approved' : 'Access denied',
-          decision === 'approved'
-            ? `${firmName} now has edit access for 90 days.`
-            : `${firmName}'s request has been denied.`,
+          decision === 'approved' ? `${firmName} now has edit access for 90 days.` : `${firmName}'s request has been denied.`,
         );
         setResponded(true);
       } else {
@@ -44,37 +40,19 @@ export function AccessRequestBanner({ request }: AccessRequestBannerProps) {
           {firmName} has requested edit access to your books
         </p>
         {request.access_note && (
-          <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">
-            Reason: {request.access_note}
-          </p>
+          <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">Reason: {request.access_note}</p>
         )}
         <div className="flex gap-2 mt-2">
-          <Button
-            size="sm"
-            className="bg-[#0F6E56] hover:bg-[#0d5f4a] text-white h-7 text-xs"
-            disabled={responding}
-            onClick={() => handleRespond('approved')}
-          >
+          <Button size="sm" className="h-7 text-xs" disabled={responding} onClick={() => handleRespond('approved')}>
             Approve (90 days)
           </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-destructive border-destructive/30 h-7 text-xs"
-            disabled={responding}
-            onClick={() => handleRespond('denied')}
-          >
+          <Button size="sm" variant="outline" className="text-destructive border-destructive/30 h-7 text-xs" disabled={responding} onClick={() => handleRespond('denied')}>
             Deny
           </Button>
-          <a href="/settings" className="text-xs text-amber-600 dark:text-amber-400 underline self-center ml-1">
-            View in settings
-          </a>
+          <a href="/settings" className="text-xs text-amber-600 dark:text-amber-400 underline self-center ml-1">View in settings</a>
         </div>
       </div>
-      <button
-        onClick={() => setDismissed(true)}
-        className="text-amber-500 hover:text-amber-700 flex-shrink-0"
-      >
+      <button onClick={() => setDismissed(true)} className="text-amber-500 hover:text-amber-700 flex-shrink-0">
         <X className="w-4 h-4" />
       </button>
     </div>

@@ -33,7 +33,7 @@ function MarkdownMessage({ content, dark }: { content: string; dark?: boolean })
         ol:         ({ children }) => <ol className="mb-1.5 space-y-1">{children}</ol>,
         li:         ({ children }) => <li className="flex gap-2"><span className="flex-shrink-0 mt-0.5">•</span><span>{children}</span></li>,
         hr:         () => <div className={cn('my-3 border-t', dark ? 'border-white/20' : 'border-border')} />,
-        code:       ({ children }) => <code className={cn('rounded px-1.5 py-0.5 text-xs font-mono', dark ? 'bg-white/20' : 'bg-muted')}>{children}</code>,
+        code:       ({ children }) => <code className={cn('rounded px-1.5 py-0.5 text-xs font-mono', dark ? 'bg-foreground/20' : 'bg-muted')}>{children}</code>,
         blockquote: ({ children }) => <blockquote className={cn('border-l-2 pl-3 my-1.5 opacity-80', dark ? 'border-white/40' : 'border-border')}>{children}</blockquote>,
       }}
     >
@@ -159,3 +159,4 @@ export default function AiPage() {
     </div>
   );
 }
+

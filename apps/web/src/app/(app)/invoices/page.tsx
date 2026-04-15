@@ -1,4 +1,4 @@
-﻿import { Suspense } from 'react';
+import { Suspense } from 'react';
 import { api } from '@/lib/api';
 import { Invoice, Account, TaxCode } from '@/types';
 import { InvoiceManager } from '@/components/invoice-manager';
@@ -24,7 +24,7 @@ export default async function InvoicesPage({ searchParams }: InvoicesPageProps) 
   const taxCodes = taxCodesRes.status === 'fulfilled' ? taxCodesRes.value : [];
 
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Loading invoices...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading invoices...</div>}>
       <InvoiceManager
         initialInvoices={invoices.data}
         totalCount={invoices.total}
