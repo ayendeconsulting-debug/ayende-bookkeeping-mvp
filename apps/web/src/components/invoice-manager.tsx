@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -22,12 +22,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn, formatCurrency } from '@/lib/utils';
 
 const STATUS_TABS = [
-  { key: 'all', label: 'All' },
-  { key: 'draft', label: 'Draft' },
-  { key: 'sent', label: 'Sent' },
-  { key: 'partially_paid', label: 'Partial' },
-  { key: 'paid', label: 'Paid' },
-  { key: 'overdue', label: 'Overdue' },
+  { key: 'all',           label: 'All' },
+  { key: 'draft',         label: 'Draft' },
+  { key: 'sent',          label: 'Sent' },
+  { key: 'partially_paid',label: 'Partial' },
+  { key: 'paid',          label: 'Paid' },
+  { key: 'overdue',       label: 'Overdue' },
 ];
 
 const STATUS_VARIANTS: Record<string, 'pending' | 'classified' | 'posted' | 'review'> = {
@@ -112,20 +112,20 @@ export function InvoiceManager({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-6 py-5 border-b border-gray-200 bg-white dark:border-[#3a3730] dark:bg-[#222019]">
+      <div className="px-6 py-5 border-b border-border bg-background">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Invoices</h1>
-            <p className="text-sm text-gray-500 dark:text-[#a09888] mt-0.5">
+            <h1 className="text-xl font-semibold text-foreground">Invoices</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
               {totalCount} total
-              {outstanding > 0 && ` Â· ${formatCurrency(outstanding)} outstanding`}
+              {outstanding > 0 && ` · ${formatCurrency(outstanding)} outstanding`}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <form onSubmit={handleSearch} className="flex gap-2">
               <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400 dark:text-[#7a7060]" />
-                <Input className="pl-8 w-56" placeholder="Search clientâ€¦" value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-8 w-56" placeholder="Search client…" value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
               </div>
               <Button type="submit" variant="outline" size="sm">Filter</Button>
             </form>
@@ -142,7 +142,7 @@ export function InvoiceManager({
               className={cn('px-4 py-2 text-sm border-b-2 transition-colors',
                 currentStatus === tab.key || (tab.key === 'all' && !currentStatus)
                   ? 'border-primary text-primary font-medium'
-                  : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300 dark:text-[#a09888] dark:hover:text-[#f0ede8] dark:hover:border-[#3a3730]',
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
               )}>
               {tab.label}
             </button>
@@ -151,14 +151,14 @@ export function InvoiceManager({
       </div>
 
       {/* Table */}
-      <div className={cn('flex-1 overflow-auto bg-white dark:bg-[#222019]', isPending && 'opacity-60 pointer-events-none')}>
+      <div className={cn('flex-1 overflow-auto bg-background', isPending && 'opacity-60 pointer-events-none')}>
         {initialInvoices.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-[#2a2720] flex items-center justify-center mb-3">
-              <FileText className="w-5 h-5 text-gray-400 dark:text-[#7a7060]" />
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+              <FileText className="w-5 h-5 text-muted-foreground" />
             </div>
-            <p className="text-sm font-medium text-gray-900 dark:text-[#f0ede8] mb-1">No invoices found</p>
-            <p className="text-sm text-gray-500 dark:text-[#a09888]">Create your first invoice to get started.</p>
+            <p className="text-sm font-medium text-foreground mb-1">No invoices found</p>
+            <p className="text-sm text-muted-foreground">Create your first invoice to get started.</p>
           </div>
         ) : (
           <Table>
@@ -179,18 +179,18 @@ export function InvoiceManager({
                 <TableRow key={invoice.id}>
                   <TableCell className="font-mono text-sm font-medium">{invoice.invoice_number}</TableCell>
                   <TableCell>
-                    <div className="text-sm font-medium text-gray-900 dark:text-[#f0ede8]">{invoice.client_name}</div>
-                    {invoice.client_email && <div className="text-xs text-gray-400 dark:text-[#7a7060]">{invoice.client_email}</div>}
+                    <div className="text-sm font-medium text-foreground">{invoice.client_name}</div>
+                    {invoice.client_email && <div className="text-xs text-muted-foreground">{invoice.client_email}</div>}
                   </TableCell>
-                  <TableCell className="text-sm text-gray-500 dark:text-[#a09888] whitespace-nowrap">
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     {new Date(invoice.issue_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: '2-digit' })}
                   </TableCell>
-                  <TableCell className="text-sm text-gray-500 dark:text-[#a09888] whitespace-nowrap">
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                     {new Date(invoice.due_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: '2-digit' })}
                   </TableCell>
                   <TableCell className="text-right font-medium text-sm">{formatCurrency(Number(invoice.total))}</TableCell>
-                  <TableCell className={cn('text-right font-medium text-sm', Number(invoice.balance_due) > 0 ? 'text-orange-600' : 'text-gray-400 dark:text-[#7a7060]')}>
-                    {Number(invoice.balance_due) > 0 ? formatCurrency(Number(invoice.balance_due)) : 'â€“'}
+                  <TableCell className={cn('text-right font-medium text-sm', Number(invoice.balance_due) > 0 ? 'text-orange-500' : 'text-muted-foreground')}>
+                    {Number(invoice.balance_due) > 0 ? formatCurrency(Number(invoice.balance_due)) : '—'}
                   </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANTS[invoice.status] ?? 'pending'}>
@@ -200,7 +200,7 @@ export function InvoiceManager({
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-gray-400 hover:text-gray-600 dark:text-[#7a7060] dark:hover:text-[#c8c0b0]">
+                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -219,7 +219,7 @@ export function InvoiceManager({
                           <AdminOnly>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-500 focus:text-red-500">
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">
                                   <XCircle className="w-3.5 h-3.5 mr-2" />Void Invoice
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
@@ -230,7 +230,7 @@ export function InvoiceManager({
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleVoid(invoice)} className="bg-red-500 hover:bg-red-600 text-white">Void Invoice</AlertDialogAction>
+                                  <AlertDialogAction onClick={() => handleVoid(invoice)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">Void Invoice</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>
@@ -247,8 +247,8 @@ export function InvoiceManager({
       </div>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 bg-white dark:border-[#3a3730] dark:bg-[#222019]">
-          <span className="text-sm text-gray-500 dark:text-[#a09888]">Page {currentPage} of {totalPages} Â· {totalCount} invoices</span>
+        <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-background">
+          <span className="text-sm text-muted-foreground">Page {currentPage} of {totalPages} · {totalCount} invoices</span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={currentPage <= 1} onClick={() => updateParams({ page: String(currentPage - 1) })}>Previous</Button>
             <Button size="sm" variant="outline" disabled={currentPage >= totalPages} onClick={() => updateParams({ page: String(currentPage + 1) })}>Next</Button>
