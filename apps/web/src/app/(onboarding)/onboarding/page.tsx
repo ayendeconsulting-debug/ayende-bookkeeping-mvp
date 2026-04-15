@@ -54,7 +54,6 @@ const LEGAL_DOCS: LegalDoc[] = [
   { key: 'cookie_policy',    label: 'I acknowledge the',             linkLabel: 'Cookie Policy',    href: '/cookies'      },
 ];
 
-// Phase 12: 7 steps (added Step 6: Plan Selection)
 const TOTAL_STEPS = 7;
 
 const MODE_CARDS = [
@@ -100,7 +99,6 @@ const TAX_PRESETS: Record<Country, { code: string; name: string; rate: number }[
   ],
 };
 
-// Phase 12: Plan cards for Step 6
 const PLAN_CARDS: {
   id: PlanId;
   name: string;
@@ -137,7 +135,6 @@ const PLAN_CARDS: {
   },
 ];
 
-/* ── Progress Bar ─────────────────────────────────────────────────────── */
 function ProgressBar({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-2 mb-8">
@@ -145,23 +142,22 @@ function ProgressBar({ step }: { step: number }) {
         <div key={s} className="flex items-center gap-2">
           <div className={[
             'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
-            s < step   ? 'bg-[#0F6E56] text-white' :
-            s === step ? 'bg-[#0F6E56] text-white ring-4 ring-[#0F6E56]/20' :
-            'bg-gray-200 text-gray-500',
+            s < step   ? 'bg-primary text-primary-foreground' :
+            s === step ? 'bg-primary text-primary-foreground ring-4 ring-primary/20' :
+                         'bg-muted text-muted-foreground',
           ].join(' ')}>
             {s < step ? <CheckCircle2 className="w-4 h-4" /> : s}
           </div>
           {s < TOTAL_STEPS && (
-            <div className={`h-0.5 w-6 rounded transition-all ${s < step ? 'bg-[#0F6E56]' : 'bg-gray-200'}`} />
+            <div className={`h-0.5 w-6 rounded transition-all ${s < step ? 'bg-primary' : 'bg-muted'}`} />
           )}
         </div>
       ))}
-      <span className="ml-2 text-xs text-gray-400">Step {step} of {TOTAL_STEPS}</span>
+      <span className="ml-2 text-xs text-muted-foreground">Step {step} of {TOTAL_STEPS}</span>
     </div>
   );
 }
 
-/* ── Legal Checkbox ───────────────────────────────────────────────────── */
 function LegalCheckbox({
   doc, checked, preChecked, onChange,
 }: {
@@ -174,14 +170,14 @@ function LegalCheckbox({
     <label className={[
       'flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none',
       checked
-        ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-primary/10'
-        : 'border-border bg-card hover:border-[#0F6E56]/50',
+        ? 'border-primary bg-primary-light dark:bg-primary/10'
+        : 'border-border bg-card hover:border-primary/50',
     ].join(' ')}>
       <div className="relative flex-shrink-0 mt-0.5">
         <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
         <div className={[
           'w-5 h-5 rounded flex items-center justify-center border-2 transition-all',
-          checked ? 'bg-[#0F6E56] border-[#0F6E56]' : 'bg-background border-border',
+          checked ? 'bg-primary border-primary' : 'bg-background border-border',
         ].join(' ')}>
           {checked && (
             <svg viewBox="0 0 12 12" className="w-3 h-3 text-white" fill="none"
@@ -195,11 +191,11 @@ function LegalCheckbox({
         <span>{doc.label} </span>
         <a href={doc.href} target="_blank" rel="noopener noreferrer"
           onClick={(e) => e.stopPropagation()}
-          className="text-[#0F6E56] underline underline-offset-2 hover:text-[#085041] font-medium">
+          className="text-primary underline underline-offset-2 hover:text-primary-hover font-medium">
           {doc.linkLabel}
         </a>
         {preChecked && (
-          <span className="ml-2 inline-flex items-center gap-1 text-xs text-[#0F6E56] font-medium">
+          <span className="ml-2 inline-flex items-center gap-1 text-xs text-primary font-medium">
             <CheckCircle2 className="w-3 h-3" />Previously accepted
           </span>
         )}
@@ -208,7 +204,6 @@ function LegalCheckbox({
   );
 }
 
-/* ── Main Wizard ──────────────────────────────────────────────────────── */
 export default function OnboardingPage() {
   const { signOut } = useClerk();
   const [step, setStep]              = useState(1);
@@ -225,35 +220,25 @@ export default function OnboardingPage() {
   const [taxAccountId]                        = useState('');
   const [error,           setError]           = useState<string | null>(null);
 
-  // Phase 9: Tax settings state
   const [provinces,       setProvinces]       = useState<Province[]>([]);
   const [provinceCode,    setProvinceCode]    = useState('');
   const [hstNumber,       setHstNumber]       = useState('');
   const [hstFrequency,    setHstFrequency]    = useState<'monthly' | 'quarterly' | 'annual'>('quarterly');
   const [provincesLoaded, setProvincesLoaded] = useState(false);
 
-  // Legal step state
   const [legalChecks, setLegalChecks] = useState<Record<LegalDocType, boolean>>({
-    terms_of_service: false,
-    terms_of_use:     false,
-    privacy_policy:   false,
-    cookie_policy:    false,
+    terms_of_service: false, terms_of_use: false, privacy_policy: false, cookie_policy: false,
   });
   const [preChecked, setPreChecked] = useState<Record<LegalDocType, boolean>>({
-    terms_of_service: false,
-    terms_of_use:     false,
-    privacy_policy:   false,
-    cookie_policy:    false,
+    terms_of_service: false, terms_of_use: false, privacy_policy: false, cookie_policy: false,
   });
   const [legalLoading, setLegalLoading] = useState(false);
 
-  // Phase 12: Plan selection state (Step 6)
-  const [selectedPlan,    setSelectedPlan]    = useState<PlanId>('pro');
-  const [billingCycle,    setBillingCycle]    = useState<'monthly' | 'annual'>('monthly');
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('pro');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
   const allLegalChecked = LEGAL_DOCS.every((d) => legalChecks[d.key]);
 
-  // Load provinces when user reaches step 2 and is in CA
   useEffect(() => {
     if (step !== 2 || selectedCountry !== 'CA' || provincesLoaded) return;
     getProvincesForOnboarding().then((result) => {
@@ -262,7 +247,6 @@ export default function OnboardingPage() {
     });
   }, [step, selectedCountry, provincesLoaded]);
 
-  // When user reaches step 5, pre-check any already-accepted docs
   useEffect(() => {
     if (step !== 5) return;
     setLegalLoading(true);
@@ -272,10 +256,7 @@ export default function OnboardingPage() {
         const newPreChecked = { ...preChecked };
         status.documents.forEach((doc) => {
           const key = doc.document_type as LegalDocType;
-          if (doc.is_current) {
-            newChecks[key] = true;
-            newPreChecked[key] = true;
-          }
+          if (doc.is_current) { newChecks[key] = true; newPreChecked[key] = true; }
         });
         setLegalChecks(newChecks);
         setPreChecked(newPreChecked);
@@ -307,7 +288,6 @@ export default function OnboardingPage() {
         fiscal_year_end: fiscalYearEnd || undefined,
       });
       if (result.error) { setError(result.error); toastError('Could not save', result.error); return; }
-
       if (selectedCountry === 'CA' && provinceCode) {
         const taxResult = await saveTaxSettings({
           province_code: provinceCode,
@@ -320,7 +300,6 @@ export default function OnboardingPage() {
           toastSuccess('Tax settings saved', `Province: ${provinceCode} default tax codes created`);
         }
       }
-
       toastSuccess('Business details saved');
       setStep(3);
     });
@@ -359,7 +338,6 @@ export default function OnboardingPage() {
     });
   }
 
-  // Phase 12: Step 6 — create Stripe checkout and redirect
   function handleStep6() {
     setError(null);
     startTransition(async () => {
@@ -369,16 +347,13 @@ export default function OnboardingPage() {
         toastError('Checkout failed', result.error ?? 'Please try again.');
         return;
       }
-      // Same-window navigation — clean UX, no new tab
       window.location.href = result.url;
     });
   }
 
   function handleComplete(destination: '/dashboard' | '/banks') {
     setError(null);
-    startTransition(async () => {
-      await completeOnboarding(destination);
-    });
+    startTransition(async () => { await completeOnboarding(destination); });
   }
 
   const selectedProvince = provinces.find((p) => p.province_code === provinceCode);
@@ -388,13 +363,14 @@ export default function OnboardingPage() {
       : `GST ${Math.round(selectedProvince.gst_rate * 100)}%`
     : null;
 
+  const selectClass = 'text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-primary bg-background text-foreground';
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
 
-        {/* Logo + Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-[#0F6E56] mb-3">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary mb-3">
             <svg viewBox="0 0 16 16" className="w-7 h-7">
               <rect x="1"   y="10" width="3" height="5"  rx="0.5" fill="white" opacity="0.5"/>
               <rect x="6.5" y="7"  width="3" height="8"  rx="0.5" fill="white" opacity="0.75"/>
@@ -407,30 +383,30 @@ export default function OnboardingPage() {
 
         <ProgressBar step={step} />
 
-        {/* ── Step 1: Mode + Country ── */}
+        {/* Step 1: Mode + Country */}
         {step === 1 && (
           <div className="flex flex-col gap-6">
             <div>
-              <h2 className="text-base font-semibold text-gray-700 mb-3">How will you use Tempo?</h2>
+              <h2 className="text-base font-semibold text-foreground mb-3">How will you use Tempo?</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {MODE_CARDS.map((card) => {
                   const isSelected = selectedMode === card.id;
                   return (
                     <button key={card.id} onClick={() => setSelectedMode(card.id)}
-                      className={['text-left p-5 rounded-xl border-2 transition-all bg-card hover:border-[#0F6E56]',
-                        isSelected ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
+                      className={['text-left p-5 rounded-xl border-2 transition-all bg-card hover:border-primary',
+                        isSelected ? 'border-primary ring-2 ring-primary/10' : 'border-border'].join(' ')}>
                       <div className="text-2xl mb-2">{card.icon}</div>
                       <div className="font-semibold text-sm text-foreground mb-0.5">{card.title}</div>
                       <div className="text-xs text-muted-foreground mb-3">{card.subtitle}</div>
                       <ul className="space-y-0.5">
                         {card.features.map((f) => (
                           <li key={f} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <span className={isSelected ? 'text-[#0F6E56]' : 'text-gray-300'}>✓</span>{f}
+                            <span className={isSelected ? 'text-primary' : 'text-muted-foreground/30'}>✓</span>{f}
                           </li>
                         ))}
                       </ul>
                       {isSelected && (
-                        <div className="mt-3 text-xs font-medium text-[#0F6E56] flex items-center gap-1">
+                        <div className="mt-3 text-xs font-medium text-primary flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />Selected
                         </div>
                       )}
@@ -441,12 +417,12 @@ export default function OnboardingPage() {
             </div>
 
             <div>
-              <h2 className="text-base font-semibold text-gray-700 mb-3">Where are you based?</h2>
+              <h2 className="text-base font-semibold text-foreground mb-3">Where are you based?</h2>
               <div className="grid grid-cols-2 gap-3 max-w-xs">
                 {(['CA', 'US'] as Country[]).map((c) => (
                   <button key={c} onClick={() => setSelectedCountry(c)}
-                    className={['flex items-center gap-3 p-3 rounded-xl border-2 transition-all bg-card hover:border-[#0F6E56]',
-                      selectedCountry === c ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
+                    className={['flex items-center gap-3 p-3 rounded-xl border-2 transition-all bg-card hover:border-primary',
+                      selectedCountry === c ? 'border-primary ring-2 ring-primary/10' : 'border-border'].join(' ')}>
                     <span className="text-xl">{c === 'CA' ? '🇨🇦' : '🇺🇸'}</span>
                     <div className="text-left">
                       <div className="font-semibold text-sm text-foreground">{c === 'CA' ? 'Canada' : 'United States'}</div>
@@ -463,34 +439,34 @@ export default function OnboardingPage() {
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Continue <ChevronRight className="w-4 h-4" />
               </Button>
-              <button type="button" onClick={async () => { await cancelOnboarding(); signOut({ redirectUrl: 'https://gettempo.ca' }); }} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-fit text-left">Cancel — return to website</button>
+              <button type="button" onClick={async () => { await cancelOnboarding(); signOut({ redirectUrl: 'https://gettempo.ca' }); }}
+                className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-fit text-left">
+                Cancel — return to website
+              </button>
             </div>
           </div>
         )}
 
-        {/* ── Step 2: Business Details ── */}
+        {/* Step 2: Business Details */}
         {step === 2 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
-              <Building2 className="w-5 h-5 text-[#0F6E56]" />
+              <Building2 className="w-5 h-5 text-primary" />
               <h2 className="text-base font-semibold text-foreground">Tell us about your business</h2>
             </div>
-
             <div className="flex flex-col gap-1.5">
               <Label>Business Name *</Label>
               <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)}
                 placeholder={selectedMode === 'personal' ? 'Your name' : 'e.g. Acme Consulting Inc.'} />
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Base Currency</Label>
-                <select value={currency} onChange={(e) => setCurrency(e.target.value)}
-                  className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
-                  <option value="CAD">CAD– Canadian Dollar</option>
-                  <option value="USD">USD– US Dollar</option>
-                  <option value="EUR">EUR– Euro</option>
-                  <option value="GBP">GBP– British Pound</option>
+                <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectClass}>
+                  <option value="CAD">CAD – Canadian Dollar</option>
+                  <option value="USD">USD – US Dollar</option>
+                  <option value="EUR">EUR – Euro</option>
+                  <option value="GBP">GBP – British Pound</option>
                 </select>
               </div>
               {selectedMode !== 'personal' && (
@@ -504,13 +480,12 @@ export default function OnboardingPage() {
             {selectedCountry === 'CA' && (
               <div className="flex flex-col gap-4 pt-2 border-t border-border">
                 <div className="flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-[#0F6E56]" />
+                  <Receipt className="w-4 h-4 text-primary" />
                   <h3 className="text-sm font-semibold text-foreground">Canadian Tax Settings</h3>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label>Province / Territory <span className="text-muted-foreground font-normal">(recommended)</span></Label>
-                  <select value={provinceCode} onChange={(e) => setProvinceCode(e.target.value)}
-                    className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
+                  <select value={provinceCode} onChange={(e) => setProvinceCode(e.target.value)} className={selectClass}>
                     <option value="">— Select province —</option>
                     {provinces.map((p) => (
                       <option key={p.province_code} value={p.province_code}>
@@ -519,7 +494,7 @@ export default function OnboardingPage() {
                     ))}
                   </select>
                   {taxLabel && (
-                    <p className="text-xs text-[#0F6E56] font-medium">
+                    <p className="text-xs text-primary font-medium">
                       ✓ Default tax rate: {taxLabel} - tax codes will be created automatically
                     </p>
                   )}
@@ -532,8 +507,7 @@ export default function OnboardingPage() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>HST / GST Filing Frequency</Label>
-                    <select value={hstFrequency} onChange={(e) => setHstFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
-                      className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground">
+                    <select value={hstFrequency} onChange={(e) => setHstFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')} className={selectClass}>
                       <option value="monthly">Monthly</option>
                       <option value="quarterly">Quarterly (most common)</option>
                       <option value="annual">Annual</option>
@@ -554,7 +528,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 3: Seed Accounts ── */}
+        {/* Step 3: Seed Accounts */}
         {step === 3 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
@@ -566,8 +540,8 @@ export default function OnboardingPage() {
                 .filter((ind) => selectedMode === 'freelancer' ? ind.id !== 'retail' && ind.id !== 'restaurant' : true)
                 .map((ind) => (
                   <button key={ind.id} onClick={() => setIndustry(ind.id)}
-                    className={['flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all text-left bg-card hover:border-[#0F6E56]',
-                      industry === ind.id ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
+                    className={['flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all text-left bg-card hover:border-primary',
+                      industry === ind.id ? 'border-primary ring-2 ring-primary/10' : 'border-border'].join(' ')}>
                     <span className="text-xl flex-shrink-0">{ind.icon}</span>
                     <div>
                       <div className="text-sm font-medium text-foreground">{ind.label}</div>
@@ -587,7 +561,7 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 4: First Tax Code ── */}
+        {/* Step 4: First Tax Code */}
         {step === 4 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
@@ -600,31 +574,31 @@ export default function OnboardingPage() {
               </p>
             </div>
             {selectedCountry === 'CA' && provinceCode ? (
-              <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 px-4 py-3">
+              <div className="rounded-lg bg-primary-light dark:bg-primary/10 border border-primary/30 px-4 py-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" />
-                  <span className="text-sm font-medium text-[#0F6E56]">Tax codes already created</span>
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-primary">Tax codes already created</span>
                 </div>
-                <p className="text-xs text-[#085041] dark:text-primary/80">
+                <p className="text-xs text-primary/80">
                   Default HST/GST tax codes for {provinceCode} were set up in the previous step.
                   You can manage them in Settings → Tax Codes.
                 </p>
               </div>
             ) : (
               <>
-                <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 px-4 py-3 text-sm text-[#0F6E56] dark:text-primary">
+                <div className="rounded-lg bg-primary-light dark:bg-primary/10 border border-primary/30 px-4 py-3 text-sm text-primary">
                   Tax codes are applied during transaction classification. They split the net amount and tax into separate journal lines automatically.
                 </div>
                 <div className="grid grid-cols-1 gap-2">
                   {(TAX_PRESETS[selectedCountry ?? 'CA'] ?? []).map((preset) => (
                     <button key={preset.code} onClick={() => setTaxPreset(preset.code)}
-                      className={['flex items-center justify-between p-3.5 rounded-xl border-2 transition-all text-left bg-card hover:border-[#0F6E56]',
-                        taxPreset === preset.code ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10' : 'border-border'].join(' ')}>
+                      className={['flex items-center justify-between p-3.5 rounded-xl border-2 transition-all text-left bg-card hover:border-primary',
+                        taxPreset === preset.code ? 'border-primary ring-2 ring-primary/10' : 'border-border'].join(' ')}>
                       <div>
                         <div className="text-sm font-medium text-foreground">{preset.name}</div>
                         <div className="text-xs text-muted-foreground">{preset.code} · {(preset.rate * 100).toFixed(2)}%</div>
                       </div>
-                      {taxPreset === preset.code && <CheckCircle2 className="w-4 h-4 text-[#0F6E56]" />}
+                      {taxPreset === preset.code && <CheckCircle2 className="w-4 h-4 text-primary" />}
                     </button>
                   ))}
                 </div>
@@ -639,11 +613,11 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 5: Legal Agreements ── */}
+        {/* Step 5: Legal Agreements */}
         {step === 5 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-[#0F6E56]" />
+              <ShieldCheck className="w-5 h-5 text-primary" />
               <h2 className="text-base font-semibold text-foreground">Review and accept our agreements</h2>
             </div>
             <p className="text-sm text-muted-foreground">
@@ -668,9 +642,7 @@ export default function OnboardingPage() {
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setStep(selectedMode === 'personal' ? 3 : 4)} disabled={isPending}>
-                Back
-              </Button>
+              <Button variant="outline" onClick={() => setStep(selectedMode === 'personal' ? 3 : 4)} disabled={isPending}>Back</Button>
               <Button onClick={handleStep5} disabled={isPending || !allLegalChecked || legalLoading} className="flex items-center gap-2">
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Accept & Continue <ChevronRight className="w-4 h-4" />
@@ -679,64 +651,45 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 6: Choose Your Plan (Phase 12 NEW) ── */}
+        {/* Step 6: Choose Your Plan */}
         {step === 6 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-[#0F6E56]" />
+              <CreditCard className="w-5 h-5 text-primary" />
               <h2 className="text-base font-semibold text-foreground">Choose your plan</h2>
             </div>
             <p className="text-sm text-muted-foreground">
               Start your <strong className="text-foreground">60-day free trial</strong> — no charge until your trial ends. Cancel anytime.
             </p>
 
-            {/* Billing cycle toggle */}
             <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit">
-              <button
-                onClick={() => setBillingCycle('monthly')}
-                className={[
-                  'px-4 py-1.5 rounded-md text-sm font-medium transition-all',
-                  billingCycle === 'monthly'
-                    ? 'bg-white dark:bg-card shadow text-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                ].join(' ')}
-              >
+              <button onClick={() => setBillingCycle('monthly')}
+                className={['px-4 py-1.5 rounded-md text-sm font-medium transition-all',
+                  billingCycle === 'monthly' ? 'bg-card shadow text-foreground' : 'text-muted-foreground hover:text-foreground'].join(' ')}>
                 Monthly
               </button>
-              <button
-                onClick={() => setBillingCycle('annual')}
-                className={[
-                  'px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5',
-                  billingCycle === 'annual'
-                    ? 'bg-white dark:bg-card shadow text-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                ].join(' ')}
-              >
+              <button onClick={() => setBillingCycle('annual')}
+                className={['px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5',
+                  billingCycle === 'annual' ? 'bg-card shadow text-foreground' : 'text-muted-foreground hover:text-foreground'].join(' ')}>
                 Annual
-                <span className="text-[10px] font-semibold text-[#0F6E56] bg-[#EDF7F2] px-1.5 py-0.5 rounded-full">
+                <span className="text-[10px] font-semibold text-primary bg-primary-light px-1.5 py-0.5 rounded-full">
                   Save ~20%
                 </span>
               </button>
             </div>
 
-            {/* Plan cards */}
             <div className="grid grid-cols-3 gap-3">
               {PLAN_CARDS.map((plan) => {
                 const isSelected = selectedPlan === plan.id;
                 const price = billingCycle === 'annual' ? plan.annualPrice : plan.price;
                 return (
-                  <button
-                    key={plan.id}
-                    onClick={() => setSelectedPlan(plan.id)}
-                    className={[
-                      'text-left p-4 rounded-xl border-2 transition-all relative',
+                  <button key={plan.id} onClick={() => setSelectedPlan(plan.id)}
+                    className={['text-left p-4 rounded-xl border-2 transition-all relative',
                       isSelected
-                        ? 'border-[#0F6E56] ring-2 ring-[#0F6E56]/10 bg-[#EDF7F2]/40 dark:bg-primary/5'
-                        : 'border-border bg-card hover:border-[#0F6E56]/50',
-                    ].join(' ')}
-                  >
+                        ? 'border-primary ring-2 ring-primary/10 bg-primary-light/40 dark:bg-primary/5'
+                        : 'border-border bg-card hover:border-primary/50'].join(' ')}>
                     {plan.highlighted && (
-                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-white bg-[#0F6E56] px-2.5 py-0.5 rounded-full whitespace-nowrap">
+                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-primary-foreground bg-primary px-2.5 py-0.5 rounded-full whitespace-nowrap">
                         Most Popular
                       </span>
                     )}
@@ -752,13 +705,13 @@ export default function OnboardingPage() {
                     <ul className="space-y-1">
                       {plan.features.map((f) => (
                         <li key={f} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                          <span className={isSelected ? 'text-[#0F6E56] mt-0.5' : 'text-gray-300 mt-0.5'}>✓</span>
+                          <span className={isSelected ? 'text-primary mt-0.5' : 'text-muted-foreground/30 mt-0.5'}>✓</span>
                           {f}
                         </li>
                       ))}
                     </ul>
                     {isSelected && (
-                      <div className="mt-3 flex items-center gap-1 text-xs font-medium text-[#0F6E56]">
+                      <div className="mt-3 flex items-center gap-1 text-xs font-medium text-primary">
                         <CheckCircle2 className="w-3.5 h-3.5" />Selected
                       </div>
                     )}
@@ -768,7 +721,6 @@ export default function OnboardingPage() {
             </div>
 
             {error && <p className="text-sm text-destructive">{error}</p>}
-
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => setStep(5)} disabled={isPending}>Back</Button>
               <Button onClick={handleStep6} disabled={isPending} className="flex items-center gap-2">
@@ -776,14 +728,13 @@ export default function OnboardingPage() {
                 Start Free Trial <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-
             <p className="text-xs text-muted-foreground">
               You&apos;ll be redirected to Stripe to securely enter your payment details. No charge for 60 days.
             </p>
           </div>
         )}
 
-        {/* ── Step 7: Connect Bank (previously Step 6) ── */}
+        {/* Step 7: Connect Bank */}
         {step === 7 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>

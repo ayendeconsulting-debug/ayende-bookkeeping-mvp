@@ -48,7 +48,7 @@ function ActionBadge({ action }: { action: string }) {
     bulk_post:     'bg-teal-50 text-teal-700 dark:bg-teal-900/20 dark:text-teal-400',
   };
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg[action] ?? 'bg-gray-100 text-gray-600 dark:bg-[#2a2720] dark:text-[#a09888]'}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg[action] ?? 'bg-muted text-muted-foreground'}`}>
       {action.replace(/_/g, ' ')}
     </span>
   );
@@ -56,41 +56,40 @@ function ActionBadge({ action }: { action: string }) {
 
 export default async function AuditLogPage() {
   const { data: logs, total } = await getAuditLogs();
-
   const uniqueUserIds = [...new Set(logs.map((l) => l.user_id))];
   const userMap = await resolveUserNames(uniqueUserIds);
 
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Loading...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading...</div>}>
       <div className="p-6 max-w-screen-lg mx-auto">
         <div className="mb-6">
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Audit Log</h1>
-          <p className="text-sm text-gray-500 dark:text-[#a09888] mt-0.5">
+          <h1 className="text-xl font-semibold text-foreground">Audit Log</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             A record of all classify, post, and unclassify actions in this business.
             {total > 0 && <span className="ml-1">{total} entries total.</span>}
           </p>
         </div>
 
         {logs.length === 0 ? (
-          <div className="rounded-xl border border-gray-100 dark:border-[#3a3730] bg-white dark:bg-[#1e1c18] flex flex-col items-center justify-center py-16 text-center">
-            <p className="text-sm font-medium text-gray-900 dark:text-[#f0ede8] mb-1">No audit entries yet</p>
-            <p className="text-sm text-gray-400 dark:text-[#7a7060]">Actions will appear here once transactions are classified or posted.</p>
+          <div className="rounded-xl border border-border bg-card flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-sm font-medium text-foreground mb-1">No audit entries yet</p>
+            <p className="text-sm text-muted-foreground">Actions will appear here once transactions are classified or posted.</p>
           </div>
         ) : (
-          <div className="rounded-xl border border-gray-100 dark:border-[#3a3730] bg-white dark:bg-[#1e1c18] overflow-hidden">
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 dark:border-[#2a2720]">
-                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#7a7060]">Time</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#7a7060]">Action</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#7a7060]">Entity</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-[#7a7060]">User</th>
+                <tr className="border-b border-border">
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Time</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Action</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Entity</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">User</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-[#2a2720]">
+              <tbody className="divide-y divide-border">
                 {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-[#252320] transition-colors">
-                    <td className="px-4 py-3 text-xs text-gray-400 dark:text-[#7a7060] whitespace-nowrap">
+                  <tr key={log.id} className="hover:bg-muted transition-colors">
+                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
                       {new Date(log.created_at).toLocaleString('en-CA', {
                         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                       })}
@@ -99,10 +98,10 @@ export default async function AuditLogPage() {
                       <ActionBadge action={log.action} />
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-gray-700 dark:text-[#c8c0b0]">{log.entity_type}</span>
-                      <span className="ml-2 font-mono text-xs text-gray-400 dark:text-[#7a7060]">{log.entity_id.slice(0, 8)}&hellip;</span>
+                      <span className="text-foreground">{log.entity_type}</span>
+                      <span className="ml-2 font-mono text-xs text-muted-foreground">{log.entity_id.slice(0, 8)}&hellip;</span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-700 dark:text-[#c8c0b0]">
+                    <td className="px-4 py-3 text-xs text-foreground">
                       {userMap[log.user_id] ?? log.user_id.slice(0, 16) + '…'}
                     </td>
                   </tr>
