@@ -127,29 +127,25 @@ export class SplitTransactionService {
     let ownerContribAccount: Account | null = null;
 
     const personalLines = dto.splits.filter((s) => s.is_personal);
-    const hasSplitLines = personalLines.length > 0;
-
-    if (hasSplitLines) {
-      if (sourceType === 'business') {
-        // Personal lines → Owner Draw
-        ownerDrawAccount = await this.accountRepo.findOne({
-          where: { business_id: businessId, account_subtype: AccountSubtype.OWNER_DRAW },
-        });
-        if (!ownerDrawAccount) {
-          throw new BadRequestException(
-            'No owner_draw equity account found — cannot route personal split lines',
-          );
-        }
-      } else {
-        // Personal source: business lines → Owner Contribution credit
-        ownerContribAccount = await this.accountRepo.findOne({
-          where: { business_id: businessId, account_subtype: AccountSubtype.OWNER_CONTRIBUTION },
-        });
-        if (!ownerContribAccount) {
-          throw new BadRequestException(
-            'No owner_contribution equity account found — cannot post business lines from personal source',
-          );
-        }
+    if (sourceType === 'personal') {
+      // Personal source always needs Owner Contribution (for every business line posted)
+      ownerContribAccount = await this.accountRepo.findOne({
+        where: { business_id: businessId, account_subtype: AccountSubtype.OWNER_CONTRIBUTION },
+      });
+      if (!ownerContribAccount) {
+        throw new BadRequestException(
+          'No owner_contribution equity account found — cannot post business lines from personal source',
+        );
+      }
+    } else if (personalLines.length > 0) {
+      // Business source with personal lines → Owner Draw for the personal portion
+      ownerDrawAccount = await this.accountRepo.findOne({
+        where: { business_id: businessId, account_subtype: AccountSubtype.OWNER_DRAW },
+      });
+      if (!ownerDrawAccount) {
+        throw new BadRequestException(
+          'No owner_draw equity account found — cannot route personal split lines',
+        );
       }
     }
 
