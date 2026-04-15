@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Body,
+  Param,
   Query,
   UseGuards,
   HttpCode,
@@ -26,10 +27,20 @@ export class AdminController {
     return this.adminService.checkAdmin();
   }
 
-  /**
-   * POST /admin/seed-account
-   * Creates or updates a Stripe-bypassed test account.
-   */
+  /** GET /admin/accounts — list all test accounts */
+  @Get('accounts')
+  listAccounts() {
+    return this.adminService.listAccounts();
+  }
+
+  /** DELETE /admin/accounts/:id — hard delete a test account and all its data */
+  @Delete('accounts/:id')
+  @HttpCode(HttpStatus.OK)
+  deleteAccount(@Param('id') id: string) {
+    return this.adminService.deleteAccount(id);
+  }
+
+  /** POST /admin/seed-account */
   @Post('seed-account')
   @HttpCode(HttpStatus.CREATED)
   seedAccount(
@@ -45,10 +56,7 @@ export class AdminController {
     return this.adminService.seedAccount(body);
   }
 
-  /**
-   * POST /admin/seed-transactions
-   * Populates a test account with synthetic transactions.
-   */
+  /** POST /admin/seed-transactions */
   @Post('seed-transactions')
   @HttpCode(HttpStatus.CREATED)
   seedTransactions(
@@ -57,10 +65,7 @@ export class AdminController {
     return this.adminService.seedTransactions(body.businessId, body.scenario);
   }
 
-  /**
-   * DELETE /admin/clear-transactions
-   * Removes pending synthetic transactions from a test account.
-   */
+  /** DELETE /admin/clear-transactions */
   @Delete('clear-transactions')
   @HttpCode(HttpStatus.OK)
   clearTransactions(@Query('businessId') businessId: string) {

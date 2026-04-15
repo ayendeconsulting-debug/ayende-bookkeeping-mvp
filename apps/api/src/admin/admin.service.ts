@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Business, BusinessMode } from '../entities/business.entity';
@@ -25,6 +25,93 @@ export class AdminService {
     private readonly businessesService: BusinessesService,
     private readonly dataSource: DataSource,
   ) {}
+
+  // ── List Test Accounts ──────────────────────────────────────────────────────
+
+  async listAccounts(): Promise<{
+    businessId: string;
+    name: string;
+    mode: string;
+    plan: string;
+    clerkOrgId: string | null;
+    createdAt: Date;
+  }[]> {
+    // Test accounts have no stripe_customer_id on their subscription
+    const rows = await this.dataSource.query(`
+      SELECT
+        b.id            AS "businessId",
+        b.name          AS "name",
+        b.mode          AS "mode",
+        b.clerk_org_id  AS "clerkOrgId",
+        b.created_at    AS "createdAt",
+        s.plan          AS "plan"
+      FROM businesses b
+      LEFT JOIN subscriptions s ON s.business_id = b.id
+      WHERE (s.stripe_customer_id IS NULL OR s.id IS NULL)
+        AND b.deleted_at IS NULL
+      ORDER BY b.created_at DESC
+      LIMIT 50
+    `);
+    return rows;
+  }
+
+  // ── Delete Test Account ─────────────────────────────────────────────────────
+
+  async deleteAccount(businessId: string): Promise<{ deleted: boolean }> {
+    const business = await this.businessRepo.findOne({ where: { id: businessId } });
+    if (!business) throw new NotFoundException(`Business ${businessId} not found`);
+
+    // Safety guard — refuse to delete real paying accounts
+    const subscription = await this.subscriptionRepo.findOne({ where: { business_id: businessId } });
+    if (subscription?.stripe_customer_id) {
+      throw new ForbiddenException('Cannot delete a real paying account through the admin tool');
+    }
+
+    // Hard delete in dependency order using raw queries for speed
+    await this.dataSource.transaction(async (manager) => {
+      // Journal lines → journal entries
+      await manager.query(
+        `DELETE FROM journal_lines WHERE business_id = $1`, [businessId],
+      );
+      await manager.query(
+        `DELETE FROM journal_entries WHERE business_id = $1`, [businessId],
+      );
+      // Classified transactions
+      await manager.query(
+        `DELETE FROM classified_transactions WHERE business_id = $1`, [businessId],
+      );
+      // Transaction splits
+      await manager.query(
+        `DELETE FROM transaction_splits WHERE business_id = $1`, [businessId],
+      );
+      // Raw transactions
+      await manager.query(
+        `DELETE FROM raw_transactions WHERE business_id = $1`, [businessId],
+      );
+      // Tax transactions
+      await manager.query(
+        `DELETE FROM tax_transactions WHERE business_id = $1`, [businessId],
+      );
+      // Recurring transactions
+      await manager.query(
+        `DELETE FROM recurring_transactions WHERE business_id = $1`, [businessId],
+      );
+      // Subscriptions
+      await manager.query(
+        `DELETE FROM subscriptions WHERE business_id = $1`, [businessId],
+      );
+      // Accounts (chart of accounts)
+      await manager.query(
+        `DELETE FROM accounts WHERE business_id = $1`, [businessId],
+      );
+      // Business itself
+      await manager.query(
+        `DELETE FROM businesses WHERE id = $1`, [businessId],
+      );
+    });
+
+    return { deleted: true };
+  }
 
   // ── Seed Account ────────────────────────────────────────────────────────────
 
@@ -56,12 +143,8 @@ export class AdminService {
       await this.businessRepo.save(business);
     }
 
-    // Upsert subscription — no Stripe calls
-    const existing = await this.subscriptionRepo.findOne({
-      where: { business_id: business.id },
-    });
-
     const trialEnd = new Date(dto.trialEndsAt);
+    const existing = await this.subscriptionRepo.findOne({ where: { business_id: business.id } });
 
     if (existing) {
       await this.subscriptionRepo.update(existing.id, {
@@ -84,7 +167,6 @@ export class AdminService {
       );
     }
 
-    // Seed chart of accounts (idempotent)
     await this.businessesService.seedAccounts(business.id, 'general');
 
     return { businessId: business.id, created };
@@ -113,7 +195,6 @@ export class AdminService {
     for (const tx of transactions) {
       const hash = `SYNTHETIC_${tx.date}_${tx.description.replace(/\s+/g, '_')}_${tx.amount}`;
 
-      // Skip if already seeded (idempotent)
       const existing = await this.rawTxRepo.findOne({
         where: { business_id: businessId, hash_signature: hash },
       });

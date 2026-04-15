@@ -1,17 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { Copy, Check, Loader2, Trash2, Database, UserPlus } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { useOrganizationList } from '@clerk/nextjs';
+import { Copy, Check, Loader2, Trash2, Database, UserPlus, RefreshCw, ArrowRightLeft, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 const selectCls = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
 
+const MODE_BADGE: Record<string, string> = {
+  business:   'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  freelancer: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
+  personal:   'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400',
+};
+
+const PLAN_BADGE: Record<string, string> = {
+  starter:    'bg-muted text-muted-foreground',
+  pro:        'bg-primary-light text-primary dark:bg-primary/20',
+  accountant: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+};
+
 const SCENARIOS = [
-  { value: 'freelancer_6mo', label: 'Freelancer — 6 months (employment + consulting + mixed expenses)' },
-  { value: 'business_6mo',   label: 'Business — 6 months (clients, payroll, rent, utilities)' },
-  { value: 'personal_6mo',   label: 'Personal — 6 months (salary, groceries, utilities, savings)' },
+  { value: 'freelancer_6mo', label: 'Freelancer — 6 months' },
+  { value: 'business_6mo',   label: 'Business — 6 months' },
+  { value: 'personal_6mo',   label: 'Personal — 6 months' },
 ];
 
 const ONE_YEAR = new Date();
@@ -25,7 +40,62 @@ const DEFAULT_FORM = {
   trialEndsAt: ONE_YEAR.toISOString().split('T')[0],
 };
 
+interface DemoAccount {
+  businessId: string;
+  name: string;
+  mode: string;
+  plan: string;
+  clerkOrgId: string | null;
+  createdAt: string;
+}
+
 export function AdminClient() {
+  const router = useRouter();
+  const { setActive } = useOrganizationList();
+
+  // ── Card 0: Demo Account Switcher ──────────────────────────────────────────
+  const [accounts, setAccounts] = useState<DemoAccount[]>([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  const loadAccounts = useCallback(async () => {
+    setLoadingAccounts(true);
+    try {
+      const res = await fetch('/api/proxy/admin/accounts');
+      if (res.ok) setAccounts(await res.json());
+    } catch { /* non-fatal */ }
+    finally { setLoadingAccounts(false); }
+  }, []);
+
+  useEffect(() => { loadAccounts(); }, [loadAccounts]);
+
+  async function handleSwitch(account: DemoAccount) {
+    if (!account.clerkOrgId || !setActive) return;
+    setSwitchingId(account.businessId);
+    try {
+      await setActive({ organization: account.clerkOrgId });
+      router.push('/dashboard');
+      router.refresh();
+    } catch {
+      setSwitchingId(null);
+    }
+  }
+
+  async function handleDelete(account: DemoAccount) {
+    setDeletingId(account.businessId);
+    setConfirmDeleteId(null);
+    try {
+      const res = await fetch(`/api/proxy/admin/accounts/${account.businessId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAccounts((prev) => prev.filter((a) => a.businessId !== account.businessId));
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   // ── Card 1: Create Test Account ────────────────────────────────────────────
   const [form, setForm] = useState(DEFAULT_FORM);
   const [creating, setCreating] = useState(false);
@@ -47,9 +117,7 @@ export function AdminClient() {
       setCreateError('Business name and Clerk Org ID are required.');
       return;
     }
-    setCreating(true);
-    setCreateError('');
-    setCreateResult(null);
+    setCreating(true); setCreateError(''); setCreateResult(null);
     try {
       const res = await fetch('/api/proxy/admin/seed-account', {
         method: 'POST',
@@ -57,9 +125,10 @@ export function AdminClient() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? 'Failed to create account');
+      if (!res.ok) throw new Error(data.message ?? 'Failed');
       setCreateResult(data);
       setSeedBizId(data.businessId);
+      await loadAccounts(); // refresh Card 0
     } catch (e: any) {
       setCreateError(e.message);
     } finally {
@@ -75,10 +144,7 @@ export function AdminClient() {
 
   async function handleSeed() {
     if (!seedBizId.trim()) { setSeedError('Business ID is required.'); return; }
-    setSeeding(true);
-    setSeedError('');
-    setSeedResult(null);
-    setClearResult(null);
+    setSeeding(true); setSeedError(''); setSeedResult(null); setClearResult(null);
     try {
       const res = await fetch('/api/proxy/admin/seed-transactions', {
         method: 'POST',
@@ -88,31 +154,20 @@ export function AdminClient() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? 'Seed failed');
       setSeedResult(data);
-    } catch (e: any) {
-      setSeedError(e.message);
-    } finally {
-      setSeeding(false);
-    }
+    } catch (e: any) { setSeedError(e.message); }
+    finally { setSeeding(false); }
   }
 
   async function handleClear() {
     if (!seedBizId.trim()) { setSeedError('Business ID is required.'); return; }
-    setClearing(true);
-    setSeedError('');
-    setSeedResult(null);
-    setClearResult(null);
+    setClearing(true); setSeedError(''); setSeedResult(null); setClearResult(null);
     try {
-      const res = await fetch(`/api/proxy/admin/clear-transactions?businessId=${seedBizId}`, {
-        method: 'DELETE',
-      });
+      const res = await fetch(`/api/proxy/admin/clear-transactions?businessId=${seedBizId}`, { method: 'DELETE' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? 'Clear failed');
       setClearResult(data);
-    } catch (e: any) {
-      setSeedError(e.message);
-    } finally {
-      setClearing(false);
-    }
+    } catch (e: any) { setSeedError(e.message); }
+    finally { setClearing(false); }
   }
 
   return (
@@ -122,6 +177,117 @@ export function AdminClient() {
         <p className="text-sm text-muted-foreground mt-1">
           Internal tool — create Stripe-bypassed test accounts and seed synthetic data for demos and training videos.
         </p>
+      </div>
+
+      {/* ── Card 0: Demo Account Switcher ── */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ArrowRightLeft className="w-5 h-5 text-primary" />
+            <h2 className="text-base font-semibold text-foreground">Demo Accounts</h2>
+          </div>
+          <button
+            onClick={loadAccounts}
+            disabled={loadingAccounts}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+            title="Refresh"
+          >
+            <RefreshCw className={cn('w-4 h-4', loadingAccounts && 'animate-spin')} />
+          </button>
+        </div>
+
+        {loadingAccounts ? (
+          <div className="flex items-center justify-center py-6 gap-2 text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span className="text-sm">Loading accounts…</span>
+          </div>
+        ) : accounts.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No test accounts yet. Create one below.
+          </p>
+        ) : (
+          <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
+            {accounts.map((account) => (
+              <div key={account.businessId} className="flex items-center gap-3 px-4 py-3 bg-card hover:bg-muted/30 transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-primary-light dark:bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs font-bold text-primary">
+                    {account.name.slice(0, 2).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{account.name}</p>
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                    <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize', MODE_BADGE[account.mode] ?? 'bg-muted text-muted-foreground')}>
+                      {account.mode}
+                    </span>
+                    <span className={cn('text-[10px] font-semibold px-1.5 py-0.5 rounded-full capitalize', PLAN_BADGE[account.plan] ?? 'bg-muted text-muted-foreground')}>
+                      {account.plan}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Pre-fill seed card with this business ID */}
+                  <button
+                    onClick={() => setSeedBizId(account.businessId)}
+                    className="text-xs text-muted-foreground hover:text-primary px-2 py-1 rounded transition-colors"
+                    title="Use this ID in Seed card"
+                  >
+                    Use
+                  </button>
+
+                  {/* Switch to this org in Clerk */}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={!account.clerkOrgId || switchingId === account.businessId}
+                    onClick={() => handleSwitch(account)}
+                    className="h-7 px-3 text-xs"
+                    title={account.clerkOrgId ? 'Switch to this account' : 'No Clerk Org ID — cannot switch'}
+                  >
+                    {switchingId === account.businessId
+                      ? <Loader2 className="w-3 h-3 animate-spin" />
+                      : 'Switch'}
+                  </Button>
+
+                  {/* Delete with confirmation */}
+                  {confirmDeleteId === account.businessId ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleDelete(account)}
+                        disabled={deletingId === account.businessId}
+                        className="text-xs font-semibold text-destructive hover:text-destructive/80 px-2 py-1 rounded border border-destructive/30 transition-colors"
+                      >
+                        {deletingId === account.businessId ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Confirm'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="text-xs text-muted-foreground hover:text-foreground px-1"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmDeleteId(account.businessId)}
+                      disabled={deletingId === account.businessId}
+                      className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                      title="Delete this test account"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {accounts.length > 0 && (
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0" />
+            Delete permanently wipes all transactions, journal entries, and accounts for that business.
+          </p>
+        )}
       </div>
 
       {/* ── Card 1: Create Test Account ── */}
@@ -168,11 +334,7 @@ export function AdminClient() {
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label>Trial / Access End Date</Label>
-            <Input
-              type="date"
-              value={form.trialEndsAt}
-              onChange={(e) => setForm((f) => ({ ...f, trialEndsAt: e.target.value }))}
-            />
+            <Input type="date" value={form.trialEndsAt} onChange={(e) => setForm((f) => ({ ...f, trialEndsAt: e.target.value }))} />
           </div>
         </div>
 
@@ -187,10 +349,7 @@ export function AdminClient() {
               <code className="text-xs font-mono text-foreground bg-muted px-2 py-1 rounded flex-1 truncate">
                 {createResult.businessId}
               </code>
-              <button
-                onClick={() => handleCopy(createResult.businessId)}
-                className="text-muted-foreground hover:text-primary transition-colors"
-              >
+              <button onClick={() => handleCopy(createResult.businessId)} className="text-muted-foreground hover:text-primary transition-colors">
                 {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
               </button>
             </div>
@@ -214,7 +373,7 @@ export function AdminClient() {
           <Input
             value={seedBizId}
             onChange={(e) => setSeedBizId(e.target.value)}
-            placeholder="Paste business ID from Card 1 above"
+            placeholder="Paste or select from Demo Accounts above"
             className="font-mono text-sm"
           />
         </div>
@@ -232,12 +391,8 @@ export function AdminClient() {
 
         {seedResult && (
           <div className="rounded-xl bg-primary-light dark:bg-primary/10 border border-primary/20 px-4 py-3">
-            <p className="text-sm font-semibold text-primary">
-              {seedResult.inserted} transactions inserted ✓
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              All transactions are pending — ready to classify for demo.
-            </p>
+            <p className="text-sm font-semibold text-primary">{seedResult.inserted} transactions inserted ✓</p>
+            <p className="text-xs text-muted-foreground mt-0.5">All transactions are pending — ready to classify for demo.</p>
           </div>
         )}
 
@@ -263,7 +418,7 @@ export function AdminClient() {
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          The trash button clears only pending synthetic transactions from this account. Posted transactions are not affected.
+          The trash button clears only pending synthetic transactions. Posted transactions are not affected.
         </p>
       </div>
     </div>
