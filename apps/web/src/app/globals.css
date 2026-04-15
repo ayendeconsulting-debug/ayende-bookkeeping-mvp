@@ -43,77 +43,75 @@
 }
 
 /* ── Tailwind v4 semantic token bridge ───────────────────────────────────── */
-/* Maps CSS variables → Tailwind utilities (text-foreground, bg-card, etc.)  */
 
 @theme inline {
-  --color-background:          hsl(var(--background));
-  --color-foreground:          hsl(var(--foreground));
-  --color-card:                hsl(var(--card));
-  --color-card-foreground:     hsl(var(--card-foreground));
-  --color-popover:             hsl(var(--popover));
-  --color-popover-foreground:  hsl(var(--popover-foreground));
-  --color-secondary:           hsl(var(--secondary));
-  --color-secondary-foreground:hsl(var(--secondary-foreground));
-  --color-muted:               hsl(var(--muted));
-  --color-muted-foreground:    hsl(var(--muted-foreground));
-  --color-accent:              hsl(var(--accent));
-  --color-accent-foreground:   hsl(var(--accent-foreground));
-  --color-destructive:         hsl(var(--destructive));
+  --color-background:             hsl(var(--background));
+  --color-foreground:             hsl(var(--foreground));
+  --color-card:                   hsl(var(--card));
+  --color-card-foreground:        hsl(var(--card-foreground));
+  --color-popover:                hsl(var(--popover));
+  --color-popover-foreground:     hsl(var(--popover-foreground));
+  --color-secondary:              hsl(var(--secondary));
+  --color-secondary-foreground:   hsl(var(--secondary-foreground));
+  --color-muted:                  hsl(var(--muted));
+  --color-muted-foreground:       hsl(var(--muted-foreground));
+  --color-accent:                 hsl(var(--accent));
+  --color-accent-foreground:      hsl(var(--accent-foreground));
+  --color-destructive:            hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border:              hsl(var(--border));
-  --color-input:               hsl(var(--input));
-  --color-ring:                hsl(var(--ring));
+  --color-border:                 hsl(var(--border));
+  --color-input:                  hsl(var(--input));
+  --color-ring:                   hsl(var(--ring));
 }
 
-/* ── ShadCN/UI CSS Variable Layer – Light (Pilot warm) ───────────────────── */
+/* ── Light mode ─────────────────────────────────────────────────────────── */
 
 :root {
-  /* Warm off-white page background, pure white cards */
-  --background:            38 20% 95%;   /* #f5f3ef */
-  --foreground:            36 13% 9%;    /* #1a1814 */
-  --card:                  0 0% 100%;    /* #ffffff */
-  --card-foreground:       36 13% 9%;
-  --popover:               0 0% 100%;
-  --popover-foreground:    36 13% 9%;
-  --primary:               161 78% 25%; /* #0F6E56 */
-  --primary-foreground:    0 0% 100%;
-  --secondary:             37 16% 93%;  /* #f0ede8 */
-  --secondary-foreground:  36 13% 9%;
-  --muted:                 37 16% 93%;  /* #f0ede8 */
-  --muted-foreground:      38 8% 48%;   /* #888070 */
-  --accent:                37 14% 90%;  /* #ebe7e0 */
-  --accent-foreground:     36 13% 9%;
-  --destructive:           4 62% 46%;   /* #c0392b */
+  --background:             38 20% 95%;
+  --foreground:             36 13% 9%;
+  --card:                   0 0% 100%;
+  --card-foreground:        36 13% 9%;
+  --popover:                0 0% 100%;
+  --popover-foreground:     36 13% 9%;
+  --primary:                161 78% 25%;
+  --primary-foreground:     0 0% 100%;
+  --secondary:              37 16% 93%;
+  --secondary-foreground:   36 13% 9%;
+  --muted:                  37 16% 93%;
+  --muted-foreground:       38 8% 48%;
+  --accent:                 37 14% 90%;
+  --accent-foreground:      36 13% 9%;
+  --destructive:            4 62% 46%;
   --destructive-foreground: 0 0% 100%;
-  --border:                37 17% 86%;  /* #e5e1d8 */
-  --input:                 37 17% 86%;
-  --ring:                  161 78% 25%;
-  --radius:                0.5rem;
-  --sidebar-width:         210px;
+  --border:                 37 17% 86%;
+  --input:                  37 17% 86%;
+  --ring:                   161 78% 25%;
+  --radius:                 0.5rem;
+  --sidebar-width:          210px;
 }
 
-/* ── Dark mode – warm dark (not pure black) ─────────────────────────────── */
+/* ── Dark mode – deep black, bright text ────────────────────────────────── */
 
 .dark {
-  --background:            36 13% 9%;    /* #1a1714 warm near-black */
-  --foreground:            37 16% 93%;   /* #f0ede8 warm near-white */
-  --card:                  38 12% 12%;   /* #222019 */
-  --card-foreground:       37 16% 93%;
-  --popover:               38 12% 12%;
-  --popover-foreground:    37 16% 93%;
-  --primary:               161 78% 38%; /* slightly brighter green in dark */
-  --primary-foreground:    0 0% 100%;
-  --secondary:             38 10% 17%;  /* #2a2720 */
-  --secondary-foreground:  37 16% 93%;
-  --muted:                 38 10% 17%;
-  --muted-foreground:      37 9% 57%;   /* #a09888 */
-  --accent:                38 10% 20%;  /* #333028 */
-  --accent-foreground:     37 16% 93%;
-  --destructive:           4 50% 35%;
-  --destructive-foreground: 37 16% 93%;
-  --border:                38 10% 21%;  /* #3a3730 */
-  --input:                 38 10% 21%;
-  --ring:                  161 78% 38%;
+  --background:             0 0% 6%;      /* #0f0f0f near-black */
+  --foreground:             36 15% 95%;   /* #f5f2ee bright warm white */
+  --card:                   0 0% 9%;      /* #171717 */
+  --card-foreground:        36 15% 95%;
+  --popover:                0 0% 9%;
+  --popover-foreground:     36 15% 95%;
+  --primary:                161 78% 42%;
+  --primary-foreground:     0 0% 100%;
+  --secondary:              0 0% 14%;     /* #242424 */
+  --secondary-foreground:   36 15% 95%;
+  --muted:                  0 0% 14%;     /* #242424 */
+  --muted-foreground:       36 8% 62%;    /* readable secondary */
+  --accent:                 0 0% 17%;     /* #2b2b2b */
+  --accent-foreground:      36 15% 95%;
+  --destructive:            4 50% 45%;
+  --destructive-foreground: 36 15% 95%;
+  --border:                 0 0% 18%;     /* #2e2e2e */
+  --input:                  0 0% 18%;
+  --ring:                   161 78% 42%;
 }
 
 /* ── Base Styles ─────────────────────────────────────────────────────────── */

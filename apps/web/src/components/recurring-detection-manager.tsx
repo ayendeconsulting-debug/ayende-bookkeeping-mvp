@@ -23,12 +23,12 @@ const FREQUENCY_LABELS: Record<string, string> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  subscription: 'bg-purple-50 text-purple-700 border-purple-100',
-  housing:      'bg-blue-50 text-blue-700 border-blue-100',
-  utilities:    'bg-yellow-50 text-yellow-700 border-yellow-100',
-  insurance:    'bg-green-50 text-green-700 border-green-100',
-  fitness:      'bg-orange-50 text-orange-700 border-orange-100',
-  recurring:    'bg-gray-50 text-gray-600 border-gray-100',
+  subscription: 'bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800/30',
+  housing:      'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800/30',
+  utilities:    'bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800/30',
+  insurance:    'bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800/30',
+  fitness:      'bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800/30',
+  recurring:    'bg-muted text-muted-foreground border-border',
 };
 
 function calcMonthlyEquivalent(amount: number, frequency: string): number {
@@ -117,7 +117,7 @@ export function RecurringDetectionManager({
           <Card>
             <CardContent className="pt-5">
               <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Due This Week</div>
-              <div className={cn('text-2xl font-semibold', dueSoon.length > 0 ? 'text-amber-600' : 'text-foreground')}>
+              <div className={cn('text-2xl font-semibold', dueSoon.length > 0 ? 'text-amber-500' : 'text-foreground')}>
                 {dueSoon.length}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
@@ -184,7 +184,7 @@ export function RecurringDetectionManager({
                         size="sm"
                         onClick={() => handleConfirm(candidate)}
                         disabled={isPending}
-                        className="h-7 px-3 text-xs bg-primary text-white hover:bg-primary/90"
+                        className="h-7 px-3 text-xs bg-primary text-white hover:bg-primary-hover"
                       >
                         <Check className="w-3 h-3 mr-1" />
                         Confirm
@@ -194,7 +194,7 @@ export function RecurringDetectionManager({
                         variant="outline"
                         onClick={() => handleDismiss(candidate.key, candidate.merchant)}
                         disabled={isPending}
-                        className="h-7 px-3 text-xs text-muted-foreground"
+                        className="h-7 px-3 text-xs"
                       >
                         <X className="w-3 h-3 mr-1" />
                         Dismiss
@@ -241,7 +241,7 @@ export function RecurringDetectionManager({
                       key={item.key}
                       className={cn(
                         'flex items-center gap-4 px-4 py-3 group',
-                        item.is_due_soon ? 'bg-amber-50 dark:bg-amber-950/20' : '',
+                        item.is_due_soon ? 'bg-amber-500/10' : '',
                       )}
                     >
                       <div
@@ -259,7 +259,7 @@ export function RecurringDetectionManager({
                             {item.merchant}
                           </p>
                           {item.is_due_soon && (
-                            <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-600">
+                            <span className="flex items-center gap-0.5 text-[10px] font-bold text-amber-500">
                               <AlertCircle className="w-3 h-3" />
                               Due soon
                             </span>

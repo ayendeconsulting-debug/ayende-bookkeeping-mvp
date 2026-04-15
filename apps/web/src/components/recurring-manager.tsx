@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -29,7 +29,6 @@ import { formatCurrency } from '@/lib/utils';
 interface RecurringManagerProps {
   initialRecurring: RecurringTransaction[];
   accounts: Account[];
-  // Phase 12
   initialDetections?: BusinessDetectionCandidate[];
 }
 
@@ -44,7 +43,6 @@ interface RecurringFormData {
   notes: string;
 }
 
-// Phase 12: confirm dialog state
 interface ConfirmDialogState {
   open: boolean;
   candidate: BusinessDetectionCandidate | null;
@@ -101,7 +99,6 @@ export function RecurringManager({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Phase 12: confirm detection dialog state
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
     open: false,
     candidate: null,
@@ -209,8 +206,6 @@ export function RecurringManager({
     }
   }
 
-  // Phase 12: detection handlers
-
   function openConfirmDialog(candidate: BusinessDetectionCandidate) {
     setConfirmDialog({ open: true, candidate, debitAccountId: '', creditAccountId: '' });
   }
@@ -245,12 +240,10 @@ export function RecurringManager({
   }
 
   function handleDismissDetection(candidate: BusinessDetectionCandidate) {
-    // Optimistic removal
     setDetections((prev) => prev.filter((d) => d.key !== candidate.key));
     startDetectionTransition(async () => {
       const result = await dismissBusinessDetection(candidate.key);
       if (!result.success) {
-        // Restore on failure
         setDetections((prev) => [...prev, candidate]);
         toastError(result.error ?? 'Failed to dismiss.');
       }
@@ -260,12 +253,15 @@ export function RecurringManager({
   const activeItems   = recurring.filter((r) => r.status === 'active');
   const inactiveItems = recurring.filter((r) => r.status !== 'active');
 
+  // Shared select class — native <select> elements not using ShadCN Select
+  const selectClass = 'w-full text-sm border border-input rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:bg-muted disabled:opacity-60';
+
   return (
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Recurring Transactions</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 className="text-xl font-semibold text-foreground">Recurring Transactions</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Scheduled journal entries posted automatically on their due date.
           </p>
         </div>
@@ -276,84 +272,82 @@ export function RecurringManager({
         </AdminOnly>
       </div>
 
-      <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700">
+      <div className="mb-4 bg-info-light border border-info/20 rounded-lg px-4 py-3 text-sm text-info dark:bg-blue-900/20 dark:border-blue-800/30 dark:text-blue-300">
         Recurring entries are posted automatically at midnight on their scheduled date. Posting creates a balanced journal entry debiting and crediting the selected accounts.
       </div>
 
-      {/* Phase 12: Detected Patterns panel — shown above Active table when candidates exist */}
+      {/* Detected Patterns panel */}
       {detections.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Wand2 className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-gray-800 dark:text-[#f0ede8]">
+            <h2 className="text-sm font-semibold text-foreground">
               Detected Patterns ({detections.length})
             </h2>
-            <span className="text-xs text-gray-400 dark:text-[#7a7060]">— confirm to create a recurring template, or dismiss to hide</span>
+            <span className="text-xs text-muted-foreground">— confirm to create a recurring template, or dismiss to hide</span>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {detections.map((candidate) => (
-              <Card key={candidate.key} className="border-primary/20">
-                <CardContent className="pt-4 pb-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <p className="text-sm font-semibold text-gray-900 truncate flex-1 min-w-0 pr-2">
-                      {candidate.description}
-                    </p>
-                    <Badge variant="secondary" className="text-[10px] flex-shrink-0">
-                      {FREQUENCY_LABELS[candidate.frequency] ?? candidate.frequency}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-lg font-bold text-gray-900 dark:text-[#f0ede8]">
-                      {formatCurrency(candidate.averageAmount)}
-                    </span>
-                    <span className="text-xs text-gray-400 dark:text-[#7a7060]">
-                      {candidate.occurrences} occurrences detected
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-gray-400 mb-3">
-                    Next estimated:{' '}
-                    {new Date(candidate.nextEstimatedDate).toLocaleDateString('en-CA', {
-                      month: 'short', day: 'numeric', year: 'numeric',
-                    })}
-                  </p>
-
-                  <AdminOnly>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => openConfirmDialog(candidate)}
-                        disabled={isDetectionPending}
-                        className="flex-1 h-7 text-xs bg-primary text-white hover:bg-primary/90"
-                      >
-                        <Check className="w-3 h-3 mr-1" />Confirm
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDismissDetection(candidate)}
-                        disabled={isDetectionPending}
-                        className="h-7 text-xs text-gray-500 dark:text-[#a09888]"
-                      >
-                        <X className="w-3 h-3 mr-1" />Dismiss
-                      </Button>
+          <Card>
+            <CardContent className="p-0">
+              <div className="divide-y divide-border">
+                {detections.map((candidate) => (
+                  <div key={candidate.key} className="flex items-center gap-3 px-4 py-3.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-foreground truncate">
+                          {candidate.description}
+                        </p>
+                        <Badge variant="secondary" className="text-[10px] flex-shrink-0">
+                          {FREQUENCY_LABELS[candidate.frequency] ?? candidate.frequency}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {candidate.occurrences} occurrences · Next:{' '}
+                        {new Date(candidate.nextEstimatedDate).toLocaleDateString('en-CA', {
+                          month: 'short', day: 'numeric', year: 'numeric',
+                        })}
+                      </p>
                     </div>
-                  </AdminOnly>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-sm font-bold text-foreground">
+                        {formatCurrency(candidate.averageAmount)}
+                      </p>
+                    </div>
+                    <AdminOnly>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          onClick={() => openConfirmDialog(candidate)}
+                          disabled={isDetectionPending}
+                          className="h-7 px-3 text-xs"
+                        >
+                          <Check className="w-3 h-3 mr-1" />Confirm
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDismissDetection(candidate)}
+                          disabled={isDetectionPending}
+                          className="h-7 px-3 text-xs"
+                        >
+                          <X className="w-3 h-3 mr-1" />Dismiss
+                        </Button>
+                      </div>
+                    </AdminOnly>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Active</h2>
+      <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Active</h2>
       <Card className="mb-6">
         <CardContent className="p-0">
           {activeItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <RefreshCw className="w-8 h-8 text-gray-300 mb-3" />
-              <p className="text-sm text-gray-400 dark:text-[#7a7060]">No active recurring transactions. Click New Recurring to add one.</p>
+              <RefreshCw className="w-8 h-8 text-muted-foreground/30 mb-3" />
+              <p className="text-sm text-muted-foreground">No active recurring transactions. Click New Recurring to add one.</p>
             </div>
           ) : (
             <RecurringTable
@@ -370,7 +364,7 @@ export function RecurringManager({
 
       {inactiveItems.length > 0 && (
         <>
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Paused / Completed / Cancelled</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">Paused / Completed / Cancelled</h2>
           <Card>
             <CardContent className="p-0">
               <RecurringTable
@@ -420,7 +414,7 @@ export function RecurringManager({
                   value={form.frequency}
                   onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value as RecurringFrequency }))}
                   disabled={!!editingItem}
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] disabled:bg-gray-50 dark:bg-[#1e1c19]"
+                  className={selectClass}
                 >
                   {Object.entries(FREQUENCY_LABELS).map(([val, label]) => (
                     <option key={val} value={val}>{label}</option>
@@ -436,7 +430,7 @@ export function RecurringManager({
                   <select
                     value={form.debit_account_id}
                     onChange={(e) => setForm((f) => ({ ...f, debit_account_id: e.target.value }))}
-                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
+                    className={selectClass}
                   >
                     <option value="">Select account…</option>
                     {activeAccounts.map((a) => (
@@ -449,7 +443,7 @@ export function RecurringManager({
                   <select
                     value={form.credit_account_id}
                     onChange={(e) => setForm((f) => ({ ...f, credit_account_id: e.target.value }))}
-                    className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
+                    className={selectClass}
                   >
                     <option value="">Select account…</option>
                     {activeAccounts.map((a) => (
@@ -468,11 +462,10 @@ export function RecurringManager({
                   value={form.start_date}
                   onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
                   disabled={!!editingItem}
-                  className="disabled:bg-gray-50 dark:bg-[#1e1c19]"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>End Date <span className="text-gray-400 font-normal">(optional)</span></Label>
+                <Label>End Date <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input
                   type="date"
                   value={form.end_date}
@@ -482,7 +475,7 @@ export function RecurringManager({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>Notes <span className="text-gray-400 font-normal">(optional)</span></Label>
+              <Label>Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
               <Input
                 value={form.notes}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
@@ -490,7 +483,7 @@ export function RecurringManager({
               />
             </div>
 
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <div className="flex justify-end gap-2 mt-2">
               <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
@@ -502,7 +495,7 @@ export function RecurringManager({
         </DialogContent>
       </Dialog>
 
-      {/* Phase 12: Confirm detection dialog — account selection */}
+      {/* Confirm detection dialog */}
       <Dialog
         open={confirmDialog.open}
         onOpenChange={(open) =>
@@ -515,26 +508,24 @@ export function RecurringManager({
           </DialogHeader>
           {confirmDialog.candidate && (
             <div className="flex flex-col gap-4 mt-2">
-              <div className="bg-gray-50 rounded-lg px-4 py-3 text-sm">
-                <p className="font-semibold text-gray-900 dark:text-[#f0ede8]">{confirmDialog.candidate.description}</p>
-                <p className="text-gray-500 mt-0.5">
+              <div className="bg-muted rounded-lg px-4 py-3 text-sm">
+                <p className="font-semibold text-foreground">{confirmDialog.candidate.description}</p>
+                <p className="text-muted-foreground mt-0.5">
                   {formatCurrency(confirmDialog.candidate.averageAmount)} ·{' '}
                   {FREQUENCY_LABELS[confirmDialog.candidate.frequency] ?? confirmDialog.candidate.frequency}
                 </p>
               </div>
 
-              <p className="text-sm text-gray-600 dark:text-[#c8c0b0]">
+              <p className="text-sm text-muted-foreground">
                 Select the accounts to use for this recurring journal entry:
               </p>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Debit Account <span className="text-gray-400 font-normal">(expense / asset)</span></Label>
+                <Label>Debit Account <span className="text-muted-foreground font-normal">(expense / asset)</span></Label>
                 <select
                   value={confirmDialog.debitAccountId}
-                  onChange={(e) =>
-                    setConfirmDialog((s) => ({ ...s, debitAccountId: e.target.value }))
-                  }
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
+                  onChange={(e) => setConfirmDialog((s) => ({ ...s, debitAccountId: e.target.value }))}
+                  className={selectClass}
                 >
                   <option value="">Select account…</option>
                   {activeAccounts.map((a) => (
@@ -544,13 +535,11 @@ export function RecurringManager({
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label>Credit Account <span className="text-gray-400 font-normal">(bank / liability)</span></Label>
+                <Label>Credit Account <span className="text-muted-foreground font-normal">(bank / liability)</span></Label>
                 <select
                   value={confirmDialog.creditAccountId}
-                  onChange={(e) =>
-                    setConfirmDialog((s) => ({ ...s, creditAccountId: e.target.value }))
-                  }
-                  className="text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-white text-gray-900 dark:bg-[#222019] dark:text-[#f0ede8] dark:border-[#3a3730]"
+                  onChange={(e) => setConfirmDialog((s) => ({ ...s, creditAccountId: e.target.value }))}
+                  className={selectClass}
                 >
                   <option value="">Select account…</option>
                   {activeAccounts.map((a) => (
@@ -562,9 +551,7 @@ export function RecurringManager({
               <div className="flex justify-end gap-2 mt-2">
                 <Button
                   variant="outline"
-                  onClick={() =>
-                    setConfirmDialog({ open: false, candidate: null, debitAccountId: '', creditAccountId: '' })
-                  }
+                  onClick={() => setConfirmDialog({ open: false, candidate: null, debitAccountId: '', creditAccountId: '' })}
                 >
                   Cancel
                 </Button>
@@ -618,34 +605,34 @@ function RecurringTable({
               <TableCell className="font-medium">{item.description}</TableCell>
               <TableCell className="font-mono text-sm">{formatAmount(item.amount, item.currency_code)}</TableCell>
               <TableCell><Badge variant="secondary">{FREQUENCY_LABELS[item.frequency]}</Badge></TableCell>
-              <TableCell className="text-sm text-gray-600 dark:text-[#c8c0b0]">
-                <span className="text-gray-400 dark:text-[#7a7060]">{debit?.account_code ?? '?'}</span>
+              <TableCell className="text-sm text-foreground">
+                <span className="text-muted-foreground">{debit?.account_code ?? '?'}</span>
                 {' '}{debit?.account_name ?? 'Unknown'}
-                <span className="mx-1.5 text-gray-300 dark:text-[#3a3730]">→</span>
-                <span className="text-gray-400 dark:text-[#7a7060]">{credit?.account_code ?? '?'}</span>
+                <span className="mx-1.5 text-border">→</span>
+                <span className="text-muted-foreground">{credit?.account_code ?? '?'}</span>
                 {' '}{credit?.account_name ?? 'Unknown'}
               </TableCell>
-              <TableCell className="text-sm text-gray-500 dark:text-[#a09888]">{formatDate(item.next_run_date)}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">{formatDate(item.next_run_date)}</TableCell>
               <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
                   {isEditable && (
                     <AdminOnly>
-                      <Button variant="ghost" size="sm" onClick={() => onEdit(item)} className="text-gray-400 hover:text-gray-600 dark:text-[#c8c0b0]">
+                      <Button variant="ghost" size="sm" onClick={() => onEdit(item)} className="text-muted-foreground hover:text-foreground">
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
                     </AdminOnly>
                   )}
                   {item.status === 'active' && (
                     <AdminOnly>
-                      <Button variant="ghost" size="sm" onClick={() => onPause(item)} className="text-gray-400 hover:text-yellow-600" title="Pause">
+                      <Button variant="ghost" size="sm" onClick={() => onPause(item)} className="text-muted-foreground hover:text-amber-500" title="Pause">
                         <Pause className="w-3.5 h-3.5" />
                       </Button>
                     </AdminOnly>
                   )}
                   {item.status === 'paused' && (
                     <AdminOnly>
-                      <Button variant="ghost" size="sm" onClick={() => onResume(item)} className="text-gray-400 hover:text-green-600" title="Resume">
+                      <Button variant="ghost" size="sm" onClick={() => onResume(item)} className="text-muted-foreground hover:text-primary" title="Resume">
                         <Play className="w-3.5 h-3.5" />
                       </Button>
                     </AdminOnly>
@@ -654,7 +641,7 @@ function RecurringTable({
                     <AdminOnly>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-gray-400 hover:text-red-500" title="Cancel">
+                          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" title="Cancel">
                             <X className="w-3.5 h-3.5" />
                           </Button>
                         </AlertDialogTrigger>
@@ -667,7 +654,7 @@ function RecurringTable({
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Keep</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onCancel(item)} className="bg-red-500 hover:bg-red-600 text-white">
+                            <AlertDialogAction onClick={() => onCancel(item)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                               Cancel Recurring
                             </AlertDialogAction>
                           </AlertDialogFooter>
