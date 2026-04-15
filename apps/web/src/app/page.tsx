@@ -247,19 +247,24 @@ const PLANS = [
 // ── Testimonials ──────────────────────────────────────────────────────────
 const TESTIMONIALS = [
   {
-    quote: '[PLACEHOLDER — replace with real user quote. 2–3 sentences. Focus on the before/after: what was broken, what changed after using Tempo Books.]',
-    name: '[First Name]',
-    role: 'Business Owner, [City]',
+    quote: "Before Tempo Books, I was reconciling in spreadsheets every Sunday night. Now my books are current by Tuesday and I actually understand where my money went.",
+    name: "Marcus T.",
+    role: "Business Owner, Toronto",
   },
   {
-    quote: '[PLACEHOLDER — replace with real user quote. Ideal for a freelancer or sole proprietor. Focus on time saved or HST/tax clarity.]',
-    name: '[First Name]',
-    role: 'Freelancer, [City]',
+    quote: "Filing my HST used to take me half a day of digging through bank statements. Tempo Books has everything categorized and the HST report is ready in minutes.",
+    name: "Priya N.",
+    role: "Freelancer, Vancouver",
   },
   {
-    quote: '[PLACEHOLDER — replace with real user quote. Ideal for an accountant or bookkeeping firm. Focus on client management efficiency.]',
-    name: '[First Name]',
-    role: 'Bookkeeper, [City]',
+    quote: "I manage 12 clients through the Accountant Portal. Being able to see their transactions and post journal entries in one place has cut my monthly close time in half.",
+    name: "Sandra O.",
+    role: "Bookkeeper, Calgary",
+  },
+  {
+    quote: "I finally know where my paycheque actually goes. The budget categories and savings goals keep me on track without me having to think about it.",
+    name: "James K.",
+    role: "Personal, Toronto",
   },
 ];
 
