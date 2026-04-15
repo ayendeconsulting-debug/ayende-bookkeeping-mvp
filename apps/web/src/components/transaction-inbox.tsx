@@ -814,7 +814,8 @@ export function TransactionInbox({
 
       <TransactionExplainerPanel transaction={explainerTx} open={explainerOpen} onClose={handleExplainerClose} />
       <SplitTransactionModal transaction={splitTx} accounts={accounts}
-        open={splitOpen} onClose={handleSplitClose} onSuccess={handleSplitSuccess} />
+        open={splitOpen} onClose={handleSplitClose} onSuccess={handleSplitSuccess}
+          isFreelancerMode={mode==='freelancer'} />
       <TransferModal transaction={transferTx} accounts={accounts}
         open={transferOpen} onClose={handleTransferClose} onSuccess={handleTransferSuccess} />
       <PersonalCategoryPanel transaction={personalCatTx} categories={budgetCategories}

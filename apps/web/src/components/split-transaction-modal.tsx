@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { X, Plus, Trash2, AlertCircle, CheckCircle2, Building2, User } from 'lucide-react';
+import { X, Plus, Trash2, AlertCircle, CheckCircle2, Building2, User, DollarSign, Percent } from 'lucide-react';
 import { Account, RawTransaction } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -13,9 +13,11 @@ interface SplitLine {
   id: string;
   account_id: string;
   description: string;
-  amount: string;
+  value: string;   // dollar amount OR percentage string depending on inputMode
   is_personal: boolean;
 }
+
+type InputMode = 'dollar' | 'percent';
 
 interface SplitTransactionModalProps {
   transaction: RawTransaction | null;
@@ -27,12 +29,12 @@ interface SplitTransactionModalProps {
 }
 
 function newLine(isPersonal = false): SplitLine {
-  return { id: crypto.randomUUID(), account_id: '', description: '', amount: '', is_personal: isPersonal };
+  return { id: crypto.randomUUID(), account_id: '', description: '', value: '', is_personal: isPersonal };
 }
 
 const selectCls = 'h-9 rounded-md border border-input px-2 text-sm bg-card text-foreground focus:outline-none focus:ring-1 focus:ring-primary w-full';
 
-/** Source type toggle — shown in Freelancer mode */
+/** Source type toggle */
 function SourceTypeToggle({
   value,
   onChange,
@@ -41,7 +43,7 @@ function SourceTypeToggle({
   onChange: (v: 'business' | 'personal') => void;
 }) {
   return (
-    <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+    <div className="flex rounded-lg border border-border overflow-hidden">
       <button
         type="button"
         onClick={() => onChange('business')}
@@ -70,6 +72,44 @@ function SourceTypeToggle({
   );
 }
 
+/** $ / % input mode toggle */
+function InputModeToggle({
+  value,
+  onChange,
+}: {
+  value: InputMode;
+  onChange: (v: InputMode) => void;
+}) {
+  return (
+    <div className="flex rounded-md border border-border overflow-hidden h-7">
+      <button
+        type="button"
+        onClick={() => onChange('dollar')}
+        className={cn(
+          'px-2.5 text-xs font-semibold transition-colors flex items-center gap-1',
+          value === 'dollar'
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-card text-muted-foreground hover:bg-muted',
+        )}
+      >
+        <DollarSign className="w-3 h-3" />$
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange('percent')}
+        className={cn(
+          'px-2.5 text-xs font-semibold transition-colors flex items-center gap-1',
+          value === 'percent'
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-card text-muted-foreground hover:bg-muted',
+        )}
+      >
+        <Percent className="w-3 h-3" />%
+      </button>
+    </div>
+  );
+}
+
 export function SplitTransactionModal({
   transaction,
   accounts,
@@ -82,28 +122,42 @@ export function SplitTransactionModal({
   const [sourceAccountId, setSourceAccountId] = useState('');
   const [sourceType, setSourceType] = useState<'business' | 'personal'>('business');
   const [personalAccountLabel, setPersonalAccountLabel] = useState('');
+  const [inputMode, setInputMode] = useState<InputMode>('dollar');
   const [lines, setLines] = useState<SplitLine[]>([newLine(), newLine()]);
   const [error, setError] = useState('');
 
   if (!open || !transaction) return null;
 
-  const rawAmount  = Math.abs(Number(transaction.amount));
-  const allocated  = lines.reduce((sum, l) => sum + (parseFloat(l.amount) || 0), 0);
-  const remaining  = parseFloat((rawAmount - allocated).toFixed(2));
+  const rawAmount = Math.abs(Number(transaction.amount));
+  const activeAccounts = accounts.filter((a) => a.is_active);
+
+  // ── Compute allocated / remaining based on input mode ──────────────────────
+  function lineAmount(line: SplitLine): number {
+    const v = parseFloat(line.value);
+    if (isNaN(v) || v <= 0) return 0;
+    if (inputMode === 'percent') return parseFloat((rawAmount * v / 100).toFixed(2));
+    return v;
+  }
+
+  const allocated = lines.reduce((sum, l) => sum + lineAmount(l), 0);
+  const remaining = parseFloat((rawAmount - allocated).toFixed(2));
   const isBalanced = Math.abs(remaining) < 0.01;
+
+  // In percent mode also check total % = 100
+  const totalPct = inputMode === 'percent'
+    ? lines.reduce((sum, l) => sum + (parseFloat(l.value) || 0), 0)
+    : null;
+  const pctBalanced = totalPct !== null ? Math.abs(totalPct - 100) < 0.01 : true;
 
   const businessLines = lines.filter((l) => !l.is_personal);
   const personalLines = lines.filter((l) => l.is_personal);
-  const businessTotal = businessLines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
-  const personalTotal = personalLines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
+  const businessTotal = businessLines.reduce((s, l) => s + lineAmount(l), 0);
+  const personalTotal = personalLines.reduce((s, l) => s + lineAmount(l), 0);
 
-  const activeAccounts = accounts.filter((a) => a.is_active);
-
-  // For personal source: only business lines are posted; personal lines are UI-only
-  const canSubmit = isBalanced
+  const canSubmit = isBalanced && pctBalanced
     && lines.length >= 2
     && businessLines.length >= 1
-    && businessLines.every((l) => l.account_id !== '' && parseFloat(l.amount) > 0)
+    && businessLines.every((l) => l.account_id !== '' && lineAmount(l) > 0)
     && (sourceType === 'personal' || sourceAccountId !== '');
 
   function handleAddLine(isPersonal = false) {
@@ -121,10 +175,28 @@ export function SplitTransactionModal({
 
   function handleSourceTypeChange(v: 'business' | 'personal') {
     setSourceType(v);
-    // Reset personal tags when switching to business — all lines become business by default
     if (v === 'business') {
       setLines((prev) => prev.map((l) => ({ ...l, is_personal: false })));
     }
+  }
+
+  function handleInputModeChange(mode: InputMode) {
+    // Convert existing values between modes
+    setLines((prev) => prev.map((l) => {
+      const v = parseFloat(l.value);
+      if (isNaN(v) || v <= 0) return { ...l, value: '' };
+      if (mode === 'percent' && inputMode === 'dollar') {
+        // dollar → percent
+        const pct = rawAmount > 0 ? parseFloat((v / rawAmount * 100).toFixed(2)) : 0;
+        return { ...l, value: String(pct) };
+      } else if (mode === 'dollar' && inputMode === 'percent') {
+        // percent → dollar
+        const amt = parseFloat((rawAmount * v / 100).toFixed(2));
+        return { ...l, value: String(amt) };
+      }
+      return l;
+    }));
+    setInputMode(mode);
   }
 
   function handleClose() {
@@ -132,6 +204,7 @@ export function SplitTransactionModal({
     setSourceAccountId('');
     setSourceType('business');
     setPersonalAccountLabel('');
+    setInputMode('dollar');
     setError('');
     onClose();
   }
@@ -143,8 +216,12 @@ export function SplitTransactionModal({
       setError('Please select a source account.');
       return;
     }
-    if (!isBalanced) {
-      setError(`Split amounts must equal ${formatCurrency(rawAmount)}.`);
+    if (!isBalanced || !pctBalanced) {
+      setError(
+        inputMode === 'percent'
+          ? `Percentages must add up to 100% (currently ${totalPct?.toFixed(2)}%).`
+          : `Split amounts must equal ${formatCurrency(rawAmount)}.`,
+      );
       return;
     }
     if (businessLines.length === 0) {
@@ -154,7 +231,7 @@ export function SplitTransactionModal({
 
     const splits = lines.map((l) => ({
       account_id: l.account_id || 'personal',
-      amount: parseFloat(l.amount),
+      amount: lineAmount(l),
       description: l.description || undefined,
       is_personal: l.is_personal,
     }));
@@ -206,7 +283,7 @@ export function SplitTransactionModal({
               <SourceTypeToggle value={sourceType} onChange={handleSourceTypeChange} />
               {sourceType === 'personal' && (
                 <div className="mt-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                  Personal source: only Business-tagged lines post to the ledger as Owner Contributions. Personal-tagged lines are recorded for your reference only.
+                  Personal source: only Business-tagged lines post to the ledger as Owner Contributions. Personal-tagged lines are for your reference only.
                 </div>
               )}
             </div>
@@ -227,7 +304,7 @@ export function SplitTransactionModal({
             </div>
           )}
 
-          {/* Personal account label — personal source */}
+          {/* Personal account label */}
           {isFreelancerMode && sourceType === 'personal' && (
             <div>
               <label className="block text-xs font-medium text-foreground mb-1.5">
@@ -246,20 +323,26 @@ export function SplitTransactionModal({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-xs font-medium text-foreground">Split Lines</label>
-              <span className="text-xs text-muted-foreground">{lines.length} lines</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">{lines.length} lines</span>
+                <InputModeToggle value={inputMode} onChange={handleInputModeChange} />
+              </div>
             </div>
+
             <div className="space-y-2">
               {/* Column headers */}
               <div className={cn(
                 'px-1',
                 isFreelancerMode
-                  ? 'grid grid-cols-[80px_1fr_160px_120px_32px] gap-2'
-                  : 'grid grid-cols-[1fr_160px_120px_32px] gap-2'
+                  ? 'grid grid-cols-[80px_1fr_150px_110px_32px] gap-2'
+                  : 'grid grid-cols-[1fr_150px_110px_32px] gap-2',
               )}>
                 {isFreelancerMode && <span className="text-xs text-muted-foreground">Type</span>}
                 <span className="text-xs text-muted-foreground">Account</span>
                 <span className="text-xs text-muted-foreground">Description</span>
-                <span className="text-xs text-muted-foreground text-right">Amount</span>
+                <span className="text-xs text-muted-foreground text-right">
+                  {inputMode === 'percent' ? 'Percent' : 'Amount'}
+                </span>
                 <span />
               </div>
 
@@ -267,10 +350,10 @@ export function SplitTransactionModal({
                 <div key={line.id} className={cn(
                   'items-center gap-2',
                   isFreelancerMode
-                    ? 'grid grid-cols-[80px_1fr_160px_120px_32px]'
-                    : 'grid grid-cols-[1fr_160px_120px_32px]'
+                    ? 'grid grid-cols-[80px_1fr_150px_110px_32px]'
+                    : 'grid grid-cols-[1fr_150px_110px_32px]',
                 )}>
-                  {/* Business / Personal toggle per line — Freelancer mode */}
+                  {/* Business / Personal toggle per line */}
                   {isFreelancerMode && (
                     <button
                       type="button"
@@ -286,10 +369,10 @@ export function SplitTransactionModal({
                     </button>
                   )}
 
-                  {/* Account picker — hidden for personal lines (routed automatically) */}
+                  {/* Account picker — auto-routed for personal lines */}
                   {line.is_personal ? (
                     <div className="h-9 rounded-md border border-dashed border-border bg-muted/50 flex items-center px-3 text-xs text-muted-foreground">
-                      → Owner Draw
+                      {sourceType === 'business' ? '→ Owner Draw' : '→ Not posted'}
                     </div>
                   ) : (
                     <select
@@ -310,13 +393,24 @@ export function SplitTransactionModal({
                     placeholder="Optional"
                     className="h-9 text-sm"
                   />
-                  <Input
-                    type="number" min="0.01" step="0.01"
-                    value={line.amount}
-                    onChange={(e) => handleLineChange(line.id, 'amount', e.target.value)}
-                    placeholder="0.00"
-                    className="h-9 text-sm text-right"
-                  />
+
+                  {/* Value input with live conversion preview */}
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      min="0.01"
+                      step={inputMode === 'percent' ? '0.01' : '0.01'}
+                      max={inputMode === 'percent' ? '100' : undefined}
+                      value={line.value}
+                      onChange={(e) => handleLineChange(line.id, 'value', e.target.value)}
+                      placeholder={inputMode === 'percent' ? '0%' : '0.00'}
+                      className="h-9 text-sm text-right pr-6"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                      {inputMode === 'percent' ? '%' : ''}
+                    </span>
+                  </div>
+
                   <button
                     onClick={() => handleRemoveLine(line.id)}
                     disabled={lines.length <= 2}
@@ -331,6 +425,21 @@ export function SplitTransactionModal({
                   </button>
                 </div>
               ))}
+
+              {/* Per-line computed amount in % mode */}
+              {inputMode === 'percent' && (
+                <div className="space-y-1 pt-1">
+                  {lines.map((line) => {
+                    const amt = lineAmount(line);
+                    if (!amt) return null;
+                    return (
+                      <div key={line.id} className="flex justify-end pr-10 text-xs text-muted-foreground">
+                        = {formatCurrency(amt)}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Add line buttons */}
@@ -357,9 +466,7 @@ export function SplitTransactionModal({
             <div className="rounded-lg border border-border bg-muted/50 divide-y divide-border text-xs">
               <div className="flex justify-between px-4 py-2">
                 <span className="text-muted-foreground">
-                  {sourceType === 'business'
-                    ? 'Business → Expense accounts'
-                    : 'Business → Expense + Owner Contribution'}
+                  {sourceType === 'business' ? 'Business → Expense accounts' : 'Business → Expense + Owner Contribution'}
                 </span>
                 <span className="font-semibold text-primary">{formatCurrency(businessTotal)}</span>
               </div>
@@ -383,19 +490,36 @@ export function SplitTransactionModal({
           {/* Balance indicator */}
           <div className={cn(
             'flex items-center justify-between rounded-lg px-4 py-3 text-sm font-medium border',
-            isBalanced
+            isBalanced && pctBalanced
               ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400'
               : 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/20 dark:border-amber-800 dark:text-amber-400',
           )}>
             <div className="flex items-center gap-2">
-              {isBalanced ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-              <span>{isBalanced ? 'Balanced' : remaining > 0 ? 'Under-allocated' : 'Over-allocated'}</span>
+              {isBalanced && pctBalanced
+                ? <CheckCircle2 className="w-4 h-4" />
+                : <AlertCircle className="w-4 h-4" />}
+              <span>
+                {isBalanced && pctBalanced
+                  ? 'Balanced'
+                  : inputMode === 'percent'
+                    ? totalPct! > 100 ? 'Over 100%' : 'Under 100%'
+                    : remaining > 0 ? 'Under-allocated' : 'Over-allocated'}
+              </span>
             </div>
             <div className="flex items-center gap-4 text-xs">
-              <span>Allocated: <strong>{formatCurrency(allocated)}</strong></span>
-              <span className={cn(remaining !== 0 && 'font-semibold')}>
-                Remaining: <strong>{formatCurrency(Math.abs(remaining))}{remaining < 0 ? ' over' : ''}</strong>
-              </span>
+              {inputMode === 'percent' ? (
+                <>
+                  <span>Allocated: <strong>{totalPct?.toFixed(1)}%</strong></span>
+                  <span>Remaining: <strong>{(100 - (totalPct ?? 0)).toFixed(1)}%</strong></span>
+                </>
+              ) : (
+                <>
+                  <span>Allocated: <strong>{formatCurrency(allocated)}</strong></span>
+                  <span className={cn(remaining !== 0 && 'font-semibold')}>
+                    Remaining: <strong>{formatCurrency(Math.abs(remaining))}{remaining < 0 ? ' over' : ''}</strong>
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
