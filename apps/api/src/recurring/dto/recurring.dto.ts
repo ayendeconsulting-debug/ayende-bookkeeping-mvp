@@ -6,6 +6,8 @@ import {
   IsPositive,
   IsIn,
   IsBoolean,
+  Min,
+  Max,
 } from 'class-validator';
 
 export class CreateRecurringDto {
@@ -41,6 +43,18 @@ export class CreateRecurringDto {
   @IsOptional()
   is_personal?: boolean;
 
+  /**
+   * Fraction of the amount that is business expense (0.0–1.0).
+   * Defaults to 1.0 (100% business) if not provided.
+   * 0.0 = fully personal (no journal entry).
+   * 0 < ratio < 1 = split — business portion to debit account, remainder to Owner Draw.
+   */
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  @IsOptional()
+  business_ratio?: number;
+
   @IsString()
   @IsOptional()
   notes?: string;
@@ -63,6 +77,12 @@ export class UpdateRecurringDto {
   @IsBoolean()
   @IsOptional()
   is_personal?: boolean;
+
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  @IsOptional()
+  business_ratio?: number;
 
   @IsString()
   @IsOptional()

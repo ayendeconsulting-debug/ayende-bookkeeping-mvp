@@ -1,5 +1,5 @@
 import { apiGet } from '@/lib/api';
-import { RecurringTransaction, Account } from '@/types';
+import { RecurringTransaction, Account, Business } from '@/types';
 import { RecurringManager } from '@/components/recurring-manager';
 
 // Phase 12: detection candidate shape returned by GET /recurring/detections
@@ -28,7 +28,6 @@ async function getAccounts(): Promise<Account[]> {
   }
 }
 
-// Phase 12: fetch detected patterns — non-fatal, returns empty array on error
 async function getDetections(): Promise<BusinessDetectionCandidate[]> {
   try {
     return await apiGet<BusinessDetectionCandidate[]>('/recurring/detections');
@@ -37,17 +36,30 @@ async function getDetections(): Promise<BusinessDetectionCandidate[]> {
   }
 }
 
+async function getBusiness(): Promise<Business | null> {
+  try {
+    return await apiGet<Business>('/businesses/me');
+  } catch {
+    return null;
+  }
+}
+
 export default async function RecurringPage() {
-  const [recurring, accounts, detections] = await Promise.all([
+  const [recurring, accounts, detections, business] = await Promise.all([
     getRecurring(),
     getAccounts(),
     getDetections(),
+    getBusiness(),
   ]);
+
+  const isFreelancerMode = business?.mode === 'freelancer';
+
   return (
     <RecurringManager
       initialRecurring={recurring}
       accounts={accounts}
       initialDetections={detections}
+      isFreelancerMode={isFreelancerMode}
     />
   );
 }

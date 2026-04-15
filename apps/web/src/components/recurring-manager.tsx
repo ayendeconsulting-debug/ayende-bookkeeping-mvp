@@ -24,12 +24,13 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, cn } from '@/lib/utils';
 
 interface RecurringManagerProps {
   initialRecurring: RecurringTransaction[];
   accounts: Account[];
   initialDetections?: BusinessDetectionCandidate[];
+  isFreelancerMode?: boolean;
 }
 
 interface RecurringFormData {
@@ -41,6 +42,8 @@ interface RecurringFormData {
   start_date: string;
   end_date: string;
   notes: string;
+  usageType: 'business' | 'personal' | 'split';
+  businessPct: number;
 }
 
 interface ConfirmDialogState {
@@ -48,6 +51,8 @@ interface ConfirmDialogState {
   candidate: BusinessDetectionCandidate | null;
   debitAccountId: string;
   creditAccountId: string;
+  usageType: 'business' | 'personal' | 'split';
+  businessPct: number;
 }
 
 const EMPTY_FORM: RecurringFormData = {
@@ -59,6 +64,8 @@ const EMPTY_FORM: RecurringFormData = {
   start_date: new Date().toISOString().split('T')[0],
   end_date: '',
   notes: '',
+  usageType: 'business',
+  businessPct: 100,
 };
 
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -77,7 +84,7 @@ const STATUS_BADGE: Record<RecurringStatus, { label: string; variant: 'posted' |
 };
 
 function formatDate(dateStr?: string) {
-  if (!dateStr) return '—';
+  if (!dateStr) return '–';
   return new Date(dateStr).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
@@ -85,10 +92,92 @@ function formatAmount(amount: number, currency = 'CAD') {
   return new Intl.NumberFormat('en-CA', { style: 'currency', currency }).format(amount);
 }
 
+/** Usage type segmented control — shown only in Freelancer mode */
+function UsageTypeToggle({
+  value,
+  onChange,
+}: {
+  value: 'business' | 'personal' | 'split';
+  onChange: (v: 'business' | 'personal' | 'split') => void;
+}) {
+  const options: { value: 'business' | 'personal' | 'split'; label: string }[] = [
+    { value: 'business', label: 'Business' },
+    { value: 'personal', label: 'Personal' },
+    { value: 'split',    label: 'Split' },
+  ];
+  return (
+    <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => onChange(opt.value)}
+          className={cn(
+            'flex-1 py-1.5 px-3 text-xs font-medium transition-colors',
+            value === opt.value
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-card text-muted-foreground hover:bg-muted',
+          )}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Business % slider + live preview — shown when usageType === 'split' */
+function SplitPreview({
+  businessPct,
+  onChange,
+  amount,
+  debitAccountName,
+}: {
+  businessPct: number;
+  onChange: (v: number) => void;
+  amount: number;
+  debitAccountName?: string;
+}) {
+  const personalPct = 100 - businessPct;
+  const businessAmt = amount > 0 ? parseFloat((amount * businessPct / 100).toFixed(2)) : 0;
+  const personalAmt = amount > 0 ? parseFloat((amount - businessAmt).toFixed(2)) : 0;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <Label>Business %</Label>
+        <span className="text-sm font-semibold text-primary">{businessPct}% business · {personalPct}% personal</span>
+      </div>
+      <input
+        type="range" min={1} max={99} value={businessPct}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full accent-primary"
+      />
+      {amount > 0 && (
+        <div className="rounded-lg bg-muted px-4 py-3 text-xs space-y-1">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Business → {debitAccountName ?? 'Expense Account'}</span>
+            <span className="font-semibold text-primary">{formatCurrency(businessAmt)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Personal → Owner Draw</span>
+            <span className="font-semibold text-foreground">{formatCurrency(personalAmt)}</span>
+          </div>
+          <div className="flex justify-between border-t border-border pt-1 mt-1">
+            <span className="text-muted-foreground">Bank (credit)</span>
+            <span className="font-semibold text-foreground">−{formatCurrency(amount)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function RecurringManager({
   initialRecurring,
   accounts,
   initialDetections = [],
+  isFreelancerMode = false,
 }: RecurringManagerProps) {
   const router = useRouter();
   const [recurring, setRecurring] = useState<RecurringTransaction[]>(initialRecurring);
@@ -104,6 +193,8 @@ export function RecurringManager({
     candidate: null,
     debitAccountId: '',
     creditAccountId: '',
+    usageType: 'business',
+    businessPct: 100,
   });
   const [isDetectionPending, startDetectionTransition] = useTransition();
 
@@ -119,6 +210,12 @@ export function RecurringManager({
 
   function openEdit(item: RecurringTransaction) {
     setEditingItem(item);
+    const ratio = Number((item as any).business_ratio ?? 1.0);
+    const isPersonal = (item as any).is_personal ?? false;
+    const usageType: 'business' | 'personal' | 'split' =
+      isPersonal || ratio <= 0 ? 'personal' :
+      ratio < 1.0 ? 'split' : 'business';
+
     setForm({
       description: item.description,
       amount: String(item.amount),
@@ -128,6 +225,8 @@ export function RecurringManager({
       start_date: item.start_date?.split('T')[0] ?? '',
       end_date: item.end_date?.split('T')[0] ?? '',
       notes: '',
+      usageType,
+      businessPct: Math.round(ratio * 100),
     });
     setError(null);
     setDialogOpen(true);
@@ -142,6 +241,11 @@ export function RecurringManager({
     }
     if (!editingItem && !form.start_date) { setError('Start date is required.'); return; }
 
+    const isPersonal = form.usageType === 'personal';
+    const businessRatio = form.usageType === 'personal' ? 0.0
+      : form.usageType === 'split' ? parseFloat((form.businessPct / 100).toFixed(4))
+      : 1.0;
+
     setSaving(true); setError(null);
 
     const result = editingItem
@@ -149,6 +253,8 @@ export function RecurringManager({
           description: form.description,
           amount,
           end_date: form.end_date || undefined,
+          is_personal: isPersonal,
+          business_ratio: businessRatio,
           notes: form.notes || undefined,
         })
       : await createRecurring({
@@ -159,6 +265,8 @@ export function RecurringManager({
           frequency: form.frequency,
           start_date: form.start_date,
           end_date: form.end_date || undefined,
+          is_personal: isPersonal,
+          business_ratio: businessRatio,
           notes: form.notes || undefined,
         });
 
@@ -207,16 +315,30 @@ export function RecurringManager({
   }
 
   function openConfirmDialog(candidate: BusinessDetectionCandidate) {
-    setConfirmDialog({ open: true, candidate, debitAccountId: '', creditAccountId: '' });
+    setConfirmDialog({
+      open: true,
+      candidate,
+      debitAccountId: '',
+      creditAccountId: '',
+      usageType: 'business',
+      businessPct: 100,
+    });
   }
 
   function handleConfirmDetection() {
-    const { candidate, debitAccountId, creditAccountId } = confirmDialog;
+    const { candidate, debitAccountId, creditAccountId, usageType, businessPct } = confirmDialog;
     if (!candidate) return;
-    if (!debitAccountId || !creditAccountId) {
+
+    const isPersonal = usageType === 'personal';
+    const needsAccounts = usageType !== 'personal';
+    if (needsAccounts && (!debitAccountId || !creditAccountId)) {
       toastError('Please select both debit and credit accounts.');
       return;
     }
+
+    const businessRatio = isPersonal ? 0.0
+      : usageType === 'split' ? parseFloat((businessPct / 100).toFixed(4))
+      : 1.0;
 
     startDetectionTransition(async () => {
       const result = await confirmBusinessDetection({
@@ -224,13 +346,15 @@ export function RecurringManager({
         description: candidate.description,
         amount: candidate.averageAmount,
         frequency: candidate.frequency,
-        debitAccountId,
-        creditAccountId,
+        debitAccountId: debitAccountId || candidate.key, // fallback for personal (not used)
+        creditAccountId: creditAccountId || candidate.key,
+        isPersonal,
+        businessRatio,
       });
 
       if (result.success) {
         setDetections((prev) => prev.filter((d) => d.key !== candidate.key));
-        setConfirmDialog({ open: false, candidate: null, debitAccountId: '', creditAccountId: '' });
+        setConfirmDialog({ open: false, candidate: null, debitAccountId: '', creditAccountId: '', usageType: 'business', businessPct: 100 });
         toastSuccess(`"${candidate.description}" added to recurring transactions.`);
         router.refresh();
       } else {
@@ -253,8 +377,9 @@ export function RecurringManager({
   const activeItems   = recurring.filter((r) => r.status === 'active');
   const inactiveItems = recurring.filter((r) => r.status !== 'active');
 
-  // Shared select class — native <select> elements not using ShadCN Select
   const selectClass = 'w-full text-sm border border-input rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:bg-muted disabled:opacity-60';
+
+  const confirmDebitAccount = accountMap[confirmDialog.debitAccountId];
 
   return (
     <div className="p-6 max-w-screen-lg mx-auto">
@@ -284,7 +409,7 @@ export function RecurringManager({
             <h2 className="text-sm font-semibold text-foreground">
               Detected Patterns ({detections.length})
             </h2>
-            <span className="text-xs text-muted-foreground">— confirm to create a recurring template, or dismiss to hide</span>
+            <span className="text-xs text-muted-foreground">– confirm to create a recurring template, or dismiss to hide</span>
           </div>
           <Card>
             <CardContent className="p-0">
@@ -400,9 +525,7 @@ export function RecurringManager({
               <div className="flex flex-col gap-1.5">
                 <Label>Amount (CAD)</Label>
                 <Input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
+                  type="number" min="0.01" step="0.01"
                   value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                   placeholder="0.00"
@@ -423,7 +546,19 @@ export function RecurringManager({
               </div>
             </div>
 
-            {!editingItem && (
+            {/* Usage type — Freelancer mode only */}
+            {isFreelancerMode && (
+              <div className="flex flex-col gap-1.5">
+                <Label>Usage Type</Label>
+                <UsageTypeToggle
+                  value={form.usageType}
+                  onChange={(v) => setForm((f) => ({ ...f, usageType: v, businessPct: v === 'personal' ? 0 : v === 'business' ? 100 : f.businessPct === 100 || f.businessPct === 0 ? 70 : f.businessPct }))}
+                />
+              </div>
+            )}
+
+            {/* Account pickers — hidden when fully personal */}
+            {form.usageType !== 'personal' && !editingItem && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <Label>Debit Account</Label>
@@ -434,7 +569,7 @@ export function RecurringManager({
                   >
                     <option value="">Select account…</option>
                     {activeAccounts.map((a) => (
-                      <option key={a.id} value={a.id}>{a.account_code} — {a.account_name}</option>
+                      <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>
                     ))}
                   </select>
                 </div>
@@ -447,19 +582,35 @@ export function RecurringManager({
                   >
                     <option value="">Select account…</option>
                     {activeAccounts.map((a) => (
-                      <option key={a.id} value={a.id}>{a.account_code} — {a.account_name}</option>
+                      <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>
                     ))}
                   </select>
                 </div>
               </div>
             )}
 
+            {/* Personal-only info banner */}
+            {isFreelancerMode && form.usageType === 'personal' && (
+              <div className="rounded-lg bg-muted px-4 py-3 text-xs text-muted-foreground">
+                Personal recurring items are tracked for awareness only — no journal entry is posted to the business ledger.
+              </div>
+            )}
+
+            {/* Split slider + preview */}
+            {isFreelancerMode && form.usageType === 'split' && (
+              <SplitPreview
+                businessPct={form.businessPct}
+                onChange={(v) => setForm((f) => ({ ...f, businessPct: v }))}
+                amount={parseFloat(form.amount) || 0}
+                debitAccountName={accountMap[form.debit_account_id]?.account_name}
+              />
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Start Date</Label>
                 <Input
-                  type="date"
-                  value={form.start_date}
+                  type="date" value={form.start_date}
                   onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
                   disabled={!!editingItem}
                 />
@@ -467,8 +618,7 @@ export function RecurringManager({
               <div className="flex flex-col gap-1.5">
                 <Label>End Date <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 <Input
-                  type="date"
-                  value={form.end_date}
+                  type="date" value={form.end_date}
                   onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
                 />
               </div>
@@ -499,7 +649,7 @@ export function RecurringManager({
       <Dialog
         open={confirmDialog.open}
         onOpenChange={(open) =>
-          setConfirmDialog((s) => ({ ...s, open, ...(open ? {} : { candidate: null, debitAccountId: '', creditAccountId: '' }) }))
+          setConfirmDialog((s) => ({ ...s, open, ...(open ? {} : { candidate: null, debitAccountId: '', creditAccountId: '', usageType: 'business', businessPct: 100 }) }))
         }
       >
         <DialogContent className="max-w-md">
@@ -516,48 +666,87 @@ export function RecurringManager({
                 </p>
               </div>
 
-              <p className="text-sm text-muted-foreground">
-                Select the accounts to use for this recurring journal entry:
-              </p>
+              {/* Usage type toggle — Freelancer mode only */}
+              {isFreelancerMode && (
+                <div className="flex flex-col gap-1.5">
+                  <Label>Usage Type</Label>
+                  <UsageTypeToggle
+                    value={confirmDialog.usageType}
+                    onChange={(v) => setConfirmDialog((s) => ({
+                      ...s,
+                      usageType: v,
+                      businessPct: v === 'personal' ? 0 : v === 'business' ? 100 : s.businessPct === 100 || s.businessPct === 0 ? 70 : s.businessPct,
+                    }))}
+                  />
+                </div>
+              )}
 
-              <div className="flex flex-col gap-1.5">
-                <Label>Debit Account <span className="text-muted-foreground font-normal">(expense / asset)</span></Label>
-                <select
-                  value={confirmDialog.debitAccountId}
-                  onChange={(e) => setConfirmDialog((s) => ({ ...s, debitAccountId: e.target.value }))}
-                  className={selectClass}
-                >
-                  <option value="">Select account…</option>
-                  {activeAccounts.map((a) => (
-                    <option key={a.id} value={a.id}>{a.account_code} — {a.account_name}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Account pickers — hidden when personal */}
+              {confirmDialog.usageType !== 'personal' && (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Select the accounts to use for this recurring journal entry:
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Debit Account <span className="text-muted-foreground font-normal">(expense / asset)</span></Label>
+                    <select
+                      value={confirmDialog.debitAccountId}
+                      onChange={(e) => setConfirmDialog((s) => ({ ...s, debitAccountId: e.target.value }))}
+                      className={selectClass}
+                    >
+                      <option value="">Select account…</option>
+                      {activeAccounts.map((a) => (
+                        <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label>Credit Account <span className="text-muted-foreground font-normal">(bank / liability)</span></Label>
-                <select
-                  value={confirmDialog.creditAccountId}
-                  onChange={(e) => setConfirmDialog((s) => ({ ...s, creditAccountId: e.target.value }))}
-                  className={selectClass}
-                >
-                  <option value="">Select account…</option>
-                  {activeAccounts.map((a) => (
-                    <option key={a.id} value={a.id}>{a.account_code} — {a.account_name}</option>
-                  ))}
-                </select>
-              </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Credit Account <span className="text-muted-foreground font-normal">(bank / liability)</span></Label>
+                    <select
+                      value={confirmDialog.creditAccountId}
+                      onChange={(e) => setConfirmDialog((s) => ({ ...s, creditAccountId: e.target.value }))}
+                      className={selectClass}
+                    >
+                      <option value="">Select account…</option>
+                      {activeAccounts.map((a) => (
+                        <option key={a.id} value={a.id}>{a.account_code} – {a.account_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Personal-only banner */}
+              {isFreelancerMode && confirmDialog.usageType === 'personal' && (
+                <div className="rounded-lg bg-muted px-4 py-3 text-xs text-muted-foreground">
+                  Personal recurring items are tracked for awareness only — no journal entry is posted to the business ledger.
+                </div>
+              )}
+
+              {/* Split slider + preview */}
+              {isFreelancerMode && confirmDialog.usageType === 'split' && (
+                <SplitPreview
+                  businessPct={confirmDialog.businessPct}
+                  onChange={(v) => setConfirmDialog((s) => ({ ...s, businessPct: v }))}
+                  amount={confirmDialog.candidate.averageAmount}
+                  debitAccountName={confirmDebitAccount?.account_name}
+                />
+              )}
 
               <div className="flex justify-end gap-2 mt-2">
                 <Button
                   variant="outline"
-                  onClick={() => setConfirmDialog({ open: false, candidate: null, debitAccountId: '', creditAccountId: '' })}
+                  onClick={() => setConfirmDialog({ open: false, candidate: null, debitAccountId: '', creditAccountId: '', usageType: 'business', businessPct: 100 })}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleConfirmDetection}
-                  disabled={isDetectionPending || !confirmDialog.debitAccountId || !confirmDialog.creditAccountId}
+                  disabled={
+                    isDetectionPending ||
+                    (confirmDialog.usageType !== 'personal' && (!confirmDialog.debitAccountId || !confirmDialog.creditAccountId))
+                  }
                 >
                   {isDetectionPending ? 'Creating…' : 'Create Recurring'}
                 </Button>
@@ -599,18 +788,39 @@ function RecurringTable({
           const credit = accountMap[item.credit_account_id];
           const badge  = STATUS_BADGE[item.status] ?? { label: item.status, variant: 'secondary' as const };
           const isEditable = item.status !== 'cancelled' && item.status !== 'completed';
+          const ratio = Number((item as any).business_ratio ?? 1.0);
+          const isPersonal = (item as any).is_personal ?? false;
+          const isSplit = !isPersonal && ratio > 0 && ratio < 1.0;
 
           return (
             <TableRow key={item.id}>
-              <TableCell className="font-medium">{item.description}</TableCell>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  {item.description}
+                  {isPersonal && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">Personal</span>
+                  )}
+                  {isSplit && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 font-medium">
+                      {Math.round(ratio * 100)}% biz
+                    </span>
+                  )}
+                </div>
+              </TableCell>
               <TableCell className="font-mono text-sm">{formatAmount(item.amount, item.currency_code)}</TableCell>
               <TableCell><Badge variant="secondary">{FREQUENCY_LABELS[item.frequency]}</Badge></TableCell>
               <TableCell className="text-sm text-foreground">
-                <span className="text-muted-foreground">{debit?.account_code ?? '?'}</span>
-                {' '}{debit?.account_name ?? 'Unknown'}
-                <span className="mx-1.5 text-border">→</span>
-                <span className="text-muted-foreground">{credit?.account_code ?? '?'}</span>
-                {' '}{credit?.account_name ?? 'Unknown'}
+                {isPersonal ? (
+                  <span className="text-muted-foreground text-xs">Personal only</span>
+                ) : (
+                  <>
+                    <span className="text-muted-foreground">{debit?.account_code ?? '?'}</span>
+                    {' '}{debit?.account_name ?? 'Unknown'}
+                    <span className="mx-1.5 text-border">→</span>
+                    <span className="text-muted-foreground">{credit?.account_code ?? '?'}</span>
+                    {' '}{credit?.account_name ?? 'Unknown'}
+                  </>
+                )}
               </TableCell>
               <TableCell className="text-sm text-muted-foreground">{formatDate(item.next_run_date)}</TableCell>
               <TableCell><Badge variant={badge.variant}>{badge.label}</Badge></TableCell>

@@ -16,11 +16,12 @@ import {
 } from '../entities/recurring-transaction.entity';
 import { JournalEntry, JournalEntryStatus } from '../entities/journal-entry.entity';
 import { JournalLine } from '../entities/journal-line.entity';
+import { Account, AccountSubtype } from '../entities/account.entity';
 import { RawTransaction, RawTransactionSource, RawTransactionStatus } from '../entities/raw-transaction.entity';
 import { Business } from '../entities/business.entity';
 import { CreateRecurringDto, UpdateRecurringDto } from './dto/recurring.dto';
 
-// ── Phase 12: Detection types ────────────────────────────────────────────────
+// ── Phase 12: Detection types ──────────────────────────────────────────────────
 
 export interface DetectionCandidate {
   key: string;
@@ -38,6 +39,8 @@ interface ConfirmDetectionDto {
   frequency: 'weekly' | 'monthly' | 'quarterly' | 'annually';
   debitAccountId: string;
   creditAccountId: string;
+  isPersonal?: boolean;
+  businessRatio?: number;
 }
 
 @Injectable()
@@ -51,6 +54,8 @@ export class RecurringService implements OnModuleInit {
     private readonly journalEntryRepo: Repository<JournalEntry>,
     @InjectRepository(JournalLine)
     private readonly journalLineRepo: Repository<JournalLine>,
+    @InjectRepository(Account)
+    private readonly accountRepo: Repository<Account>,
     @InjectRepository(RawTransaction)
     private readonly rawTxRepo: Repository<RawTransaction>,
     @InjectRepository(Business)
@@ -60,7 +65,7 @@ export class RecurringService implements OnModuleInit {
     private readonly dataSource: DataSource,
   ) {}
 
-  // ── Schedule daily job on startup ────────────────────────────────────────
+  // ── Schedule daily job on startup ──────────────────────────────────────────
 
   async onModuleInit() {
     try {
@@ -83,11 +88,14 @@ export class RecurringService implements OnModuleInit {
     }
   }
 
-  // ── CRUD ─────────────────────────────────────────────────────────────────
+  // ── CRUD ───────────────────────────────────────────────────────────────────
 
   async create(businessId: string, dto: CreateRecurringDto): Promise<RecurringTransaction> {
     const startDate = new Date(dto.start_date);
     const nextRunDate = this.calculateNextRunDate(startDate, dto.frequency as RecurringFrequency, true);
+
+    const isPersonal = dto.is_personal ?? false;
+    const businessRatio = dto.business_ratio ?? (isPersonal ? 0.0 : 1.0);
 
     const template = this.recurringRepo.create({
       business_id: businessId,
@@ -101,7 +109,8 @@ export class RecurringService implements OnModuleInit {
       end_date: dto.end_date ? new Date(dto.end_date) : null,
       next_run_date: nextRunDate,
       status: RecurringStatus.ACTIVE,
-      is_personal: dto.is_personal ?? false,
+      is_personal: isPersonal,
+      business_ratio: businessRatio,
       notes: dto.notes ?? null,
     });
 
@@ -129,6 +138,7 @@ export class RecurringService implements OnModuleInit {
     if (dto.amount !== undefined) template.amount = dto.amount;
     if (dto.end_date !== undefined) template.end_date = dto.end_date ? new Date(dto.end_date) : null;
     if (dto.is_personal !== undefined) template.is_personal = dto.is_personal;
+    if (dto.business_ratio !== undefined) template.business_ratio = dto.business_ratio;
     if (dto.notes !== undefined) template.notes = dto.notes ?? null;
     return this.recurringRepo.save(template);
   }
@@ -160,7 +170,7 @@ export class RecurringService implements OnModuleInit {
     return this.recurringRepo.save(template);
   }
 
-  // ── Process Due Templates (called by BullMQ processor) ──────────────────
+  // ── Process Due Templates (called by BullMQ processor) ────────────────────
 
   async processDueTemplates(): Promise<{ processed: number; failed: number }> {
     const today = new Date();
@@ -190,13 +200,8 @@ export class RecurringService implements OnModuleInit {
     return { processed, failed };
   }
 
-  // ── Phase 12: Pattern Detection ──────────────────────────────────────────
+  // ── Phase 12: Pattern Detection ────────────────────────────────────────────
 
-  /**
-   * Detects recurring payment patterns from 12 months of Plaid transactions.
-   * Ported from PersonalService.detectRecurringPayments() — same algorithm.
-   * Bounded to 12 months / 1,000 rows for performance.
-   */
   async detectPatterns(businessId: string): Promise<DetectionCandidate[]> {
     const business = await this.businessRepo.findOne({ where: { id: businessId } });
     if (!business) throw new NotFoundException('Business not found');
@@ -205,7 +210,6 @@ export class RecurringService implements OnModuleInit {
     const confirmedKeys: string[] = settings?.confirmed ?? [];
     const dismissedKeys: string[] = settings?.dismissed ?? [];
 
-    // 12-month lookback window
     const lookbackDate = new Date();
     lookbackDate.setMonth(lookbackDate.getMonth() - 12);
 
@@ -219,14 +223,12 @@ export class RecurringService implements OnModuleInit {
       take: 1000,
     });
 
-    // Filter: outflows only (negative amounts), not ignored
     const outflows = transactions.filter(
       (tx) =>
         Number(tx.amount) < 0 &&
         tx.status !== RawTransactionStatus.IGNORED,
     );
 
-    // Group by normalised description key
     const groups = new Map<string, RawTransaction[]>();
     for (const tx of outflows) {
       const key = this.normaliseDescription(tx.description);
@@ -238,20 +240,15 @@ export class RecurringService implements OnModuleInit {
     const candidates: DetectionCandidate[] = [];
 
     for (const [key, txs] of groups) {
-      // Minimum 3 occurrences
       if (txs.length < 3) continue;
-
-      // Already actioned
       if (confirmedKeys.includes(key) || dismissedKeys.includes(key)) continue;
 
       const amounts = txs.map((t) => Math.abs(Number(t.amount)));
       const avgAmount = amounts.reduce((s, a) => s + a, 0) / amounts.length;
 
-      // Amount variance ≤ 15%
       const amountCV = this.coefficientOfVariation(amounts);
       if (amountCV > 0.15) continue;
 
-      // Calculate intervals in days between consecutive transactions
       const dates = txs.map((t) => new Date(t.transaction_date).getTime());
       const intervals: number[] = [];
       for (let i = 1; i < dates.length; i++) {
@@ -262,15 +259,12 @@ export class RecurringService implements OnModuleInit {
 
       const avgInterval = intervals.reduce((s, v) => s + v, 0) / intervals.length;
 
-      // Interval variance ≤ 30%
       const intervalCV = this.coefficientOfVariation(intervals);
       if (intervalCV > 0.3) continue;
 
-      // Map to frequency bucket
       const frequency = this.classifyFrequency(avgInterval);
       if (!frequency) continue;
 
-      // Estimate next date
       const lastDate = new Date(dates[dates.length - 1]);
       const nextDate = new Date(lastDate.getTime() + avgInterval * 24 * 60 * 60 * 1000);
 
@@ -287,9 +281,6 @@ export class RecurringService implements OnModuleInit {
     return candidates;
   }
 
-  /**
-   * Stores the confirmed key in business settings and creates a RecurringTransaction template.
-   */
   async confirmDetection(
     businessId: string,
     dto: ConfirmDetectionDto,
@@ -297,14 +288,12 @@ export class RecurringService implements OnModuleInit {
     const business = await this.businessRepo.findOne({ where: { id: businessId } });
     if (!business) throw new NotFoundException('Business not found');
 
-    // Persist confirmed key
     const settings = business.recurring_detection_settings ?? { confirmed: [], dismissed: [] };
     if (!settings.confirmed.includes(dto.key)) {
       settings.confirmed.push(dto.key);
     }
     await this.businessRepo.update(businessId, { recurring_detection_settings: settings });
 
-    // Map frequency string → RecurringFrequency enum
     const freqMap: Record<string, RecurringFrequency> = {
       weekly: RecurringFrequency.WEEKLY,
       monthly: RecurringFrequency.MONTHLY,
@@ -313,7 +302,9 @@ export class RecurringService implements OnModuleInit {
     };
     const frequency = freqMap[dto.frequency] ?? RecurringFrequency.MONTHLY;
 
-    // Create RecurringTransaction template
+    const isPersonal = dto.isPersonal ?? false;
+    const businessRatio = dto.businessRatio ?? (isPersonal ? 0.0 : 1.0);
+
     const startDate = new Date();
     const nextRunDate = this.calculateNextRunDate(startDate, frequency, true);
 
@@ -329,16 +320,14 @@ export class RecurringService implements OnModuleInit {
       end_date: null,
       next_run_date: nextRunDate,
       status: RecurringStatus.ACTIVE,
-      is_personal: false,
+      is_personal: isPersonal,
+      business_ratio: businessRatio,
       notes: `Auto-confirmed from pattern detection`,
     });
 
     return this.recurringRepo.save(template);
   }
 
-  /**
-   * Stores the dismissed key in business settings so the pattern is suppressed.
-   */
   async dismissDetection(businessId: string, key: string): Promise<{ success: boolean }> {
     const business = await this.businessRepo.findOne({ where: { id: businessId } });
     if (!business) throw new NotFoundException('Business not found');
@@ -352,67 +341,175 @@ export class RecurringService implements OnModuleInit {
     return { success: true };
   }
 
-  // ── Post a single recurring entry ────────────────────────────────────────
+  // ── Post a single recurring entry ──────────────────────────────────────────
 
   private async postRecurringEntry(template: RecurringTransaction): Promise<void> {
-    await this.dataSource.transaction(async (manager) => {
-      const entryDate = new Date(template.next_run_date!);
+    const ratio = Number(template.business_ratio ?? 1.0);
 
-      const entry = manager.create(JournalEntry, {
-        business_id: template.business_id,
-        entry_date: entryDate,
-        description: template.description,
-        reference_type: 'recurring_transaction',
-        reference_id: template.id,
-        status: JournalEntryStatus.POSTED,
-        created_by: 'system',
-        posted_by: 'system',
-        posted_at: new Date(),
-        notes: `Auto-posted by recurring template — ${template.frequency}`,
-      });
-      const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
+    // Fully personal — skip entirely, just advance the next run date
+    if (template.is_personal || ratio <= 0) {
+      await this.advanceNextRunDate(template);
+      return;
+    }
 
-      await manager.save(JournalLine, [
-        manager.create(JournalLine, {
+    const gross = Number(template.amount);
+    const isSplit = ratio < 1.0;
+
+    if (isSplit) {
+      // Look up Owner Draw account for this business
+      const ownerDrawAccount = await this.accountRepo.findOne({
+        where: {
           business_id: template.business_id,
-          journal_entry_id: savedEntry.id,
-          line_number: 1,
-          account_id: template.debit_account_id,
-          debit_amount: Number(template.amount),
-          credit_amount: 0,
-          description: template.description,
-          is_tax_line: false,
-        }),
-        manager.create(JournalLine, {
-          business_id: template.business_id,
-          journal_entry_id: savedEntry.id,
-          line_number: 2,
-          account_id: template.credit_account_id,
-          debit_amount: 0,
-          credit_amount: Number(template.amount),
-          description: template.description,
-          is_tax_line: false,
-        }),
-      ]);
-
-      const nextRun = this.calculateNextRunDate(
-        new Date(template.next_run_date!),
-        template.frequency,
-      );
-
-      const isExpired =
-        template.end_date !== null &&
-        nextRun > new Date(template.end_date);
-
-      await manager.update(RecurringTransaction, template.id, {
-        next_run_date: isExpired ? null : nextRun,
-        last_posted_at: new Date(),
-        status: isExpired ? RecurringStatus.COMPLETED : RecurringStatus.ACTIVE,
+          account_subtype: AccountSubtype.OWNER_DRAW,
+        },
       });
+      if (!ownerDrawAccount) {
+        throw new Error(
+          `No owner_draw equity account found for business ${template.business_id} — cannot post split recurring entry`,
+        );
+      }
+
+      const businessAmount = parseFloat((gross * ratio).toFixed(2));
+      const personalAmount = parseFloat((gross - businessAmount).toFixed(2));
+
+      await this.dataSource.transaction(async (manager) => {
+        const entryDate = new Date(template.next_run_date!);
+
+        const entry = manager.create(JournalEntry, {
+          business_id: template.business_id,
+          entry_date: entryDate,
+          description: template.description,
+          reference_type: 'recurring_transaction',
+          reference_id: template.id,
+          status: JournalEntryStatus.POSTED,
+          created_by: 'system',
+          posted_by: 'system',
+          posted_at: new Date(),
+          notes: `Auto-posted (split ${Math.round(ratio * 100)}% business / ${Math.round((1 - ratio) * 100)}% personal) — ${template.frequency}`,
+        });
+        const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
+
+        await manager.save(JournalLine, [
+          // Business portion → debit account (expense/asset)
+          manager.create(JournalLine, {
+            business_id: template.business_id,
+            journal_entry_id: savedEntry.id,
+            line_number: 1,
+            account_id: template.debit_account_id,
+            debit_amount: businessAmount,
+            credit_amount: 0,
+            description: `${template.description} (business ${Math.round(ratio * 100)}%)`,
+            is_tax_line: false,
+          }),
+          // Personal portion → Owner Draw (equity)
+          manager.create(JournalLine, {
+            business_id: template.business_id,
+            journal_entry_id: savedEntry.id,
+            line_number: 2,
+            account_id: ownerDrawAccount.id,
+            debit_amount: personalAmount,
+            credit_amount: 0,
+            description: `${template.description} (personal ${Math.round((1 - ratio) * 100)}%)`,
+            is_tax_line: false,
+          }),
+          // Full amount → credit account (bank)
+          manager.create(JournalLine, {
+            business_id: template.business_id,
+            journal_entry_id: savedEntry.id,
+            line_number: 3,
+            account_id: template.credit_account_id,
+            debit_amount: 0,
+            credit_amount: gross,
+            description: template.description,
+            is_tax_line: false,
+          }),
+        ]);
+
+        await this.advanceNextRunDateInTransaction(manager, template);
+      });
+    } else {
+      // 100% business — original 2-line entry
+      await this.dataSource.transaction(async (manager) => {
+        const entryDate = new Date(template.next_run_date!);
+
+        const entry = manager.create(JournalEntry, {
+          business_id: template.business_id,
+          entry_date: entryDate,
+          description: template.description,
+          reference_type: 'recurring_transaction',
+          reference_id: template.id,
+          status: JournalEntryStatus.POSTED,
+          created_by: 'system',
+          posted_by: 'system',
+          posted_at: new Date(),
+          notes: `Auto-posted by recurring template — ${template.frequency}`,
+        });
+        const savedEntry = await manager.save(JournalEntry, entry) as JournalEntry;
+
+        await manager.save(JournalLine, [
+          manager.create(JournalLine, {
+            business_id: template.business_id,
+            journal_entry_id: savedEntry.id,
+            line_number: 1,
+            account_id: template.debit_account_id,
+            debit_amount: gross,
+            credit_amount: 0,
+            description: template.description,
+            is_tax_line: false,
+          }),
+          manager.create(JournalLine, {
+            business_id: template.business_id,
+            journal_entry_id: savedEntry.id,
+            line_number: 2,
+            account_id: template.credit_account_id,
+            debit_amount: 0,
+            credit_amount: gross,
+            description: template.description,
+            is_tax_line: false,
+          }),
+        ]);
+
+        await this.advanceNextRunDateInTransaction(manager, template);
+      });
+    }
+  }
+
+  // ── Advance next_run_date helpers ─────────────────────────────────────────
+
+  private async advanceNextRunDate(template: RecurringTransaction): Promise<void> {
+    const nextRun = this.calculateNextRunDate(
+      new Date(template.next_run_date!),
+      template.frequency,
+    );
+    const isExpired =
+      template.end_date !== null && nextRun > new Date(template.end_date);
+
+    await this.recurringRepo.update(template.id, {
+      next_run_date: isExpired ? null : nextRun,
+      last_posted_at: new Date(),
+      status: isExpired ? RecurringStatus.COMPLETED : RecurringStatus.ACTIVE,
     });
   }
 
-  // ── Detection helpers ─────────────────────────────────────────────────────
+  private async advanceNextRunDateInTransaction(
+    manager: any,
+    template: RecurringTransaction,
+  ): Promise<void> {
+    const nextRun = this.calculateNextRunDate(
+      new Date(template.next_run_date!),
+      template.frequency,
+    );
+    const isExpired =
+      template.end_date !== null && nextRun > new Date(template.end_date);
+
+    await manager.update(RecurringTransaction, template.id, {
+      next_run_date: isExpired ? null : nextRun,
+      last_posted_at: new Date(),
+      status: isExpired ? RecurringStatus.COMPLETED : RecurringStatus.ACTIVE,
+    });
+  }
+
+  // ── Detection helpers ──────────────────────────────────────────────────────
 
   private normaliseDescription(description: string): string {
     return description

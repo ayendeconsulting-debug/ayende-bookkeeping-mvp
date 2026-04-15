@@ -11,6 +11,8 @@ export async function createRecurring(data: {
   frequency: string;
   start_date: string;
   end_date?: string;
+  is_personal?: boolean;
+  business_ratio?: number;
   notes?: string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
@@ -24,7 +26,14 @@ export async function createRecurring(data: {
 
 export async function updateRecurring(
   id: string,
-  data: { description?: string; amount?: number; end_date?: string; notes?: string },
+  data: {
+    description?: string;
+    amount?: number;
+    end_date?: string;
+    is_personal?: boolean;
+    business_ratio?: number;
+    notes?: string;
+  },
 ): Promise<{ success: boolean; error?: string }> {
   try {
     await api(`/recurring/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
@@ -65,7 +74,7 @@ export async function cancelRecurring(id: string): Promise<{ success: boolean; e
   }
 }
 
-// ── Phase 12: Business Recurring Detection ───────────────────────────────────
+// ── Phase 12: Business Recurring Detection ─────────────────────────────────────
 
 export async function confirmBusinessDetection(data: {
   key: string;
@@ -74,6 +83,8 @@ export async function confirmBusinessDetection(data: {
   frequency: 'weekly' | 'monthly' | 'quarterly' | 'annually';
   debitAccountId: string;
   creditAccountId: string;
+  isPersonal?: boolean;
+  businessRatio?: number;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     await api('/recurring/detections/confirm', {

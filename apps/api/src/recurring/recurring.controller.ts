@@ -35,6 +35,7 @@ export class RecurringController {
   /**
    * POST /recurring/detections/confirm — admin + accountant
    * Confirms a detection: stores key, creates RecurringTransaction template.
+   * Accepts optional isPersonal and businessRatio for Freelancer hybrid mode.
    */
   @Roles('admin', 'accountant')
   @Post('detections/confirm')
@@ -49,6 +50,8 @@ export class RecurringController {
       frequency: 'weekly' | 'monthly' | 'quarterly' | 'annually';
       debitAccountId: string;
       creditAccountId: string;
+      isPersonal?: boolean;
+      businessRatio?: number;
     },
   ) {
     return this.recurringService.confirmDetection(req.user!.businessId, body);
@@ -64,7 +67,7 @@ export class RecurringController {
     return this.recurringService.dismissDetection(req.user!.businessId, body.key);
   }
 
-  // ── CRUD routes ───────────────────────────────────────────────────────────
+  // ── CRUD routes ────────────────────────────────────────────────────────────
 
   /** POST /recurring — admin only */
   @Roles('admin')

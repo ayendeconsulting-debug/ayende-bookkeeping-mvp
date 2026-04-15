@@ -4,6 +4,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { RecurringTransaction } from '../entities/recurring-transaction.entity';
 import { JournalEntry } from '../entities/journal-entry.entity';
 import { JournalLine } from '../entities/journal-line.entity';
+import { Account } from '../entities/account.entity';
 // Phase 12: detection engine needs raw transactions + business settings
 import { RawTransaction } from '../entities/raw-transaction.entity';
 import { Business } from '../entities/business.entity';
@@ -17,6 +18,7 @@ import { RecurringProcessor } from './recurring.processor';
       RecurringTransaction,
       JournalEntry,
       JournalLine,
+      Account,
       RawTransaction,
       Business,
     ]),

@@ -86,9 +86,19 @@ export class RecurringTransaction {
   })
   status: RecurringStatus;
 
-  // Freelancer mode: marks this recurring item as personal (exclude from business reports)
+  // Freelancer mode: marks this recurring item as fully personal (no journal entry posted)
   @Column({ type: 'boolean', default: false })
   is_personal: boolean;
+
+  /**
+   * Freelancer mode: ratio of the amount that is business expense (0.0–1.0).
+   * 1.0 = 100% business (default, existing behaviour)
+   * 0.0 = 100% personal (same effect as is_personal = true)
+   * 0.0 < ratio < 1.0 = split — business portion debits debit_account_id,
+   *   personal portion debits Owner Draw, full amount credits credit_account_id.
+   */
+  @Column({ type: 'decimal', precision: 5, scale: 4, default: 1.0 })
+  business_ratio: number;
 
   @Column({ type: 'timestamp with time zone', nullable: true })
   last_posted_at: Date | null;
