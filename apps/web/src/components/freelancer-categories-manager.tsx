@@ -10,10 +10,7 @@ import { createExpenseCategory, toggleCategoryActive } from '@/app/(app)/freelan
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Plus, Tag } from 'lucide-react';
 
-interface FreelancerCategoriesManagerProps {
-  accounts: Account[];
-}
-
+interface FreelancerCategoriesManagerProps { accounts: Account[]; }
 const EMPTY_FORM = { name: '' };
 
 export function FreelancerCategoriesManager({ accounts: initialAccounts }: FreelancerCategoriesManagerProps) {
@@ -23,21 +20,15 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
   const [isPending, startTransition] = useTransition();
 
   function handleAdd() {
-    if (!form.name.trim()) {
-      toastError('Please enter a category name.');
-      return;
-    }
-
+    if (!form.name.trim()) { toastError('Please enter a category name.'); return; }
     startTransition(async () => {
       const result = await createExpenseCategory({
         account_name: form.name.trim(),
         account_code: `6${String(categories.length + 1).padStart(3, '0')}`,
       });
-
       if (result.success && result.data) {
         setCategories((prev) => [...prev, result.data as Account]);
-        setForm(EMPTY_FORM);
-        setShowForm(false);
+        setForm(EMPTY_FORM); setShowForm(false);
         toastSuccess(`Category "${form.name}" added.`);
       } else {
         toastError(result.error ?? 'Failed to add category.');
@@ -49,102 +40,70 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
     startTransition(async () => {
       const result = await toggleCategoryActive(account.id, !account.is_active);
       if (result.success) {
-        setCategories((prev) =>
-          prev.map((a) => (a.id === account.id ? { ...a, is_active: !a.is_active } : a)),
-        );
-        toastSuccess(
-          account.is_active
-            ? `"${account.account_name}" deactivated.`
-            : `"${account.account_name}" activated.`,
-        );
+        setCategories((prev) => prev.map((a) => (a.id === account.id ? { ...a, is_active: !a.is_active } : a)));
+        toastSuccess(account.is_active ? `"${account.account_name}" deactivated.` : `"${account.account_name}" activated.`);
       } else {
         toastError(result.error ?? 'Failed to update category.');
       }
     });
   }
 
-  const active = categories.filter((a) => a.is_active);
+  const active   = categories.filter((a) =>  a.is_active);
   const inactive = categories.filter((a) => !a.is_active);
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Header action */}
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500 dark:text-[#a09888]">
-          {active.length} active {active.length === 1 ? 'category' : 'categories'} · used to tag
-          business expenses
+        <p className="text-sm text-muted-foreground">
+          {active.length} active {active.length === 1 ? 'category' : 'categories'} · used to tag business expenses
         </p>
         {!showForm && (
-          <Button onClick={() => setShowForm(true)} className="bg-primary text-white hover:bg-primary/90">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Category
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />Add Category
           </Button>
         )}
       </div>
 
-      {/* Add form */}
       {showForm && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>New Expense Category</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-3"><CardTitle>New Expense Category</CardTitle></CardHeader>
           <CardContent>
             <div className="flex gap-3 items-end">
               <div className="flex-1">
                 <Label>Category Name</Label>
-                <Input
-                  placeholder="e.g. Client Gifts"
-                  value={form.name}
-                  onChange={(e) => setForm({ name: e.target.value })}
-                  className="mt-1"
-                  onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
-                />
+                <Input placeholder="e.g. Client Gifts" value={form.name}
+                  onChange={(e) => setForm({ name: e.target.value })} className="mt-1"
+                  onKeyDown={(e) => e.key === 'Enter' && handleAdd()} />
               </div>
-              <Button onClick={handleAdd} disabled={isPending} className="bg-primary text-white hover:bg-primary/90">
-                {isPending ? 'Adding…' : 'Add'}
-              </Button>
-              <Button variant="outline" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}>
-                Cancel
-              </Button>
+              <Button onClick={handleAdd} disabled={isPending}>{isPending ? 'Adding…' : 'Add'}</Button>
+              <Button variant="outline" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); }}>Cancel</Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Active categories */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
-            <Tag className="w-4 h-4 text-gray-400 dark:text-[#7a7060]" />
-            Active Categories
+            <Tag className="w-4 h-4 text-muted-foreground" />Active Categories
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
           {active.length === 0 ? (
-            <div className="py-8 text-center text-sm text-gray-400 dark:text-[#7a7060]">
-              No active categories yet. Add one above.
-            </div>
+            <div className="py-8 text-center text-sm text-muted-foreground">No active categories yet. Add one above.</div>
           ) : (
             <div className="flex flex-col gap-1">
               {active.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2720] group"
-                >
+                <div key={cat.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-muted group">
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-md bg-primary-light dark:bg-primary/20 flex items-center justify-center flex-shrink-0">
                       <Tag className="w-3.5 h-3.5 text-primary" />
                     </div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-[#f0ede8]">
-                      {cat.account_name}
-                    </span>
+                    <span className="text-sm font-medium text-foreground">{cat.account_name}</span>
                   </div>
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleToggle(cat)}
-                      disabled={isPending}
-                      className="text-xs text-gray-400 dark:text-[#7a7060] hover:text-red-500 dark:hover:text-red-400 px-2 py-1 rounded transition-colors"
-                    >
+                    <button onClick={() => handleToggle(cat)} disabled={isPending}
+                      className="text-xs text-muted-foreground hover:text-destructive px-2 py-1 rounded transition-colors">
                       Deactivate
                     </button>
                   </div>
@@ -155,29 +114,18 @@ export function FreelancerCategoriesManager({ accounts: initialAccounts }: Freel
         </CardContent>
       </Card>
 
-      {/* Inactive categories */}
       {inactive.length > 0 && (
         <Card className="opacity-70">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-gray-500 dark:text-[#a09888]">
-              Inactive Categories ({inactive.length})
-            </CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Inactive Categories ({inactive.length})</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="flex flex-col gap-1">
               {inactive.map((cat) => (
-                <div
-                  key={cat.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-[#2a2720] group"
-                >
-                  <span className="text-sm text-gray-400 dark:text-[#7a7060] line-through">
-                    {cat.account_name}
-                  </span>
-                  <button
-                    onClick={() => handleToggle(cat)}
-                    disabled={isPending}
-                    className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
+                <div key={cat.id} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted group">
+                  <span className="text-sm text-muted-foreground line-through">{cat.account_name}</span>
+                  <button onClick={() => handleToggle(cat)} disabled={isPending}
+                    className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                     Reactivate
                   </button>
                 </div>

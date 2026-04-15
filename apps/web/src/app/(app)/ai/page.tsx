@@ -9,8 +9,7 @@ import { sendChatMessage } from '@/lib/ai-actions';
 
 const WELCOME_MESSAGE: ChatMessage = {
   role: 'assistant',
-  content:
-    "Hi! I'm your Tempo AI assistant with full context of your business finances.\n\nYou can ask me about your revenue, expenses, and net income, how to classify specific transactions, tax code guidance for Canadian and US businesses, journal entry questions, and any general bookkeeping questions.\n\nHow can I help you today?",
+  content: "Hi! I'm your Tempo AI assistant with full context of your business finances.\n\nYou can ask me about your revenue, expenses, and net income, how to classify specific transactions, tax code guidance for Canadian and US businesses, journal entry questions, and any general bookkeeping questions.\n\nHow can I help you today?",
 };
 
 const SUGGESTED_PROMPTS = [
@@ -32,23 +31,10 @@ function MarkdownMessage({ content, dark }: { content: string; dark?: boolean })
         h3:         ({ children }) => <p className="font-medium mb-0.5">{children}</p>,
         ul:         ({ children }) => <ul className="mb-1.5 space-y-1">{children}</ul>,
         ol:         ({ children }) => <ol className="mb-1.5 space-y-1">{children}</ol>,
-        li:         ({ children }) => (
-          <li className="flex gap-2">
-            <span className="flex-shrink-0 mt-0.5">•</span>
-            <span>{children}</span>
-          </li>
-        ),
-        hr:   () => <div className={cn('my-3 border-t', dark ? 'border-white/20' : 'border-gray-200')} />,
-        code: ({ children }) => (
-          <code className={cn('rounded px-1.5 py-0.5 text-xs font-mono', dark ? 'bg-white/20' : 'bg-gray-100')}>
-            {children}
-          </code>
-        ),
-        blockquote: ({ children }) => (
-          <blockquote className={cn('border-l-2 pl-3 my-1.5 opacity-80', dark ? 'border-white/40' : 'border-gray-300')}>
-            {children}
-          </blockquote>
-        ),
+        li:         ({ children }) => <li className="flex gap-2"><span className="flex-shrink-0 mt-0.5">•</span><span>{children}</span></li>,
+        hr:         () => <div className={cn('my-3 border-t', dark ? 'border-white/20' : 'border-border')} />,
+        code:       ({ children }) => <code className={cn('rounded px-1.5 py-0.5 text-xs font-mono', dark ? 'bg-white/20' : 'bg-muted')}>{children}</code>,
+        blockquote: ({ children }) => <blockquote className={cn('border-l-2 pl-3 my-1.5 opacity-80', dark ? 'border-white/40' : 'border-border')}>{children}</blockquote>,
       }}
     >
       {content}
@@ -58,27 +44,20 @@ function MarkdownMessage({ content, dark }: { content: string; dark?: boolean })
 
 export default function AiPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME_MESSAGE]);
-  const [input, setInput]       = useState('');
+  const [input,   setInput]     = useState('');
   const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const [error,   setError]     = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef  = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, loading]);
 
   async function sendMessage(text?: string) {
     const content = (text ?? input).trim();
     if (!content || loading) return;
-
     const userMsg: ChatMessage = { role: 'user', content };
     const updatedMessages = [...messages, userMsg];
-    setMessages(updatedMessages);
-    setInput('');
-    setLoading(true);
-    setError(null);
-
+    setMessages(updatedMessages); setInput(''); setLoading(true); setError(null);
     try {
       const result = await sendChatMessage(updatedMessages);
       if (!result.success) throw new Error(result.error ?? 'Something went wrong.');
@@ -91,10 +70,7 @@ export default function AiPage() {
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }
 
   const isWelcomeOnly = messages.length === 1;
@@ -104,25 +80,19 @@ export default function AiPage() {
       <div className="flex items-center justify-between py-5 flex-shrink-0">
         <div>
           <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#0F6E56]" />
-            AI Assistant
+            <Sparkles className="w-5 h-5 text-primary" />AI Assistant
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Ask questions about your business finances in plain English
-          </p>
+          <p className="text-sm text-muted-foreground mt-0.5">Ask questions about your business finances in plain English</p>
         </div>
         {!isWelcomeOnly && (
-          <button
-            onClick={() => { setMessages([WELCOME_MESSAGE]); setError(null); }}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Clear chat
+          <button onClick={() => { setMessages([WELCOME_MESSAGE]); setError(null); }}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <Trash2 className="w-4 h-4" />Clear chat
           </button>
         )}
       </div>
 
-      <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2.5 mb-4 flex-shrink-0">
+      <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2.5 mb-4 flex-shrink-0">
         <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-amber-700 dark:text-amber-400">
           AI responses are for guidance only and do not constitute professional accounting or tax advice. Always verify with a qualified accountant.
@@ -133,30 +103,21 @@ export default function AiPage() {
         {messages.map((msg, i) => (
           <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
             {msg.role === 'assistant' && (
-              <div className="w-7 h-7 rounded-full bg-[#0F6E56] flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
-                <Sparkles className="w-3.5 h-3.5 text-white" />
+              <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
+                <Sparkles className="w-3.5 h-3.5 text-primary-foreground" />
               </div>
             )}
-            <div
-              className={cn(
-                'max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
-                msg.role === 'user'
-                  ? 'bg-[#0F6E56] text-white rounded-br-sm'
-                  : 'bg-muted text-foreground rounded-bl-sm',
-              )}
-            >
-              {msg.role === 'assistant'
-                ? <MarkdownMessage content={msg.content} />
-                : msg.content
-              }
+            <div className={cn('max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
+              msg.role === 'user' ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-muted text-foreground rounded-bl-sm')}>
+              {msg.role === 'assistant' ? <MarkdownMessage content={msg.content} /> : msg.content}
             </div>
           </div>
         ))}
 
         {loading && (
           <div className="flex justify-start">
-            <div className="w-7 h-7 rounded-full bg-[#0F6E56] flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
-              <Sparkles className="w-3.5 h-3.5 text-white" />
+            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
+              <Sparkles className="w-3.5 h-3.5 text-primary-foreground" />
             </div>
             <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
               <Loader2 className="w-4 h-4 text-muted-foreground animate-spin" />
@@ -166,19 +127,14 @@ export default function AiPage() {
         )}
 
         {error && (
-          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">
-            {error}
-          </div>
+          <div className="text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">{error}</div>
         )}
 
         {isWelcomeOnly && !loading && (
           <div className="flex flex-wrap gap-2 mt-2">
             {SUGGESTED_PROMPTS.map((prompt) => (
-              <button
-                key={prompt}
-                onClick={() => sendMessage(prompt)}
-                className="text-xs bg-card border border-border text-muted-foreground rounded-full px-3 py-1.5 hover:border-[#0F6E56] hover:text-[#0F6E56] transition-colors"
-              >
+              <button key={prompt} onClick={() => sendMessage(prompt)}
+                className="text-xs bg-card border border-border text-muted-foreground rounded-full px-3 py-1.5 hover:border-primary hover:text-primary transition-colors">
                 {prompt}
               </button>
             ))}
@@ -189,24 +145,14 @@ export default function AiPage() {
       </div>
 
       <div className="py-4 flex-shrink-0">
-        <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 focus-within:border-[#0F6E56] transition-colors">
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
+        <div className="flex items-center gap-3 bg-card border border-border rounded-xl px-4 py-3 focus-within:border-primary transition-colors">
+          <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown}
             placeholder="Ask about your books…"
             className="flex-1 text-sm text-foreground placeholder:text-muted-foreground outline-none bg-transparent"
-            disabled={loading}
-            autoFocus
-          />
-          <button
-            onClick={() => sendMessage()}
-            disabled={!input.trim() || loading}
-            className="w-8 h-8 rounded-lg bg-[#0F6E56] hover:bg-[#0a5a45] disabled:bg-muted flex items-center justify-center transition-colors flex-shrink-0"
-          >
-            <Send className="w-4 h-4 text-white" />
+            disabled={loading} autoFocus />
+          <button onClick={() => sendMessage()} disabled={!input.trim() || loading}
+            className="w-8 h-8 rounded-lg bg-primary hover:bg-primary/90 disabled:bg-muted flex items-center justify-center transition-colors flex-shrink-0">
+            <Send className="w-4 h-4 text-primary-foreground" />
           </button>
         </div>
       </div>

@@ -1,21 +1,14 @@
-﻿'use client';
+'use client';
 
 import { useState, useTransition } from 'react';
-import {
-  Download, FileText, Sparkles, Loader2,
-  AlertCircle, CheckCircle2, ChevronDown, ChevronUp,
-} from 'lucide-react';
+import { Download, FileText, Sparkles, Loader2, AlertCircle, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { IncomeStatementChart } from '@/components/charts/income-statement-chart';
 import { BalanceSheetChart }    from '@/components/charts/balance-sheet-chart';
 import { getReportNarrative, downloadReport } from '@/app/(app)/reports/[type]/actions';
-
-/* */
 
 interface ReportViewerProps {
   type:      string;
@@ -24,8 +17,6 @@ interface ReportViewerProps {
   startDate: string;
   endDate:   string;
 }
-
-/*Download helper */
 
 function triggerDownload(base64: string, filename: string, format: 'pdf' | 'csv') {
   const mimeType = format === 'pdf' ? 'application/pdf' : 'text/csv';
@@ -38,8 +29,6 @@ function triggerDownload(base64: string, filename: string, format: 'pdf' | 'csv'
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
 }
-
-/* Export buttons */
 
 function ExportButtons({ type, params }: { type: string; params: Record<string, string> }) {
   const [loadingPdf, startPdf] = useTransition();
@@ -62,18 +51,14 @@ function ExportButtons({ type, params }: { type: string; params: Record<string, 
     <div className="flex items-center gap-2 flex-shrink-0">
       {error && <span className="text-xs text-destructive">{error}</span>}
       <Button variant="outline" size="sm" onClick={() => handleExport('csv', startCsv)} disabled={loadingCsv || loadingPdf} className="flex items-center gap-1.5">
-        {loadingCsv ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-        CSV
+        {loadingCsv ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}CSV
       </Button>
       <Button variant="outline" size="sm" onClick={() => handleExport('pdf', startPdf)} disabled={loadingPdf || loadingCsv} className="flex items-center gap-1.5">
-        {loadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}
-        PDF
+        {loadingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileText className="w-3.5 h-3.5" />}PDF
       </Button>
     </div>
   );
 }
-
-/* AI Narrative panel */
 
 function NarrativePanel({ type, params }: { type: 'income-statement' | 'balance-sheet'; params: Record<string, string> }) {
   const [open, setOpen]           = useState(false);
@@ -93,19 +78,19 @@ function NarrativePanel({ type, params }: { type: 'income-statement' | 'balance-
 
   return (
     <div className="mt-4">
-      <button onClick={handleLoad} className="flex items-center gap-2 text-sm text-[#0F6E56] hover:text-[#0a5a45] dark:text-primary dark:hover:text-primary/80 font-medium transition-colors">
+      <button onClick={handleLoad} className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium transition-colors">
         <Sparkles className="w-4 h-4" />
         {open ? 'Hide' : 'Show'} AI narrative
         {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
       </button>
       {open && (
-        <div className="mt-3 bg-[#EDF7F2] border border-[#C3E8D8] dark:bg-primary/10 dark:border-primary/30 rounded-xl px-4 py-4">
+        <div className="mt-3 bg-primary-light dark:bg-primary/10 border border-primary/30 rounded-xl px-4 py-4">
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 text-[#0F6E56] dark:text-primary" />
-            <span className="text-sm font-medium text-[#0F6E56] dark:text-primary">AI Summary</span>
+            <Sparkles className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-primary">AI Summary</span>
           </div>
-          {loading  && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Generating narrative...</div>}
-          {error    && <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />{error}</div>}
+          {loading   && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Generating narrative...</div>}
+          {error     && <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />{error}</div>}
           {narrative && !loading && <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{narrative}</p>}
           <p className="text-xs text-muted-foreground mt-3">AI narratives are for guidance only - always verify with your accountant.</p>
         </div>
@@ -113,8 +98,6 @@ function NarrativePanel({ type, params }: { type: 'income-statement' | 'balance-
     </div>
   );
 }
-
-/* Report tables  */
 
 function IncomeStatementTable({ data }: { data: any }) {
   return (
@@ -128,12 +111,12 @@ function IncomeStatementTable({ data }: { data: any }) {
               {(data.revenue ?? []).map((line: any) => (
                 <TableRow key={line.account_id}>
                   <TableCell><span className="text-xs text-muted-foreground mr-2">{line.account_code}</span>{line.account_name}</TableCell>
-                  <TableCell className="text-right text-[#0F6E56] dark:text-primary font-medium">{formatCurrency(line.net_amount ?? line.balance ?? line.amount ?? 0)}</TableCell>
+                  <TableCell className="text-right text-primary font-medium">{formatCurrency(line.net_amount ?? line.balance ?? line.amount ?? 0)}</TableCell>
                 </TableRow>
               ))}
               <TableRow className="bg-muted font-semibold">
                 <TableCell>Total Revenue</TableCell>
-                <TableCell className="text-right text-[#0F6E56] dark:text-primary">{formatCurrency(data.total_revenue ?? 0)}</TableCell>
+                <TableCell className="text-right text-primary">{formatCurrency(data.total_revenue ?? 0)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -162,7 +145,7 @@ function IncomeStatementTable({ data }: { data: any }) {
       <div className="border-t-2 border-border pt-4 px-4">
         <div className="flex items-center justify-between">
           <span className="text-base font-bold text-foreground">Net Income</span>
-          <span className={`text-lg font-bold ${(data.net_income ?? 0) >= 0 ? 'text-[#0F6E56] dark:text-primary' : 'text-destructive'}`}>
+          <span className={`text-lg font-bold ${(data.net_income ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
             {formatCurrency(data.net_income ?? 0)}
           </span>
         </div>
@@ -173,9 +156,9 @@ function IncomeStatementTable({ data }: { data: any }) {
 
 function BalanceSheetTable({ data }: { data: any }) {
   const sections = [
-    { key: 'assets',      label: 'Assets',      total: data.total_assets,      colorClass: 'text-[#0F6E56] dark:text-primary' },
+    { key: 'assets',      label: 'Assets',      total: data.total_assets,      colorClass: 'text-primary' },
     { key: 'liabilities', label: 'Liabilities', total: data.total_liabilities, colorClass: 'text-destructive' },
-    { key: 'equity',      label: 'Equity',      total: data.total_equity,      colorClass: 'text-[#185fa5] dark:text-blue-400' },
+    { key: 'equity',      label: 'Equity',      total: data.total_equity,      colorClass: 'text-blue-600 dark:text-blue-400' },
   ];
   return (
     <div className="flex flex-col gap-6">
@@ -203,9 +186,8 @@ function BalanceSheetTable({ data }: { data: any }) {
       ))}
       <div className="px-4 flex items-center gap-2">
         {data.is_balanced
-          ? <div className="flex items-center gap-1.5 text-sm text-[#0F6E56] dark:text-primary"><CheckCircle2 className="w-4 h-4" />Balance sheet is balanced - Assets = Liabilities + Equity</div>
-          : <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />Balance sheet is NOT balanced - review journal entries</div>
-        }
+          ? <div className="flex items-center gap-1.5 text-sm text-primary"><CheckCircle2 className="w-4 h-4" />Balance sheet is balanced - Assets = Liabilities + Equity</div>
+          : <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />Balance sheet is NOT balanced - review journal entries</div>}
       </div>
     </div>
   );
@@ -227,22 +209,21 @@ function TrialBalanceTable({ data }: { data: any }) {
               <TableCell className="text-xs text-muted-foreground">{line.account_code}</TableCell>
               <TableCell>{line.account_name}</TableCell>
               <TableCell className="capitalize text-muted-foreground text-sm">{line.account_type}</TableCell>
-              <TableCell className="text-right font-medium">{line.total_debits > 0 ? formatCurrency(line.total_debits) : '-'}</TableCell>
+              <TableCell className="text-right font-medium">{line.total_debits  > 0 ? formatCurrency(line.total_debits)  : '-'}</TableCell>
               <TableCell className="text-right font-medium">{line.total_credits > 0 ? formatCurrency(line.total_credits) : '-'}</TableCell>
             </TableRow>
           ))}
           <TableRow className="bg-muted font-semibold border-t-2 border-border">
             <TableCell colSpan={3}>Totals</TableCell>
-            <TableCell className="text-right">{formatCurrency(data.grand_total_debits ?? data.total_debits ?? 0)}</TableCell>
+            <TableCell className="text-right">{formatCurrency(data.grand_total_debits  ?? data.total_debits  ?? 0)}</TableCell>
             <TableCell className="text-right">{formatCurrency(data.grand_total_credits ?? data.total_credits ?? 0)}</TableCell>
           </TableRow>
         </TableBody>
       </Table>
       <div className="px-4 pt-3 flex items-center gap-2">
         {data.is_balanced
-          ? <div className="flex items-center gap-1.5 text-sm text-[#0F6E56] dark:text-primary"><CheckCircle2 className="w-4 h-4" />Trial balance is balanced</div>
-          : <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />Trial balance is NOT balanced</div>
-        }
+          ? <div className="flex items-center gap-1.5 text-sm text-primary"><CheckCircle2 className="w-4 h-4" />Trial balance is balanced</div>
+          : <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />Trial balance is NOT balanced</div>}
       </div>
     </div>
   );
@@ -286,15 +267,14 @@ function GeneralLedgerTable({ data }: { data: any }) {
   );
 }
 
-/* Main ReportViewer */
+const inputCls = 'text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-primary bg-background text-foreground transition-colors';
 
 export function ReportViewer({ type, label, data, startDate: initialStart, endDate: initialEnd }: ReportViewerProps) {
   const [startDate, setStartDate] = useState(initialStart);
   const [endDate, setEndDate]     = useState(initialEnd);
 
   const exportParams: Record<string, string>    = { startDate, endDate };
-  const narrativeParams: Record<string, string> =
-    type === 'balance-sheet' ? { asOfDate: endDate } : { startDate, endDate };
+  const narrativeParams: Record<string, string> = type === 'balance-sheet' ? { asOfDate: endDate } : { startDate, endDate };
   const supportsNarrative = type === 'income-statement' || type === 'balance-sheet';
 
   function handleFilterChange() {
@@ -306,81 +286,50 @@ export function ReportViewer({ type, label, data, startDate: initialStart, endDa
 
   return (
     <div className="p-4 md:p-6 max-w-screen-lg mx-auto">
-
-      {/* Header - wraps on mobile */}
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-foreground">{label}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {type === 'balance-sheet'
-              ? `As of ${formatDate(endDate)}`
-              : `${formatDate(startDate)} - ${formatDate(endDate)}`}
+            {type === 'balance-sheet' ? `As of ${formatDate(endDate)}` : `${formatDate(startDate)} - ${formatDate(endDate)}`}
           </p>
         </div>
         <ExportButtons type={type} params={exportParams} />
       </div>
 
-      {/* Date filters - wrap on mobile */}
       <Card className="mb-5">
         <CardContent className="pt-4 pb-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">
-                {type === 'balance-sheet' ? 'From' : 'Start Date'}
-              </label>
-              <input
-                type="date" value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground transition-colors"
-              />
+              <label className="text-xs font-medium text-muted-foreground">{type === 'balance-sheet' ? 'From' : 'Start Date'}</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputCls} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">
-                {type === 'balance-sheet' ? 'As Of Date' : 'End Date'}
-              </label>
-              <input
-                type="date" value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] bg-background text-foreground transition-colors"
-              />
+              <label className="text-xs font-medium text-muted-foreground">{type === 'balance-sheet' ? 'As Of Date' : 'End Date'}</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputCls} />
             </div>
             <Button onClick={handleFilterChange} size="sm">Apply</Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Chart sections */}
       {data && type === 'income-statement' && (
         <Card className="mb-5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Overview</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Overview</CardTitle></CardHeader>
           <CardContent className="pt-0">
-            <IncomeStatementChart
-              totalRevenue={data.total_revenue ?? 0}
-              totalExpenses={data.total_expenses ?? 0}
-              netIncome={data.net_income ?? 0}
-            />
+            <IncomeStatementChart totalRevenue={data.total_revenue ?? 0} totalExpenses={data.total_expenses ?? 0} netIncome={data.net_income ?? 0} />
           </CardContent>
         </Card>
       )}
 
       {data && type === 'balance-sheet' && (
         <Card className="mb-5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Overview</CardTitle>
-          </CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Overview</CardTitle></CardHeader>
           <CardContent className="pt-0">
-            <BalanceSheetChart
-              totalAssets={data.total_assets ?? 0}
-              totalLiabilities={data.total_liabilities ?? 0}
-              totalEquity={data.total_equity ?? 0}
-            />
+            <BalanceSheetChart totalAssets={data.total_assets ?? 0} totalLiabilities={data.total_liabilities ?? 0} totalEquity={data.total_equity ?? 0} />
           </CardContent>
         </Card>
       )}
 
-      {/* Report table */}
       <Card>
         <CardContent className="pt-5 pb-5">
           {!data ? (
@@ -405,4 +354,3 @@ export function ReportViewer({ type, label, data, startDate: initialStart, endDa
     </div>
   );
 }
-
