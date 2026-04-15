@@ -120,6 +120,7 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
 
   return (
     <div className="flex flex-col gap-4">
+
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
         <Card>
@@ -181,8 +182,8 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
         </Card>
       )}
 
-      {/* Goal cards */}
-      {active.length === 0 && !showForm ? (
+      {/* Empty state — only when no goals exist at all */}
+      {goals.length === 0 && !showForm ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Target className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
@@ -192,35 +193,38 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
             </Button>
           </CardContent>
         </Card>
-      ) : (
+      ) : !showForm && (
         <>
-          {!showForm && (
-            <div className="flex justify-end">
-              <Button onClick={() => setShowForm(true)}>
-                <Plus className="w-4 h-4 mr-2" />New Goal
-              </Button>
+          {/* Always-visible New Goal button */}
+          <div className="flex justify-end">
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />New Goal
+            </Button>
+          </div>
+
+          {/* Active goals */}
+          {active.length > 0 && (
+            <div className="grid grid-cols-2 gap-4">
+              {active.map((goal) => (
+                <GoalCard
+                  key={goal.id}
+                  goal={goal}
+                  depositGoalId={depositGoalId}
+                  depositAmount={depositAmount}
+                  isPending={isPending}
+                  onDepositOpen={() => { setDepositGoalId(goal.id); setDepositAmount(''); }}
+                  onDepositChange={setDepositAmount}
+                  onDepositSubmit={() => handleDeposit(goal)}
+                  onDepositCancel={() => setDepositGoalId(null)}
+                  onPause={() => handleStatusToggle(goal, 'paused')}
+                  onComplete={() => handleStatusToggle(goal, 'completed')}
+                  onDelete={() => handleDelete(goal.id, goal.name)}
+                />
+              ))}
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            {active.map((goal) => (
-              <GoalCard
-                key={goal.id}
-                goal={goal}
-                depositGoalId={depositGoalId}
-                depositAmount={depositAmount}
-                isPending={isPending}
-                onDepositOpen={() => { setDepositGoalId(goal.id); setDepositAmount(''); }}
-                onDepositChange={setDepositAmount}
-                onDepositSubmit={() => handleDeposit(goal)}
-                onDepositCancel={() => setDepositGoalId(null)}
-                onPause={() => handleStatusToggle(goal, 'paused')}
-                onComplete={() => handleStatusToggle(goal, 'completed')}
-                onDelete={() => handleDelete(goal.id, goal.name)}
-              />
-            ))}
-          </div>
-
+          {/* Paused goals */}
           {paused.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">Paused</p>
@@ -230,7 +234,7 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
                     <CardContent className="pt-4">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-sm font-medium text-foreground">{goal.name}</span>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 items-center">
                           <button onClick={() => handleStatusToggle(goal, 'active')} className="text-xs text-primary underline">Resume</button>
                           <span className="text-border mx-1">·</span>
                           <button onClick={() => handleDelete(goal.id, goal.name)} className="text-xs text-muted-foreground hover:text-destructive">Delete</button>
@@ -250,6 +254,7 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
             </div>
           )}
 
+          {/* Completed goals */}
           {completed.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">Completed 🎉</p>
@@ -301,8 +306,7 @@ function GoalCard({
             <p className="text-sm font-semibold text-foreground">{goal.name}</p>
             {goal.target_date && (
               <p className="text-xs text-muted-foreground mt-0.5">
-                Target:{' '}
-                {new Date(goal.target_date).toLocaleDateString('en-CA', { month: 'short', year: 'numeric' })}
+                Target: {new Date(goal.target_date).toLocaleDateString('en-CA', { month: 'short', year: 'numeric' })}
               </p>
             )}
           </div>
@@ -328,8 +332,7 @@ function GoalCard({
 
         {goal.projected_completion_date && !goal.required_monthly_contribution && (
           <p className="text-xs text-muted-foreground mb-3">
-            Projected:{' '}
-            {new Date(goal.projected_completion_date).toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })}
+            Projected: {new Date(goal.projected_completion_date).toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })}
           </p>
         )}
 

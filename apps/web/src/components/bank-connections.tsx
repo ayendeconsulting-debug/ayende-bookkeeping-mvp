@@ -77,10 +77,6 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [syncing, setSyncing] = useState<string | null>(null);
 
-  function handleConnectSuccess() {
-    router.refresh();
-  }
-
   async function handleDisconnect(bank: PlaidItem) {
     setDisconnecting(bank.id);
     const result = await disconnectBank(bank.id);
@@ -102,8 +98,7 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
       if (added > 0) parts.push(`${added} new`);
       if (modified > 0) parts.push(`${modified} updated`);
       if (removed > 0) parts.push(`${removed} removed`);
-      const msg = parts.length > 0 ? parts.join(', ') : 'Already up to date';
-      toastSuccess(`${bank.institution_name} synced`, msg);
+      toastSuccess(`${bank.institution_name} synced`, parts.length > 0 ? parts.join(', ') : 'Already up to date');
       router.refresh();
     } else {
       toastError('Sync failed', result.error ?? 'Please try again.');
@@ -115,26 +110,26 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900">Bank Accounts</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Connect your bank accounts to automatically import transactions</p>
+          <h1 className="text-xl font-semibold text-foreground">Bank Accounts</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Connect your bank accounts to automatically import transactions</p>
         </div>
         <AdminOnly>
-          <PlaidLinkButton onSuccess={handleConnectSuccess} />
+          <PlaidLinkButton onSuccess={() => router.refresh()} />
         </AdminOnly>
       </div>
 
       {banks.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <Building2 className="w-7 h-7 text-gray-400" />
+            <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mb-4">
+              <Building2 className="w-7 h-7 text-muted-foreground" />
             </div>
-            <h3 className="text-base font-medium text-gray-900 mb-1">No banks connected yet</h3>
-            <p className="text-sm text-gray-500 max-w-sm mb-6">
+            <h3 className="text-base font-medium text-foreground mb-1">No banks connected yet</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mb-6">
               Connect your bank or credit card accounts to automatically import and classify transactions.
             </p>
-            <AdminOnly fallback={<p className="text-sm text-gray-400">Contact your account owner to connect a bank.</p>}>
-              <PlaidLinkButton onSuccess={handleConnectSuccess} />
+            <AdminOnly fallback={<p className="text-sm text-muted-foreground">Contact your account owner to connect a bank.</p>}>
+              <PlaidLinkButton onSuccess={() => router.refresh()} />
             </AdminOnly>
           </CardContent>
         </Card>
@@ -151,7 +146,7 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
               <Card key={bank.id}>
                 <CardHeader className="flex-row items-center justify-between pb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#E1F5EE] flex items-center justify-center text-[#0F6E56] text-xs font-bold flex-shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-primary-light dark:bg-primary/20 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0">
                       {bank.institution_name.slice(0, 3).toUpperCase()}
                     </div>
                     <div>
@@ -163,9 +158,11 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
                             : <span className="flex items-center gap-1"><AlertCircle className="w-3 h-3" />Error</span>}
                         </Badge>
                         {bank.last_synced_at && (
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
                             <RefreshCw className="w-3 h-3" />
-                            Synced {new Date(bank.last_synced_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            Synced {new Date(bank.last_synced_at).toLocaleDateString('en-CA', {
+                              month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+                            })}
                           </span>
                         )}
                       </div>
@@ -174,24 +171,17 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
 
                   <div className="flex items-center gap-2">
                     <AdminOnly>
-                      {/* Sync button */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleSync(bank)}
+                      <Button variant="outline" size="sm" onClick={() => handleSync(bank)}
                         disabled={isSyncing || isDisconnecting}
-                        className="flex items-center gap-1.5 text-xs border-primary text-primary hover:bg-primary-light"
-                      >
-                        {isSyncing
-                          ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          : <RefreshCw className="w-3.5 h-3.5" />}
+                        className="flex items-center gap-1.5 text-xs border-primary text-primary hover:bg-primary-light">
+                        {isSyncing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                         {isSyncing ? 'Syncing…' : 'Sync'}
                       </Button>
 
-                      {/* Disconnect button */}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" disabled={isDisconnecting || isSyncing} className="text-gray-400 hover:text-red-500 hover:bg-red-50">
+                          <Button variant="ghost" size="sm" disabled={isDisconnecting || isSyncing}
+                            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10">
                             {isDisconnecting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                           </Button>
                         </AlertDialogTrigger>
@@ -204,7 +194,8 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDisconnect(bank)} className="bg-red-500 hover:bg-red-600 text-white">
+                            <AlertDialogAction onClick={() => handleDisconnect(bank)}
+                              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                               Disconnect
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -216,23 +207,27 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
 
                 {accounts.length > 0 && (
                   <CardContent className="pt-0">
-                    <div className="border-t border-gray-100 pt-3">
-                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">Accounts</p>
+                    <div className="border-t border-border pt-3">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Accounts</p>
                       <div className="flex flex-col gap-2">
                         {accounts.map((account) => (
                           <div key={account.id} className="flex items-center justify-between py-1.5">
                             <div className="flex items-center gap-2.5">
-                              <CreditCard className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                              <CreditCard className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                               <div>
-                                <div className="text-sm font-medium text-gray-800">{account.name}</div>
-                                <div className="text-xs text-gray-400 capitalize">
+                                <div className="text-sm font-medium text-foreground">{account.name}</div>
+                                <div className="text-xs text-muted-foreground capitalize">
                                   {account.type}{account.subtype ? ` · ${account.subtype}` : ''} · {account.currency_code}
                                 </div>
                               </div>
                             </div>
                             <div className="text-right">
-                              {account.current_balance != null && <div className="text-sm font-medium text-gray-900">{formatCurrency(account.current_balance)}</div>}
-                              {account.available_balance != null && <div className="text-xs text-gray-400">{formatCurrency(account.available_balance)} available</div>}
+                              {account.current_balance != null && (
+                                <div className="text-sm font-medium text-foreground">{formatCurrency(account.current_balance)}</div>
+                              )}
+                              {account.available_balance != null && (
+                                <div className="text-xs text-muted-foreground">{formatCurrency(account.available_balance)} available</div>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -246,7 +241,7 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
         </div>
       )}
 
-      <p className="text-xs text-gray-400 text-center mt-6">
+      <p className="text-xs text-muted-foreground text-center mt-6">
         Bank connections are powered by Plaid. Tempo never stores your banking credentials.
       </p>
     </div>
