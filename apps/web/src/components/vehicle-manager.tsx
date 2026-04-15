@@ -13,7 +13,6 @@ function fmt(n: number) {
   return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(n);
 }
 
-/* ── Add Vehicle Modal ───────────────────────────────────────────────── */
 function AddVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreated: (v: FinancedVehicle) => void }) {
   const [isPending, start] = useTransition();
   const [form, setForm] = useState({
@@ -31,7 +30,7 @@ function AddVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreate
 
   function handleSubmit() {
     setError(null);
-    if (!form.name.trim())           { setError('Vehicle name is required.'); return; }
+    if (!form.name.trim())            { setError('Vehicle name is required.'); return; }
     if (!Number(form.purchase_price)) { setError('Purchase price is required.'); return; }
     if (!Number(form.monthly_payment)){ setError('Monthly payment is required.'); return; }
     if (!form.loan_start_date)        { setError('Loan start date is required.'); return; }
@@ -55,12 +54,14 @@ function AddVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [k]: e.target.value }));
 
+  const inputClass = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
       <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <Car className="w-5 h-5 text-[#0F6E56]" />
+            <Car className="w-5 h-5 text-primary" />
             <h2 className="text-base font-semibold text-foreground">Add Financed Vehicle</h2>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -69,78 +70,69 @@ function AddVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreate
         </div>
 
         <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
-          {/* Vehicle Details */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Vehicle Details</p>
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-medium text-foreground block mb-1">Vehicle Name *</label>
-                <input value={form.name} onChange={f('name')} placeholder="e.g. 2022 Honda CR-V"
-                  className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+                <input value={form.name} onChange={f('name')} placeholder="e.g. 2022 Honda CR-V" className={inputClass} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-foreground block mb-1">Purchase Price *</label>
-                  <input type="number" value={form.purchase_price} onChange={f('purchase_price')} placeholder="35000"
-                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+                  <input type="number" value={form.purchase_price} onChange={f('purchase_price')} placeholder="35000" className={inputClass} />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-foreground block mb-1">Down Payment</label>
-                  <input type="number" value={form.down_payment} onChange={f('down_payment')} placeholder="0"
-                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+                  <input type="number" value={form.down_payment} onChange={f('down_payment')} placeholder="0" className={inputClass} />
                 </div>
               </div>
               {loanAmount > 0 && (
-                <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 px-3 py-2 text-sm text-[#0F6E56] font-medium">
+                <div className="rounded-lg bg-primary-light dark:bg-primary/10 px-3 py-2 text-sm text-primary font-medium">
                   Loan amount: {fmt(loanAmount)}
                 </div>
               )}
             </div>
           </div>
 
-          {/* Loan Details */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Loan Details</p>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-foreground block mb-1">Interest Rate (% annual)</label>
-                  <input type="number" step="0.01" value={form.interest_rate} onChange={f('interest_rate')} placeholder="6.99"
-                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+                  <input type="number" step="0.01" value={form.interest_rate} onChange={f('interest_rate')} placeholder="6.99" className={inputClass} />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-foreground block mb-1">Monthly Payment *</label>
-                  <input type="number" value={form.monthly_payment} onChange={f('monthly_payment')} placeholder="650"
-                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+                  <input type="number" value={form.monthly_payment} onChange={f('monthly_payment')} placeholder="650" className={inputClass} />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-medium text-foreground block mb-1">Loan Start Date *</label>
-                <input type="date" value={form.loan_start_date} onChange={f('loan_start_date')}
-                  className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+                <input type="date" value={form.loan_start_date} onChange={f('loan_start_date')} className={inputClass} />
               </div>
             </div>
           </div>
 
-          {/* Usage Split */}
           <div>
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Business Use</p>
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium text-foreground">Business use percentage</label>
-                <span className="text-sm font-bold text-[#0F6E56]">{form.business_use_pct}%</span>
+                <span className="text-sm font-bold text-primary">{form.business_use_pct}%</span>
               </div>
               <input type="range" min="0" max="100" value={form.business_use_pct}
                 onChange={f('business_use_pct')}
-                className="w-full accent-[#0F6E56]" />
+                className="w-full accent-primary" />
               <div className="flex justify-between text-xs text-muted-foreground mt-1">
                 <span>0% (personal only)</span>
                 <span>100% (business only)</span>
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 px-3 py-2 text-center">
+                <div className="rounded-lg bg-primary-light dark:bg-primary/10 px-3 py-2 text-center">
                   <p className="text-xs text-muted-foreground">Business</p>
-                  <p className="text-sm font-semibold text-[#0F6E56]">{form.business_use_pct}%</p>
+                  <p className="text-sm font-semibold text-primary">{form.business_use_pct}%</p>
                 </div>
                 <div className="rounded-lg bg-muted px-3 py-2 text-center">
                   <p className="text-xs text-muted-foreground">Personal</p>
@@ -159,7 +151,7 @@ function AddVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreate
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={isPending}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#0F6E56] rounded-lg hover:bg-[#085041] transition-colors flex items-center gap-2 disabled:opacity-50">
+            className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 disabled:opacity-50">
             {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Add Vehicle
           </button>
@@ -169,11 +161,8 @@ function AddVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreate
   );
 }
 
-/* ── Record Payment Modal ────────────────────────────────────────────── */
 function RecordPaymentModal({
-  vehicle,
-  onClose,
-  onRecorded,
+  vehicle, onClose, onRecorded,
 }: {
   vehicle: FinancedVehicle;
   onClose: () => void;
@@ -183,9 +172,8 @@ function RecordPaymentModal({
   const [error, setError] = useState<string | null>(null);
   const today = new Date().toISOString().split('T')[0];
 
-  // Auto-calculate interest from remaining balance
-  const monthlyRate = vehicle.interest_rate / 12;
-  const autoInterest = parseFloat((vehicle.remaining_balance * monthlyRate).toFixed(2));
+  const monthlyRate   = vehicle.interest_rate / 12;
+  const autoInterest  = parseFloat((vehicle.remaining_balance * monthlyRate).toFixed(2));
   const autoPrincipal = parseFloat((vehicle.monthly_payment - autoInterest).toFixed(2));
 
   const [form, setForm] = useState({
@@ -197,6 +185,8 @@ function RecordPaymentModal({
 
   const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [k]: e.target.value }));
+
+  const inputClass = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
 
   function handleSubmit() {
     setError(null);
@@ -221,11 +211,11 @@ function RecordPaymentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
       <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-[#0F6E56]" />
+            <CreditCard className="w-5 h-5 text-primary" />
             <h2 className="text-base font-semibold text-foreground">Record Payment</h2>
           </div>
           <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground" /></button>
@@ -238,27 +228,23 @@ function RecordPaymentModal({
           </div>
           <div>
             <label className="text-xs font-medium text-foreground block mb-1">Payment Date</label>
-            <input type="date" value={form.payment_date} onChange={f('payment_date')}
-              className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+            <input type="date" value={form.payment_date} onChange={f('payment_date')} className={inputClass} />
           </div>
           <div>
             <label className="text-xs font-medium text-foreground block mb-1">Total Payment</label>
-            <input type="number" value={form.total_payment} onChange={f('total_payment')}
-              className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+            <input type="number" value={form.total_payment} onChange={f('total_payment')} className={inputClass} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-foreground block mb-1">Principal</label>
-              <input type="number" value={form.principal_amount} onChange={f('principal_amount')}
-                className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+              <input type="number" value={form.principal_amount} onChange={f('principal_amount')} className={inputClass} />
             </div>
             <div>
               <label className="text-xs font-medium text-foreground block mb-1">Interest</label>
-              <input type="number" value={form.interest_amount} onChange={f('interest_amount')}
-                className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+              <input type="number" value={form.interest_amount} onChange={f('interest_amount')} className={inputClass} />
             </div>
           </div>
-          <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 px-3 py-2 text-xs text-[#0F6E56]">
+          <div className="rounded-lg bg-primary-light dark:bg-primary/10 px-3 py-2 text-xs text-primary">
             Posts as: DR Loan Payable + DR Interest Expense · CR Owner Contribution
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -266,7 +252,7 @@ function RecordPaymentModal({
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
           <button onClick={onClose} className="px-4 py-2 text-sm text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors">Cancel</button>
           <button onClick={handleSubmit} disabled={isPending}
-            className="px-4 py-2 text-sm font-medium text-white bg-[#0F6E56] rounded-lg hover:bg-[#085041] transition-colors flex items-center gap-2 disabled:opacity-50">
+            className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 disabled:opacity-50">
             {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Record Payment
           </button>
@@ -276,11 +262,8 @@ function RecordPaymentModal({
   );
 }
 
-/* ── Allocate Usage Modal ────────────────────────────────────────────── */
 function AllocateModal({
-  vehicle,
-  onClose,
-  onAllocated,
+  vehicle, onClose, onAllocated,
 }: {
   vehicle: FinancedVehicle;
   onClose: () => void;
@@ -295,6 +278,8 @@ function AllocateModal({
     period_end:   today.toISOString().split('T')[0],
   });
 
+  const inputClass = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
+
   function handleSubmit() {
     setError(null);
     start(async () => {
@@ -306,11 +291,11 @@ function AllocateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
       <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <Percent className="w-5 h-5 text-[#0F6E56]" />
+            <Percent className="w-5 h-5 text-primary" />
             <h2 className="text-base font-semibold text-foreground">Allocate Business Use</h2>
           </div>
           <button onClick={onClose}><X className="w-5 h-5 text-muted-foreground" /></button>
@@ -318,7 +303,7 @@ function AllocateModal({
         <div className="p-6 space-y-4">
           {result ? (
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-[#0F6E56]">
+              <div className="flex items-center gap-2 text-primary">
                 <CheckCircle2 className="w-5 h-5" />
                 <span className="font-medium text-sm">Allocation posted successfully</span>
               </div>
@@ -329,7 +314,7 @@ function AllocateModal({
                 </div>
                 <div className="flex justify-between px-4 py-2.5">
                   <span className="text-muted-foreground">Business ({result.business_pct}%) → Vehicle Expense</span>
-                  <span className="font-semibold text-[#0F6E56]">{fmt(result.business_amount)}</span>
+                  <span className="font-semibold text-primary">{fmt(result.business_amount)}</span>
                 </div>
                 <div className="flex justify-between px-4 py-2.5">
                   <span className="text-muted-foreground">Personal ({100 - result.business_pct}%) → Owner Draw</span>
@@ -342,23 +327,23 @@ function AllocateModal({
               <div className="rounded-lg bg-muted px-4 py-3 text-sm">
                 <p className="text-muted-foreground">Vehicle</p>
                 <p className="font-medium text-foreground">{vehicle.name}</p>
-                <p className="text-xs text-muted-foreground mt-1">Business use: <span className="font-semibold text-[#0F6E56]">{vehicle.business_use_pct}%</span></p>
+                <p className="text-xs text-muted-foreground mt-1">Business use: <span className="font-semibold text-primary">{vehicle.business_use_pct}%</span></p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs font-medium text-foreground block mb-1">Period Start</label>
                   <input type="date" value={form.period_start}
                     onChange={(e) => setForm((p) => ({ ...p, period_start: e.target.value }))}
-                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+                    className={inputClass} />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-foreground block mb-1">Period End</label>
                   <input type="date" value={form.period_end}
                     onChange={(e) => setForm((p) => ({ ...p, period_end: e.target.value }))}
-                    className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-[#0F6E56]" />
+                    className={inputClass} />
                 </div>
               </div>
-              <div className="rounded-lg bg-[#EDF7F2] dark:bg-primary/10 px-3 py-2 text-xs text-[#0F6E56]">
+              <div className="rounded-lg bg-primary-light dark:bg-primary/10 px-3 py-2 text-xs text-primary">
                 Posts as: DR Vehicle Expense + DR Owner Draw · CR Interest Expense (clearing)
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
@@ -371,7 +356,7 @@ function AllocateModal({
           </button>
           {!result && (
             <button onClick={handleSubmit} disabled={isPending}
-              className="px-4 py-2 text-sm font-medium text-white bg-[#0F6E56] rounded-lg hover:bg-[#085041] transition-colors flex items-center gap-2 disabled:opacity-50">
+              className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-2 disabled:opacity-50">
               {isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               Post Allocation
             </button>
@@ -382,10 +367,8 @@ function AllocateModal({
   );
 }
 
-/* ── Vehicle Detail View ─────────────────────────────────────────────── */
 function VehicleDetail({
-  vehicle: initialVehicle,
-  onBack,
+  vehicle: initialVehicle, onBack,
 }: {
   vehicle: FinancedVehicle;
   onBack: () => void;
@@ -417,22 +400,20 @@ function VehicleDetail({
 
   return (
     <div className="space-y-6">
-      {/* Back */}
       <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
         <ChevronRight className="w-4 h-4 rotate-180" />
         Back to vehicles
       </button>
 
-      {/* Summary card */}
       <div className="bg-card border border-border rounded-2xl p-5">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#EDF7F2] dark:bg-primary/10 flex items-center justify-center">
-              <Car className="w-5 h-5 text-[#0F6E56]" />
+            <div className="w-10 h-10 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
+              <Car className="w-5 h-5 text-primary" />
             </div>
             <div>
               <h2 className="font-semibold text-foreground">{vehicle.name}</h2>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${paidOff ? 'bg-muted text-muted-foreground' : 'bg-[#EDF7F2] dark:bg-primary/10 text-[#0F6E56]'}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${paidOff ? 'bg-muted text-muted-foreground' : 'bg-primary-light dark:bg-primary/10 text-primary'}`}>
                 {paidOff ? 'Paid Off' : 'Active'}
               </span>
             </div>
@@ -440,29 +421,27 @@ function VehicleDetail({
           {!paidOff && (
             <div className="flex gap-2">
               <button onClick={() => setShowAllocate(true)}
-                className="text-xs px-3 py-1.5 border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-[#0F6E56] transition-colors flex items-center gap-1.5">
+                className="text-xs px-3 py-1.5 border border-border rounded-lg text-muted-foreground hover:text-foreground hover:border-primary transition-colors flex items-center gap-1.5">
                 <Percent className="w-3.5 h-3.5" />Allocate
               </button>
               <button onClick={() => setShowPayment(true)}
-                className="text-xs px-3 py-1.5 bg-[#0F6E56] text-white rounded-lg hover:bg-[#085041] transition-colors flex items-center gap-1.5">
+                className="text-xs px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary-hover transition-colors flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5" />Record Payment
               </button>
             </div>
           )}
         </div>
 
-        {/* Progress bar */}
         <div className="mb-4">
           <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
             <span>Loan paid off</span>
             <span>{progressPct}%</span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-[#0F6E56] rounded-full transition-all" style={{ width: `${progressPct}%` }} />
+            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
 
-        {/* Stats grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
             { label: 'Remaining Balance', value: fmt(vehicle.remaining_balance), icon: TrendingDown },
@@ -478,7 +457,6 @@ function VehicleDetail({
         </div>
       </div>
 
-      {/* Payment history */}
       {vehicle.payments && vehicle.payments.length > 0 && (
         <div className="bg-card border border-border rounded-2xl overflow-hidden">
           <div className="px-5 py-3.5 border-b border-border">
@@ -501,10 +479,9 @@ function VehicleDetail({
         </div>
       )}
 
-      {/* Amortization schedule */}
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-border flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-[#0F6E56]" />
+          <BarChart3 className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Amortization Schedule</h3>
         </div>
         {loadingSchedule ? (
@@ -529,7 +506,7 @@ function VehicleDetail({
                   <tr key={row.period} className="hover:bg-muted/30">
                     <td className="px-4 py-2 text-muted-foreground">{row.period}</td>
                     <td className="px-4 py-2 text-right text-foreground">{fmt(row.payment)}</td>
-                    <td className="px-4 py-2 text-right text-[#0F6E56]">{fmt(row.principal)}</td>
+                    <td className="px-4 py-2 text-right text-primary">{fmt(row.principal)}</td>
                     <td className="px-4 py-2 text-right text-muted-foreground">{fmt(row.interest)}</td>
                     <td className="px-4 py-2 text-right text-foreground">{fmt(row.balance)}</td>
                   </tr>
@@ -543,34 +520,23 @@ function VehicleDetail({
         )}
       </div>
 
-      {showPayment && (
-        <RecordPaymentModal vehicle={vehicle} onClose={() => setShowPayment(false)} onRecorded={refresh} />
-      )}
-      {showAllocate && (
-        <AllocateModal vehicle={vehicle} onClose={() => setShowAllocate(false)} onAllocated={refresh} />
-      )}
+      {showPayment && <RecordPaymentModal vehicle={vehicle} onClose={() => setShowPayment(false)} onRecorded={refresh} />}
+      {showAllocate && <AllocateModal vehicle={vehicle} onClose={() => setShowAllocate(false)} onAllocated={refresh} />}
     </div>
   );
 }
 
-/* ── Main Vehicle Manager ────────────────────────────────────────────── */
 export function VehicleManager({ initialVehicles }: { initialVehicles: FinancedVehicle[] }) {
   const [vehicles, setVehicles] = useState(initialVehicles);
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState<FinancedVehicle | null>(null);
 
   if (selected) {
-    return (
-      <VehicleDetail
-        vehicle={selected}
-        onBack={() => setSelected(null)}
-      />
-    );
+    return <VehicleDetail vehicle={selected} onBack={() => setSelected(null)} />;
   }
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {vehicles.length === 0
@@ -578,13 +544,12 @@ export function VehicleManager({ initialVehicles }: { initialVehicles: FinancedV
             : `${vehicles.length} vehicle${vehicles.length !== 1 ? 's' : ''}`}
         </p>
         <button onClick={() => setShowAdd(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#0F6E56] text-white text-sm font-medium rounded-lg hover:bg-[#085041] transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors">
           <Plus className="w-4 h-4" />
           Add Vehicle
         </button>
       </div>
 
-      {/* Empty state */}
       {vehicles.length === 0 && (
         <div className="rounded-2xl border-2 border-dashed border-border p-12 text-center">
           <Car className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -593,13 +558,12 @@ export function VehicleManager({ initialVehicles }: { initialVehicles: FinancedV
             Add a financed vehicle to track loan payments, interest, and business-use allocation.
           </p>
           <button onClick={() => setShowAdd(true)}
-            className="px-4 py-2 bg-[#0F6E56] text-white text-sm font-medium rounded-lg hover:bg-[#085041] transition-colors">
+            className="px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary-hover transition-colors">
             Add your first vehicle
           </button>
         </div>
       )}
 
-      {/* Vehicle cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {vehicles.map((v) => {
           const progressPct = Math.min(100, Math.round(
@@ -607,14 +571,14 @@ export function VehicleManager({ initialVehicles }: { initialVehicles: FinancedV
           ));
           return (
             <button key={v.id} onClick={() => setSelected(v)}
-              className="text-left bg-card border border-border rounded-2xl p-5 hover:border-[#0F6E56] hover:shadow-md transition-all">
+              className="text-left bg-card border border-border rounded-2xl p-5 hover:border-primary hover:shadow-md transition-all">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-9 h-9 rounded-xl bg-[#EDF7F2] dark:bg-primary/10 flex items-center justify-center">
-                  <Car className="w-4.5 h-4.5 text-[#0F6E56]" />
+                <div className="w-9 h-9 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
+                  <Car className="w-4 h-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-foreground truncate">{v.name}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${v.status === 'paid_off' ? 'bg-muted text-muted-foreground' : 'bg-[#EDF7F2] dark:bg-primary/10 text-[#0F6E56]'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${v.status === 'paid_off' ? 'bg-muted text-muted-foreground' : 'bg-primary-light dark:bg-primary/10 text-primary'}`}>
                     {v.status === 'paid_off' ? 'Paid Off' : 'Active'}
                   </span>
                 </div>
@@ -631,11 +595,11 @@ export function VehicleManager({ initialVehicles }: { initialVehicles: FinancedV
                 </div>
                 <div className="flex justify-between text-xs">
                   <span className="text-muted-foreground">Business use</span>
-                  <span className="text-[#0F6E56] font-medium">{v.business_use_pct}%</span>
+                  <span className="text-primary font-medium">{v.business_use_pct}%</span>
                 </div>
               </div>
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-[#0F6E56] rounded-full" style={{ width: `${progressPct}%` }} />
+                <div className="h-full bg-primary rounded-full" style={{ width: `${progressPct}%` }} />
               </div>
               <p className="text-xs text-muted-foreground mt-1">{progressPct}% paid off</p>
             </button>

@@ -4,12 +4,12 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { UpcomingRemindersResult, UpcomingReminder } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { snoozeReminder, dismissReminder } from '@/app/(app)/personal/reminders/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
-  AlertTriangle, Bell, BellOff, Calendar, ChevronDown, X,
+  AlertTriangle, Bell, BellOff, Calendar, X,
   Clock, RefreshCw,
 } from 'lucide-react';
 
@@ -35,7 +35,7 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
   const [snoozeOpenKey, setSnoozeOpenKey] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const next7 = reminders.filter((r) => r.days_until <= 7);
+  const next7  = reminders.filter((r) => r.days_until <= 7);
   const next30 = reminders.filter((r) => r.days_until > 7);
 
   function removeReminder(key: string, due_date: string) {
@@ -95,7 +95,7 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
     const upcomingCount = reminders.length;
     if (upcomingCount === 0) {
       return (
-        <div className="py-4 text-center text-sm text-gray-400">
+        <div className="py-4 text-center text-sm text-muted-foreground">
           <Link href="/personal/reminders" className="text-primary underline">
             Set up recurring payments to get reminders
           </Link>
@@ -105,9 +105,9 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
     return (
       <div>
         {data?.balance_warning && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3">
+          <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg px-3 py-2 mb-3">
             <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
-            <p className="text-xs text-red-600 font-medium">
+            <p className="text-xs text-red-600 dark:text-red-400 font-medium">
               Balance may be insufficient for upcoming payments
             </p>
           </div>
@@ -115,16 +115,16 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
         <div className="flex flex-col gap-1.5">
           {reminders.slice(0, 4).map((r) => (
             <div key={`${r.key}-${r.due_date}`} className="flex items-center justify-between text-xs">
-              <span className={cn('truncate', r.is_due_soon ? 'text-amber-600 font-medium' : 'text-gray-600')}>
+              <span className={cn('truncate', r.is_due_soon ? 'text-amber-600 font-medium' : 'text-muted-foreground')}>
                 {TYPE_ICONS[r.type] ?? '🔄'} {r.merchant}
               </span>
-              <span className="ml-2 flex-shrink-0 text-gray-500">
+              <span className="ml-2 flex-shrink-0 text-muted-foreground">
                 {r.days_until === 0 ? 'Today' : `${r.days_until}d`} · {formatCurrency(r.amount)}
               </span>
             </div>
           ))}
           {reminders.length > 4 && (
-            <Link href="/personal/reminders" className="text-xs text-gray-400 hover:text-primary mt-1">
+            <Link href="/personal/reminders" className="text-xs text-muted-foreground hover:text-primary mt-1">
               +{reminders.length - 4} more →
             </Link>
           )}
@@ -138,8 +138,8 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
     return (
       <Card>
         <CardContent className="py-12 text-center">
-          <RefreshCw className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-500">
+          <RefreshCw className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">
             No upcoming reminders. Confirm recurring payments on the{' '}
             <Link href="/personal/recurring" className="text-primary underline">Recurring Payments</Link>{' '}
             page first.
@@ -155,43 +155,39 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
       <div className="grid grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-5">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Due Next 7 Days</div>
-            <div className={cn('text-2xl font-semibold', data.balance_warning ? 'text-red-500' : 'text-gray-900')}>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Due Next 7 Days</div>
+            <div className={cn('text-2xl font-semibold', data.balance_warning ? 'text-red-500' : 'text-foreground')}>
               {formatCurrency(data.total_due_7_days)}
             </div>
-            <div className="text-xs text-gray-400 mt-1">{next7.length} payment{next7.length !== 1 ? 's' : ''}</div>
+            <div className="text-xs text-muted-foreground mt-1">{next7.length} payment{next7.length !== 1 ? 's' : ''}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-5">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Due Next 30 Days</div>
-            <div className="text-2xl font-semibold text-gray-900">{formatCurrency(data.total_due_30_days)}</div>
-            <div className="text-xs text-gray-400 mt-1">{reminders.length} payment{reminders.length !== 1 ? 's' : ''}</div>
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Due Next 30 Days</div>
+            <div className="text-2xl font-semibold text-foreground">{formatCurrency(data.total_due_30_days)}</div>
+            <div className="text-xs text-muted-foreground mt-1">{reminders.length} payment{reminders.length !== 1 ? 's' : ''}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-5">
-            <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
               {notifStatus === 'granted' ? 'Notifications On' : 'Notifications'}
             </div>
             {notifStatus === 'unsupported' ? (
-              <p className="text-xs text-gray-400">Not supported in this browser</p>
+              <p className="text-xs text-muted-foreground">Not supported in this browser</p>
             ) : notifStatus === 'granted' ? (
               <div className="flex items-center gap-2 text-primary">
                 <Bell className="w-5 h-5" />
                 <span className="text-sm font-medium">Enabled</span>
               </div>
             ) : notifStatus === 'denied' ? (
-              <div className="flex items-center gap-2 text-gray-400">
+              <div className="flex items-center gap-2 text-muted-foreground">
                 <BellOff className="w-5 h-5" />
                 <span className="text-xs">Blocked in browser settings</span>
               </div>
             ) : (
-              <Button
-                size="sm"
-                onClick={handleEnableNotifications}
-                className="mt-1 bg-primary text-white hover:bg-primary/90 h-8 text-xs"
-              >
+              <Button size="sm" onClick={handleEnableNotifications} className="mt-1 h-8 text-xs">
                 <Bell className="w-3.5 h-3.5 mr-1.5" />
                 Enable Reminders
               </Button>
@@ -202,11 +198,11 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
 
       {/* Balance warning */}
       {data.balance_warning && (
-        <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+        <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3">
           <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-red-700">Insufficient balance warning</p>
-            <p className="text-xs text-red-600 mt-0.5">
+            <p className="text-sm font-semibold text-red-700 dark:text-red-400">Insufficient balance warning</p>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
               Your connected accounts have {formatCurrency(data.current_balance)}, but{' '}
               {formatCurrency(data.total_due_7_days)} is due in the next 7 days — a shortfall of{' '}
               {formatCurrency(data.balance_shortfall)}.
@@ -218,14 +214,13 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
       {reminders.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <Calendar className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-            <p className="text-sm font-medium text-gray-700 mb-1">No upcoming payments in the next 30 days</p>
-            <p className="text-xs text-gray-400">All confirmed recurring payments have been accounted for.</p>
+            <Calendar className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
+            <p className="text-sm font-medium text-foreground mb-1">No upcoming payments in the next 30 days</p>
+            <p className="text-xs text-muted-foreground">All confirmed recurring payments have been accounted for.</p>
           </CardContent>
         </Card>
       ) : (
         <>
-          {/* Next 7 days */}
           {next7.length > 0 && (
             <ReminderSection
               title="Next 7 Days"
@@ -238,8 +233,6 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
               urgent
             />
           )}
-
-          {/* Next 8–30 days */}
           {next30.length > 0 && (
             <ReminderSection
               title="Next 8–30 Days"
@@ -271,13 +264,13 @@ function ReminderSection({
 }) {
   return (
     <div>
-      <h2 className={cn('text-sm font-semibold mb-3', urgent ? 'text-amber-700' : 'text-gray-700')}>
+      <h2 className={cn('text-sm font-semibold mb-3', urgent ? 'text-amber-600' : 'text-foreground')}>
         {urgent && <Clock className="inline w-4 h-4 mr-1.5 text-amber-500" />}
         {title}
       </h2>
       <Card>
         <CardContent className="p-0">
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-border">
             {reminders.map((r) => {
               const compositeKey = `${r.key}::${r.due_date}`;
               const isSnoozeOpen = snoozeOpenKey === compositeKey;
@@ -286,54 +279,52 @@ function ReminderSection({
                 : `In ${r.days_until} days`;
 
               return (
-                <div key={compositeKey} className={cn('px-4 py-3 group', r.is_due_soon ? 'bg-amber-50/50' : '')}>
+                <div key={compositeKey} className={cn('px-4 py-3 group', r.is_due_soon ? 'bg-amber-500/10' : '')}>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-base flex-shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-base flex-shrink-0">
                       {TYPE_ICONS[r.type] ?? '🔄'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{r.merchant}</p>
-                      <p className={cn('text-xs', r.is_due_soon ? 'text-amber-600 font-medium' : 'text-gray-400')}>
+                      <p className="text-sm font-medium text-foreground truncate">{r.merchant}</p>
+                      <p className={cn('text-xs', r.is_due_soon ? 'text-amber-600 font-medium' : 'text-muted-foreground')}>
                         {dueLabel} · {new Date(r.due_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(r.amount)}</p>
-                      <p className="text-xs text-gray-400 capitalize">{r.frequency}</p>
+                      <p className="text-sm font-semibold text-foreground">{formatCurrency(r.amount)}</p>
+                      <p className="text-xs text-muted-foreground capitalize">{r.frequency}</p>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                      {/* Snooze */}
                       <div className="relative">
                         <button
                           onClick={() => onSnoozeOpen(isSnoozeOpen ? null : compositeKey)}
                           disabled={isPending}
-                          className="p-1.5 text-gray-400 hover:text-amber-500 transition-colors rounded"
+                          className="p-1.5 text-muted-foreground hover:text-amber-500 transition-colors rounded"
                           title="Snooze"
                         >
                           <Clock className="w-4 h-4" />
                         </button>
                         {isSnoozeOpen && (
-                          <div className="absolute right-0 top-8 z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-[120px]">
+                          <div className="absolute right-0 top-8 z-10 bg-card border border-border rounded-lg shadow-lg p-1 min-w-[120px]">
                             <button
                               onClick={() => onSnooze(r, 3)}
-                              className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 rounded"
+                              className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-muted rounded"
                             >
                               Snooze 3 days
                             </button>
                             <button
                               onClick={() => onSnooze(r, 7)}
-                              className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 rounded"
+                              className="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-muted rounded"
                             >
                               Snooze 1 week
                             </button>
                           </div>
                         )}
                       </div>
-                      {/* Dismiss */}
                       <button
                         onClick={() => onDismiss(r)}
                         disabled={isPending}
-                        className="p-1.5 text-gray-400 hover:text-red-400 transition-colors rounded"
+                        className="p-1.5 text-muted-foreground hover:text-destructive transition-colors rounded"
                         title="Dismiss this occurrence"
                       >
                         <X className="w-4 h-4" />

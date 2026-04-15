@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useTransition, useRef } from 'react';
 import { BudgetCategoryWithSpending } from '@/types';
@@ -15,8 +15,6 @@ import {
 } from '@/app/(app)/personal/budget/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Plus, Pencil, Trash2, Check, X, GripVertical } from 'lucide-react';
-
-// ── Color picker ─────────────────────────────────────────────────────────
 
 const PRESET_COLORS = [
   '#0F6E56', '#22c55e', '#3b82f6', '#6366f1', '#a855f7',
@@ -35,14 +33,14 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
             onClick={() => onChange(c)}
             className={cn(
               'w-6 h-6 rounded-full border-2 transition-all',
-              value === c ? 'border-gray-800 dark:border-white scale-110' : 'border-transparent hover:scale-105',
+              value === c ? 'border-foreground scale-110' : 'border-transparent hover:scale-105',
             )}
             style={{ backgroundColor: c }}
           />
         ))}
       </div>
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-full border border-gray-200 flex-shrink-0" style={{ backgroundColor: value }} />
+        <div className="w-6 h-6 rounded-full border border-border flex-shrink-0" style={{ backgroundColor: value }} />
         <input
           type="text"
           value={value}
@@ -52,14 +50,12 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
           }}
           maxLength={7}
           placeholder="#000000"
-          className="w-24 text-xs border border-gray-200 dark:border-[#3a3730] rounded px-2 py-1 bg-background text-foreground font-mono outline-none focus:border-[#0F6E56]"
+          className="w-24 text-xs border border-border rounded px-2 py-1 bg-background text-foreground font-mono outline-none focus:border-primary"
         />
       </div>
     </div>
   );
 }
-
-// ── Main component ────────────────────────────────────────────────────────
 
 interface BudgetCategoriesManagerProps {
   initialCategories: BudgetCategoryWithSpending[];
@@ -73,7 +69,6 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
   const [editForm, setEditForm] = useState({ name: '', monthly_target: '', color: '#0F6E56' });
   const [isPending, startTransition] = useTransition();
 
-  // Drag state
   const dragIndex = useRef<number | null>(null);
   const dragOverIndex = useRef<number | null>(null);
 
@@ -82,11 +77,7 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
   const overBudget    = categories.filter((c) => c.over_budget);
   const budgetPct     = totalBudgeted > 0 ? Math.min(100, (totalSpent / totalBudgeted) * 100) : 0;
 
-  // ── Drag handlers ───────────────────────────────────────────────────────
-
-  function handleDragStart(index: number) {
-    dragIndex.current = index;
-  }
+  function handleDragStart(index: number) { dragIndex.current = index; }
 
   function handleDragOver(e: React.DragEvent, index: number) {
     e.preventDefault();
@@ -101,26 +92,22 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
     const [moved] = reordered.splice(dragIndex.current, 1);
     reordered.splice(dragOverIndex.current, 0, moved);
 
-    // Assign new sort_order values
     const updated = reordered.map((cat, i) => ({ ...cat, sort_order: i + 1 }));
     setCategories(updated);
 
-    // Persist to API
     startTransition(async () => {
       const result = await reorderBudgetCategories(
         updated.map((c) => ({ id: c.id, sort_order: c.sort_order })),
       );
       if (!result.success) {
         toastError('Failed to save order.');
-        setCategories(categories); // revert
+        setCategories(categories);
       }
     });
 
     dragIndex.current = null;
     dragOverIndex.current = null;
   }
-
-  // ── CRUD handlers ───────────────────────────────────────────────────────
 
   function handleAdd() {
     if (!addForm.name.trim()) { toastError('Category name is required.'); return; }
@@ -206,12 +193,12 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
     <div className="flex flex-col gap-4">
 
       {/* Summary hero */}
-      <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-5">
+      <div className="rounded-2xl bg-card border border-border p-5">
         <div className="flex items-end justify-between mb-3">
           <div>
-            <p className="text-xs font-medium text-gray-400 dark:text-[#7a7060] uppercase tracking-wider mb-1">This month</p>
-            <p className="text-4xl font-bold text-gray-900 dark:text-[#f0ede8] tabular-nums">{formatCurrency(totalSpent)}</p>
-            <p className="text-sm text-gray-400 dark:text-[#7a7060] mt-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">This month</p>
+            <p className="text-4xl font-bold text-foreground tabular-nums">{formatCurrency(totalSpent)}</p>
+            <p className="text-sm text-muted-foreground mt-1">
               {totalBudgeted > 0
                 ? `${formatCurrency(Math.max(0, totalBudgeted - totalSpent))} left of ${formatCurrency(totalBudgeted)}`
                 : 'No budget set'}
@@ -224,10 +211,10 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
           )}
         </div>
         {totalBudgeted > 0 && (
-          <div className="h-3 bg-gray-100 dark:bg-[#2a2720] rounded-full overflow-hidden">
+          <div className="h-3 bg-muted rounded-full overflow-hidden">
             <div
               className={cn('h-full rounded-full transition-all',
-                budgetPct >= 100 ? 'bg-red-400' : budgetPct >= 80 ? 'bg-amber-400' : 'bg-[#0F6E56]')}
+                budgetPct >= 100 ? 'bg-red-400' : budgetPct >= 80 ? 'bg-amber-400' : 'bg-primary')}
               style={{ width: `${budgetPct}%` }}
             />
           </div>
@@ -236,8 +223,8 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
 
       {/* Add form */}
       {showAddForm && (
-        <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-5">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-[#f0ede8] mb-4">New category</h3>
+        <div className="rounded-2xl bg-card border border-border p-5">
+          <h3 className="text-sm font-semibold text-foreground mb-4">New category</h3>
           <div className="flex flex-col gap-4">
             <div className="flex gap-3 items-end flex-wrap">
               <div className="flex-1 min-w-[160px]">
@@ -277,11 +264,11 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
       )}
 
       {/* Category list */}
-      <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50 dark:border-[#2a2720]">
+      <div className="rounded-2xl bg-card border border-border overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-[#f0ede8]">All categories</h3>
-            <p className="text-xs text-gray-400 mt-0.5">Drag to reorder</p>
+            <h3 className="text-base font-semibold text-foreground">All categories</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">Drag to reorder</p>
           </div>
           {!showAddForm && (
             <Button onClick={() => setShowAddForm(true)} size="sm">
@@ -290,7 +277,7 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
           )}
         </div>
 
-        <div className="divide-y divide-gray-50 dark:divide-[#2a2720]">
+        <div className="divide-y divide-border">
           {categories.map((cat, index) => (
             <div
               key={cat.id}
@@ -319,7 +306,7 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
                       <Check className="w-4 h-4" />
                     </button>
                     <button onClick={() => setEditingId(null)}
-                      className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-[#c8c0b0]">
+                      className="p-1 text-muted-foreground hover:text-foreground">
                       <X className="w-4 h-4" />
                     </button>
                   </div>
@@ -329,9 +316,9 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
                 <div className="group">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <GripVertical className="w-4 h-4 text-gray-300 dark:text-[#4a4438] cursor-grab flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <GripVertical className="w-4 h-4 text-muted-foreground/30 cursor-grab flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color ?? '#0F6E56' }} />
-                      <span className="text-sm font-medium text-gray-800 dark:text-[#f0ede8]">{cat.name}</span>
+                      <span className="text-sm font-medium text-foreground">{cat.name}</span>
                       {cat.over_budget && (
                         <span className="text-[10px] font-bold text-red-500 uppercase">Over budget</span>
                       )}
@@ -340,20 +327,20 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
                       )}
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-gray-700 dark:text-[#c8c0b0] tabular-nums text-right min-w-[80px]">
+                      <span className="text-sm font-medium text-foreground tabular-nums text-right min-w-[80px]">
                         {formatCurrency(cat.spent_this_month)}
                         {cat.monthly_target != null && (
-                          <span className="text-gray-400 dark:text-[#7a7060] text-xs"> / {formatCurrency(cat.monthly_target)}</span>
+                          <span className="text-muted-foreground text-xs"> / {formatCurrency(cat.monthly_target)}</span>
                         )}
                       </span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => startEdit(cat)} className="p-1 text-gray-400 hover:text-primary">
+                        <button onClick={() => startEdit(cat)} className="p-1 text-muted-foreground hover:text-primary">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>
                         {!cat.is_system && (
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <button className="p-1 text-gray-400 hover:text-red-500">
+                              <button className="p-1 text-muted-foreground hover:text-destructive">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </AlertDialogTrigger>
@@ -368,7 +355,7 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => handleDelete(cat.id, cat.name)}
-                                  className="bg-red-600 hover:bg-red-700 text-white">
+                                  className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
                                   Remove
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -379,7 +366,7 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
                     </div>
                   </div>
                   {cat.monthly_target != null ? (
-                    <div className="h-3 bg-gray-100 dark:bg-[#2a2720] rounded-full overflow-hidden">
+                    <div className="h-3 bg-muted rounded-full overflow-hidden">
                       <div
                         className={cn('h-full rounded-full transition-all',
                           cat.over_budget ? 'bg-red-400'
@@ -393,7 +380,7 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
                       />
                     </div>
                   ) : (
-                    <div className="h-1 bg-gray-50 dark:bg-[#2a2720] rounded-full" />
+                    <div className="h-1 bg-muted rounded-full" />
                   )}
                 </div>
               )}

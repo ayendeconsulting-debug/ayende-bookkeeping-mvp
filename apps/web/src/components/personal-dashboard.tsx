@@ -52,10 +52,10 @@ export function PersonalDashboard({
 
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-[#f0ede8]">
+        <h1 className="text-2xl font-bold text-foreground">
           {business?.name ?? 'My Finances'}
         </h1>
-        <p className="text-sm text-gray-500 dark:text-[#a09888] mt-0.5">
+        <p className="text-sm text-muted-foreground mt-0.5">
           {new Date().toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
@@ -80,44 +80,44 @@ export function PersonalDashboard({
         </div>
       )}
 
-      {/* ── Hero money flow ── */}
+      {/* Hero money flow */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-4 md:p-5">
-          <p className="text-xs font-medium text-gray-400 dark:text-[#7a7060] uppercase tracking-wider mb-2">Money in</p>
-          <p className="text-3xl font-bold text-[#0F6E56] tabular-nums">{formatCurrency(moneyIn)}</p>
-          <p className="text-xs text-gray-400 dark:text-[#7a7060] mt-1">{monthName}</p>
+        <div className="rounded-2xl bg-card border border-border p-4 md:p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Money in</p>
+          <p className="text-3xl font-bold text-primary tabular-nums">{formatCurrency(moneyIn)}</p>
+          <p className="text-xs text-muted-foreground mt-1">{monthName}</p>
         </div>
-        <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-4 md:p-5">
-          <p className="text-xs font-medium text-gray-400 dark:text-[#7a7060] uppercase tracking-wider mb-2">Money out</p>
-          <p className="text-3xl font-bold text-[#c0392b] tabular-nums">{formatCurrency(moneyOut)}</p>
-          <p className="text-xs text-gray-400 dark:text-[#7a7060] mt-1">{monthName}</p>
+        <div className="rounded-2xl bg-card border border-border p-4 md:p-5">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Money out</p>
+          <p className="text-3xl font-bold text-danger tabular-nums">{formatCurrency(moneyOut)}</p>
+          <p className="text-xs text-muted-foreground mt-1">{monthName}</p>
         </div>
       </div>
 
-      {/* ── Net worth hero ── */}
+      {/* Net worth hero */}
       {netWorth && (
         <Link href="/personal/networth" className="block mb-6">
-          <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-4 md:p-5 hover:border-primary/30 transition-colors">
+          <div className="rounded-2xl bg-card border border-border p-4 md:p-5 hover:border-primary/30 transition-colors">
             <div className="flex items-center justify-between mb-1">
-              <p className="text-xs font-medium text-gray-400 dark:text-[#7a7060] uppercase tracking-wider">Net worth</p>
-              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-[#7a7060]" />
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Net worth</p>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </div>
-            <p className={cn('text-4xl font-bold tabular-nums mb-3', netWorth.net_worth >= 0 ? 'text-[#0F6E56]' : 'text-[#c0392b]')}>
+            <p className={cn('text-4xl font-bold tabular-nums mb-3', netWorth.net_worth >= 0 ? 'text-primary' : 'text-danger')}>
               {formatCurrency(netWorth.net_worth)}
             </p>
             <div className="flex gap-6">
               <div>
-                <p className="text-xs text-gray-400 dark:text-[#7a7060] mb-0.5">Assets</p>
-                <p className="text-sm font-semibold text-[#0F6E56]">{formatCurrency(netWorth.total_assets)}</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Assets</p>
+                <p className="text-sm font-semibold text-primary">{formatCurrency(netWorth.total_assets)}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-400 dark:text-[#7a7060] mb-0.5">Liabilities</p>
-                <p className="text-sm font-semibold text-[#c0392b]">{formatCurrency(netWorth.total_liabilities)}</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Liabilities</p>
+                <p className="text-sm font-semibold text-danger">{formatCurrency(netWorth.total_liabilities)}</p>
               </div>
               {netWorth.plaid_assets.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-400 dark:text-[#7a7060] mb-0.5">Accounts</p>
-                  <p className="text-sm font-semibold text-gray-700 dark:text-[#c8c0b0]">
+                  <p className="text-xs text-muted-foreground mb-0.5">Accounts</p>
+                  <p className="text-sm font-semibold text-foreground">
                     {netWorth.plaid_assets.length + netWorth.plaid_liabilities.length} connected
                   </p>
                 </div>
@@ -127,30 +127,30 @@ export function PersonalDashboard({
         </Link>
       )}
 
-      {/* ── Main grid ── */}
+      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        {/* Left — budget + recurring */}
+        {/* Left – budget + recurring */}
         <div className="col-span-1 lg:col-span-2 flex flex-col gap-4">
 
           {/* Budget vs Actual */}
-          <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-4 md:p-5">
+          <div className="rounded-2xl bg-card border border-border p-4 md:p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-semibold text-gray-900 dark:text-[#f0ede8]">Budget — {monthName}</h2>
+                <h2 className="text-base font-semibold text-foreground">Budget — {monthName}</h2>
                 {totalMonthlyTarget > 0 && (
-                  <p className="text-sm text-gray-400 dark:text-[#7a7060] mt-0.5">
+                  <p className="text-sm text-muted-foreground mt-0.5">
                     {formatCurrency(totalSpent)} of {formatCurrency(totalMonthlyTarget)} spent
                   </p>
                 )}
               </div>
-              <Link href="/personal/budget" className="text-xs text-[#0F6E56] font-medium flex items-center gap-0.5 hover:underline">
+              <Link href="/personal/budget" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">
                 Manage <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
             {budgetCategories.length === 0 ? (
-              <div className="py-8 text-center text-sm text-gray-400 dark:text-[#7a7060]">
-                <Link href="/personal/budget" className="text-[#0F6E56] underline">Set up your budget</Link>
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                <Link href="/personal/budget" className="text-primary underline">Set up your budget</Link>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
@@ -158,7 +158,7 @@ export function PersonalDashboard({
                   <EmmaBudgetBar key={cat.id} category={cat} />
                 ))}
                 {budgetCategories.length > 8 && (
-                  <Link href="/personal/budget" className="text-xs text-gray-400 hover:text-[#0F6E56] text-center pt-1">
+                  <Link href="/personal/budget" className="text-xs text-muted-foreground hover:text-primary text-center pt-1">
                     +{budgetCategories.length - 8} more →
                   </Link>
                 )}
@@ -168,31 +168,31 @@ export function PersonalDashboard({
 
           {/* Recurring payments */}
           {confirmedRecurring.length > 0 && (
-            <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-4 md:p-5">
+            <div className="rounded-2xl bg-card border border-border p-4 md:p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-base font-semibold text-gray-900 dark:text-[#f0ede8]">Recurring payments</h2>
-                  <p className="text-sm text-gray-400 dark:text-[#7a7060] mt-0.5">{formatCurrency(totalMonthlyRecurring)}/mo total</p>
+                  <h2 className="text-base font-semibold text-foreground">Recurring payments</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">{formatCurrency(totalMonthlyRecurring)}/mo total</p>
                 </div>
-                <Link href="/personal/recurring" className="text-xs text-[#0F6E56] font-medium flex items-center gap-0.5 hover:underline">
+                <Link href="/personal/recurring" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">
                   See all <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
-              <div className="flex flex-col divide-y divide-gray-50 dark:divide-[#2a2720]">
+              <div className="flex flex-col divide-y divide-border">
                 {confirmedRecurring.slice(0, 5).map((item) => (
                   <div key={item.key} className="flex items-center justify-between py-2.5">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#2a2720] flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-gray-500 dark:text-[#a09888]">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-muted-foreground">
                           {item.merchant.slice(0, 2).toUpperCase()}
                         </span>
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-[#f0ede8]">{item.merchant}</p>
-                        <p className="text-xs text-gray-400 dark:text-[#7a7060] capitalize">{item.frequency}</p>
+                        <p className="text-sm font-medium text-foreground">{item.merchant}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{item.frequency}</p>
                       </div>
                     </div>
-                    <span className="text-sm font-semibold text-[#c0392b]">-{formatCurrency(item.amount)}</span>
+                    <span className="text-sm font-semibold text-danger">-{formatCurrency(item.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -204,16 +204,16 @@ export function PersonalDashboard({
         <div className="flex flex-col gap-4">
 
           {/* Savings Goals */}
-          <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-4 md:p-5">
+          <div className="rounded-2xl bg-card border border-border p-4 md:p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-gray-900 dark:text-[#f0ede8]">Savings goals</h2>
-              <Link href="/personal/goals" className="text-xs text-[#0F6E56] font-medium flex items-center gap-0.5 hover:underline">
+              <h2 className="text-base font-semibold text-foreground">Savings goals</h2>
+              <Link href="/personal/goals" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">
                 Manage <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
             {activeGoals.length === 0 ? (
-              <div className="py-4 text-center text-sm text-gray-400 dark:text-[#7a7060]">
-                <Link href="/personal/goals" className="text-[#0F6E56] underline">Add a savings goal</Link>
+              <div className="py-4 text-center text-sm text-muted-foreground">
+                <Link href="/personal/goals" className="text-primary underline">Add a savings goal</Link>
               </div>
             ) : (
               <div className="flex flex-col gap-5">
@@ -225,17 +225,17 @@ export function PersonalDashboard({
           </div>
 
           {/* Upcoming Payments */}
-          <div className="rounded-2xl bg-white dark:bg-[#222019] border border-gray-100 dark:border-[#3a3730] p-4 md:p-5">
+          <div className="rounded-2xl bg-card border border-border p-4 md:p-5">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-semibold text-gray-900 dark:text-[#f0ede8]">Upcoming</h2>
+                <h2 className="text-base font-semibold text-foreground">Upcoming</h2>
                 {dueSoonItems.length > 0 && (
                   <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-100 dark:border-amber-800 px-1.5 py-0.5 rounded-full">
                     {dueSoonItems.length} due soon
                   </span>
                 )}
               </div>
-              <Link href="/personal/reminders" className="text-xs text-[#0F6E56] font-medium flex items-center gap-0.5 hover:underline">
+              <Link href="/personal/reminders" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">
                 View all <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -254,30 +254,30 @@ function EmmaBudgetBar({ category }: { category: BudgetCategoryWithSpending }) {
   const hasTarget = category.monthly_target != null;
   const isOver    = category.over_budget;
   const isWarn    = !isOver && pct >= 80;
-  const barColor  = isOver ? 'bg-red-400' : isWarn ? 'bg-amber-400' : 'bg-[#0F6E56]';
+  const barColor  = isOver ? 'bg-red-400' : isWarn ? 'bg-amber-400' : 'bg-primary';
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: category.color ?? '#0F6E56' }} />
-          <span className="text-sm font-medium text-gray-800 dark:text-[#f0ede8] truncate">{category.name}</span>
+          <span className="text-sm font-medium text-foreground truncate">{category.name}</span>
           {isOver && <span className="text-[10px] font-bold text-red-500 uppercase flex-shrink-0">Over</span>}
           {isWarn && <span className="text-[10px] font-bold text-amber-500 uppercase flex-shrink-0">Almost</span>}
         </div>
         <div className="text-sm font-medium flex-shrink-0 ml-3">
-          <span className={isOver ? 'text-red-500' : 'text-gray-700 dark:text-[#c8c0b0]'}>
+          <span className={isOver ? 'text-red-500' : 'text-foreground'}>
             {formatCurrency(category.spent_this_month)}
           </span>
           {hasTarget && (
-            <span className="text-gray-400 dark:text-[#7a7060] text-xs">
+            <span className="text-muted-foreground text-xs">
               {' '}/ {formatCurrency(category.monthly_target!)}
             </span>
           )}
         </div>
       </div>
       {hasTarget && (
-        <div className="h-3 bg-gray-100 dark:bg-[#2a2720] rounded-full overflow-hidden">
+        <div className="h-3 bg-muted rounded-full overflow-hidden">
           <div className={cn('h-full rounded-full transition-all', barColor)}
             style={{ width: `${Math.min(100, pct)}%` }} />
         </div>
@@ -290,16 +290,16 @@ function EmmaGoalCard({ goal }: { goal: SavingsGoalWithProgress }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-800 dark:text-[#f0ede8] truncate">{goal.name}</span>
-        <span className="text-sm font-bold text-[#0F6E56] flex-shrink-0 ml-2">
+        <span className="text-sm font-medium text-foreground truncate">{goal.name}</span>
+        <span className="text-sm font-bold text-primary flex-shrink-0 ml-2">
           {goal.percentage_complete.toFixed(0)}%
         </span>
       </div>
-      <div className="h-3 bg-gray-100 dark:bg-[#2a2720] rounded-full overflow-hidden mb-2">
-        <div className="h-full bg-[#0F6E56] rounded-full transition-all"
+      <div className="h-3 bg-muted rounded-full overflow-hidden mb-2">
+        <div className="h-full bg-primary rounded-full transition-all"
           style={{ width: `${goal.percentage_complete}%` }} />
       </div>
-      <div className="flex justify-between text-xs text-gray-400 dark:text-[#7a7060]">
+      <div className="flex justify-between text-xs text-muted-foreground">
         <span>{formatCurrency(Number(goal.current_amount))} saved</span>
         <span>Goal: {formatCurrency(Number(goal.target_amount))}</span>
       </div>
