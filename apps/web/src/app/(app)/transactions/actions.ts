@@ -140,7 +140,9 @@ export async function splitTransaction(
   rawTransactionId: string,
   data: {
     source_account_id: string;
-    splits: { account_id: string; amount: number; description?: string }[];
+    source_type?: 'business' | 'personal';
+    personal_account_label?: string;
+    splits: { account_id: string; amount: number; description?: string; is_personal?: boolean }[];
   },
 ) {
   try {
