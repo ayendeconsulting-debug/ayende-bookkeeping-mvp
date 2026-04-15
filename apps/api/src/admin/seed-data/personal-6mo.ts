@@ -1,0 +1,83 @@
+import { SeedTransaction } from './freelancer-6mo';
+
+export const PERSONAL_6MO: SeedTransaction[] = [
+  // October 2025
+  { date: '2025-10-01', description: 'EMPLOYER SALARY DEPOSIT',     amount:  4250.00 },
+  { date: '2025-10-02', description: 'SOBEYS GROCERIES',            amount:  -187.40 },
+  { date: '2025-10-03', description: 'NETFLIX STREAMING',           amount:   -15.99 },
+  { date: '2025-10-05', description: 'ENBRIDGE GAS',                amount:   -98.50 },
+  { date: '2025-10-07', description: 'PETRO CANADA GAS STATION',    amount:   -78.30 },
+  { date: '2025-10-10', description: 'YMCA MEMBERSHIP',             amount:   -56.00 },
+  { date: '2025-10-12', description: 'TD VISA PAYMENT',             amount:  -700.00 },
+  { date: '2025-10-15', description: 'INVESTMENT INCOME DIVIDEND',  amount:    56.02 },
+  { date: '2025-10-18', description: 'SHOPPERS DRUG MART',          amount:   -43.20 },
+  { date: '2025-10-22', description: 'INTACT INSURANCE',            amount:  -300.00 },
+  { date: '2025-10-25', description: 'WALMART GENERAL',             amount:  -124.60 },
+  { date: '2025-10-28', description: 'HYDRO ONE ELECTRICITY',       amount:  -112.80 },
+  { date: '2025-10-31', description: 'CST SAVINGS TRANSFER',        amount:  -200.00 },
+
+  // November 2025
+  { date: '2025-11-01', description: 'EMPLOYER SALARY DEPOSIT',     amount:  4250.00 },
+  { date: '2025-11-03', description: 'SOBEYS GROCERIES',            amount:  -203.15 },
+  { date: '2025-11-03', description: 'NETFLIX STREAMING',           amount:   -15.99 },
+  { date: '2025-11-05', description: 'ENBRIDGE GAS',                amount:  -124.30 },
+  { date: '2025-11-07', description: 'PETRO CANADA GAS STATION',    amount:   -82.10 },
+  { date: '2025-11-10', description: 'YMCA MEMBERSHIP',             amount:   -56.00 },
+  { date: '2025-11-12', description: 'TD VISA PAYMENT',             amount:  -700.00 },
+  { date: '2025-11-15', description: 'INVESTMENT INCOME DIVIDEND',  amount:    56.02 },
+  { date: '2025-11-18', description: 'RESTAURANTS CANADA DINNER',   amount:   -89.50 },
+  { date: '2025-11-22', description: 'INTACT INSURANCE',            amount:  -300.00 },
+  { date: '2025-11-25', description: 'HYDRO ONE ELECTRICITY',       amount:  -134.60 },
+  { date: '2025-11-30', description: 'CST SAVINGS TRANSFER',        amount:  -200.00 },
+
+  // December 2025
+  { date: '2025-12-01', description: 'EMPLOYER SALARY DEPOSIT',     amount:  4250.00 },
+  { date: '2025-12-03', description: 'SOBEYS GROCERIES',            amount:  -267.80 },
+  { date: '2025-12-03', description: 'NETFLIX STREAMING',           amount:   -15.99 },
+  { date: '2025-12-05', description: 'ENBRIDGE GAS',                amount:  -156.70 },
+  { date: '2025-12-10', description: 'YMCA MEMBERSHIP',             amount:   -56.00 },
+  { date: '2025-12-12', description: 'TD VISA PAYMENT',             amount:  -700.00 },
+  { date: '2025-12-15', description: 'HOLIDAY SHOPPING AMAZON',     amount:  -534.20 },
+  { date: '2025-12-18', description: 'INVESTMENT INCOME DIVIDEND',  amount:    56.02 },
+  { date: '2025-12-22', description: 'INTACT INSURANCE',            amount:  -300.00 },
+  { date: '2025-12-28', description: 'HYDRO ONE ELECTRICITY',       amount:  -148.90 },
+  { date: '2025-12-31', description: 'CST SAVINGS TRANSFER',        amount:  -200.00 },
+
+  // January 2026
+  { date: '2026-01-01', description: 'EMPLOYER SALARY DEPOSIT',     amount:  4250.00 },
+  { date: '2026-01-03', description: 'SOBEYS GROCERIES',            amount:  -194.30 },
+  { date: '2026-01-03', description: 'NETFLIX STREAMING',           amount:   -15.99 },
+  { date: '2026-01-05', description: 'ENBRIDGE GAS',                amount:  -167.40 },
+  { date: '2026-01-07', description: 'PETRO CANADA GAS STATION',    amount:   -74.60 },
+  { date: '2026-01-10', description: 'YMCA MEMBERSHIP',             amount:   -56.00 },
+  { date: '2026-01-12', description: 'TD VISA PAYMENT',             amount:  -700.00 },
+  { date: '2026-01-15', description: 'INVESTMENT INCOME DIVIDEND',  amount:    56.02 },
+  { date: '2026-01-22', description: 'INTACT INSURANCE',            amount:  -300.00 },
+  { date: '2026-01-28', description: 'HYDRO ONE ELECTRICITY',       amount:  -139.50 },
+  { date: '2026-01-31', description: 'CST SAVINGS TRANSFER',        amount:  -200.00 },
+
+  // February 2026
+  { date: '2026-02-01', description: 'EMPLOYER SALARY DEPOSIT',     amount:  4250.00 },
+  { date: '2026-02-03', description: 'SOBEYS GROCERIES',            amount:  -178.90 },
+  { date: '2026-02-03', description: 'NETFLIX STREAMING',           amount:   -15.99 },
+  { date: '2026-02-05', description: 'ENBRIDGE GAS',                amount:  -143.20 },
+  { date: '2026-02-07', description: 'PETRO CANADA GAS STATION',    amount:   -68.40 },
+  { date: '2026-02-10', description: 'YMCA MEMBERSHIP',             amount:   -56.00 },
+  { date: '2026-02-12', description: 'TD VISA PAYMENT',             amount:  -700.00 },
+  { date: '2026-02-15', description: 'INVESTMENT INCOME DIVIDEND',  amount:    56.02 },
+  { date: '2026-02-22', description: 'INTACT INSURANCE',            amount:  -300.00 },
+  { date: '2026-02-28', description: 'HYDRO ONE ELECTRICITY',       amount:  -127.30 },
+
+  // March 2026
+  { date: '2026-03-01', description: 'EMPLOYER SALARY DEPOSIT',     amount:  4250.00 },
+  { date: '2026-03-03', description: 'SOBEYS GROCERIES',            amount:  -191.60 },
+  { date: '2026-03-03', description: 'NETFLIX STREAMING',           amount:   -15.99 },
+  { date: '2026-03-05', description: 'ENBRIDGE GAS',                amount:  -118.60 },
+  { date: '2026-03-07', description: 'PETRO CANADA GAS STATION',    amount:   -71.20 },
+  { date: '2026-03-10', description: 'YMCA MEMBERSHIP',             amount:   -56.00 },
+  { date: '2026-03-12', description: 'TD VISA PAYMENT',             amount:  -700.00 },
+  { date: '2026-03-15', description: 'INVESTMENT INCOME DIVIDEND',  amount:    56.02 },
+  { date: '2026-03-22', description: 'INTACT INSURANCE',            amount:  -300.00 },
+  { date: '2026-03-28', description: 'HYDRO ONE ELECTRICITY',       amount:  -115.80 },
+  { date: '2026-03-31', description: 'CST SAVINGS TRANSFER',        amount:  -200.00 },
+];

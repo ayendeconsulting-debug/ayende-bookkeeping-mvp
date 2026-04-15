@@ -13,6 +13,7 @@ import { AiModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
 import { BusinessesModule } from './businesses/businesses.module';
 import { InvoiceModule } from './invoice/invoice.module';
+import { AdminModule } from './admin/admin.module';
 import { RecurringModule } from './recurring/recurring.module';
 import { DocumentsModule } from './documents/documents.module';
 import { CurrencyModule } from './currency/currency.module';
@@ -63,6 +64,7 @@ function getRedisBullMQConnection() {
     AiModule,
     InvoiceModule,
     RecurringModule,
+    AdminModule,
     DocumentsModule,
     FreelancerModule,
     PersonalModule,
