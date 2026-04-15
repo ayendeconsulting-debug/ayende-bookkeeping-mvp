@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { BudgetCategoryWithSpending } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,7 @@ interface BudgetCategoriesManagerProps {
 }
 
 export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesManagerProps) {
+  const router = useRouter();
   const [categories, setCategories] = useState(initialCategories);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -131,6 +133,7 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
         setAddForm({ name: '', monthly_target: '', color: '#0F6E56' });
         setShowAddForm(false);
         toastSuccess(`"${addForm.name}" added.`);
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to add category.');
       }
@@ -171,6 +174,7 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
         ));
         setEditingId(null);
         toastSuccess('Category updated.');
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to update.');
       }
@@ -183,6 +187,7 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
       if (result.success) {
         setCategories((prev) => prev.filter((c) => c.id !== id));
         toastSuccess(`"${name}" removed.`);
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to delete.');
       }
@@ -315,25 +320,25 @@ export function BudgetCategoriesManager({ initialCategories }: BudgetCategoriesM
               ) : (
                 <div className="group">
                   <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
                       <GripVertical className="w-4 h-4 text-muted-foreground/30 cursor-grab flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                       <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color ?? '#0F6E56' }} />
-                      <span className="text-sm font-medium text-foreground">{cat.name}</span>
+                      <span className="text-sm font-medium text-foreground truncate">{cat.name}</span>
                       {cat.over_budget && (
-                        <span className="text-[10px] font-bold text-red-500 uppercase">Over budget</span>
+                        <span className="text-[10px] font-bold text-red-500 uppercase flex-shrink-0">Over budget</span>
                       )}
                       {cat.monthly_target && (cat.percentage_spent ?? 0) >= 80 && !cat.over_budget && (
-                        <span className="text-[10px] font-bold text-amber-500 uppercase">Almost there</span>
+                        <span className="text-[10px] font-bold text-amber-500 uppercase flex-shrink-0">Almost there</span>
                       )}
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-foreground tabular-nums text-right min-w-[80px]">
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-sm font-medium text-foreground tabular-nums text-right w-[90px]">
                         {formatCurrency(cat.spent_this_month)}
                         {cat.monthly_target != null && (
                           <span className="text-muted-foreground text-xs"> / {formatCurrency(cat.monthly_target)}</span>
                         )}
                       </span>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity w-[52px] justify-end">
                         <button onClick={() => startEdit(cat)} className="p-1 text-muted-foreground hover:text-primary">
                           <Pencil className="w-3.5 h-3.5" />
                         </button>

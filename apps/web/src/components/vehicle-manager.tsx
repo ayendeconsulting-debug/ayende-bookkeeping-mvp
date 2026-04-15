@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Car, Plus, ChevronRight, X, CheckCircle2, Loader2, TrendingDown, Percent, Calendar, CreditCard, BarChart3 } from 'lucide-react';
 import {
   FinancedVehicle, VehiclePayment, AmortizationRow,
@@ -527,6 +528,7 @@ function VehicleDetail({
 }
 
 export function VehicleManager({ initialVehicles }: { initialVehicles: FinancedVehicle[] }) {
+  const router = useRouter();
   const [vehicles, setVehicles] = useState(initialVehicles);
   const [showAdd, setShowAdd] = useState(false);
   const [selected, setSelected] = useState<FinancedVehicle | null>(null);
@@ -614,6 +616,7 @@ export function VehicleManager({ initialVehicles }: { initialVehicles: FinancedV
             setVehicles((prev) => [v, ...prev]);
             setShowAdd(false);
             setSelected(v);
+            router.refresh();
           }}
         />
       )}

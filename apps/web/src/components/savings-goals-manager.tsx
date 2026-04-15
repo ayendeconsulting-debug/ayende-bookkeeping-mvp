@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { SavingsGoalWithProgress } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +24,7 @@ interface SavingsGoalsManagerProps {
 const EMPTY_FORM = { name: '', target_amount: '', current_amount: '', target_date: '' };
 
 export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) {
+  const router = useRouter();
   const [goals, setGoals] = useState(initialGoals);
   const [showForm, setShowForm] = useState(false);
   const [depositGoalId, setDepositGoalId] = useState<string | null>(null);
@@ -54,6 +56,7 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
         setForm(EMPTY_FORM);
         setShowForm(false);
         toastSuccess(`Goal "${form.name}" created.`);
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to create goal.');
       }
@@ -84,6 +87,7 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
         setDepositGoalId(null);
         setDepositAmount('');
         toastSuccess(`${formatCurrency(amount)} added to "${goal.name}".`);
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to update goal.');
       }
@@ -96,6 +100,7 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
       if (result.success) {
         setGoals((prev) => prev.map((g) => (g.id === goal.id ? { ...g, status: status as any } : g)));
         toastSuccess(`Goal "${goal.name}" ${status}.`);
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to update goal.');
       }
@@ -108,6 +113,7 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
       if (result.success) {
         setGoals((prev) => prev.filter((g) => g.id !== id));
         toastSuccess(`"${name}" deleted.`);
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to delete goal.');
       }
@@ -182,7 +188,7 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
         </Card>
       )}
 
-      {/* Empty state — only when no goals exist at all */}
+      {/* Empty state */}
       {goals.length === 0 && !showForm ? (
         <Card>
           <CardContent className="py-12 text-center">
@@ -195,14 +201,12 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
         </Card>
       ) : !showForm && (
         <>
-          {/* Always-visible New Goal button */}
           <div className="flex justify-end">
             <Button onClick={() => setShowForm(true)}>
               <Plus className="w-4 h-4 mr-2" />New Goal
             </Button>
           </div>
 
-          {/* Active goals */}
           {active.length > 0 && (
             <div className="grid grid-cols-2 gap-4">
               {active.map((goal) => (
@@ -224,7 +228,6 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
             </div>
           )}
 
-          {/* Paused goals */}
           {paused.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">Paused</p>
@@ -254,7 +257,6 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
             </div>
           )}
 
-          {/* Completed goals */}
           {completed.length > 0 && (
             <div>
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">Completed 🎉</p>

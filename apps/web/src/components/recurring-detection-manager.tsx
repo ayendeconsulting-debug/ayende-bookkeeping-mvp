@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { RecurringDetectionCandidate, ConfirmedRecurring } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
@@ -45,6 +46,7 @@ export function RecurringDetectionManager({
   initialCandidates,
   initialConfirmed,
 }: RecurringDetectionManagerProps) {
+  const router = useRouter();
   const [candidates, setCandidates] = useState(initialCandidates);
   const [confirmed, setConfirmed]   = useState(initialConfirmed);
   const [isPending, startTransition] = useTransition();
@@ -59,6 +61,7 @@ export function RecurringDetectionManager({
           ...prev.filter((c) => c.key !== candidate.key),
         ]);
         toastSuccess(`"${candidate.merchant}" added to your recurring payments.`);
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to confirm.');
       }
@@ -71,6 +74,7 @@ export function RecurringDetectionManager({
       if (result.success) {
         setCandidates((prev) => prev.filter((c) => c.key !== key));
         toastSuccess(`"${merchant}" dismissed.`);
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to dismiss.');
       }
@@ -83,6 +87,7 @@ export function RecurringDetectionManager({
       if (result.success) {
         setConfirmed((prev) => prev.filter((c) => c.key !== key));
         toastSuccess('Removed from recurring payments.');
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to remove.');
       }
@@ -128,7 +133,7 @@ export function RecurringDetectionManager({
         </div>
       )}
 
-      {/* Detected candidates – single-column detail list */}
+      {/* Detected candidates */}
       {candidates.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
@@ -144,8 +149,6 @@ export function RecurringDetectionManager({
               <div className="divide-y divide-border">
                 {candidates.map((candidate) => (
                   <div key={candidate.key} className="flex items-center gap-3 px-4 py-3.5">
-
-                    {/* Vendor + meta */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold text-foreground truncate">
@@ -171,14 +174,12 @@ export function RecurringDetectionManager({
                       </p>
                     </div>
 
-                    {/* Amount */}
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-bold text-foreground">
                         {formatCurrency(candidate.amount)}
                       </p>
                     </div>
 
-                    {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <Button
                         size="sm"
@@ -200,7 +201,6 @@ export function RecurringDetectionManager({
                         Dismiss
                       </Button>
                     </div>
-
                   </div>
                 ))}
               </div>
@@ -222,7 +222,7 @@ export function RecurringDetectionManager({
         </Card>
       )}
 
-      {/* Confirmed recurring payments list */}
+      {/* Confirmed recurring payments */}
       {confirmed.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-foreground mb-3">

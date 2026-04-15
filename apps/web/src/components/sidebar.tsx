@@ -52,6 +52,7 @@ const freelancerItems = [
   { href: '/freelancer/vehicles',   label: 'Vehicles',        icon: Car },
   { href: '/freelancer/tax',        label: 'Tax Estimate',    icon: Calculator },
   { href: '/freelancer/categories', label: 'Categories',      icon: Tag },
+  { href: '/freelancer/goals',      label: 'Savings Goals',   icon: Target },
   { href: '/personal/rules',        label: 'Personal Rules',  icon: Filter },
 ];
 const freelancerMainItems = [

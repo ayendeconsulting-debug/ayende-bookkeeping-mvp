@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { formatCurrency, cn } from '@/lib/utils';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
@@ -71,6 +72,7 @@ interface CcaManagerProps {
 }
 
 export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) {
+  const router = useRouter();
   const [assets, setAssets] = useState<CcaAsset[]>(initialAssets);
   const [schedule, setSchedule] = useState<ScheduleSummary | null>(initialSchedule);
   const [showForm, setShowForm] = useState(false);
@@ -157,6 +159,7 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
       }
       setShowForm(false); setEditingId(null);
       await refreshSchedule();
+      router.refresh();
     });
   }
 
@@ -167,6 +170,7 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
         setAssets((prev) => prev.filter((a) => a.id !== asset.id));
         toastSuccess('Asset removed', asset.name);
         await refreshSchedule();
+        router.refresh();
       } else {
         toastError('Failed to remove asset');
       }
@@ -361,7 +365,7 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
       {/* Summary */}
       {schedule && assets.length > 0 && (
         <div className="rounded-xl border border-primary/30 bg-primary-light dark:bg-primary/10 p-5">
-          <h3 className="text-sm font-semibold text-primary mb-3">CCA Summary — {currentYear}</h3>
+          <h3 className="text-sm font-semibold text-primary mb-3">CCA Summary – {currentYear}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {Object.entries(schedule.by_class).map(([cls, info]) => {
               const currentYearClaimable = info.assets.reduce((sum, as) => {

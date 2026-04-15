@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { MileageLog, MileageLogResult } from '@/types';
 import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +24,7 @@ const EMPTY_FORM = {
 };
 
 export function MileageLogManager({ initialData }: MileageLogManagerProps) {
+  const router = useRouter();
   const [logs, setLogs] = useState<MileageLog[]>(initialData.data);
   const [totals, setTotals] = useState({ total_distance: initialData.total_distance, total_deduction: initialData.total_deduction });
   const [unit] = useState(initialData.unit);
@@ -53,6 +55,7 @@ export function MileageLogManager({ initialData }: MileageLogManagerProps) {
         }));
         setForm(EMPTY_FORM); setShowForm(false);
         toastSuccess('Trip logged successfully.');
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to log trip.');
       }
@@ -72,6 +75,7 @@ export function MileageLogManager({ initialData }: MileageLogManagerProps) {
           }));
         }
         toastSuccess('Trip deleted.');
+        router.refresh();
       } else {
         toastError(result.error ?? 'Failed to delete trip.');
       }
@@ -155,7 +159,7 @@ export function MileageLogManager({ initialData }: MileageLogManagerProps) {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2">
             <Car className="w-4 h-4 text-muted-foreground" />
-            Trip Log — {new Date().getFullYear()}
+            Trip Log – {new Date().getFullYear()}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
