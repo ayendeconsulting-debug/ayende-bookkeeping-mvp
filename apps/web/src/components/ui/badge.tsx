@@ -8,26 +8,26 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-primary-light text-primary dark:bg-primary/20 dark:text-[#4abe94]',
+          'bg-primary-light text-primary dark:bg-primary/20 dark:text-primary',
         secondary:
-          'bg-gray-100 text-gray-700 dark:bg-[#2a2720] dark:text-[#c8c0b0]',
+          'bg-muted text-muted-foreground',
         destructive:
-          'bg-danger-light text-danger dark:bg-red-900/30 dark:text-red-400',
+          'bg-danger-light text-danger dark:bg-destructive/20 dark:text-destructive-foreground',
         warning:
-          'bg-warning-light text-warning dark:bg-amber-900/30 dark:text-amber-400',
+          'bg-warning-light text-warning dark:bg-warning/20 dark:text-warning',
         info:
-          'bg-info-light text-info dark:bg-blue-900/30 dark:text-blue-400',
+          'bg-info-light text-info dark:bg-info/20 dark:text-info',
         outline:
-          'border border-gray-200 text-gray-700 dark:border-[#3a3730] dark:text-[#c8c0b0]',
+          'border border-border text-muted-foreground',
         // Transaction status badges
         pending:
-          'bg-warning-light text-warning dark:bg-amber-900/30 dark:text-amber-400',
+          'bg-warning-light text-warning dark:bg-warning/20 dark:text-warning',
         classified:
-          'bg-primary-light text-primary dark:bg-primary/20 dark:text-[#4abe94]',
+          'bg-primary-light text-primary dark:bg-primary/20 dark:text-primary',
         posted:
-          'bg-gray-100 text-gray-600 dark:bg-[#2a2720] dark:text-[#a09888]',
+          'bg-muted text-muted-foreground',
         review:
-          'bg-info-light text-info dark:bg-blue-900/30 dark:text-blue-400',
+          'bg-info-light text-info dark:bg-info/20 dark:text-info',
       },
     },
     defaultVariants: {

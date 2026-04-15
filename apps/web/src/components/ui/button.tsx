@@ -9,15 +9,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-primary text-white hover:bg-primary-hover focus-visible:ring-primary',
+          'bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-primary',
         destructive:
           'bg-danger text-white hover:opacity-90 focus-visible:ring-danger',
         outline:
-          'border border-gray-200 bg-white text-gray-900 hover:bg-gray-50 focus-visible:ring-gray-400 dark:border-[#3a3730] dark:bg-[#222019] dark:text-[#f0ede8] dark:hover:bg-[#2a2720]',
+          'border border-border bg-card text-foreground hover:bg-muted focus-visible:ring-ring',
         secondary:
-          'bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-400 dark:bg-[#2a2720] dark:text-[#f0ede8] dark:hover:bg-[#333028]',
+          'bg-muted text-foreground hover:bg-accent focus-visible:ring-ring',
         ghost:
-          'text-gray-700 hover:bg-gray-100 hover:text-gray-900 focus-visible:ring-gray-400 dark:text-[#c8c0b0] dark:hover:bg-[#2a2720] dark:hover:text-[#f0ede8]',
+          'text-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring',
         link:
           'text-primary underline-offset-4 hover:underline focus-visible:ring-primary',
       },
