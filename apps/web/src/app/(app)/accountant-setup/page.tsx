@@ -17,7 +17,6 @@ export default function AccountantSetupPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Auto-generate subdomain from name
   function handleNameChange(value: string) {
     setName(value);
     if (!subdomainTouched) {
@@ -39,13 +38,11 @@ export default function AccountantSetupPage() {
     setSubmitting(true);
     try {
       const result = await createFirm(name.trim(), subdomain.trim());
-
       if (!result.success) {
         setError(result.error);
         setSubmitting(false);
         return;
       }
-
       router.push('/accountant/clients');
     } catch {
       setError('An unexpected error occurred. Please try again.');
@@ -56,12 +53,12 @@ export default function AccountantSetupPage() {
   const canSubmit = name.trim().length > 0 && subdomain.trim().length > 0 && !submitting;
 
   return (
-    <div className="min-h-screen bg-[#f7f5f0] dark:bg-[#1a1814] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
 
         {/* Logo mark */}
         <div className="flex justify-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-[#0F6E56] flex items-center justify-center shadow-lg">
+          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
             <svg viewBox="0 0 16 16" className="w-7 h-7">
               <rect x="1"   y="10" width="3" height="5"  rx="0.5" fill="white" opacity="0.5"/>
               <rect x="6.5" y="7"  width="3" height="8"  rx="0.5" fill="white" opacity="0.75"/>
@@ -71,48 +68,43 @@ export default function AccountantSetupPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-white dark:bg-[#242220] rounded-2xl border border-[#e5e1d8] dark:border-[#3a3730] shadow-sm p-8">
+        <div className="bg-card rounded-2xl border border-border shadow-sm p-8">
 
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-lg bg-[#EDF7F2] dark:bg-[#0F6E56]/20 flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-5 h-5 text-[#0F6E56] dark:text-[#4abe94]" />
+            <div className="w-10 h-10 rounded-lg bg-primary-light dark:bg-primary/20 flex items-center justify-center flex-shrink-0">
+              <Building2 className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-[#1a1814] dark:text-[#f0ede8]">
+              <h1 className="text-xl font-bold text-foreground">
                 Set Up Your Firm
               </h1>
-              <p className="text-sm text-[#888070] dark:text-[#7a7268]">
+              <p className="text-sm text-muted-foreground">
                 Create your accountant firm portal
               </p>
             </div>
           </div>
 
-          <p className="text-sm text-[#4A4438] dark:text-[#c8c0b0] mb-6 leading-relaxed">
+          <p className="text-sm text-foreground mb-6 leading-relaxed">
             Your firm portal lets you manage multiple clients, view their books, and collaborate with your team — all in one place.
           </p>
 
           <div className="space-y-5">
             {/* Firm Name */}
             <div className="space-y-1.5">
-              <Label htmlFor="name" className="text-sm font-medium text-[#1a1814] dark:text-[#f0ede8]">
-                Firm Name
-              </Label>
+              <Label htmlFor="name">Firm Name</Label>
               <Input
                 id="name"
                 placeholder="e.g. Smith & Associates CPA"
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
-                className="bg-[#faf9f7] dark:bg-[#2e2c28] border-[#e5e1d8] dark:border-[#3a3730]"
               />
             </div>
 
             {/* Subdomain */}
             <div className="space-y-1.5">
-              <Label htmlFor="subdomain" className="text-sm font-medium text-[#1a1814] dark:text-[#f0ede8]">
-                Subdomain
-              </Label>
-              <div className="flex items-center rounded-md border border-[#e5e1d8] dark:border-[#3a3730] bg-[#faf9f7] dark:bg-[#2e2c28] overflow-hidden focus-within:ring-1 focus-within:ring-[#0F6E56]">
+              <Label htmlFor="subdomain">Subdomain</Label>
+              <div className="flex items-center rounded-md border border-input bg-card overflow-hidden focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1 focus-within:ring-offset-background">
                 <input
                   id="subdomain"
                   value={subdomain}
@@ -126,13 +118,13 @@ export default function AccountantSetupPage() {
                     );
                   }}
                   placeholder="smith-associates"
-                  className="flex-1 px-3 py-2 text-sm bg-transparent outline-none text-[#1a1814] dark:text-[#f0ede8] placeholder:text-[#aaa098]"
+                  className="flex-1 px-3 py-2 text-sm bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
                 />
-                <span className="px-3 text-sm text-[#888070] dark:text-[#605850] bg-[#f0ede8] dark:bg-[#2a2825] border-l border-[#e5e1d8] dark:border-[#3a3730] py-2 whitespace-nowrap">
+                <span className="px-3 text-sm text-muted-foreground bg-muted border-l border-border py-2 whitespace-nowrap">
                   .gettempo.ca
                 </span>
               </div>
-              <p className="text-xs text-[#888070] dark:text-[#7a7268]">
+              <p className="text-xs text-muted-foreground">
                 Lowercase letters, numbers, and hyphens only.
               </p>
             </div>
@@ -149,7 +141,7 @@ export default function AccountantSetupPage() {
             <Button
               onClick={handleSubmit}
               disabled={!canSubmit}
-              className="w-full bg-[#0F6E56] hover:bg-[#0d5e49] text-white font-medium"
+              className="w-full"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -161,7 +153,7 @@ export default function AccountantSetupPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-[#aaa098] dark:text-[#605850] mt-4">
+        <p className="text-center text-xs text-muted-foreground mt-4">
           You can update your firm name, logo, and brand colour in Firm Settings at any time.
         </p>
       </div>
