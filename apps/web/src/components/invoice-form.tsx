@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useTransition, useEffect } from 'react';
 import { Plus, Trash2, Loader2, RefreshCw } from 'lucide-react';
@@ -18,9 +18,7 @@ interface LineItem {
   tax_code_id: string;
 }
 
-const EMPTY_LINE: LineItem = {
-  description: '', quantity: '1', unit_price: '', tax_code_id: '',
-};
+const EMPTY_LINE: LineItem = { description: '', quantity: '1', unit_price: '', tax_code_id: '' };
 
 interface InvoiceFormProps {
   open: boolean;
@@ -31,33 +29,23 @@ interface InvoiceFormProps {
   editingInvoice?: Invoice | null;
 }
 
-const selectCls = "text-sm border border-gray-200 rounded-lg px-3 py-2 w-full outline-none bg-white text-gray-900 focus:border-[#0F6E56] dark:bg-[#222019] dark:border-[#3a3730] dark:text-[#f0ede8]";
-
-export function InvoiceForm({
-  open,
-  onClose,
-  onSuccess,
-  accounts,
-  taxCodes,
-  editingInvoice,
-}: InvoiceFormProps) {
+export function InvoiceForm({ open, onClose, onSuccess, accounts, taxCodes, editingInvoice }: InvoiceFormProps) {
   const today = new Date().toISOString().split('T')[0];
   const net30 = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0];
 
-  const [clientName, setClientName] = useState('');
-  const [clientEmail, setClientEmail] = useState('');
-  const [issueDate, setIssueDate] = useState(today);
-  const [dueDate, setDueDate] = useState(net30);
-  const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [notes, setNotes] = useState('');
-  const [lineItems, setLineItems] = useState<LineItem[]>([{ ...EMPTY_LINE }]);
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringFrequency, setRecurringFrequency] = useState('monthly');
-  const [autoSend, setAutoSend] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [clientName,          setClientName]          = useState('');
+  const [clientEmail,         setClientEmail]         = useState('');
+  const [issueDate,           setIssueDate]           = useState(today);
+  const [dueDate,             setDueDate]             = useState(net30);
+  const [invoiceNumber,       setInvoiceNumber]       = useState('');
+  const [notes,               setNotes]               = useState('');
+  const [lineItems,           setLineItems]           = useState<LineItem[]>([{ ...EMPTY_LINE }]);
+  const [isRecurring,         setIsRecurring]         = useState(false);
+  const [recurringFrequency,  setRecurringFrequency]  = useState('monthly');
+  const [autoSend,            setAutoSend]            = useState(false);
+  const [error,               setError]               = useState<string | null>(null);
+  const [isPending,           startTransition]        = useTransition();
 
-  // Reset form whenever dialog opens or editingInvoice changes
   useEffect(() => {
     if (!open) return;
     const inv = editingInvoice;
@@ -86,47 +74,29 @@ export function InvoiceForm({
 
   const activeTaxCodes = taxCodes.filter((t) => t.is_active);
 
-  function handleClose() {
-    setError(null);
-    onClose();
-  }
-
-  function addLine() {
-    setLineItems((prev) => [...prev, { ...EMPTY_LINE }]);
-  }
-
-  function removeLine(idx: number) {
-    setLineItems((prev) => prev.filter((_, i) => i !== idx));
-  }
-
+  function handleClose() { setError(null); onClose(); }
+  function addLine() { setLineItems((prev) => [...prev, { ...EMPTY_LINE }]); }
+  function removeLine(idx: number) { setLineItems((prev) => prev.filter((_, i) => i !== idx)); }
   function updateLine(idx: number, field: keyof LineItem, value: string) {
-    setLineItems((prev) =>
-      prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)),
-    );
+    setLineItems((prev) => prev.map((item, i) => (i === idx ? { ...item, [field]: value } : item)));
   }
 
-  // Calculate preview totals
   const lineItemsWithTotals = lineItems.map((item) => {
-    const qty = parseFloat(item.quantity) || 0;
-    const price = parseFloat(item.unit_price) || 0;
+    const qty      = parseFloat(item.quantity) || 0;
+    const price    = parseFloat(item.unit_price) || 0;
     const lineTotal = qty * price;
-    const taxCode = activeTaxCodes.find((t) => t.id === item.tax_code_id);
-    const taxAmount = taxCode ? lineTotal * Number(taxCode.rate) : 0;
-    return { lineTotal, taxAmount };
+    const taxCode  = activeTaxCodes.find((t) => t.id === item.tax_code_id);
+    return { lineTotal, taxAmount: taxCode ? lineTotal * Number(taxCode.rate) : 0 };
   });
   const subtotal = lineItemsWithTotals.reduce((s, l) => s + l.lineTotal, 0);
   const taxTotal = lineItemsWithTotals.reduce((s, l) => s + l.taxAmount, 0);
-  const total = subtotal + taxTotal;
+  const total    = subtotal + taxTotal;
 
   function handleSubmit() {
     if (!clientName.trim()) { setError('Client name is required.'); return; }
     if (!issueDate || !dueDate) { setError('Issue date and due date are required.'); return; }
-    if (lineItems.length === 0) { setError('At least one line item is required.'); return; }
-
     const validLines = lineItems.filter((l) => l.description && parseFloat(l.unit_price) > 0);
-    if (validLines.length === 0) {
-      setError('Each line item must have a description and price.'); return;
-    }
+    if (validLines.length === 0) { setError('Each line item must have a description and price.'); return; }
 
     setError(null);
     startTransition(async () => {
@@ -156,10 +126,9 @@ export function InvoiceForm({
       if (result.success) {
         toastSuccess(
           editingInvoice ? 'Invoice updated' : 'Invoice created',
-          `${invoiceNumber || 'INV'} â€“ ${clientName}`,
+          `${invoiceNumber || 'INV'} – ${clientName}`,
         );
-        handleClose();
-        onSuccess();
+        handleClose(); onSuccess();
       } else {
         const msg = result.error ?? 'Operation failed';
         setError(msg);
@@ -167,6 +136,12 @@ export function InvoiceForm({
       }
     });
   }
+
+  const selectCls = 'text-sm border border-input rounded-lg px-3 py-2 w-full outline-none bg-card text-foreground focus:border-primary';
+  const toggleCls = (on: boolean) =>
+    `relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${on ? 'bg-primary' : 'bg-muted-foreground/30'}`;
+  const thumbCls = (on: boolean) =>
+    `inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${on ? 'translate-x-4' : 'translate-x-0.5'}`;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
@@ -190,7 +165,7 @@ export function InvoiceForm({
 
           <div className="grid grid-cols-3 gap-3">
             <div className="flex flex-col gap-1.5">
-              <Label>Invoice # <span className="text-gray-400 font-normal">(auto)</span></Label>
+              <Label>Invoice # <span className="text-muted-foreground font-normal">(auto)</span></Label>
               <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="INV-2026-001" />
             </div>
             <div className="flex flex-col gap-1.5">
@@ -209,31 +184,19 @@ export function InvoiceForm({
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 text-gray-400" />
+                <RefreshCw className="w-4 h-4 text-muted-foreground" />
                 <Label className="cursor-pointer">Recurring Invoice</Label>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsRecurring((v) => !v)}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${
-                  isRecurring ? 'bg-[#0F6E56]' : 'bg-gray-200 dark:bg-[#3a3730]'
-                }`}
-              >
-                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                  isRecurring ? 'translate-x-4' : 'translate-x-0.5'
-                }`} />
+              <button type="button" onClick={() => setIsRecurring((v) => !v)} className={toggleCls(isRecurring)}>
+                <span className={thumbCls(isRecurring)} />
               </button>
             </div>
 
             {isRecurring && (
-              <div className="grid grid-cols-2 gap-3 pl-6 border-l-2 border-[#0F6E56]/20">
+              <div className="grid grid-cols-2 gap-3 pl-6 border-l-2 border-primary/20">
                 <div className="flex flex-col gap-1.5">
                   <Label>Frequency</Label>
-                  <select
-                    value={recurringFrequency}
-                    onChange={(e) => setRecurringFrequency(e.target.value)}
-                    className={selectCls}
-                  >
+                  <select value={recurringFrequency} onChange={(e) => setRecurringFrequency(e.target.value)} className={selectCls}>
                     <option value="weekly">Weekly</option>
                     <option value="biweekly">Bi-weekly</option>
                     <option value="monthly">Monthly</option>
@@ -242,18 +205,11 @@ export function InvoiceForm({
                   </select>
                 </div>
                 <div className="flex flex-col gap-1.5 justify-end">
-                  <div className="flex items-center justify-between h-10 px-3 border border-gray-200 dark:border-[#3a3730] rounded-lg">
+                  <div className="flex items-center justify-between h-10 px-3 border border-border rounded-lg">
                     <Label className="cursor-pointer text-sm">Auto-send when generated</Label>
-                    <button
-                      type="button"
-                      onClick={() => setAutoSend((v) => !v)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none flex-shrink-0 ml-2 ${
-                        autoSend ? 'bg-[#0F6E56]' : 'bg-gray-200 dark:bg-[#3a3730]'
-                      }`}
-                    >
-                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
-                        autoSend ? 'translate-x-4' : 'translate-x-0.5'
-                      }`} />
+                    <button type="button" onClick={() => setAutoSend((v) => !v)}
+                      className={`${toggleCls(autoSend)} flex-shrink-0 ml-2`}>
+                      <span className={thumbCls(autoSend)} />
                     </button>
                   </div>
                 </div>
@@ -273,7 +229,7 @@ export function InvoiceForm({
             </div>
 
             <div className="flex flex-col gap-2">
-              <div className="grid grid-cols-12 gap-2 text-xs text-gray-400 px-1">
+              <div className="grid grid-cols-12 gap-2 text-xs text-muted-foreground px-1">
                 <span className="col-span-5">Description</span>
                 <span className="col-span-2">Qty</span>
                 <span className="col-span-2">Unit Price</span>
@@ -286,40 +242,20 @@ export function InvoiceForm({
                 return (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-center">
                     <div className="col-span-5">
-                      <Input
-                        value={item.description}
-                        onChange={(e) => updateLine(idx, 'description', e.target.value)}
-                        placeholder="Service description"
-                        className="text-sm"
-                      />
+                      <Input value={item.description} onChange={(e) => updateLine(idx, 'description', e.target.value)}
+                        placeholder="Service description" className="text-sm" />
                     </div>
                     <div className="col-span-2">
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateLine(idx, 'quantity', e.target.value)}
-                        min="0.01"
-                        step="0.01"
-                        className="text-sm"
-                      />
+                      <Input type="number" value={item.quantity} onChange={(e) => updateLine(idx, 'quantity', e.target.value)}
+                        min="0.01" step="0.01" className="text-sm" />
                     </div>
                     <div className="col-span-2">
-                      <Input
-                        type="number"
-                        value={item.unit_price}
-                        onChange={(e) => updateLine(idx, 'unit_price', e.target.value)}
-                        placeholder="0.00"
-                        min="0"
-                        step="0.01"
-                        className="text-sm"
-                      />
+                      <Input type="number" value={item.unit_price} onChange={(e) => updateLine(idx, 'unit_price', e.target.value)}
+                        placeholder="0.00" min="0" step="0.01" className="text-sm" />
                     </div>
                     <div className="col-span-2">
-                      <select
-                        value={item.tax_code_id}
-                        onChange={(e) => updateLine(idx, 'tax_code_id', e.target.value)}
-                        className="w-full text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-[#0F6E56]"
-                      >
+                      <select value={item.tax_code_id} onChange={(e) => updateLine(idx, 'tax_code_id', e.target.value)}
+                        className="w-full text-xs border border-input rounded-lg px-2 py-1.5 outline-none focus:border-primary bg-card text-foreground">
                         <option value="">None</option>
                         {activeTaxCodes.map((t) => (
                           <option key={t.id} value={t.id}>{t.code} ({(Number(t.rate) * 100).toFixed(0)}%)</option>
@@ -327,9 +263,9 @@ export function InvoiceForm({
                       </select>
                     </div>
                     <div className="col-span-1 flex items-center justify-between">
-                      <span className="text-xs text-gray-500">${lineTotal.toFixed(2)}</span>
+                      <span className="text-xs text-muted-foreground">${lineTotal.toFixed(2)}</span>
                       {lineItems.length > 1 && (
-                        <button onClick={() => removeLine(idx)} className="text-gray-300 hover:text-red-400 ml-1">
+                        <button onClick={() => removeLine(idx)} className="text-muted-foreground/40 hover:text-destructive ml-1">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
@@ -340,17 +276,17 @@ export function InvoiceForm({
             </div>
 
             <div className="mt-4 flex flex-col gap-1 items-end text-sm">
-              <div className="flex gap-8 text-gray-500">
+              <div className="flex gap-8 text-muted-foreground">
                 <span>Subtotal</span>
-                <span className="font-medium text-gray-900 w-24 text-right">${subtotal.toFixed(2)}</span>
+                <span className="font-medium text-foreground w-24 text-right">${subtotal.toFixed(2)}</span>
               </div>
               {taxTotal > 0 && (
-                <div className="flex gap-8 text-gray-500">
+                <div className="flex gap-8 text-muted-foreground">
                   <span>Tax</span>
-                  <span className="font-medium text-gray-900 w-24 text-right">${taxTotal.toFixed(2)}</span>
+                  <span className="font-medium text-foreground w-24 text-right">${taxTotal.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex gap-8 text-[#0F6E56] font-semibold">
+              <div className="flex gap-8 text-primary font-semibold">
                 <span>Total</span>
                 <span className="w-24 text-right">${total.toFixed(2)}</span>
               </div>
@@ -360,17 +296,17 @@ export function InvoiceForm({
           <Separator />
 
           <div className="flex flex-col gap-1.5">
-            <Label>Notes <span className="text-gray-400 font-normal">(optional)</span></Label>
+            <Label>Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
               placeholder="Payment terms, bank details, etc."
-              className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-[#0F6E56] resize-none"
+              className="w-full text-sm border border-input rounded-lg px-3 py-2 outline-none focus:border-primary resize-none bg-card text-foreground placeholder:text-muted-foreground"
             />
           </div>
 
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
         <DialogFooter>

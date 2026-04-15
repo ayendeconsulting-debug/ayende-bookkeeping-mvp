@@ -9,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Plus, Pencil, Trash2, ChevronDown, ChevronUp, Calculator } from 'lucide-react';
 
 const CCA_CLASSES = [
-  { value: '10',   label: 'Class 10 — Motor Vehicles (30%)',         rate: 0.30 },
-  { value: '12',   label: 'Class 12 — Software / Tools (100%)',      rate: 1.00 },
-  { value: '14.1', label: 'Class 14.1 — Goodwill / IP (5%)',         rate: 0.05 },
-  { value: '50',   label: 'Class 50 — Computer Equipment (55%)',     rate: 0.55 },
+  { value: '10',   label: 'Class 10 – Motor Vehicles (30%)',      rate: 0.30 },
+  { value: '12',   label: 'Class 12 – Software / Tools (100%)',   rate: 1.00 },
+  { value: '14.1', label: 'Class 14.1 – Goodwill / IP (5%)',      rate: 0.05 },
+  { value: '50',   label: 'Class 50 – Computer Equipment (55%)',  rate: 0.55 },
 ];
 
 interface CcaYearRow {
@@ -65,8 +65,6 @@ const EMPTY_FORM = {
   ucc_opening_balance: '',
 };
 
-const selectCls = "text-sm border border-gray-200 rounded-lg px-3 py-2 w-full outline-none bg-white text-gray-900 focus:border-[#0F6E56] dark:bg-[#222019] dark:border-[#3a3730] dark:text-[#f0ede8] dark:focus:border-[#0F6E56]";
-
 interface CcaManagerProps {
   initialAssets: CcaAsset[];
   initialSchedule: ScheduleSummary | null;
@@ -82,6 +80,8 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  const selectCls = 'text-sm border border-input rounded-lg px-3 py-2 w-full outline-none bg-card text-foreground focus:border-primary';
+
   function toggleExpand(id: string) {
     setExpandedAssets((prev) => {
       const next = new Set(prev);
@@ -91,10 +91,7 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
   }
 
   function openCreate() {
-    setEditingId(null);
-    setForm({ ...EMPTY_FORM });
-    setError(null);
-    setShowForm(true);
+    setEditingId(null); setForm({ ...EMPTY_FORM }); setError(null); setShowForm(true);
   }
 
   function openEdit(asset: CcaAsset) {
@@ -108,8 +105,7 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
       business_use_percent: String(asset.business_use_percent),
       ucc_opening_balance: asset.ucc_opening_balance != null ? String(asset.ucc_opening_balance) : '',
     });
-    setError(null);
-    setShowForm(true);
+    setError(null); setShowForm(true);
   }
 
   async function refreshSchedule() {
@@ -159,8 +155,7 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
         setAssets((prev) => [saved, ...prev]);
         toastSuccess('Asset added', form.name);
       }
-      setShowForm(false);
-      setEditingId(null);
+      setShowForm(false); setEditingId(null);
       await refreshSchedule();
     });
   }
@@ -186,8 +181,8 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-[#f0ede8]">Capital Cost Allowance (CCA)</h1>
-          <p className="text-sm text-gray-500 dark:text-[#a09888] mt-0.5">
+          <h1 className="text-xl font-semibold text-foreground">Capital Cost Allowance (CCA)</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             Track capital assets and calculate annual CRA deductions using declining balance method.
           </p>
         </div>
@@ -198,8 +193,8 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
 
       {/* Add / Edit form */}
       {showForm && (
-        <div className="rounded-xl border border-gray-200 dark:border-[#3a3730] bg-white dark:bg-[#1e1c18] p-5 flex flex-col gap-4">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-[#f0ede8]">
+        <div className="rounded-xl border border-border bg-card p-5 flex flex-col gap-4">
+          <h3 className="text-sm font-semibold text-foreground">
             {editingId ? 'Edit Asset' : 'Add Capital Asset'}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -210,8 +205,7 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>CCA Class *</Label>
-              <select value={form.cca_class}
-                onChange={(e) => setForm((f) => ({ ...f, cca_class: e.target.value }))}
+              <select value={form.cca_class} onChange={(e) => setForm((f) => ({ ...f, cca_class: e.target.value }))}
                 className={selectCls} disabled={!!editingId}>
                 {CCA_CLASSES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
@@ -220,8 +214,7 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>Original Cost ($) *</Label>
-              <Input type="number" min="0" step="0.01"
-                value={form.original_cost}
+              <Input type="number" min="0" step="0.01" value={form.original_cost}
                 onChange={(e) => setForm((f) => ({ ...f, original_cost: e.target.value }))}
                 placeholder="e.g. 25000.00" />
             </div>
@@ -231,30 +224,27 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
                 onChange={(e) => setForm((f) => ({ ...f, acquisition_date: e.target.value }))} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Business Use % <span className="text-gray-400 font-normal">(1–100)</span></Label>
-              <Input type="number" min="1" max="100" step="1"
-                value={form.business_use_percent}
+              <Label>Business Use % <span className="text-muted-foreground font-normal">(1–100)</span></Label>
+              <Input type="number" min="1" max="100" step="1" value={form.business_use_percent}
                 onChange={(e) => setForm((f) => ({ ...f, business_use_percent: e.target.value }))}
                 placeholder="100" />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>UCC Opening Balance <span className="text-gray-400 font-normal">(optional override)</span></Label>
-              <Input type="number" min="0" step="0.01"
-                value={form.ucc_opening_balance}
+              <Label>UCC Opening Balance <span className="text-muted-foreground font-normal">(optional override)</span></Label>
+              <Input type="number" min="0" step="0.01" value={form.ucc_opening_balance}
                 onChange={(e) => setForm((f) => ({ ...f, ucc_opening_balance: e.target.value }))}
                 placeholder="Leave blank to use original cost" />
             </div>
             <div className="flex flex-col gap-1.5 sm:col-span-2">
-              <Label>Description <span className="text-gray-400 font-normal">(optional)</span></Label>
-              <Input value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              <Label>Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 placeholder="e.g. Platform development costs 2024–2025" />
             </div>
           </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="flex gap-2">
             <Button onClick={handleSave} disabled={isPending}>
-              {isPending ? 'Saving\u2026' : editingId ? 'Save Changes' : 'Add Asset'}
+              {isPending ? 'Saving…' : editingId ? 'Save Changes' : 'Add Asset'}
             </Button>
             <Button variant="outline" onClick={() => { setShowForm(false); setEditingId(null); }}>Cancel</Button>
           </div>
@@ -263,27 +253,26 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
 
       {/* Asset list */}
       {assets.length === 0 && !showForm ? (
-        <div className="rounded-xl border border-gray-100 dark:border-[#3a3730] bg-white dark:bg-[#1e1c18] flex flex-col items-center justify-center py-16 text-center">
-          <Calculator className="w-10 h-10 text-gray-300 dark:text-[#3a3730] mb-3" />
-          <p className="text-sm font-medium text-gray-900 dark:text-[#f0ede8] mb-1">No capital assets yet</p>
-          <p className="text-sm text-gray-400 dark:text-[#7a7060]">Add assets like software, vehicles, or equipment to track CCA deductions.</p>
+        <div className="rounded-xl border border-border bg-card flex flex-col items-center justify-center py-16 text-center">
+          <Calculator className="w-10 h-10 text-muted-foreground/20 mb-3" />
+          <p className="text-sm font-medium text-foreground mb-1">No capital assets yet</p>
+          <p className="text-sm text-muted-foreground">Add assets like software, vehicles, or equipment to track CCA deductions.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
           {assets.map((asset) => {
-            const classInfo = CCA_CLASSES.find((c) => c.value === asset.cca_class);
-            const assetSchedule = schedule?.assets.find((s) => s.asset.id === asset.id);
+            const classInfo      = CCA_CLASSES.find((c) => c.value === asset.cca_class);
+            const assetSchedule  = schedule?.assets.find((s) => s.asset.id === asset.id);
             const currentYearRow = assetSchedule?.schedule.find((r) => r.year === currentYear);
-            const isExpanded = expandedAssets.has(asset.id);
+            const isExpanded     = expandedAssets.has(asset.id);
 
             return (
-              <div key={asset.id} className="rounded-xl border border-gray-100 dark:border-[#3a3730] bg-white dark:bg-[#1e1c18] overflow-hidden">
-                {/* Asset header */}
+              <div key={asset.id} className="rounded-xl border border-border bg-card overflow-hidden">
                 <div className="flex items-center gap-3 px-4 py-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-semibold text-gray-900 dark:text-[#f0ede8]">{asset.name}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#EDF7F2] text-[#0F6E56] dark:bg-[#0F6E56]/20 dark:text-[#4abe94] font-medium">
+                      <span className="text-sm font-semibold text-foreground">{asset.name}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-primary-light text-primary dark:bg-primary/20 font-medium">
                         {classInfo?.label ?? `Class ${asset.cca_class}`}
                       </span>
                       {Number(asset.business_use_percent) < 100 && (
@@ -293,17 +282,13 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-0.5">
-                      <span className="text-xs text-gray-400 dark:text-[#7a7060]">
-                        Cost: {formatCurrency(Number(asset.original_cost))}
-                      </span>
-                      <span className="text-xs text-gray-300 dark:text-[#4a4438]">&middot;</span>
-                      <span className="text-xs text-gray-400 dark:text-[#7a7060]">
-                        Acquired: {asset.acquisition_date}
-                      </span>
+                      <span className="text-xs text-muted-foreground">Cost: {formatCurrency(Number(asset.original_cost))}</span>
+                      <span className="text-xs text-border">·</span>
+                      <span className="text-xs text-muted-foreground">Acquired: {asset.acquisition_date}</span>
                       {currentYearRow && (
                         <>
-                          <span className="text-xs text-gray-300 dark:text-[#4a4438]">&middot;</span>
-                          <span className="text-xs font-medium text-[#0F6E56] dark:text-[#4abe94]">
+                          <span className="text-xs text-border">·</span>
+                          <span className="text-xs font-medium text-primary">
                             {currentYear} claimable: {formatCurrency(currentYearRow.claimable_amount)}
                           </span>
                         </>
@@ -312,57 +297,55 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
                   </div>
                   <div className="flex items-center gap-1">
                     <Button variant="ghost" size="sm" onClick={() => openEdit(asset)}
-                      className="text-gray-400 hover:text-gray-600 dark:text-[#7a7060] dark:hover:text-[#c8c0b0]">
+                      className="text-muted-foreground hover:text-foreground">
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => handleDelete(asset)}
-                      className="text-gray-400 hover:text-red-500 dark:text-[#7a7060] dark:hover:text-red-400">
+                      className="text-muted-foreground hover:text-destructive">
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                     <Button variant="ghost" size="sm" onClick={() => toggleExpand(asset.id)}
-                      className="text-gray-400 dark:text-[#7a7060]">
+                      className="text-muted-foreground">
                       {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                     </Button>
                   </div>
                 </div>
 
-                {/* Expanded schedule */}
                 {isExpanded && assetSchedule && (
-                  <div className="border-t border-gray-100 dark:border-[#2a2720] overflow-x-auto">
+                  <div className="border-t border-border overflow-x-auto">
                     <table className="w-full text-xs">
                       <thead>
-                        <tr className="bg-gray-50 dark:bg-[#161410]">
-                          <th className="text-left px-4 py-2 font-semibold text-gray-500 dark:text-[#7a7060]">Year</th>
-                          <th className="text-right px-4 py-2 font-semibold text-gray-500 dark:text-[#7a7060]">Opening UCC</th>
-                          <th className="text-right px-4 py-2 font-semibold text-gray-500 dark:text-[#7a7060]">CCA Deduction</th>
-                          <th className="text-right px-4 py-2 font-semibold text-gray-500 dark:text-[#7a7060]">Claimable Amount</th>
-                          <th className="text-right px-4 py-2 font-semibold text-gray-500 dark:text-[#7a7060]">Closing UCC</th>
+                        <tr className="bg-muted">
+                          <th className="text-left px-4 py-2 font-semibold text-muted-foreground">Year</th>
+                          <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Opening UCC</th>
+                          <th className="text-right px-4 py-2 font-semibold text-muted-foreground">CCA Deduction</th>
+                          <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Claimable Amount</th>
+                          <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Closing UCC</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-50 dark:divide-[#1e1c18]">
+                      <tbody className="divide-y divide-border">
                         {assetSchedule.schedule.map((row) => (
-                          <tr key={row.year}
-                            className={cn(
-                              'hover:bg-gray-50 dark:hover:bg-[#161410]',
-                              row.year === currentYear && 'bg-[#EDF7F2]/40 dark:bg-[#0F6E56]/5',
-                            )}>
-                            <td className="px-4 py-2 font-medium text-gray-700 dark:text-[#c8c0b0]">
+                          <tr key={row.year} className={cn(
+                            'hover:bg-muted/50',
+                            row.year === currentYear && 'bg-primary/5',
+                          )}>
+                            <td className="px-4 py-2 font-medium text-foreground">
                               {row.year}
                               {row.year === currentYear && (
-                                <span className="ml-1.5 text-[10px] text-[#0F6E56] dark:text-[#4abe94] font-semibold">current</span>
+                                <span className="ml-1.5 text-[10px] text-primary font-semibold">current</span>
                               )}
                             </td>
-                            <td className="px-4 py-2 text-right tabular-nums text-gray-600 dark:text-[#a09888]">{formatCurrency(row.opening_ucc)}</td>
-                            <td className="px-4 py-2 text-right tabular-nums text-gray-600 dark:text-[#a09888]">{formatCurrency(row.cca_deduction)}</td>
-                            <td className="px-4 py-2 text-right tabular-nums font-semibold text-[#0F6E56] dark:text-[#4abe94]">{formatCurrency(row.claimable_amount)}</td>
-                            <td className="px-4 py-2 text-right tabular-nums text-gray-600 dark:text-[#a09888]">{formatCurrency(row.closing_ucc)}</td>
+                            <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(row.opening_ucc)}</td>
+                            <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(row.cca_deduction)}</td>
+                            <td className="px-4 py-2 text-right tabular-nums font-semibold text-primary">{formatCurrency(row.claimable_amount)}</td>
+                            <td className="px-4 py-2 text-right tabular-nums text-muted-foreground">{formatCurrency(row.closing_ucc)}</td>
                           </tr>
                         ))}
-                        <tr className="bg-gray-50 dark:bg-[#161410] font-semibold">
-                          <td className="px-4 py-2 text-gray-700 dark:text-[#c8c0b0]">Total</td>
+                        <tr className="bg-muted font-semibold">
+                          <td className="px-4 py-2 text-foreground">Total</td>
                           <td className="px-4 py-2" />
-                          <td className="px-4 py-2 text-right tabular-nums text-gray-700 dark:text-[#c8c0b0]">{formatCurrency(assetSchedule.total_deductions)}</td>
-                          <td className="px-4 py-2 text-right tabular-nums text-[#0F6E56] dark:text-[#4abe94]">{formatCurrency(assetSchedule.total_claimable)}</td>
+                          <td className="px-4 py-2 text-right tabular-nums text-foreground">{formatCurrency(assetSchedule.total_deductions)}</td>
+                          <td className="px-4 py-2 text-right tabular-nums text-primary">{formatCurrency(assetSchedule.total_claimable)}</td>
                           <td className="px-4 py-2" />
                         </tr>
                       </tbody>
@@ -377,10 +360,8 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
 
       {/* Summary */}
       {schedule && assets.length > 0 && (
-        <div className="rounded-xl border border-[#C3E8D8] dark:border-[#0F6E56]/30 bg-[#EDF7F2] dark:bg-[#0F6E56]/10 p-5">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-[#0F6E56] dark:text-[#4abe94]">CCA Summary &mdash; {currentYear}</h3>
-          </div>
+        <div className="rounded-xl border border-primary/30 bg-primary-light dark:bg-primary/10 p-5">
+          <h3 className="text-sm font-semibold text-primary mb-3">CCA Summary — {currentYear}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {Object.entries(schedule.by_class).map(([cls, info]) => {
               const currentYearClaimable = info.assets.reduce((sum, as) => {
@@ -388,19 +369,17 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
                 return sum + (row?.claimable_amount ?? 0);
               }, 0);
               return (
-                <div key={cls} className="bg-white dark:bg-[#1e1c18] rounded-lg p-3">
-                  <p className="text-xs font-medium text-gray-500 dark:text-[#a09888] mb-1">{info.label}</p>
-                  <p className="text-lg font-bold text-[#0F6E56] dark:text-[#4abe94] tabular-nums">
-                    {formatCurrency(currentYearClaimable)}
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-[#7a7060]">{currentYear} claimable</p>
+                <div key={cls} className="bg-card rounded-lg p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">{info.label}</p>
+                  <p className="text-lg font-bold text-primary tabular-nums">{formatCurrency(currentYearClaimable)}</p>
+                  <p className="text-xs text-muted-foreground">{currentYear} claimable</p>
                 </div>
               );
             })}
           </div>
-          <div className="mt-4 pt-4 border-t border-[#C3E8D8] dark:border-[#0F6E56]/20 flex items-center justify-between">
-            <span className="text-sm font-medium text-[#0F6E56] dark:text-[#4abe94]">Total {currentYear} CCA Claimable</span>
-            <span className="text-xl font-bold text-[#0F6E56] dark:text-[#4abe94] tabular-nums">
+          <div className="mt-4 pt-4 border-t border-primary/20 flex items-center justify-between">
+            <span className="text-sm font-medium text-primary">Total {currentYear} CCA Claimable</span>
+            <span className="text-xl font-bold text-primary tabular-nums">
               {formatCurrency(schedule.assets.reduce((sum, as) => {
                 const row = as.schedule.find((r) => r.year === currentYear);
                 return sum + (row?.claimable_amount ?? 0);
