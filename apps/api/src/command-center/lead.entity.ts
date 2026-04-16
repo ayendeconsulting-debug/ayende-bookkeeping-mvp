@@ -1,4 +1,4 @@
-import {
+﻿import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -7,6 +7,7 @@ import {
 } from 'typeorm';
 
 export type LeadStatus = 'new' | 'contacted' | 'nurturing' | 'converted' | 'lost';
+export type LeadType   = 'inbound' | 'cold';
 
 @Entity('leads')
 export class Lead {
@@ -30,6 +31,13 @@ export class Lead {
 
   @Column({ length: 100, default: 'manual' })
   source: string;
+
+  @Column({
+    type: 'enum',
+    enum: ['inbound', 'cold'],
+    default: 'inbound',
+  })
+  type: LeadType;
 
   @Column({
     type: 'enum',

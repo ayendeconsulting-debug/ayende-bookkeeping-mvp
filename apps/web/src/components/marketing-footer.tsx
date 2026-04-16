@@ -1,20 +1,9 @@
 import Link from 'next/link';
-import { RequestDemoButton } from './request-demo-button';
 
 export function MarketingFooter() {
   return (
     <footer className="border-t border-border bg-card mt-20">
       <div className="max-w-6xl mx-auto px-6 py-12">
-
-        {/* ── Demo CTA strip ── */}
-        <div className="rounded-2xl bg-[#1B3A5C] px-8 py-6 mb-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div>
-            <p className="text-base font-semibold text-white">Want to see Tempo Books in action?</p>
-            <p className="text-sm text-white/60 mt-0.5">Book a personalised walkthrough — no commitment, no credit card.</p>
-          </div>
-          <RequestDemoButton variant="footer" />
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-10">
           <div className="md:col-span-1">
             <Link href="/" className="flex items-center gap-2 mb-3">

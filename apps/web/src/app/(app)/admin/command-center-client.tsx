@@ -95,11 +95,17 @@ interface Lead {
   company: string;
   phone: string;
   source: string;
+  type: 'inbound' | 'cold';
   status: 'new' | 'contacted' | 'nurturing' | 'converted' | 'lost';
   notes: string;
   converted_at: string | null;
   created_at: string;
 }
+
+const LEAD_TYPE_STYLE: Record<Lead['type'], string> = {
+  inbound: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  cold:    'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+};
 
 const LEAD_STATUS_STYLE: Record<Lead['status'], string> = {
   new:       'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
@@ -140,7 +146,8 @@ const TRIGGER_LABELS: Record<string, string> = {
   'trial.ending_0d':        'Trial ending today',
   'payment.failed':         'Payment failed',
   'cart.abandoned':         'Abandoned cart',
-  'lead.created':           'New lead from form',
+  'lead.created':           'New lead from form (inbound)',
+  'lead.cold_created':      'New cold lead (manual)',
   'upcoming.payment':       'Upcoming payment',
   'ai.cap_warning':         'AI quota warning',
   'subscription.cancelled': 'Subscription cancelled',
@@ -540,7 +547,7 @@ export function CommandCenterClient() {
   const [leadStatusFilter, setLeadStatusFilter] = useState<Lead['status'] | ''>('');
   const [leadWizardOpen, setLeadWizardOpen] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
-  const [leadForm, setLeadForm] = useState({ first_name: '', last_name: '', email: '', company: '', phone: '', notes: '', status: 'new' as Lead['status'] });
+  const [leadForm, setLeadForm] = useState({ first_name: '', last_name: '', email: '', company: '', phone: '', notes: '', status: 'new' as Lead['status'], type: 'inbound' as Lead['type'] });
   const [savingLead, setSavingLead] = useState(false);
   const [leadError, setLeadError] = useState('');
   const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
@@ -698,14 +705,14 @@ export function CommandCenterClient() {
 
   function openAddLead() {
     setEditingLead(null);
-    setLeadForm({ first_name: '', last_name: '', email: '', company: '', phone: '', notes: '', status: 'new' });
+    setLeadForm({ first_name: '', last_name: '', email: '', company: '', phone: '', notes: '', status: 'new', type: 'inbound' });
     setLeadError(''); setLeadWizardOpen(true);
   }
 
   function openEditLead(l: Lead) {
     setEditingLead(l);
     setLeadForm({ first_name: l.first_name, last_name: l.last_name, email: l.email,
-      company: l.company ?? '', phone: l.phone ?? '', notes: l.notes ?? '', status: l.status });
+      company: l.company ?? '', phone: l.phone ?? '', notes: l.notes ?? '', status: l.status, type: l.type ?? 'inbound' });
     setLeadError(''); setLeadWizardOpen(true);
   }
 
@@ -1120,6 +1127,7 @@ export function CommandCenterClient() {
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden md:table-cell">Email</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Company</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-20">Source</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-20">Type</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-24">Status</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden lg:table-cell w-24">Added</th>
                       <th className="px-4 py-2.5 w-20" />
@@ -1141,6 +1149,11 @@ export function CommandCenterClient() {
                         <td className="px-4 py-3">
                           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
                             {SOURCE_LABEL[l.source] ?? l.source}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize', LEAD_TYPE_STYLE[l.type ?? 'inbound'])}>
+                            {l.type ?? 'inbound'}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -1204,6 +1217,14 @@ export function CommandCenterClient() {
                         <Label className="text-xs">Phone</Label>
                         <Input value={leadForm.phone} onChange={(e) => setLeadForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+1 416..." />
                       </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Lead Type</Label>
+                      <select value={leadForm.type} onChange={(e) => setLeadForm((p) => ({ ...p, type: e.target.value as Lead['type'] }))}
+                        className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary">
+                        <option value="inbound">Inbound - came via form or referral</option>
+                        <option value="cold">Cold - manually added, send outreach email</option>
+                      </select>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs">Status</Label>

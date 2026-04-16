@@ -499,9 +499,99 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-];
+  // 15 ── cold_outreach ────────────────────────────────────────────────────────
+  {
+    name:        'cold_outreach',
+    description: 'Sent automatically when a Cold lead is manually created — introduces Tempo Books',
+    subject:     'A smarter way to manage your books \u2014 Tempo Books',
+    from_email:  'admin@gettempo.ca',
+    from_name:   'Adesanya Ehinmidu',
+    variables:   ['first_name'],
+    html_body: wrap(`
+  ${hero('Smart bookkeeping for Canadian and US small businesses.')}
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Hi {{first_name}},</p>
+    <p style="margin:0 0 20px;font-size:16px;color:#333333;line-height:1.7;">
+      I'm Ade, founder of <strong>Tempo Books</strong> \u2014 a cloud bookkeeping platform built
+      specifically for Canadian and US small businesses, freelancers, and accounting firms who
+      want clear financial visibility without the complexity or cost of traditional accounting software.
+    </p>
 
-// ── Default automation rules ──────────────────────────────────────────────────
+    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">What Tempo Books does for you:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:28px;">
+          <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
+        </td>
+        <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0;">
+          <p style="margin:0;font-size:15px;color:#333333;">
+            <strong>Automatic bank sync</strong> \u2014 connect your accounts via Plaid and transactions import automatically. No manual entry.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:28px;">
+          <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
+        </td>
+        <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0;">
+          <p style="margin:0;font-size:15px;color:#333333;">
+            <strong>Real-time financial reports</strong> \u2014 Income Statement, Balance Sheet, Trial Balance, and General Ledger always up to date.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:28px;">
+          <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
+        </td>
+        <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0;">
+          <p style="margin:0;font-size:15px;color:#333333;">
+            <strong>HST/GST tracking</strong> \u2014 Canadian tax codes built in. File-ready HST reports at the end of every period.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:28px;">
+          <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
+        </td>
+        <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0;">
+          <p style="margin:0;font-size:15px;color:#333333;">
+            <strong>Invoicing</strong> \u2014 create and send professional invoices with Stripe payment links. Get paid faster.
+          </p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:10px 0;vertical-align:top;width:28px;">
+          <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
+        </td>
+        <td style="padding:10px 0 10px 12px;">
+          <p style="margin:0;font-size:15px;color:#333333;">
+            <strong>AI-powered classification</strong> \u2014 Tempo learns your transaction patterns and categorizes automatically, flagging anomalies for your review.
+          </p>
+        </td>
+      </tr>
+    </table>
+
+    <table cellpadding="0" cellspacing="0"
+           style="background:#EDF7F2;border-radius:8px;margin:0 0 28px;width:100%;">
+      <tr><td style="padding:16px 24px;">
+        <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
+          <strong>Free 60-day trial.</strong> No credit card required. Full access to every feature from day one.
+        </p>
+      </td></tr>
+    </table>
+
+    ${cta('Start your free trial \u2192', 'https://gettempo.ca/sign-up')}
+
+    <p style="margin:0;font-size:15px;color:#555555;">
+      Adesanya Ehinmidu<br/>
+      <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
+        <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
+      </span>
+    </p>
+  </td></tr>`),
+  },
+
+];
 
 interface SeedRule {
   name: string;
@@ -522,6 +612,7 @@ const RULE_SEEDS: SeedRule[] = [
   { name: 'AI quota warning',           trigger_event: 'ai.cap_warning',         template_name: 'ai_cap_warning',           delay_minutes: 0 },
   { name: 'Subscription cancelled',     trigger_event: 'subscription.cancelled', template_name: 'cancellation_confirmation', delay_minutes: 0 },
   { name: 'Trial reminder (cron)',      trigger_event: 'trial.reminder_cron',    template_name: 'trial_reminder_cron',      delay_minutes: 0 },
+  { name: 'Cold lead outreach',         trigger_event: 'lead.cold_created',      template_name: 'cold_outreach',            delay_minutes: 0 },
 ];
 
 // ── Service ──────────────────────────────────────────────────────────────────
