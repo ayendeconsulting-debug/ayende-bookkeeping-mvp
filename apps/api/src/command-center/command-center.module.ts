@@ -4,6 +4,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { EmailTemplate } from './email-template.entity';
 import { Campaign } from './campaign.entity';
 import { CampaignRecipient } from './campaign-recipient.entity';
+import { Lead } from './lead.entity';
 import { Subscription } from '../entities/subscription.entity';
 import { Business } from '../entities/business.entity';
 import { PlaidItem } from '../entities/plaid-item.entity';
@@ -13,6 +14,8 @@ import { CampaignsService } from './campaigns.service';
 import { CampaignsController, SegmentationController } from './campaigns.controller';
 import { SegmentationService } from './segmentation.service';
 import { CampaignEmailProcessor } from './campaign-email.processor';
+import { LeadsService } from './leads.service';
+import { AdminLeadsController, PublicLeadsController } from './leads.controller';
 import { AdminGuard } from '../admin/admin.guard';
 
 @Module({
@@ -21,6 +24,7 @@ import { AdminGuard } from '../admin/admin.guard';
       EmailTemplate,
       Campaign,
       CampaignRecipient,
+      Lead,
       Subscription,
       Business,
       PlaidItem,
@@ -31,14 +35,17 @@ import { AdminGuard } from '../admin/admin.guard';
     EmailTemplatesController,
     CampaignsController,
     SegmentationController,
+    AdminLeadsController,
+    PublicLeadsController,
   ],
   providers: [
     EmailTemplatesService,
     CampaignsService,
     SegmentationService,
     CampaignEmailProcessor,
+    LeadsService,
     AdminGuard,
   ],
-  exports: [EmailTemplatesService, SegmentationService],
+  exports: [EmailTemplatesService, SegmentationService, LeadsService],
 })
 export class CommandCenterModule {}

@@ -1,4 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+﻿import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.API_URL || 'http://localhost:3005';
@@ -18,22 +18,23 @@ const isPublicRoute = createRouteMatcher([
   '/legal/update',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/api/public/leads',
 ]);
 
-// ── Subdomain extraction ──────────────────────────────────────────────────────
+// â”€â”€ Subdomain extraction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function extractSubdomain(host: string): string | null {
   const hostname = host.split(':')[0];
-  // Production: smithco.gettempo.ca → smithco
+  // Production: smithco.gettempo.ca â†’ smithco
   const prodMatch = hostname.match(/^([a-z0-9-]+)\.gettempo\.ca$/i);
   if (prodMatch) return prodMatch[1].toLowerCase();
-  // Local dev: smithco.localhost → smithco
+  // Local dev: smithco.localhost â†’ smithco
   const localMatch = hostname.match(/^([a-z0-9-]+)\.localhost$/i);
   if (localMatch) return localMatch[1].toLowerCase();
   return null;
 }
 
-// ── Branding fetch ────────────────────────────────────────────────────────────
+// â”€â”€ Branding fetch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function fetchBranding(slug: string): Promise<{
   name: string | null;
@@ -43,7 +44,7 @@ async function fetchBranding(slug: string): Promise<{
   try {
     const res = await fetch(`${API_URL}/firms/branding/${slug}`, {
       cache: 'no-store',
-      signal: AbortSignal.timeout(2000), // 2s timeout — never block page load
+      signal: AbortSignal.timeout(2000), // 2s timeout â€” never block page load
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -54,7 +55,7 @@ async function fetchBranding(slug: string): Promise<{
   }
 }
 
-// ── Middleware ────────────────────────────────────────────────────────────────
+// â”€â”€ Middleware â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   // Inject current pathname as a header so server component layouts
@@ -62,7 +63,7 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', request.nextUrl.pathname);
 
-  // ── White-label subdomain branding ─────────────────────────────────────────
+  // â”€â”€ White-label subdomain branding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const host = request.headers.get('host') ?? '';
   const slug = extractSubdomain(host);
   if (slug) {
@@ -87,3 +88,4 @@ export const config = {
     '/(api|trpc)(.*)',
   ],
 };
+

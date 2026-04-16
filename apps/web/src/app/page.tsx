@@ -1,8 +1,9 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import Image from 'next/image';
 import { MarketingNav } from '@/components/marketing-nav';
 import { MarketingFooter } from '@/components/marketing-footer';
 import { MarketingThemeEnforcer } from '@/components/marketing-theme-enforcer';
+import { RequestDemoButton } from '@/components/request-demo-button';
 import { FaqAccordion } from './(marketing)/faq-accordion';
 import { DashboardCarousel } from './(marketing)/dashboard-carousel';
 import {
@@ -10,34 +11,34 @@ import {
   CheckCircle2, ArrowRight, BookOpen, Building2, Receipt,
 } from 'lucide-react';
 
-// ── Stats ─────────────────────────────────────────────────────────────────
+// â”€â”€ Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const STATS = [
   { value: '12,000+', label: 'Banks connected via Plaid',   sub: 'Canada & United States' },
-  { value: '60',      label: 'Day free trial',              sub: 'No charge · Cancel anytime' },
+  { value: '60',      label: 'Day free trial',              sub: 'No charge Â· Cancel anytime' },
   { value: '100%',    label: 'Tax-ready documentation',     sub: 'Every transaction balanced' },
   { value: '5',       label: 'AI-powered features',         sub: 'Included on every plan' },
 ];
 
-// ── Segments ──────────────────────────────────────────────────────────────
+// â”€â”€ Segments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SEGMENTS = [
-  { emoji: '🏢', title: 'Business',   tagline: 'Tax-ready books for SMBs',      href: '#business'   },
-  { emoji: '💼', title: 'Freelancer', tagline: 'Bookkeeping in 10 min/mo',      href: '#freelancer' },
-  { emoji: '🏠', title: 'Personal',   tagline: 'See where your money goes',     href: '#personal'   },
-  { emoji: '📊', title: 'Accountant', tagline: 'Manage all your clients',       href: '#accountants'},
+  { emoji: 'ðŸ¢', title: 'Business',   tagline: 'Tax-ready books for SMBs',      href: '#business'   },
+  { emoji: 'ðŸ’¼', title: 'Freelancer', tagline: 'Bookkeeping in 10 min/mo',      href: '#freelancer' },
+  { emoji: 'ðŸ ', title: 'Personal',   tagline: 'See where your money goes',     href: '#personal'   },
+  { emoji: 'ðŸ“Š', title: 'Accountant', tagline: 'Manage all your clients',       href: '#accountants'},
 ];
 
-// ── Segment deep-dives ────────────────────────────────────────────────────
+// â”€â”€ Segment deep-dives â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SEGMENT_DETAILS = [
   {
     id: 'business',
-    emoji: '🏢',
+    emoji: 'ðŸ¢',
     title: 'For Business Owners',
     tagline: 'Tax-ready books. Every single month.',
-    pain: 'Most small business owners spend the last two weeks of March in a panic — hunting receipts, untangling transactions, and paying their accountant to fix what should have been right all year.',
+    pain: 'Most small business owners spend the last two weeks of March in a panic â€” hunting receipts, untangling transactions, and paying their accountant to fix what should have been right all year.',
     bullets: [
-      'Bank sync imports and classifies transactions automatically — no manual entry',
+      'Bank sync imports and classifies transactions automatically â€” no manual entry',
       'HST/GST is split and posted to the correct liability account on every transaction',
-      'CRA remittance report (GST34 lines 101–113) is always one click away',
+      'CRA remittance report (GST34 lines 101â€“113) is always one click away',
       'Income Statement and Balance Sheet update in real time as you post',
       'AI anomaly detection flags unusual charges before they become problems',
       'Fiscal year locking prevents retroactive changes once you file',
@@ -47,50 +48,50 @@ const SEGMENT_DETAILS = [
   },
   {
     id: 'freelancer',
-    emoji: '💼',
+    emoji: 'ðŸ’¼',
     title: 'For Freelancers & Sole Proprietors',
     tagline: 'Bookkeeping that takes 10 minutes a month.',
     pain: "You didn't start freelancing to spend your weekends categorizing expenses. Tempo Books handles the accounting so you can focus on the work that actually pays.",
     bullets: [
       'Connect your bank and let Tempo classify every transaction automatically',
-      'Split personal and business expenses on the same account — no separate bank required',
+      'Split personal and business expenses on the same account â€” no separate bank required',
       'HST/GST tracked per transaction, remittance report ready when you need it',
       'Income Statement shows exactly what you earned and what it cost you',
       'AI Transaction Explainer breaks down any charge in plain English',
-      '$10/mo on Starter — less than one billable hour',
+      '$10/mo on Starter â€” less than one billable hour',
     ],
-    cta: 'Start free — 60 days',
+    cta: 'Start free â€” 60 days',
     ctaHref: '/sign-up',
   },
   {
     id: 'personal',
-    emoji: '🏠',
+    emoji: 'ðŸ ',
     title: 'For Personal Finance',
     tagline: 'Finally know where every dollar went.',
-    pain: 'Budgeting apps give you charts. Tempo gives you a real ledger — the same system accountants use, built for people who want to actually understand their money.',
+    pain: 'Budgeting apps give you charts. Tempo gives you a real ledger â€” the same system accountants use, built for people who want to actually understand their money.',
     bullets: [
       'Connect your personal accounts and import all transactions automatically',
-      'Categorize spending by account type — housing, food, transport, subscriptions',
+      'Categorize spending by account type â€” housing, food, transport, subscriptions',
       'See a real Income vs Expense view by month, quarter, or year',
       'Track net worth with a live Balance Sheet of your assets and liabilities',
       'AI assistant answers plain-language questions about your spending',
-      'Included on the Starter plan — $10/mo',
+      'Included on the Starter plan â€” $10/mo',
     ],
-    cta: 'Start free — see your full financial picture in minutes',
+    cta: 'Start free â€” see your full financial picture in minutes',
     ctaHref: '/sign-up',
   },
   {
     id: 'accountants',
-    emoji: '📊',
+    emoji: 'ðŸ“Š',
     title: 'For Accountants & Bookkeeping Firms',
     tagline: 'Your client portal. Your brand. Your workflow.',
-    pain: "Switching between client logins, chasing down bank statements, and explaining the same transaction twice — that's time your firm can't bill for. Tempo Books' Accountant Portal was built to eliminate all of it.",
+    pain: "Switching between client logins, chasing down bank statements, and explaining the same transaction twice â€” that's time your firm can't bill for. Tempo Books' Accountant Portal was built to eliminate all of it.",
     bullets: [
-      'Single dashboard for all client businesses — KPI cards, status, balance at a glance',
-      'White-label subdomain: yourfirm.gettempo.ca — client-facing with your branding',
-      'Request edit access with one click — full dual audit log of every change',
+      'Single dashboard for all client businesses â€” KPI cards, status, balance at a glance',
+      'White-label subdomain: yourfirm.gettempo.ca â€” client-facing with your branding',
+      'Request edit access with one click â€” full dual audit log of every change',
       'AI anomaly detection runs across all client books simultaneously',
-      'Onboard a new client in under 5 minutes — invite by email, they connect their bank',
+      'Onboard a new client in under 5 minutes â€” invite by email, they connect their bank',
       'Metered billing: $149/mo base includes 5 clients, +$15/mo per additional',
     ],
     cta: 'See Accountant Portal pricing',
@@ -98,7 +99,7 @@ const SEGMENT_DETAILS = [
   },
 ];
 
-// ── Segment background images (Unsplash — all confirmed free) ─────────────
+// â”€â”€ Segment background images (Unsplash â€” all confirmed free) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SEGMENT_IMAGES: Record<string, string> = {
   business:    'https://images.unsplash.com/photo-1758874384232-cfa79a5babf1?q=80&w=1332&auto=format&fit=crop',
   freelancer:  'https://images.unsplash.com/photo-1755156137044-5d33290a94ca?q=80&w=688&auto=format&fit=crop',
@@ -106,16 +107,16 @@ const SEGMENT_IMAGES: Record<string, string> = {
   accountants: 'https://images.unsplash.com/photo-1606836576983-8b458e75221d?q=80&w=1170&auto=format&fit=crop',
 };
 
-// ── Features ──────────────────────────────────────────────────────────────
+// â”€â”€ Features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const FEATURES = [
   {
     category: 'AI',
     icon: Sparkles,
     title: 'Not a chatbot. A bookkeeper that reads your ledger.',
     description:
-      "Tempo's AI runs on your actual financial data — real journal entries, real accounts, real amounts. Classify transactions, detect anomalies, explain charges in plain language, and generate a year-end summary. Ask it anything. It already knows the answer.",
+      "Tempo's AI runs on your actual financial data â€” real journal entries, real accounts, real amounts. Classify transactions, detect anomalies, explain charges in plain language, and generate a year-end summary. Ask it anything. It already knows the answer.",
     points: [
-      'Transaction Explainer — plain-language breakdowns',
+      'Transaction Explainer â€” plain-language breakdowns',
       'Anomaly detection (amount, frequency, category)',
       'Year-End Assistant with PDF export',
       'Classification learning from your overrides',
@@ -125,12 +126,12 @@ const FEATURES = [
   {
     category: 'Tax Ready',
     icon: Shield,
-    title: 'HST, GST, CRA — handled automatically.',
+    title: 'HST, GST, CRA â€” handled automatically.',
     description:
-      'Every transaction is posted to the correct account with HST/GST split automatically. Your Income Statement, Balance Sheet, and CRA remittance report are always current — no scramble at filing time.',
+      'Every transaction is posted to the correct account with HST/GST split automatically. Your Income Statement, Balance Sheet, and CRA remittance report are always current â€” no scramble at filing time.',
     points: [
       'Automatic HST/GST splitting per transaction',
-      'CRA remittance report (GST34 lines 101–113)',
+      'CRA remittance report (GST34 lines 101â€“113)',
       'Locked fiscal years prevent retroactive edits',
       'Year-End AI assistant for filing prep',
     ],
@@ -141,7 +142,7 @@ const FEATURES = [
     icon: BarChart3,
     title: 'Real double-entry accounting. No spreadsheet hacks.',
     description:
-      'Every transaction creates balanced journal entries automatically. Debits equal credits. Your books are always accurate — the same standard your accountant expects.',
+      'Every transaction creates balanced journal entries automatically. Debits equal credits. Your books are always accurate â€” the same standard your accountant expects.',
     points: [
       'Automated journal entries',
       'Debit/credit validation',
@@ -155,7 +156,7 @@ const FEATURES = [
     icon: Zap,
     title: 'Connect your bank in seconds. Import everything.',
     description:
-      'Link your bank account via Plaid for automatic transaction import. Transactions are classified, deduplicated, and posted to your ledger — zero manual entry, ever.',
+      'Link your bank account via Plaid for automatic transaction import. Transactions are classified, deduplicated, and posted to your ledger â€” zero manual entry, ever.',
     points: [
       '12,000+ institutions',
       'Real-time sync',
@@ -169,7 +170,7 @@ const FEATURES = [
     icon: FileText,
     title: 'Every report you need. Always up to date.',
     description:
-      'Income Statement, Balance Sheet, Trial Balance, and General Ledger — generated from your actual journal entries. Filter by any date range, export PDF or CSV in one click.',
+      'Income Statement, Balance Sheet, Trial Balance, and General Ledger â€” generated from your actual journal entries. Filter by any date range, export PDF or CSV in one click.',
     points: [
       'Income Statement & Balance Sheet',
       'Trial Balance & General Ledger',
@@ -194,7 +195,7 @@ const FEATURES = [
   },
 ];
 
-// ── Pricing ───────────────────────────────────────────────────────────────
+// â”€â”€ Pricing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PLANS = [
   {
     name: 'Starter',
@@ -202,7 +203,7 @@ const PLANS = [
     price: '$10',
     period: ' CAD/mo',
     annualNote: '2 months free on annual',
-    description: 'For freelancers — real books for $10/mo',
+    description: 'For freelancers â€” real books for $10/mo',
     features: [
       'Up to 500 transactions/mo',
       '4 financial reports',
@@ -238,14 +239,14 @@ const PLANS = [
     regular: null,
     price: '$149',
     period: ' CAD/mo base',
-    annualNote: '$1,490/yr · see full pricing',
+    annualNote: '$1,490/yr Â· see full pricing',
     description: 'For firms managing client books at scale',
     features: [
       '5 client businesses included',
       '3 staff seats included',
       'White-label subdomain',
       'Full firm portal + audit log',
-      'AI (500 calls/mo · unlimited add-on)',
+      'AI (500 calls/mo Â· unlimited add-on)',
       '6-year CRA receipt repository',
       '+$15/mo per additional client',
     ],
@@ -255,7 +256,7 @@ const PLANS = [
   },
 ];
 
-// ── Testimonials ──────────────────────────────────────────────────────────
+// â”€â”€ Testimonials â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TESTIMONIALS = [
   {
     quote: "Before Tempo Books, I was reconciling in spreadsheets every Sunday night. Now my books are current by Tuesday and I actually understand where my money went.",
@@ -279,7 +280,7 @@ const TESTIMONIALS = [
   },
 ];
 
-// ── Page ──────────────────────────────────────────────────────────────────
+// â”€â”€ Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -298,10 +299,10 @@ export default function LandingPage() {
 
       <main className="flex-1">
 
-        {/* ── Hero ───────────────────────────────────────────────────── */}
+        {/* â”€â”€ Hero â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="relative overflow-hidden">
 
-          {/* Hero background photo — confirmed free Unsplash license */}
+          {/* Hero background photo â€” confirmed free Unsplash license */}
           <Image
             src="https://images.unsplash.com/photo-1716703373229-b0e43de7dd5c?q=80&w=1920&auto=format&fit=crop"
             alt=""
@@ -310,7 +311,7 @@ export default function LandingPage() {
             priority
             aria-hidden="true"
           />
-          {/* Dark overlay — heavy at top for text, fades to background so stats row blends */}
+          {/* Dark overlay â€” heavy at top for text, fades to background so stats row blends */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/55 to-background pointer-events-none" />
 
           {/* Hero content */}
@@ -331,7 +332,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="text-lg text-white/80 max-w-2xl mx-auto mb-8 leading-relaxed">
-              Tempo Books handles double-entry accounting, bank sync, AI transaction classification, and HST/GST tracking — whether you run a business, freelance, manage personal finances, or handle client books.
+              Tempo Books handles double-entry accounting, bank sync, AI transaction classification, and HST/GST tracking â€” whether you run a business, freelance, manage personal finances, or handle client books.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
@@ -339,25 +340,26 @@ export default function LandingPage() {
                 href="/sign-up"
                 className="inline-flex items-center gap-2 bg-[#0F6E56] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#085041] transition-colors shadow-sm"
               >
-                Start free — 60 days <ArrowRight className="w-4 h-4" />
+                Start free â€” 60 days <ArrowRight className="w-4 h-4" />
               </Link>
+              <RequestDemoButton variant="hero" label="Request a Demo" />
               <Link
                 href="#features"
                 className="inline-flex items-center gap-2 border border-white/30 bg-white/10 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-white/20 hover:border-white/50 transition-colors"
               >
-                See how it works →
+                See how it works â†’
               </Link>
             </div>
 
             <p className="text-xs text-white/60 mb-12">
-              60-day free trial · No charge during trial · Auto-continues on Starter after trial
+              60-day free trial Â· No charge during trial Â· Auto-continues on Starter after trial
             </p>
 
             <DashboardCarousel />
           </div>
         </section>
 
-        {/* ── Stats ──────────────────────────────────────────────────── */}
+        {/* â”€â”€ Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="border-y border-border bg-card">
           <div className="max-w-6xl mx-auto px-6 py-14">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
@@ -372,7 +374,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Segment Selector ───────────────────────────────────────── */}
+        {/* â”€â”€ Segment Selector â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="max-w-6xl mx-auto px-6 py-16">
           <div className="text-center mb-10">
             <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">Who It&apos;s For</p>
@@ -380,7 +382,7 @@ export default function LandingPage() {
               One product. Built for how you actually work.
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Whether you run a business, freelance, manage your own money, or handle books for clients — Tempo Books is built for exactly that.
+              Whether you run a business, freelance, manage your own money, or handle books for clients â€” Tempo Books is built for exactly that.
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -393,13 +395,13 @@ export default function LandingPage() {
                 <span className="text-4xl mb-3">{seg.emoji}</span>
                 <p className="text-sm font-semibold text-foreground mb-1 group-hover:text-[#0F6E56] transition-colors">{seg.title}</p>
                 <p className="text-xs text-muted-foreground mb-3">{seg.tagline}</p>
-                <span className="text-xs font-semibold text-[#0F6E56]">Learn more →</span>
+                <span className="text-xs font-semibold text-[#0F6E56]">Learn more â†’</span>
               </a>
             ))}
           </div>
         </section>
 
-        {/* ── Segment Deep Dives ─────────────────────────────────────── */}
+        {/* â”€â”€ Segment Deep Dives â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="max-w-6xl mx-auto px-6 pb-10 space-y-8">
           {SEGMENT_DETAILS.map((seg) => (
             <div
@@ -417,7 +419,7 @@ export default function LandingPage() {
                   aria-hidden="true"
                 />
               )}
-              {/* Gradient overlay — heavy on left where content sits, fades to right */}
+              {/* Gradient overlay â€” heavy on left where content sits, fades to right */}
               <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/88 to-background/60 pointer-events-none" />
 
               {/* Content */}
@@ -447,7 +449,7 @@ export default function LandingPage() {
           ))}
         </section>
 
-        {/* ── AI Feature highlight ────────────────────────────────────── */}
+        {/* â”€â”€ AI Feature highlight â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="max-w-6xl mx-auto px-6 py-10">
           <div className="rounded-2xl bg-gradient-to-r from-[#EDF7F2] to-[#f5f3ef] dark:from-card dark:to-card border border-[#C3E8D8] dark:border-border p-8 md:p-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -459,7 +461,7 @@ export default function LandingPage() {
                   Not a chatbot. A bookkeeper that reads your ledger.
                 </h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  Tempo&apos;s AI runs on your actual financial data — real journal entries, real accounts, real amounts. Ask it anything. It already knows the answer.
+                  Tempo&apos;s AI runs on your actual financial data â€” real journal entries, real accounts, real amounts. Ask it anything. It already knows the answer.
                 </p>
                 <ul className="space-y-2 mb-6">
                   {[
@@ -474,7 +476,7 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <p className="text-xs text-muted-foreground">Included on every plan — Starter, Pro, and Accountant.</p>
+                <p className="text-xs text-muted-foreground">Included on every plan â€” Starter, Pro, and Accountant.</p>
               </div>
               <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
                 <div className="px-4 py-3 border-b border-border flex items-center gap-2">
@@ -491,7 +493,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex justify-start">
                     <div className="bg-muted text-foreground text-xs px-3 py-2 rounded-xl rounded-tl-sm max-w-[85%] leading-relaxed">
-                      Your Q1 net profit margin was <strong>34.1%</strong> — net income of $16,480 on revenue of $48,320. Up from 29.8% in Q4, driven by lower software costs. 📈
+                      Your Q1 net profit margin was <strong>34.1%</strong> â€” net income of $16,480 on revenue of $48,320. Up from 29.8% in Q4, driven by lower software costs. ðŸ“ˆ
                     </div>
                   </div>
                   <div className="flex justify-end">
@@ -501,7 +503,7 @@ export default function LandingPage() {
                   </div>
                   <div className="flex justify-start">
                     <div className="bg-muted text-foreground text-xs px-3 py-2 rounded-xl rounded-tl-sm max-w-[85%] leading-relaxed">
-                      This is your monthly AWS cloud hosting bill. It&apos;s classified as a <strong>Cloud Infrastructure</strong> expense and is 18% higher than your prior 3-month average — worth reviewing if usage changed.
+                      This is your monthly AWS cloud hosting bill. It&apos;s classified as a <strong>Cloud Infrastructure</strong> expense and is 18% higher than your prior 3-month average â€” worth reviewing if usage changed.
                     </div>
                   </div>
                 </div>
@@ -510,7 +512,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Tax Filing callout ──────────────────────────────────────── */}
+        {/* â”€â”€ Tax Filing callout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="max-w-6xl mx-auto px-6 pb-6">
           <div className="rounded-2xl bg-card border border-border p-8 md:p-10">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
@@ -522,13 +524,13 @@ export default function LandingPage() {
                   Your books are always filing-ready
                 </h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  Thorough documentation and accurate account balances aren&apos;t something you scramble for at year-end — they&apos;re built into every transaction Tempo processes. HST/GST is split automatically, every journal entry is balanced, and your CRA remittance report is always one click away.
+                  Thorough documentation and accurate account balances aren&apos;t something you scramble for at year-end â€” they&apos;re built into every transaction Tempo processes. HST/GST is split automatically, every journal entry is balanced, and your CRA remittance report is always one click away.
                 </p>
                 <ul className="space-y-2 mb-6">
                   {[
                     'Every transaction documented with debit/credit entries',
                     'HST/GST automatically split into the correct liability accounts',
-                    'CRA remittance report with GST34 lines 101–113',
+                    'CRA remittance report with GST34 lines 101â€“113',
                     'Fiscal year locking prevents retroactive changes',
                     'Year-End AI assistant summarises your books for your accountant',
                   ].map((point) => (
@@ -561,7 +563,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Features ───────────────────────────────────────────────── */}
+        {/* â”€â”€ Features â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section id="features" className="max-w-6xl mx-auto px-6 py-10 pb-20">
           <div className="text-center mb-14">
             <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">Features</p>
@@ -569,7 +571,7 @@ export default function LandingPage() {
               The full bookkeeping stack. Nothing missing.
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              From bank import to year-end filing — every feature you need, none you don&apos;t.
+              From bank import to year-end filing â€” every feature you need, none you don&apos;t.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -614,7 +616,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Social Proof ────────────────────────────────────────────── */}
+        {/* â”€â”€ Social Proof â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="bg-card border-y border-border">
           <div className="max-w-6xl mx-auto px-6 py-20">
             <div className="text-center mb-12">
@@ -638,28 +640,28 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Receipt Repository ──────────────────────────────────────── */}
+        {/* â”€â”€ Receipt Repository â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="max-w-6xl mx-auto px-6 py-16">
           <div className="rounded-2xl border-2 border-[#0F6E56] bg-[#EDF7F2] p-8 md:p-12">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
               <div>
                 <div className="inline-flex items-center gap-2 bg-[#0F6E56] text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">
-                  <Receipt className="w-3 h-3" /> CRA Audit Protection — Pro &amp; Accountant
+                  <Receipt className="w-3 h-3" /> CRA Audit Protection â€” Pro &amp; Accountant
                 </div>
                 <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
                   Your receipts. Stored. Searchable.<br />
                   <span className="text-[#0F6E56]">CRA-ready for 6 years.</span>
                 </h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  CRA can audit any business up to 6 years back. Most small businesses can&apos;t produce the records to defend their deductions — not because the expenses weren&apos;t real, but because the receipts are gone. Every receipt and invoice you capture in Tempo Books is stored and retained for 6 full years from the date you upload it. Start tracking today — and six years from now, every record is exactly where CRA expects it to be.
+                  CRA can audit any business up to 6 years back. Most small businesses can&apos;t produce the records to defend their deductions â€” not because the expenses weren&apos;t real, but because the receipts are gone. Every receipt and invoice you capture in Tempo Books is stored and retained for 6 full years from the date you upload it. Start tracking today â€” and six years from now, every record is exactly where CRA expects it to be.
                 </p>
                 <ul className="space-y-3 mb-6">
                   {[
-                    'Upload any format — photos of paper receipts or PDF invoices',
+                    'Upload any format â€” photos of paper receipts or PDF invoices',
                     'Linked directly to the transaction and journal entry it supports',
                     'Searchable by date, vendor, amount, or expense category',
                     'Every receipt retained for 6 years from date of upload',
-                    'CRA accepts digital images as valid records — Tempo keeps them compliant',
+                    'CRA accepts digital images as valid records â€” Tempo keeps them compliant',
                   ].map((point) => (
                     <li key={point} className="flex items-start gap-2 text-sm">
                       <CheckCircle2 className="w-4 h-4 text-[#0F6E56] flex-shrink-0 mt-0.5" />
@@ -683,11 +685,11 @@ export default function LandingPage() {
                 </div>
                 <div className="p-4 space-y-2">
                   {[
-                    { name: 'Home Depot — lumber & supplies', date: 'Apr 3, 2025', amt: '$847.20', cat: 'Materials', tag: 'PDF' },
-                    { name: 'Rogers — business phone plan',   date: 'Apr 1, 2025', amt: '$95.00',  cat: 'Phone',     tag: 'Photo' },
-                    { name: 'Amazon — office equipment',      date: 'Mar 28, 2025', amt: '$312.50', cat: 'Equipment', tag: 'PDF' },
-                    { name: 'Shell — fuel receipt',           date: 'Mar 26, 2025', amt: '$124.80', cat: 'Vehicle',   tag: 'Photo' },
-                    { name: 'Staples — office supplies',      date: 'Mar 20, 2025', amt: '$67.45',  cat: 'Office',    tag: 'PDF' },
+                    { name: 'Home Depot â€” lumber & supplies', date: 'Apr 3, 2025', amt: '$847.20', cat: 'Materials', tag: 'PDF' },
+                    { name: 'Rogers â€” business phone plan',   date: 'Apr 1, 2025', amt: '$95.00',  cat: 'Phone',     tag: 'Photo' },
+                    { name: 'Amazon â€” office equipment',      date: 'Mar 28, 2025', amt: '$312.50', cat: 'Equipment', tag: 'PDF' },
+                    { name: 'Shell â€” fuel receipt',           date: 'Mar 26, 2025', amt: '$124.80', cat: 'Vehicle',   tag: 'Photo' },
+                    { name: 'Staples â€” office supplies',      date: 'Mar 20, 2025', amt: '$67.45',  cat: 'Office',    tag: 'PDF' },
                   ].map((r) => (
                     <div key={r.name} className="flex items-center gap-3 p-2.5 rounded-xl bg-[#F9FAFB] hover:bg-[#EDF7F2] transition-colors">
                       <div className="w-7 h-7 rounded-lg bg-[#EDF7F2] flex items-center justify-center flex-shrink-0">
@@ -695,7 +697,7 @@ export default function LandingPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-foreground truncate">{r.name}</p>
-                        <p className="text-xs text-muted-foreground">{r.date} · {r.cat}</p>
+                        <p className="text-xs text-muted-foreground">{r.date} Â· {r.cat}</p>
                       </div>
                       <div className="text-right flex-shrink-0">
                         <p className="text-xs font-semibold text-foreground">{r.amt}</p>
@@ -704,8 +706,8 @@ export default function LandingPage() {
                     </div>
                   ))}
                   <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">247 receipts stored · Retained 6 years from upload</p>
-                    <p className="text-xs text-[#0F6E56] font-semibold">CRA-ready ✓</p>
+                    <p className="text-xs text-muted-foreground">247 receipts stored Â· Retained 6 years from upload</p>
+                    <p className="text-xs text-[#0F6E56] font-semibold">CRA-ready âœ“</p>
                   </div>
                 </div>
               </div>
@@ -713,7 +715,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ── Pricing ─────────────────────────────────────────────────── */}
+        {/* â”€â”€ Pricing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section id="pricing" className="bg-background border-b border-border">
           <div className="max-w-6xl mx-auto px-6 py-20">
             <div className="text-center mb-6">
@@ -727,7 +729,7 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center justify-center gap-2 bg-[#0F6E56] text-white text-sm font-medium px-5 py-2.5 rounded-xl mb-10 max-w-lg mx-auto">
               <Zap className="w-4 h-4 flex-shrink-0" />
-              Launch offer: Starter &amp; Pro 50% off — prices shown already discounted
+              Launch offer: Starter &amp; Pro 50% off â€” prices shown already discounted
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
               {PLANS.map((plan) => (
@@ -782,15 +784,15 @@ export default function LandingPage() {
               ))}
             </div>
             <p className="text-center text-xs text-muted-foreground mt-6">
-              Annual plans save you 2 months — pay for 10, get 12.{' '}
+              Annual plans save you 2 months â€” pay for 10, get 12.{' '}
               <Link href="/pricing" className="text-[#0F6E56] hover:underline underline-offset-2">
-                See full pricing details →
+                See full pricing details â†’
               </Link>
             </p>
           </div>
         </section>
 
-        {/* ── FAQ ─────────────────────────────────────────────────────── */}
+        {/* â”€â”€ FAQ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section id="faq" className="max-w-3xl mx-auto px-6 py-20">
           <div className="text-center mb-12">
             <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">FAQ</p>
@@ -807,22 +809,23 @@ export default function LandingPage() {
           <FaqAccordion />
         </section>
 
-        {/* ── CTA Banner ──────────────────────────────────────────────── */}
+        {/* â”€â”€ CTA Banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
         <section className="bg-[#0F6E56] dark:bg-[#085041]">
           <div className="max-w-4xl mx-auto px-6 py-16 text-center">
             <h2 className="text-3xl font-bold text-white mb-4">
               Your books should be ready before you need them.
             </h2>
             <p className="text-[#C3E8D8] mb-8 max-w-xl mx-auto">
-              Not the night before filing. Not after a frantic call to your accountant. Every month, automatically — starting now.
+              Not the night before filing. Not after a frantic call to your accountant. Every month, automatically â€” starting now.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 href="/sign-up"
                 className="inline-flex items-center gap-2 bg-white text-[#0F6E56] px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#EDF7F2] transition-colors"
               >
-                Start free — 60 days <ArrowRight className="w-4 h-4" />
+                Start free â€” 60 days <ArrowRight className="w-4 h-4" />
               </Link>
+              <RequestDemoButton variant="hero" label="Request a Demo" />
               <Link
                 href="/pricing"
                 className="inline-flex items-center gap-2 border border-white/40 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:border-white transition-colors"
@@ -839,3 +842,6 @@ export default function LandingPage() {
     </div>
   );
 }
+
+
+

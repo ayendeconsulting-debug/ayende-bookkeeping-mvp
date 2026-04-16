@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface EmailTemplate {
   id: string;
   name: string;
@@ -75,7 +75,7 @@ const EMPTY_FORM: TemplateFormState = {
 const TABS = [
   { id: 'templates',   label: 'Templates',   icon: Mail,      ready: true  },
   { id: 'campaigns',   label: 'Campaigns',   icon: Megaphone, ready: true  },
-  { id: 'leads',       label: 'Leads',       icon: Users,     ready: false },
+  { id: 'leads',       label: 'Leads',       icon: Users,     ready: true  },
   { id: 'automations', label: 'Automations', icon: Zap,       ready: false },
 ];
 
@@ -87,13 +87,43 @@ const STATUS_STYLE: Record<Campaign['status'], string> = {
   cancelled: 'bg-destructive/10 text-destructive',
 };
 
+interface Lead {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  company: string;
+  phone: string;
+  source: string;
+  status: 'new' | 'contacted' | 'nurturing' | 'converted' | 'lost';
+  notes: string;
+  converted_at: string | null;
+  created_at: string;
+}
+
+const LEAD_STATUS_STYLE: Record<Lead['status'], string> = {
+  new:       'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  contacted: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400',
+  nurturing: 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400',
+  converted: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+  lost:      'bg-muted text-muted-foreground',
+};
+
+const LEAD_STATUSES: Lead['status'][] = ['new', 'contacted', 'nurturing', 'converted', 'lost'];
+
+const SOURCE_LABEL: Record<string, string> = {
+  marketing_form: 'Form',
+  manual:         'Manual',
+  csv_import:     'CSV',
+};
+
 const RECIPIENT_STATUS_STYLE: Record<CampaignRecipient['status'], string> = {
   pending: 'bg-muted text-muted-foreground',
   sent:    'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
   failed:  'bg-destructive/10 text-destructive',
 };
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function parseVars(raw: string): string[] {
   return raw.split(',').map((v) => v.trim()).filter(Boolean);
 }
@@ -102,7 +132,7 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-// ── Slide-over ─────────────────────────────────────────────────────────────
+// â”€â”€ Slide-over â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function SlideOver({ open, title, onClose, children }: {
   open: boolean; title: string; onClose: () => void; children: React.ReactNode;
 }) {
@@ -125,7 +155,7 @@ function SlideOver({ open, title, onClose, children }: {
   );
 }
 
-// ── Preview modal ──────────────────────────────────────────────────────────
+// â”€â”€ Preview modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PreviewModal({ open, subject, html, onClose }: {
   open: boolean; subject: string; html: string; onClose: () => void;
 }) {
@@ -151,7 +181,7 @@ function PreviewModal({ open, subject, html, onClose }: {
   );
 }
 
-// ── Campaign wizard modal ──────────────────────────────────────────────────
+// â”€â”€ Campaign wizard modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CampaignWizard({ open, onClose, templates, onCreated }: {
   open: boolean;
   onClose: () => void;
@@ -271,7 +301,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
               {loadingSegs ? (
                 <div className="flex items-center gap-2 text-muted-foreground py-4">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Loading segments…</span>
+                  <span className="text-sm">Loading segmentsâ€¦</span>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -392,7 +422,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
                 </Button>
                 <Button onClick={handleCreateAndSend} disabled={saving}>
                   {sending
-                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</>
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sendingâ€¦</>
                     : <><Send className="w-4 h-4 mr-2" />Send Now</>
                   }
                 </Button>
@@ -405,7 +435,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
   );
 }
 
-// ── Campaign recipients drawer ─────────────────────────────────────────────
+// â”€â”€ Campaign recipients drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function RecipientsRow({ campaignId }: { campaignId: string }) {
   const [recipients, setRecipients] = useState<CampaignRecipient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -421,7 +451,7 @@ function RecipientsRow({ campaignId }: { campaignId: string }) {
   if (loading) return (
     <tr><td colSpan={7} className="px-4 py-3">
       <div className="flex items-center gap-2 text-muted-foreground text-xs">
-        <Loader2 className="w-3 h-3 animate-spin" />Loading recipients…
+        <Loader2 className="w-3 h-3 animate-spin" />Loading recipientsâ€¦
       </div>
     </td></tr>
   );
@@ -451,11 +481,11 @@ function RecipientsRow({ campaignId }: { campaignId: string }) {
   );
 }
 
-// ── Main export ────────────────────────────────────────────────────────────
+// â”€â”€ Main export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function CommandCenterClient() {
   const [activeTab, setActiveTab] = useState('templates');
 
-  // ── Templates state ────────────────────────────────────────────────────
+  // â”€â”€ Templates state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [slideOpen, setSlideOpen] = useState(false);
@@ -470,7 +500,7 @@ export function CommandCenterClient() {
   const [sampleVars, setSampleVars] = useState<Record<string, string>>({});
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  // ── Campaigns state ────────────────────────────────────────────────────
+  // â”€â”€ Campaigns state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -478,7 +508,22 @@ export function CommandCenterClient() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
 
-  // ── Load data ──────────────────────────────────────────────────────────
+  // â”€â”€ Leads state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loadingLeads, setLoadingLeads] = useState(true);
+  const [leadStatusFilter, setLeadStatusFilter] = useState<Lead['status'] | ''>('');
+  const [leadWizardOpen, setLeadWizardOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [leadForm, setLeadForm] = useState({ first_name: '', last_name: '', email: '', company: '', phone: '', notes: '', status: 'new' as Lead['status'] });
+  const [savingLead, setSavingLead] = useState(false);
+  const [leadError, setLeadError] = useState('');
+  const [deletingLeadId, setDeletingLeadId] = useState<string | null>(null);
+  const [csvText, setCsvText] = useState('');
+  const [importingCsv, setImportingCsv] = useState(false);
+  const [importResult, setImportResult] = useState<{ imported: number; updated: number } | null>(null);
+  const [showCsvImport, setShowCsvImport] = useState(false);
+
+
   const loadTemplates = useCallback(async () => {
     setLoadingTemplates(true);
     try {
@@ -497,10 +542,22 @@ export function CommandCenterClient() {
     finally { setLoadingCampaigns(false); }
   }, []);
 
+  const loadLeads = useCallback(async (status?: string) => {
+    setLoadingLeads(true);
+    try {
+      const url = '/api/proxy/admin/leads' + (status ? '?status=' + status : '');
+      const res = await fetch(url);
+      if (res.ok) setLeads(await res.json());
+    } catch { /* non-fatal */ }
+    finally { setLoadingLeads(false); }
+  }, []);
+
+
   useEffect(() => { loadTemplates(); }, [loadTemplates]);
   useEffect(() => { if (activeTab === 'campaigns') loadCampaigns(); }, [activeTab, loadCampaigns]);
+  useEffect(() => { if (activeTab === 'leads') loadLeads(leadStatusFilter || undefined); }, [activeTab, loadLeads, leadStatusFilter]);
 
-  // ── Template actions ───────────────────────────────────────────────────
+  // â”€â”€ Template actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function openNew() {
     setEditingId(null); setForm(EMPTY_FORM); setFormError(''); setSampleVars({}); setSlideOpen(true);
   }
@@ -571,7 +628,7 @@ export function CommandCenterClient() {
     } finally { setTogglingId(null); }
   }
 
-  // ── Campaign actions ───────────────────────────────────────────────────
+  // â”€â”€ Campaign actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleSendDraft(id: string) {
     setSendingId(id);
     try {
@@ -591,7 +648,83 @@ export function CommandCenterClient() {
     } finally { setCancellingId(null); }
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────
+  // â”€â”€ Lead actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function openAddLead() {
+    setEditingLead(null);
+    setLeadForm({ first_name: '', last_name: '', email: '', company: '', phone: '', notes: '', status: 'new' });
+    setLeadError(''); setLeadWizardOpen(true);
+  }
+
+  function openEditLead(l: Lead) {
+    setEditingLead(l);
+    setLeadForm({ first_name: l.first_name, last_name: l.last_name, email: l.email,
+      company: l.company ?? '', phone: l.phone ?? '', notes: l.notes ?? '', status: l.status });
+    setLeadError(''); setLeadWizardOpen(true);
+  }
+
+  async function handleSaveLead() {
+    if (!leadForm.first_name.trim()) { setLeadError('First name is required.'); return; }
+    if (!leadForm.last_name.trim())  { setLeadError('Last name is required.'); return; }
+    if (!leadForm.email.trim())      { setLeadError('Email is required.'); return; }
+    setSavingLead(true); setLeadError('');
+    try {
+      if (editingLead) {
+        const res = await fetch('/api/proxy/admin/leads/' + editingLead.id, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: leadForm.status, notes: leadForm.notes,
+            first_name: leadForm.first_name, last_name: leadForm.last_name,
+            company: leadForm.company, phone: leadForm.phone }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message ?? 'Update failed');
+      } else {
+        const res = await fetch('/api/proxy/admin/leads', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...leadForm }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message ?? 'Create failed');
+      }
+      await loadLeads(leadStatusFilter || undefined);
+      setLeadWizardOpen(false); setEditingLead(null);
+    } catch (e: any) { setLeadError(e.message); }
+    finally { setSavingLead(false); }
+  }
+
+  async function handleDeleteLead(id: string) {
+    setDeletingLeadId(id);
+    try {
+      const res = await fetch('/api/proxy/admin/leads/' + id, { method: 'DELETE' });
+      if (res.ok) setLeads((prev) => prev.filter((l) => l.id !== id));
+    } finally { setDeletingLeadId(null); }
+  }
+
+  async function handleCsvImport() {
+    if (!csvText.trim()) return;
+    setImportingCsv(true); setImportResult(null);
+    try {
+      const lines = csvText.trim().split('\n').filter(Boolean);
+      const header = lines[0].split(',').map((h) => h.trim().toLowerCase());
+      const rows = lines.slice(1).map((line) => {
+        const vals = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
+        const row: Record<string, string> = {};
+        header.forEach((h, i) => { row[h] = vals[i] ?? ''; });
+        return row;
+      }).filter((r) => r.email);
+      const res = await fetch('/api/proxy/admin/leads/import', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? 'Import failed');
+      setImportResult(data);
+      await loadLeads(leadStatusFilter || undefined);
+      setCsvText('');
+    } catch (e: any) { setLeadError(e.message); }
+    finally { setImportingCsv(false); }
+  }
+
+  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
       {/* Header */}
@@ -603,7 +736,7 @@ export function CommandCenterClient() {
               Command Center
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Email templates, campaigns, leads, and automation rules — no deploy needed.
+              Email templates, campaigns, leads, and automation rules â€” no deploy needed.
             </p>
           </div>
         </div>
@@ -632,7 +765,7 @@ export function CommandCenterClient() {
       {/* Tab content */}
       <div className="p-6">
 
-        {/* ── Templates tab ── */}
+        {/* â”€â”€ Templates tab â”€â”€ */}
         {activeTab === 'templates' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -644,7 +777,7 @@ export function CommandCenterClient() {
 
             {loadingTemplates ? (
               <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading templates…</span>
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading templatesâ€¦</span>
               </div>
             ) : templates.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
@@ -677,7 +810,7 @@ export function CommandCenterClient() {
                           {t.description && <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[160px]">{t.description}</p>}
                         </td>
                         <td className="px-4 py-3 max-w-[200px]"><p className="text-xs text-foreground truncate">{t.subject}</p></td>
-                        <td className="px-4 py-3 hidden md:table-cell"><p className="text-xs text-muted-foreground">{t.from_email || '—'}</p></td>
+                        <td className="px-4 py-3 hidden md:table-cell"><p className="text-xs text-muted-foreground">{t.from_email || 'â€”'}</p></td>
                         <td className="px-4 py-3 hidden lg:table-cell"><p className="text-xs text-muted-foreground">{fmtDate(t.updated_at)}</p></td>
                         <td className="px-4 py-3"><span className="text-xs font-mono text-muted-foreground">v{t.version}</span></td>
                         <td className="px-4 py-3">
@@ -714,7 +847,7 @@ export function CommandCenterClient() {
           </div>
         )}
 
-        {/* ── Campaigns tab ── */}
+        {/* â”€â”€ Campaigns tab â”€â”€ */}
         {activeTab === 'campaigns' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -732,7 +865,7 @@ export function CommandCenterClient() {
 
             {loadingCampaigns ? (
               <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading campaigns…</span>
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading campaignsâ€¦</span>
               </div>
             ) : campaigns.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
@@ -782,7 +915,7 @@ export function CommandCenterClient() {
                             <p className="text-xs text-muted-foreground font-mono">{c.segment_key}</p>
                           </td>
                           <td className="px-4 py-3 hidden lg:table-cell">
-                            <p className="text-xs text-muted-foreground font-mono">{c.template?.name ?? '—'}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{c.template?.name ?? 'â€”'}</p>
                           </td>
                           <td className="px-4 py-3">
                             <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize', STATUS_STYLE[c.status])}>
@@ -790,7 +923,7 @@ export function CommandCenterClient() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <p className="text-xs text-muted-foreground">{c.recipient_count > 0 ? c.recipient_count : '—'}</p>
+                            <p className="text-xs text-muted-foreground">{c.recipient_count > 0 ? c.recipient_count : 'â€”'}</p>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1 justify-end">
@@ -827,21 +960,208 @@ export function CommandCenterClient() {
           </div>
         )}
 
-        {/* ── Placeholder tabs ── */}
-        {!['templates', 'campaigns'].includes(activeTab) && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-            {activeTab === 'leads' && <Users className="w-10 h-10 text-muted-foreground/40" />}
-            {activeTab === 'automations' && <Zap className="w-10 h-10 text-muted-foreground/40" />}
-            <p className="text-sm font-medium text-foreground capitalize">{activeTab} — Coming in Phase 23</p>
-            <p className="text-xs text-muted-foreground max-w-sm">
-              {activeTab === 'leads' && 'Capture, track, and nurture leads from your marketing site through to conversion.'}
-              {activeTab === 'automations' && 'Wire any system event to any email template, with optional delay. No code needed.'}
-            </p>
+        {/* â”€â”€ Leads tab â”€â”€ */}
+        {activeTab === 'leads' && (
+          <div className="space-y-4">
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted-foreground">{leads.length} lead{leads.length !== 1 ? 's' : ''}</p>
+                <select
+                  value={leadStatusFilter}
+                  onChange={(e) => setLeadStatusFilter(e.target.value as Lead['status'] | '')}
+                  className="text-xs border border-border rounded-lg px-2 py-1 bg-card text-foreground outline-none focus:border-primary"
+                >
+                  <option value="">All statuses</option>
+                  {LEAD_STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => setShowCsvImport((v) => !v)} className="h-8 gap-1.5 text-xs">
+                  CSV Import
+                </Button>
+                <Button size="sm" onClick={openAddLead} className="h-8 gap-1.5">
+                  <Plus className="w-3.5 h-3.5" />Add Lead
+                </Button>
+              </div>
+            </div>
+
+            {/* CSV import panel */}
+            {showCsvImport && (
+              <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">CSV Import</p>
+                <p className="text-xs text-muted-foreground">
+                  Paste CSV with header row. Required columns: <code className="bg-muted px-1 rounded">first_name, last_name, email</code>. Optional: <code className="bg-muted px-1 rounded">company, phone</code>
+                </p>
+                <textarea
+                  value={csvText}
+                  onChange={(e) => setCsvText(e.target.value)}
+                  rows={5}
+                  placeholder={'first_name,last_name,email,company,phone\nJohn,Smith,john@acme.com,Acme Inc,416-555-0100'}
+                  className="w-full font-mono text-xs border border-border rounded-lg px-3 py-2 bg-card text-foreground resize-y outline-none focus:border-primary"
+                />
+                {importResult && (
+                  <p className="text-xs text-green-600 font-medium">
+                    âœ“ {importResult.imported} imported, {importResult.updated} updated
+                  </p>
+                )}
+                <Button size="sm" onClick={handleCsvImport} disabled={importingCsv || !csvText.trim()} className="h-8">
+                  {importingCsv ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Importingâ€¦</> : 'Import Rows'}
+                </Button>
+              </div>
+            )}
+
+            {loadingLeads ? (
+              <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading leadsâ€¦</span>
+              </div>
+            ) : leads.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                <div className="w-12 h-12 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary" />
+                </div>
+                <p className="text-sm font-medium text-foreground">No leads yet</p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Leads from the marketing form appear here automatically. You can also add them manually or import via CSV.
+                </p>
+                <Button size="sm" onClick={openAddLead} className="mt-1 gap-1.5">
+                  <Plus className="w-3.5 h-3.5" />Add First Lead
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Name</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden md:table-cell">Email</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Company</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-20">Source</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-24">Status</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden lg:table-cell w-24">Added</th>
+                      <th className="px-4 py-2.5 w-20" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {leads.map((l) => (
+                      <tr key={l.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-medium text-foreground">{l.first_name} {l.last_name}</p>
+                          {l.notes && <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[160px]">{l.notes}</p>}
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <p className="text-xs text-muted-foreground">{l.email}</p>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <p className="text-xs text-muted-foreground">{l.company || 'â€”'}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                            {SOURCE_LABEL[l.source] ?? l.source}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize', LEAD_STATUS_STYLE[l.status])}>
+                            {l.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <p className="text-xs text-muted-foreground">{fmtDate(l.created_at)}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1 justify-end">
+                            <button onClick={() => openEditLead(l)}
+                              className="text-muted-foreground hover:text-primary transition-colors p-1 rounded" title="Edit">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => handleDeleteLead(l.id)} disabled={deletingLeadId === l.id}
+                              className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded" title="Delete">
+                              {deletingLeadId === l.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Add/Edit lead modal */}
+            {leadWizardOpen && (
+              <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                <div className="bg-card rounded-2xl border border-border w-full max-w-md shadow-2xl">
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+                    <h3 className="text-base font-semibold text-foreground">{editingLead ? 'Edit Lead' : 'Add Lead'}</h3>
+                    <button onClick={() => setLeadWizardOpen(false)} className="text-muted-foreground hover:text-foreground p-1 rounded">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="px-6 py-5 space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">First Name <span className="text-destructive">*</span></Label>
+                        <Input value={leadForm.first_name} onChange={(e) => setLeadForm((p) => ({ ...p, first_name: e.target.value }))} placeholder="John" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Last Name <span className="text-destructive">*</span></Label>
+                        <Input value={leadForm.last_name} onChange={(e) => setLeadForm((p) => ({ ...p, last_name: e.target.value }))} placeholder="Smith" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Email <span className="text-destructive">*</span></Label>
+                      <Input value={leadForm.email} onChange={(e) => setLeadForm((p) => ({ ...p, email: e.target.value }))} placeholder="john@company.com" disabled={!!editingLead} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Company</Label>
+                        <Input value={leadForm.company} onChange={(e) => setLeadForm((p) => ({ ...p, company: e.target.value }))} placeholder="Acme Inc." />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Phone</Label>
+                        <Input value={leadForm.phone} onChange={(e) => setLeadForm((p) => ({ ...p, phone: e.target.value }))} placeholder="+1 416..." />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Status</Label>
+                      <select value={leadForm.status} onChange={(e) => setLeadForm((p) => ({ ...p, status: e.target.value as Lead['status'] }))}
+                        className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary">
+                        {LEAD_STATUSES.map((s) => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Notes</Label>
+                      <textarea value={leadForm.notes} onChange={(e) => setLeadForm((p) => ({ ...p, notes: e.target.value }))} rows={3}
+                        placeholder="Any relevant context about this leadâ€¦"
+                        className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground resize-none outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
+                    </div>
+                    {leadError && <p className="text-sm text-destructive">{leadError}</p>}
+                    <div className="flex gap-3 pt-2 border-t border-border">
+                      <Button variant="outline" onClick={() => setLeadWizardOpen(false)} className="flex-1">Cancel</Button>
+                      <Button onClick={handleSaveLead} disabled={savingLead} className="flex-1">
+                        {savingLead ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Savingâ€¦</> : editingLead ? 'Save Changes' : 'Add Lead'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
+
+
+        {/* â”€â”€ Automations placeholder â”€â”€ */}
+        {activeTab === 'automations' && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
+            <Zap className="w-10 h-10 text-muted-foreground/40" />
+            <p className="text-sm font-medium text-foreground">Automations â€” Coming in Phase 23</p>
+            <p className="text-xs text-muted-foreground max-w-sm">Wire any system event to any email template, with optional delay. No code needed.</p>
+          </div>
+        )}
+
       </div>
 
-      {/* ── Template slide-over ── */}
+      {/* â”€â”€ Template slide-over â”€â”€ */}
       <SlideOver open={slideOpen} title={editingId ? 'Edit Template' : 'New Template'} onClose={() => { setSlideOpen(false); setEditingId(null); }}>
         {editingId && parseVars(form.variables).length > 0 && (
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3 mb-2">
@@ -897,7 +1217,7 @@ export function CommandCenterClient() {
           {formError && <p className="text-sm text-destructive">{formError}</p>}
           <div className="flex gap-3 pt-2 border-t border-border">
             <Button onClick={handleSave} disabled={saving} className="flex-1">
-              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : editingId ? 'Save Changes' : 'Create Template'}
+              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Savingâ€¦</> : editingId ? 'Save Changes' : 'Create Template'}
             </Button>
             <Button variant="outline" onClick={handlePreview} disabled={previewing || !editingId} title={!editingId ? 'Save template first to preview' : 'Preview'}>
               {previewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
@@ -906,10 +1226,10 @@ export function CommandCenterClient() {
         </div>
       </SlideOver>
 
-      {/* ── Preview modal ── */}
+      {/* â”€â”€ Preview modal â”€â”€ */}
       <PreviewModal open={previewOpen} subject={previewSubject} html={previewHtml} onClose={() => setPreviewOpen(false)} />
 
-      {/* ── Campaign wizard ── */}
+      {/* â”€â”€ Campaign wizard â”€â”€ */}
       <CampaignWizard
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
@@ -919,3 +1239,4 @@ export function CommandCenterClient() {
     </div>
   );
 }
+
