@@ -227,7 +227,6 @@ export class ClassificationService {
     });
     if (!tx) throw new NotFoundException(`Raw transaction ${id} not found`);
     tx.is_personal = isPersonal;
-    tx.status = isPersonal ? RawTransactionStatus.IGNORED : RawTransactionStatus.PENDING;
     return this.rawTxRepo.save(tx);
   }
 

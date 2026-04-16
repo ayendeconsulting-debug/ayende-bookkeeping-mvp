@@ -45,15 +45,13 @@ interface TransactionInboxProps {
   currentMonth?: string;
 }
 
-function getStatusTabs(isPersonal: boolean, isFreelancer: boolean = false) {
-  const tabs = [
+function getStatusTabs(isPersonal: boolean) {
+  return [
     { key: 'all',        label: 'All' },
     { key: 'pending',    label: 'Pending' },
     { key: 'classified', label: 'Classified' },
     { key: isPersonal ? 'categorized' : 'posted', label: isPersonal ? 'Categorized' : 'Posted' },
   ];
-  if (isFreelancer) tabs.push({ key: 'personal', label: 'Personal' });
-  return tabs;
 }
 
 function generateMonthOptions(): { value: string; label: string }[] {
@@ -130,7 +128,7 @@ export function TransactionInbox({
 
   const isFreelancer = mode === 'freelancer';
   const isPersonal   = mode === 'personal';
-  const STATUS_TABS  = getStatusTabs(isPersonal, isFreelancer);
+  const STATUS_TABS  = getStatusTabs(isPersonal);
   const LIMIT = 20;
   const totalPages = Math.ceil(totalCount / LIMIT);
 
@@ -589,7 +587,7 @@ export function TransactionInbox({
                               </AdminOnly>
                             )}
                             {!isPersonal && tx.status === 'posted' && <span className="text-xs text-muted-foreground">Posted</span>}
-                            {tx.is_personal && isFreelancer && (
+                            {tx.status === 'pending' && tx.is_personal && isFreelancer && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
                                   className="h-7 text-xs border-purple-400 text-purple-600 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
