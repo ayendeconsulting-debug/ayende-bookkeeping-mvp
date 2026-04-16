@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { MarketingNav } from '@/components/marketing-nav';
 import { MarketingFooter } from '@/components/marketing-footer';
 import { MarketingThemeEnforcer } from '@/components/marketing-theme-enforcer';
@@ -6,7 +7,7 @@ import { FaqAccordion } from './(marketing)/faq-accordion';
 import { DashboardCarousel } from './(marketing)/dashboard-carousel';
 import {
   BarChart3, FileText, Shield, Zap, Sparkles,
-  CheckCircle2, ArrowRight, BookOpen, Building2,
+  CheckCircle2, ArrowRight, BookOpen, Building2, Receipt,
 } from 'lucide-react';
 
 // ── Stats ─────────────────────────────────────────────────────────────────
@@ -96,6 +97,14 @@ const SEGMENT_DETAILS = [
     ctaHref: '/pricing',
   },
 ];
+
+// ── Segment background images (Unsplash — all confirmed free) ─────────────
+const SEGMENT_IMAGES: Record<string, string> = {
+  business:    'https://images.unsplash.com/photo-1758874384232-cfa79a5babf1?q=80&w=1332&auto=format&fit=crop',
+  freelancer:  'https://images.unsplash.com/photo-1755156137044-5d33290a94ca?q=80&w=688&auto=format&fit=crop',
+  personal:    'https://images.unsplash.com/photo-1758876202040-cae084bafdb6?q=80&w=1332&auto=format&fit=crop',
+  accountants: 'https://images.unsplash.com/photo-1606836576983-8b458e75221d?q=80&w=1170&auto=format&fit=crop',
+};
 
 // ── Features ──────────────────────────────────────────────────────────────
 const FEATURES = [
@@ -218,6 +227,7 @@ const PLANS = [
       'Multi-user access',
       'Invoicing & AP/AR',
       'AI assistant (200 calls/mo)',
+      '6-year CRA receipt repository',
       'Priority support',
     ],
     highlight: true,
@@ -236,6 +246,7 @@ const PLANS = [
       'White-label subdomain',
       'Full firm portal + audit log',
       'AI (500 calls/mo · unlimited add-on)',
+      '6-year CRA receipt repository',
       '+$15/mo per additional client',
     ],
     highlight: false,
@@ -290,7 +301,17 @@ export default function LandingPage() {
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden">
 
-          <div className="absolute inset-0 bg-gradient-to-b from-[#EDF7F2] via-background to-background pointer-events-none" />
+          {/* Hero background photo — confirmed free Unsplash license */}
+          <Image
+            src="https://images.unsplash.com/photo-1716703373229-b0e43de7dd5c?q=80&w=1920&auto=format&fit=crop"
+            alt=""
+            fill
+            className="object-cover object-center"
+            priority
+            aria-hidden="true"
+          />
+          {/* Dark overlay — heavy at top for text, fades to background so stats row blends */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/55 to-background pointer-events-none" />
 
           {/* Hero content */}
           <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
@@ -299,17 +320,17 @@ export default function LandingPage() {
               <Zap className="w-3 h-3" /> Launch offer: 50% off Starter & Pro
             </div>
 
-            <div className="inline-flex items-center gap-2 bg-white/70 dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 text-[#0F6E56] text-xs font-medium px-4 py-1.5 rounded-full mb-6 ml-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#0F6E56] animate-pulse" />
+            <div className="inline-flex items-center gap-2 bg-white/15 border border-white/30 text-white text-xs font-medium px-4 py-1.5 rounded-full mb-6 ml-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               Built for businesses, freelancers, personal accounts &amp; accountants
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground leading-tight tracking-tight mb-6 max-w-4xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight tracking-tight mb-6 max-w-4xl mx-auto">
               Clean books. Every month.{' '}
-              <span className="text-[#0F6E56]">Not just at tax time.</span>
+              <span className="text-[#5ECBA1]">Not just at tax time.</span>
             </h1>
 
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+            <p className="text-lg text-white/80 max-w-2xl mx-auto mb-8 leading-relaxed">
               Tempo Books handles double-entry accounting, bank sync, AI transaction classification, and HST/GST tracking — whether you run a business, freelance, manage personal finances, or handle client books.
             </p>
 
@@ -322,13 +343,13 @@ export default function LandingPage() {
               </Link>
               <Link
                 href="#features"
-                className="inline-flex items-center gap-2 border border-border bg-white/80 dark:bg-card text-foreground px-6 py-3 rounded-xl font-semibold text-sm hover:border-[#0F6E56] hover:text-[#0F6E56] transition-colors"
+                className="inline-flex items-center gap-2 border border-white/30 bg-white/10 text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-white/20 hover:border-white/50 transition-colors"
               >
                 See how it works →
               </Link>
             </div>
 
-            <p className="text-xs text-muted-foreground mb-12">
+            <p className="text-xs text-white/60 mb-12">
               60-day free trial · No charge during trial · Auto-continues on Starter after trial
             </p>
 
@@ -384,28 +405,44 @@ export default function LandingPage() {
             <div
               key={seg.id}
               id={seg.id}
-              className="rounded-2xl border border-border bg-card p-8 md:p-10 scroll-mt-20"
+              className="relative rounded-2xl border border-border overflow-hidden scroll-mt-20"
             >
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-3xl">{seg.emoji}</span>
-                <h2 className="text-2xl md:text-3xl font-bold text-foreground">{seg.title}</h2>
+              {/* Background photo */}
+              {SEGMENT_IMAGES[seg.id] && (
+                <Image
+                  src={SEGMENT_IMAGES[seg.id]}
+                  alt=""
+                  fill
+                  className="object-cover object-center"
+                  aria-hidden="true"
+                />
+              )}
+              {/* Gradient overlay — heavy on left where content sits, fades to right */}
+              <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/88 to-background/60 pointer-events-none" />
+
+              {/* Content */}
+              <div className="relative p-8 md:p-10">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-3xl">{seg.emoji}</span>
+                  <h2 className="text-2xl md:text-3xl font-bold text-foreground">{seg.title}</h2>
+                </div>
+                <p className="text-[#0F6E56] font-semibold text-lg mb-4">{seg.tagline}</p>
+                <p className="text-muted-foreground leading-relaxed mb-6 max-w-2xl italic">{seg.pain}</p>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-8">
+                  {seg.bullets.map((b) => (
+                    <li key={b} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-[#0F6E56] flex-shrink-0 mt-0.5" />
+                      <span className="text-muted-foreground">{b}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={seg.ctaHref}
+                  className="inline-flex items-center gap-2 bg-[#0F6E56] text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-[#085041] transition-colors"
+                >
+                  {seg.cta} <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
-              <p className="text-[#0F6E56] font-semibold text-lg mb-4">{seg.tagline}</p>
-              <p className="text-muted-foreground leading-relaxed mb-6 max-w-2xl italic">{seg.pain}</p>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-8">
-                {seg.bullets.map((b) => (
-                  <li key={b} className="flex items-start gap-2 text-sm">
-                    <CheckCircle2 className="w-4 h-4 text-[#0F6E56] flex-shrink-0 mt-0.5" />
-                    <span className="text-muted-foreground">{b}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={seg.ctaHref}
-                className="inline-flex items-center gap-2 bg-[#0F6E56] text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-[#085041] transition-colors"
-              >
-                {seg.cta} <ArrowRight className="w-4 h-4" />
-              </Link>
             </div>
           ))}
         </section>
@@ -597,6 +634,81 @@ export default function LandingPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Receipt Repository ──────────────────────────────────────── */}
+        <section className="max-w-6xl mx-auto px-6 py-16">
+          <div className="rounded-2xl border-2 border-[#0F6E56] bg-[#EDF7F2] p-8 md:p-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 bg-[#0F6E56] text-white text-xs font-semibold px-3 py-1 rounded-full mb-4">
+                  <Receipt className="w-3 h-3" /> CRA Audit Protection — Pro &amp; Accountant
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-4">
+                  Your receipts. Stored. Searchable.<br />
+                  <span className="text-[#0F6E56]">CRA-ready for 6 years.</span>
+                </h2>
+                <p className="text-muted-foreground leading-relaxed mb-6">
+                  CRA can audit any business up to 6 years back. Most small businesses can&apos;t produce the records to defend their deductions — not because the expenses weren&apos;t real, but because the receipts are gone. Every receipt and invoice you capture in Tempo Books is stored and retained for 6 full years from the date you upload it. Start tracking today — and six years from now, every record is exactly where CRA expects it to be.
+                </p>
+                <ul className="space-y-3 mb-6">
+                  {[
+                    'Upload any format — photos of paper receipts or PDF invoices',
+                    'Linked directly to the transaction and journal entry it supports',
+                    'Searchable by date, vendor, amount, or expense category',
+                    'Every receipt retained for 6 years from date of upload',
+                    'CRA accepts digital images as valid records — Tempo keeps them compliant',
+                  ].map((point) => (
+                    <li key={point} className="flex items-start gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-[#0F6E56] flex-shrink-0 mt-0.5" />
+                      <span className="text-foreground">{point}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="inline-flex items-center gap-2 bg-white border border-[#C3E8D8] text-[#0F6E56] text-xs font-semibold px-3 py-1.5 rounded-lg">
+                  Included on Pro and Accountant plans
+                </div>
+              </div>
+
+              {/* Visual mockup */}
+              <div className="bg-white rounded-2xl border border-[#C3E8D8] shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-[#C3E8D8] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-[#0F6E56]" />
+                    <p className="text-xs font-semibold text-foreground">Receipt Repository</p>
+                  </div>
+                  <span className="text-xs text-[#0F6E56] font-medium bg-[#EDF7F2] px-2 py-0.5 rounded-full">6-year retention</span>
+                </div>
+                <div className="p-4 space-y-2">
+                  {[
+                    { name: 'Home Depot — lumber & supplies', date: 'Apr 3, 2025', amt: '$847.20', cat: 'Materials', tag: 'PDF' },
+                    { name: 'Rogers — business phone plan',   date: 'Apr 1, 2025', amt: '$95.00',  cat: 'Phone',     tag: 'Photo' },
+                    { name: 'Amazon — office equipment',      date: 'Mar 28, 2025', amt: '$312.50', cat: 'Equipment', tag: 'PDF' },
+                    { name: 'Shell — fuel receipt',           date: 'Mar 26, 2025', amt: '$124.80', cat: 'Vehicle',   tag: 'Photo' },
+                    { name: 'Staples — office supplies',      date: 'Mar 20, 2025', amt: '$67.45',  cat: 'Office',    tag: 'PDF' },
+                  ].map((r) => (
+                    <div key={r.name} className="flex items-center gap-3 p-2.5 rounded-xl bg-[#F9FAFB] hover:bg-[#EDF7F2] transition-colors">
+                      <div className="w-7 h-7 rounded-lg bg-[#EDF7F2] flex items-center justify-center flex-shrink-0">
+                        <Receipt className="w-3.5 h-3.5 text-[#0F6E56]" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-foreground truncate">{r.name}</p>
+                        <p className="text-xs text-muted-foreground">{r.date} · {r.cat}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-xs font-semibold text-foreground">{r.amt}</p>
+                        <span className="text-xs bg-[#EDF7F2] text-[#0F6E56] px-1.5 py-0.5 rounded font-medium">{r.tag}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t border-[#E5E7EB] flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">247 receipts stored · Retained 6 years from upload</p>
+                    <p className="text-xs text-[#0F6E56] font-semibold">CRA-ready ✓</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
