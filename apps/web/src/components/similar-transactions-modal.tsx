@@ -108,33 +108,55 @@ export function SimilarTransactionsModal({
         </div>
 
         <div className="flex flex-col gap-2 px-5 py-4 border-t border-border">
-          {applied ? (
-            <div className="flex items-center gap-2 text-primary text-sm font-medium">
-              <CheckCircle2 className="w-4 h-4" />
-              {isPersonalMode ? 'Categories applied successfully' : 'Classifications applied successfully'}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 flex-wrap">
-              <button onClick={handleApply} disabled={isPending || selected.size === 0}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50">
-                {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-                Apply to {selected.size} selected
-              </button>
-
-              {!ruleCreated && (isPersonalMode ? !!category_id : !!suggested_account_id) && (
-                <button onClick={handleCreateRule} disabled={isRulePending}
-                  className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-xs font-medium rounded-lg text-muted-foreground hover:text-foreground hover:border-primary transition-colors disabled:opacity-50">
-                  {isRulePending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Filter className="w-3.5 h-3.5" />}
-                  Create rule for "{keyword}"
-                </button>
-              )}
-              {ruleCreated && (
+          {isPersonalMode ? (
+            // Personal / Freelancer mode: Rule creation is the primary action
+            ruleCreated ? (
+              <div className="flex items-center justify-between w-full">
                 <span className="flex items-center gap-1.5 text-xs text-primary font-medium">
-                  <CheckCircle2 className="w-3.5 h-3.5" />Rule created
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Rule created — future transactions matching &quot;{keyword}&quot; will be auto-categorized.
                 </span>
-              )}
-              <button onClick={onClose} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors">Dismiss</button>
-            </div>
+                <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground transition-colors ml-4">Close</button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap">
+                <button onClick={handleCreateRule} disabled={isRulePending || !category_id}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50">
+                  {isRulePending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Filter className="w-3.5 h-3.5" />}
+                  Create Rule for &quot;{keyword}&quot;
+                </button>
+                <button onClick={onClose} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors">Dismiss</button>
+              </div>
+            )
+          ) : (
+            // Business mode: keep existing Apply + Create Rule behaviour
+            applied ? (
+              <div className="flex items-center gap-2 text-primary text-sm font-medium">
+                <CheckCircle2 className="w-4 h-4" />
+                Classifications applied successfully
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 flex-wrap">
+                <button onClick={handleApply} disabled={isPending || selected.size === 0}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground text-xs font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50">
+                  {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                  Apply to {selected.size} selected
+                </button>
+                {!ruleCreated && !!suggested_account_id && (
+                  <button onClick={handleCreateRule} disabled={isRulePending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-border text-xs font-medium rounded-lg text-muted-foreground hover:text-foreground hover:border-primary transition-colors disabled:opacity-50">
+                    {isRulePending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Filter className="w-3.5 h-3.5" />}
+                    Create rule for &quot;{keyword}&quot;
+                  </button>
+                )}
+                {ruleCreated && (
+                  <span className="flex items-center gap-1.5 text-xs text-primary font-medium">
+                    <CheckCircle2 className="w-3.5 h-3.5" />Rule created
+                  </span>
+                )}
+                <button onClick={onClose} className="ml-auto text-xs text-muted-foreground hover:text-foreground transition-colors">Dismiss</button>
+              </div>
+            )
           )}
         </div>
       </div>

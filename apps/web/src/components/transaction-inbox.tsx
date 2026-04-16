@@ -45,13 +45,15 @@ interface TransactionInboxProps {
   currentMonth?: string;
 }
 
-function getStatusTabs(isPersonal: boolean) {
-  return [
+function getStatusTabs(isPersonal: boolean, isFreelancer: boolean = false) {
+  const tabs = [
     { key: 'all',        label: 'All' },
     { key: 'pending',    label: 'Pending' },
     { key: 'classified', label: 'Classified' },
     { key: isPersonal ? 'categorized' : 'posted', label: isPersonal ? 'Categorized' : 'Posted' },
   ];
+  if (isFreelancer) tabs.push({ key: 'personal', label: 'Personal' });
+  return tabs;
 }
 
 function generateMonthOptions(): { value: string; label: string }[] {
@@ -128,7 +130,7 @@ export function TransactionInbox({
 
   const isFreelancer = mode === 'freelancer';
   const isPersonal   = mode === 'personal';
-  const STATUS_TABS  = getStatusTabs(isPersonal);
+  const STATUS_TABS  = getStatusTabs(isPersonal, isFreelancer);
   const LIMIT = 20;
   const totalPages = Math.ceil(totalCount / LIMIT);
 
