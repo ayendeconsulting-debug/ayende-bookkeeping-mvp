@@ -26,6 +26,7 @@ import { FiscalYearModule } from './fiscal-year/fiscal-year.module';
 import { CcaModule } from './cca/cca.module';
 import { VehicleModule } from './vehicle/vehicle.module';
 import { CommandCenterModule } from './command-center/command-center.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { LegalAcceptanceGuard } from './legal/legal-acceptance.guard';
@@ -76,6 +77,7 @@ function getRedisBullMQConnection() {
     CcaModule,
     VehicleModule,
     CommandCenterModule,
+    WebhooksModule,
   ],
   controllers: [AppController, HealthController],
   providers: [

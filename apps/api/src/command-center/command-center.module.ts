@@ -5,6 +5,8 @@ import { EmailTemplate } from './email-template.entity';
 import { Campaign } from './campaign.entity';
 import { CampaignRecipient } from './campaign-recipient.entity';
 import { Lead } from './lead.entity';
+import { AutomationRule } from './automation-rule.entity';
+import { EmailSendLog } from './email-send-log.entity';
 import { Subscription } from '../entities/subscription.entity';
 import { Business } from '../entities/business.entity';
 import { PlaidItem } from '../entities/plaid-item.entity';
@@ -16,6 +18,8 @@ import { SegmentationService } from './segmentation.service';
 import { CampaignEmailProcessor } from './campaign-email.processor';
 import { LeadsService } from './leads.service';
 import { AdminLeadsController, PublicLeadsController } from './leads.controller';
+import { AutomationsService } from './automations.service';
+import { AdminAutomationsController } from './automations.controller';
 import { AdminGuard } from '../admin/admin.guard';
 
 @Module({
@@ -25,6 +29,8 @@ import { AdminGuard } from '../admin/admin.guard';
       Campaign,
       CampaignRecipient,
       Lead,
+      AutomationRule,
+      EmailSendLog,
       Subscription,
       Business,
       PlaidItem,
@@ -37,6 +43,7 @@ import { AdminGuard } from '../admin/admin.guard';
     SegmentationController,
     AdminLeadsController,
     PublicLeadsController,
+    AdminAutomationsController,
   ],
   providers: [
     EmailTemplatesService,
@@ -44,8 +51,9 @@ import { AdminGuard } from '../admin/admin.guard';
     SegmentationService,
     CampaignEmailProcessor,
     LeadsService,
+    AutomationsService,
     AdminGuard,
   ],
-  exports: [EmailTemplatesService, SegmentationService, LeadsService],
+  exports: [EmailTemplatesService, SegmentationService, LeadsService, AutomationsService],
 })
 export class CommandCenterModule {}

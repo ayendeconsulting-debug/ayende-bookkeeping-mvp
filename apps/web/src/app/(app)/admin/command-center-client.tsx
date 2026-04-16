@@ -76,7 +76,7 @@ const TABS = [
   { id: 'templates',   label: 'Templates',   icon: Mail,      ready: true  },
   { id: 'campaigns',   label: 'Campaigns',   icon: Megaphone, ready: true  },
   { id: 'leads',       label: 'Leads',       icon: Users,     ready: true  },
-  { id: 'automations', label: 'Automations', icon: Zap,       ready: false },
+  { id: 'automations', label: 'Automations', icon: Zap,       ready: true  },
 ];
 
 const STATUS_STYLE: Record<Campaign['status'], string> = {
@@ -123,7 +123,27 @@ const RECIPIENT_STATUS_STYLE: Record<CampaignRecipient['status'], string> = {
   failed:  'bg-destructive/10 text-destructive',
 };
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+interface AutomationRule {
+  id: string;
+  name: string;
+  trigger_event: string;
+  template_id: string;
+  delay_minutes: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+const TRIGGER_LABELS: Record<string, string> = {
+  'user.created':      'New user signup',
+  'trial.ending_7d':   'Trial ending in 7 days',
+  'trial.ending_3d':   'Trial ending in 3 days',
+  'payment.failed':    'Payment failed',
+  'lead.created':      'New lead from form',
+};
+
+const TRIGGER_EVENTS = Object.keys(TRIGGER_LABELS);
+
+
 function parseVars(raw: string): string[] {
   return raw.split(',').map((v) => v.trim()).filter(Boolean);
 }
@@ -553,9 +573,19 @@ export function CommandCenterClient() {
   }, []);
 
 
-  useEffect(() => { loadTemplates(); }, [loadTemplates]);
+  const loadAutomations = useCallback(async () => {
+    setLoadingAutomations(true);
+    try {
+      const res = await fetch('/api/proxy/admin/automations');
+      if (res.ok) setAutomations(await res.json());
+    } catch { /* non-fatal */ }
+    finally { setLoadingAutomations(false); }
+  }, []);
+
+
   useEffect(() => { if (activeTab === 'campaigns') loadCampaigns(); }, [activeTab, loadCampaigns]);
   useEffect(() => { if (activeTab === 'leads') loadLeads(leadStatusFilter || undefined); }, [activeTab, loadLeads, leadStatusFilter]);
+  useEffect(() => { if (activeTab === 'automations') loadAutomations(); }, [activeTab, loadAutomations]);
 
   // â”€â”€ Template actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   function openNew() {
@@ -648,7 +678,17 @@ export function CommandCenterClient() {
     } finally { setCancellingId(null); }
   }
 
-  // â”€â”€ Lead actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ Automations state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const [automations, setAutomations] = useState<AutomationRule[]>([]);
+  const [loadingAutomations, setLoadingAutomations] = useState(true);
+  const [autoWizardOpen, setAutoWizardOpen] = useState(false);
+  const [autoForm, setAutoForm] = useState({ name: '', trigger_event: 'user.created', template_id: '', delay_minutes: 0 });
+  const [savingAuto, setSavingAuto] = useState(false);
+  const [autoError, setAutoError] = useState('');
+  const [togglingAutoId, setTogglingAutoId] = useState<string | null>(null);
+  const [deletingAutoId, setDeletingAutoId] = useState<string | null>(null);
+
+
   function openAddLead() {
     setEditingLead(null);
     setLeadForm({ first_name: '', last_name: '', email: '', company: '', phone: '', notes: '', status: 'new' });
@@ -722,6 +762,42 @@ export function CommandCenterClient() {
       setCsvText('');
     } catch (e: any) { setLeadError(e.message); }
     finally { setImportingCsv(false); }
+  }
+
+  // â”€â”€ Automation actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  async function handleSaveAuto() {
+    if (!autoForm.name.trim())       { setAutoError('Name is required.'); return; }
+    if (!autoForm.template_id.trim()) { setAutoError('Template is required.'); return; }
+    setSavingAuto(true); setAutoError('');
+    try {
+      const res = await fetch('/api/proxy/admin/automations', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(autoForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? 'Create failed');
+      await loadAutomations();
+      setAutoWizardOpen(false);
+      setAutoForm({ name: '', trigger_event: 'user.created', template_id: '', delay_minutes: 0 });
+    } catch (e: any) { setAutoError(e.message); }
+    finally { setSavingAuto(false); }
+  }
+
+  async function handleToggleAuto(id: string) {
+    setTogglingAutoId(id);
+    try {
+      const res = await fetch('/api/proxy/admin/automations/' + id + '/toggle', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) setAutomations((prev) => prev.map((a) => a.id === id ? { ...a, is_active: data.is_active } : a));
+    } finally { setTogglingAutoId(null); }
+  }
+
+  async function handleDeleteAuto(id: string) {
+    setDeletingAutoId(id);
+    try {
+      const res = await fetch('/api/proxy/admin/automations/' + id, { method: 'DELETE' });
+      if (res.ok) setAutomations((prev) => prev.filter((a) => a.id !== id));
+    } finally { setDeletingAutoId(null); }
   }
 
   // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1150,14 +1226,156 @@ export function CommandCenterClient() {
         )}
 
 
-        {/* â”€â”€ Automations placeholder â”€â”€ */}
+        {/* â”€â”€ Automations tab â”€â”€ */}
         {activeTab === 'automations' && (
-          <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-            <Zap className="w-10 h-10 text-muted-foreground/40" />
-            <p className="text-sm font-medium text-foreground">Automations â€” Coming in Phase 23</p>
-            <p className="text-xs text-muted-foreground max-w-sm">Wire any system event to any email template, with optional delay. No code needed.</p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{automations.length} rule{automations.length !== 1 ? 's' : ''}</p>
+              <Button size="sm" onClick={() => { setAutoError(''); setAutoWizardOpen(true); }} className="h-8 gap-1.5">
+                <Plus className="w-3.5 h-3.5" />New Rule
+              </Button>
+            </div>
+
+            {loadingAutomations ? (
+              <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading rulesâ€¦</span>
+              </div>
+            ) : automations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                <div className="w-12 h-12 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-primary" />
+                </div>
+                <p className="text-sm font-medium text-foreground">No automation rules yet</p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Wire any system event to an email template. Create a rule for <code className="bg-muted px-1 rounded text-[11px]">user.created</code> to send your welcome email automatically.
+                </p>
+                <Button size="sm" onClick={() => setAutoWizardOpen(true)} className="mt-1 gap-1.5">
+                  <Plus className="w-3.5 h-3.5" />Create First Rule
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Rule Name</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Trigger</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Template ID</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-16 hidden md:table-cell">Delay</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-20">Status</th>
+                      <th className="px-4 py-2.5 w-20" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {automations.map((a) => (
+                      <tr key={a.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="text-sm font-medium text-foreground">{a.name}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs font-mono bg-muted px-2 py-0.5 rounded text-foreground">
+                            {a.trigger_event}
+                          </span>
+                          <p className="text-xs text-muted-foreground mt-0.5">{TRIGGER_LABELS[a.trigger_event] ?? a.trigger_event}</p>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell">
+                          <p className="text-xs font-mono text-muted-foreground truncate max-w-[160px]">{a.template_id}</p>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <p className="text-xs text-muted-foreground">{a.delay_minutes === 0 ? 'Instant' : `${a.delay_minutes}m`}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                            a.is_active
+                              ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                              : 'bg-muted text-muted-foreground')}>
+                            {a.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1 justify-end">
+                            <button onClick={() => handleToggleAuto(a.id)} disabled={togglingAutoId === a.id}
+                              className={cn('transition-colors p-1 rounded',
+                                a.is_active ? 'text-muted-foreground hover:text-amber-500' : 'text-muted-foreground hover:text-green-600')}
+                              title={a.is_active ? 'Deactivate' : 'Activate'}>
+                              {togglingAutoId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : a.is_active ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
+                            </button>
+                            <button onClick={() => handleDeleteAuto(a.id)} disabled={deletingAutoId === a.id}
+                              className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded" title="Delete">
+                              {deletingAutoId === a.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* New Rule modal */}
+            {autoWizardOpen && (
+              <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+                <div className="bg-card rounded-2xl border border-border w-full max-w-md shadow-2xl">
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+                    <h3 className="text-base font-semibold text-foreground">New Automation Rule</h3>
+                    <button onClick={() => setAutoWizardOpen(false)} className="text-muted-foreground hover:text-foreground p-1 rounded">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <div className="px-6 py-5 space-y-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Rule Name <span className="text-destructive">*</span></Label>
+                      <Input value={autoForm.name} onChange={(e) => setAutoForm((p) => ({ ...p, name: e.target.value }))}
+                        placeholder="e.g. Welcome on signup" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Trigger Event <span className="text-destructive">*</span></Label>
+                      <select value={autoForm.trigger_event} onChange={(e) => setAutoForm((p) => ({ ...p, trigger_event: e.target.value }))}
+                        className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary">
+                        {TRIGGER_EVENTS.map((t) => <option key={t} value={t}>{TRIGGER_LABELS[t]} ({t})</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Email Template <span className="text-destructive">*</span></Label>
+                      <select value={autoForm.template_id} onChange={(e) => setAutoForm((p) => ({ ...p, template_id: e.target.value }))}
+                        className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary">
+                        <option value="">Select templateâ€¦</option>
+                        {templates.filter((t) => t.is_active).map((t) => (
+                          <option key={t.id} value={t.id}>{t.name} â€” {t.subject}</option>
+                        ))}
+                      </select>
+                      {templates.filter((t) => t.is_active).length === 0 && (
+                        <p className="text-xs text-amber-600">No active templates. Create and activate a template first.</p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Delay (minutes) <span className="text-muted-foreground font-normal">â€” 0 = send immediately</span></Label>
+                      <Input type="number" min={0} value={autoForm.delay_minutes}
+                        onChange={(e) => setAutoForm((p) => ({ ...p, delay_minutes: parseInt(e.target.value) || 0 }))}
+                        placeholder="0" />
+                    </div>
+                    <div className="rounded-xl bg-muted/30 border border-border p-3">
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-semibold text-foreground">How it works:</span> When <span className="font-mono bg-muted px-1 rounded">{autoForm.trigger_event}</span> fires, this rule will send the selected template to the user involved in the event.
+                      </p>
+                    </div>
+                    {autoError && <p className="text-sm text-destructive">{autoError}</p>}
+                    <div className="flex gap-3 pt-2 border-t border-border">
+                      <Button variant="outline" onClick={() => setAutoWizardOpen(false)} className="flex-1">Cancel</Button>
+                      <Button onClick={handleSaveAuto} disabled={savingAuto} className="flex-1">
+                        {savingAuto ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Savingâ€¦</> : 'Create Rule'}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
+
+
 
       </div>
 
