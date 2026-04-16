@@ -589,7 +589,7 @@ export function TransactionInbox({
                               </AdminOnly>
                             )}
                             {!isPersonal && tx.status === 'posted' && <span className="text-xs text-muted-foreground">Posted</span>}
-                            {tx.status === 'pending' && tx.is_personal && isFreelancer && (
+                            {tx.is_personal && isFreelancer && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
                                   className="h-7 text-xs border-purple-400 text-purple-600 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
