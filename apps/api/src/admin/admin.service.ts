@@ -278,11 +278,11 @@ export class AdminService {
     const starter = await this.seedAccount({
       businessName: dto.starterBusinessName,
       clerkOrgId: dto.starterOrgId,
-      mode: BusinessMode.BUSINESS,
+      mode: BusinessMode.PERSONAL,
       plan: 'starter' as SubscriptionPlan,
       trialEndsAt,
     });
-    await this.seedTransactions(starter.businessId, 'business_6mo');
+    await this.seedTransactions(starter.businessId, 'personal_6mo');
 
     // ── Step 2: Pro slot — Freelancer mode, Pro plan ──
     const pro = await this.seedAccount({

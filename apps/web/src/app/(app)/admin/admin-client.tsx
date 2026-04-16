@@ -411,8 +411,8 @@ export function AdminClient() {
                 Starter
               </span>
               <ChevronRight className="w-3 h-3 text-muted-foreground" />
-              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['business'])}>
-                Business
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['personal'])}>
+                Personal
               </span>
             </div>
             <SlotField
@@ -424,7 +424,7 @@ export function AdminClient() {
               form={suiteForm}
               setForm={setSuiteForm}
             />
-            <p className="text-[10px] text-muted-foreground">Seeds: business_6mo (65 transactions)</p>
+            <p className="text-[10px] text-muted-foreground">Seeds: personal_6mo (60 transactions)</p>
           </div>
 
           {/* Pro column */}
