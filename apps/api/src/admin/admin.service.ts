@@ -87,17 +87,41 @@ export class AdminService {
     }
 
     await this.dataSource.transaction(async (manager) => {
-      await manager.query(`DELETE FROM journal_lines WHERE business_id = $1`, [businessId]);
-      await manager.query(`DELETE FROM journal_entries WHERE business_id = $1`, [businessId]);
-      await manager.query(`DELETE FROM classified_transactions WHERE business_id = $1`, [businessId]);
-      await manager.query(`DELETE FROM transaction_splits WHERE business_id = $1`, [businessId]);
-      await manager.query(`DELETE FROM raw_transactions WHERE business_id = $1`, [businessId]);
-      await manager.query(`DELETE FROM tax_transactions WHERE business_id = $1`, [businessId]);
-      await manager.query(`DELETE FROM recurring_transactions WHERE business_id = $1`, [businessId]);
-      await manager.query(`DELETE FROM subscriptions WHERE business_id = $1`, [businessId]);
-      await manager.query(`DELETE FROM accounts WHERE business_id = $1`, [businessId]);
-      await manager.query(`DELETE FROM firm_clients WHERE business_id = $1`, [businessId]);
-      await manager.query(`DELETE FROM businesses WHERE id = $1`, [businessId]);
+      const b = [businessId];
+      // Deepest dependants first
+      await manager.query(`DELETE FROM journal_lines WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM journal_entries WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM tax_transactions WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM transaction_splits WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM classified_transactions WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM raw_transactions WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM import_batches WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM recurring_transactions WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM classification_rules WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM personal_classification_rules WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM tax_codes WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM hst_periods WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM fiscal_years WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM budget_categories WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM savings_goals WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM mileage_logs WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM invoices WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM payment_reminders WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM ar_ap_records WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM cca_assets WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM documents WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM plaid_webhook_logs WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM plaid_accounts WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM plaid_items WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM ai_usage_log WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM audit_logs WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM accountant_audit_log WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM firm_client_access_requests WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM firm_clients WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM business_users WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM subscriptions WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM accounts WHERE business_id = $1`, b);
+      await manager.query(`DELETE FROM businesses WHERE id = $1`, b);
     });
 
     return { deleted: true };
