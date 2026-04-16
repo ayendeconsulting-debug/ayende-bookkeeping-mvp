@@ -148,12 +148,14 @@ export class AdminService {
         mode: dto.mode,
         currency_code: 'CAD',
         country: 'CA',
+        settings: { mode_selected: true },
       });
       business = await this.businessRepo.save(business);
       created = true;
     } else {
       business.name = dto.businessName;
       business.mode = dto.mode;
+      business.settings = { ...(business.settings ?? {}), mode_selected: true };
       await this.businessRepo.save(business);
     }
 
