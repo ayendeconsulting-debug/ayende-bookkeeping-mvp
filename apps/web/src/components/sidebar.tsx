@@ -80,7 +80,7 @@ const personalItems = [
   { href: '/personal/recurring',  label: 'Recurring Payments',  icon: RefreshCw },
   { href: '/personal/reminders',  label: 'Upcoming Payments',   icon: Bell },
   { href: '/transactions',        label: 'Transactions',        icon: ArrowLeftRight },
-  { href: '/rules',               label: 'Classification Rules', icon: Filter },
+  { href: '/personal/rules',      label: 'Personal Rules',       icon: Filter },
 ];
 const personalMainItems     = [{ href: '/banks', label: 'Bank Accounts', icon: Building2 }];
 const personalSettingsItems = [
