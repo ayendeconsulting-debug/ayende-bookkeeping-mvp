@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { CommandCenterClient } from './command-center-client';
 
 const selectCls =
   'w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
@@ -133,7 +134,7 @@ export function AdminClient() {
   const { setActive } = useOrganizationList();
   const { user } = useUser();
 
-  // ── Card 0: Demo Account Switcher ──────────────────────────────────────────
+  // ── Card 0: Demo Account Switcher ─────────────────────────────────────────
   const [accounts, setAccounts] = useState<DemoAccount[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
@@ -236,7 +237,7 @@ export function AdminClient() {
     }
   }
 
-  // ── Card 2: Seed Transactions ──────────────────────────────────────────────
+  // ── Card 2: Seed Transactions ─────────────────────────────────────────────
   const [seedBizId, setSeedBizId] = useState('');
   const [scenario, setScenario] = useState('freelancer_6mo');
   const [seeding, setSeeding] = useState(false);
@@ -278,7 +279,7 @@ export function AdminClient() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Platform Admin</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Internal tool — provision demo suites and seed synthetic data for demos and training videos.
+          Internal tool — provision demo suites, seed synthetic data, and manage email communications.
         </p>
       </div>
 
@@ -401,131 +402,57 @@ export function AdminClient() {
           Provisions all 3 demo profiles at once for your account. Each Clerk Org ID must already exist in your Clerk dashboard.
         </p>
 
-        {/* 3-column grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
           {/* Starter column */}
           <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
             <div className="flex items-center gap-2">
-              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['starter'])}>
-                Starter
-              </span>
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['starter'])}>Starter</span>
               <ChevronRight className="w-3 h-3 text-muted-foreground" />
-              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['personal'])}>
-                Personal
-              </span>
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['personal'])}>Personal</span>
             </div>
-            <SlotField
-              label="Starter Slot"
-              orgIdKey="starterOrgId"
-              nameKey="starterBusinessName"
-              orgIdPlaceholder="org_starter…"
-              namePlaceholder="Business name"
-              form={suiteForm}
-              setForm={setSuiteForm}
-            />
+            <SlotField label="Starter Slot" orgIdKey="starterOrgId" nameKey="starterBusinessName"
+              orgIdPlaceholder="org_starter…" namePlaceholder="Business name" form={suiteForm} setForm={setSuiteForm} />
             <p className="text-[10px] text-muted-foreground">Seeds: personal_6mo (60 transactions)</p>
           </div>
 
           {/* Pro column */}
           <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
             <div className="flex items-center gap-2">
-              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['pro'])}>
-                Pro
-              </span>
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['pro'])}>Pro</span>
               <ChevronRight className="w-3 h-3 text-muted-foreground" />
-              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['freelancer'])}>
-                Freelancer
-              </span>
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['freelancer'])}>Freelancer</span>
             </div>
-            <SlotField
-              label="Pro Slot"
-              orgIdKey="proOrgId"
-              nameKey="proBusinessName"
-              orgIdPlaceholder="org_pro…"
-              namePlaceholder="Freelancer name"
-              form={suiteForm}
-              setForm={setSuiteForm}
-            />
+            <SlotField label="Pro Slot" orgIdKey="proOrgId" nameKey="proBusinessName"
+              orgIdPlaceholder="org_pro…" namePlaceholder="Freelancer name" form={suiteForm} setForm={setSuiteForm} />
             <p className="text-[10px] text-muted-foreground">Seeds: freelancer_6mo (75 transactions)</p>
           </div>
 
           {/* Accountant column */}
           <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
             <div className="flex items-center gap-2">
-              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['accountant'])}>
-                Accountant
-              </span>
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['accountant'])}>Accountant</span>
             </div>
-
-            {/* Firm details */}
             <div className="space-y-1.5">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Firm</p>
-              <Input
-                value={suiteForm['accountantOrgId'] ?? ''}
-                onChange={(e) => setSuiteForm((f) => ({ ...f, accountantOrgId: e.target.value }))}
-                placeholder="org_accountant…"
-                className="font-mono text-xs h-8"
-              />
-              <Input
-                value={suiteForm['firmName'] ?? ''}
-                onChange={(e) => setSuiteForm((f) => ({ ...f, firmName: e.target.value }))}
-                placeholder="Firm display name"
-                className="text-xs h-8"
-              />
-              <Input
-                value={suiteForm['firmSubdomain'] ?? ''}
-                onChange={(e) => setSuiteForm((f) => ({ ...f, firmSubdomain: e.target.value }))}
-                placeholder="subdomain (e.g. clearview)"
-                className="font-mono text-xs h-8"
-              />
+              <Input value={suiteForm['accountantOrgId'] ?? ''} onChange={(e) => setSuiteForm((f) => ({ ...f, accountantOrgId: e.target.value }))} placeholder="org_accountant…" className="font-mono text-xs h-8" />
+              <Input value={suiteForm['firmName'] ?? ''} onChange={(e) => setSuiteForm((f) => ({ ...f, firmName: e.target.value }))} placeholder="Firm display name" className="text-xs h-8" />
+              <Input value={suiteForm['firmSubdomain'] ?? ''} onChange={(e) => setSuiteForm((f) => ({ ...f, firmSubdomain: e.target.value }))} placeholder="subdomain (e.g. clearview)" className="font-mono text-xs h-8" />
             </div>
-
-            {/* Client 1 */}
-            <SlotField
-              label="Client 1 — Business"
-              orgIdKey="client1OrgId"
-              nameKey="client1BusinessName"
-              orgIdPlaceholder="org_client1…"
-              namePlaceholder="Client business name"
-              form={suiteForm}
-              setForm={setSuiteForm}
-            />
-
-            {/* Client 2 */}
-            <SlotField
-              label="Client 2 — Freelancer"
-              orgIdKey="client2OrgId"
-              nameKey="client2BusinessName"
-              orgIdPlaceholder="org_client2…"
-              namePlaceholder="Client freelancer name"
-              form={suiteForm}
-              setForm={setSuiteForm}
-            />
-
-            <p className="text-[10px] text-muted-foreground">
-              Each client seeded with 6mo transactions.
-            </p>
+            <SlotField label="Client 1 — Business" orgIdKey="client1OrgId" nameKey="client1BusinessName"
+              orgIdPlaceholder="org_client1…" namePlaceholder="Client business name" form={suiteForm} setForm={setSuiteForm} />
+            <SlotField label="Client 2 — Freelancer" orgIdKey="client2OrgId" nameKey="client2BusinessName"
+              orgIdPlaceholder="org_client2…" namePlaceholder="Client freelancer name" form={suiteForm} setForm={setSuiteForm} />
+            <p className="text-[10px] text-muted-foreground">Each client seeded with 6mo transactions.</p>
           </div>
         </div>
 
-        {/* Shared trial date */}
         <div className="flex flex-col gap-1.5 max-w-xs">
           <Label className="text-xs">Trial / Access End Date (all slots)</Label>
-          <Input
-            type="date"
-            value={suiteForm['trialEndsAt'] ?? ''}
-            onChange={(e) => setSuiteForm((f) => ({ ...f, trialEndsAt: e.target.value }))}
-            className="h-8 text-xs"
-          />
+          <Input type="date" value={suiteForm['trialEndsAt'] ?? ''} onChange={(e) => setSuiteForm((f) => ({ ...f, trialEndsAt: e.target.value }))} className="h-8 text-xs" />
         </div>
 
-        {/* Error */}
-        {suiteError && (
-          <p className="text-sm text-destructive">{suiteError}</p>
-        )}
+        {suiteError && <p className="text-sm text-destructive">{suiteError}</p>}
 
-        {/* Result */}
         {suiteResult && (
           <div className="rounded-xl bg-primary-light dark:bg-primary/10 border border-primary/20 px-4 py-4 space-y-2">
             <p className="text-sm font-semibold text-primary mb-3">All 3 slots provisioned ✓</p>
@@ -536,19 +463,13 @@ export function AdminClient() {
             <ResultRow label="Client 2" businessId={suiteResult.client2.businessId}    created={suiteResult.client2.created} />
             <div className="pt-1 flex items-center gap-2 text-xs">
               <span className="text-muted-foreground w-20">Firm ID</span>
-              <code className="font-mono text-foreground bg-muted px-2 py-0.5 rounded flex-1 truncate">
-                {suiteResult.accountant.firmId}
-              </code>
+              <code className="font-mono text-foreground bg-muted px-2 py-0.5 rounded flex-1 truncate">{suiteResult.accountant.firmId}</code>
               <CopyButton value={suiteResult.accountant.firmId} />
             </div>
           </div>
         )}
 
-        <Button
-          onClick={handleProvision}
-          disabled={provisioning}
-          className="w-full"
-        >
+        <Button onClick={handleProvision} disabled={provisioning} className="w-full">
           {provisioning
             ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Provisioning all 3…</>
             : 'Provision All 3 & Seed Data'}
@@ -564,20 +485,13 @@ export function AdminClient() {
 
         <div className="flex flex-col gap-1.5">
           <Label>Business ID</Label>
-          <Input
-            value={seedBizId}
-            onChange={(e) => setSeedBizId(e.target.value)}
-            placeholder="Paste or select from Demo Accounts above"
-            className="font-mono text-sm"
-          />
+          <Input value={seedBizId} onChange={(e) => setSeedBizId(e.target.value)} placeholder="Paste or select from Demo Accounts above" className="font-mono text-sm" />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <Label>Scenario</Label>
           <select value={scenario} onChange={(e) => setScenario(e.target.value)} className={selectCls}>
-            {SCENARIOS.map((s) => (
-              <option key={s.value} value={s.value}>{s.label}</option>
-            ))}
+            {SCENARIOS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
 
@@ -592,9 +506,7 @@ export function AdminClient() {
 
         {clearResult && (
           <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3">
-            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-              {clearResult.deleted} synthetic transactions cleared ✓
-            </p>
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">{clearResult.deleted} synthetic transactions cleared ✓</p>
           </div>
         )}
 
@@ -602,12 +514,7 @@ export function AdminClient() {
           <Button onClick={handleSeed} disabled={seeding || clearing} className="flex-1">
             {seeding ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Seeding…</> : 'Seed Transactions'}
           </Button>
-          <Button
-            variant="outline"
-            onClick={handleClear}
-            disabled={seeding || clearing}
-            className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-          >
+          <Button variant="outline" onClick={handleClear} disabled={seeding || clearing} className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10">
             {clearing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
           </Button>
         </div>
@@ -615,6 +522,9 @@ export function AdminClient() {
           The trash button clears only pending synthetic transactions. Posted transactions are not affected.
         </p>
       </div>
+
+      {/* ── Card 3: Command Center ── */}
+      <CommandCenterClient />
     </div>
   );
 }
