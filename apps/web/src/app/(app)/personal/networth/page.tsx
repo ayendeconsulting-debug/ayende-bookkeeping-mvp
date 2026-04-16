@@ -10,7 +10,7 @@ export default async function NetWorthPage() {
   const netWorth = await getNetWorth();
   return (
     <div className="p-6 max-w-screen-lg mx-auto">
-      <div className="mb-6">
+      <div className="mb-6 pl-4" style={{ borderLeft: '3px solid #185fa5' }}>
         <h1 className="text-xl font-semibold text-foreground">Net Worth</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Your total assets minus liabilities across all connected accounts.</p>
       </div>
