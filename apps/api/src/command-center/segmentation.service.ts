@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Subscription } from '../entities/subscription.entity';
 import { Business } from '../entities/business.entity';
 import { PlaidItem } from '../entities/plaid-item.entity';
+import { Lead } from './lead.entity';
 
 export interface SegmentRecipient {
   email: string;
@@ -29,6 +30,7 @@ const SEGMENT_META: Omit<SegmentInfo, 'count'>[] = [
   { key: 'plan_accountant',    label: 'Accountant Plan',          description: 'All Accountant subscribers' },
   { key: 'no_bank_connected',  label: 'No Bank Connected',        description: 'Signed up but no Plaid connection' },
   { key: 'payment_failed',     label: 'Payment Failed',           description: 'Subscriptions with past_due status' },
+  { key: 'cold_leads',         label: 'Cold Leads',               description: 'Manually added cold leads not yet converted' },
 ];
 
 @Injectable()
@@ -40,6 +42,8 @@ export class SegmentationService {
     private readonly bizRepo: Repository<Business>,
     @InjectRepository(PlaidItem)
     private readonly plaidRepo: Repository<PlaidItem>,
+    @InjectRepository(Lead)
+    private readonly leadRepo: Repository<Lead>,
   ) {}
 
   // ── Public: resolve a segment key into a recipient list ──────────────────
@@ -55,6 +59,7 @@ export class SegmentationService {
       case 'plan_accountant':   return this.queryByPlan('accountant');
       case 'no_bank_connected': return this.queryNoBankConnected();
       case 'payment_failed':    return this.querySubs([], 'past_due');
+      case 'cold_leads':        return this.queryColdLeads();
       default:                  return [];
     }
   }
@@ -68,6 +73,23 @@ export class SegmentationService {
       }),
     );
     return results;
+  }
+
+  // ── Cold leads — manually added, type=cold, not yet converted ─────────────
+  private async queryColdLeads(): Promise<SegmentRecipient[]> {
+    const leads = await this.leadRepo
+      .createQueryBuilder('lead')
+      .where('lead.type = :type', { type: 'cold' })
+      .andWhere('lead.status != :status', { status: 'converted' })
+      .andWhere('lead.deleted_at IS NULL')
+      .select(['lead.email', 'lead.first_name', 'lead.last_name', 'lead.company'])
+      .getMany();
+
+    return leads.map((l) => ({
+      email:        l.email,
+      businessName: l.company ?? `${l.first_name} ${l.last_name}`,
+      businessId:   '',
+    }));
   }
 
   // ── Base query — subs joined to businesses ────────────────────────────────

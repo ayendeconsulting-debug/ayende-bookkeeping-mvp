@@ -1,4 +1,4 @@
-﻿import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EmailTemplate } from './email-template.entity';
@@ -68,6 +68,20 @@ function step(n: number, strong: string, rest: string): string {
     </td>
     <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0;">
       <p style="margin:0;font-size:15px;color:#333333;"><strong>${strong}</strong> ${rest}</p>
+    </td>
+  </tr>`;
+}
+
+function check(strong: string, rest: string): string {
+  return `
+  <tr>
+    <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:28px;">
+      <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
+    </td>
+    <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0;">
+      <p style="margin:0;font-size:15px;color:#333333;">
+        <strong>${strong}</strong> ${rest}
+      </p>
     </td>
   </tr>`;
 }
@@ -488,8 +502,8 @@ const TEMPLATES: SeedTemplate[] = [
       our team will be in touch within one business day to walk you through the platform personally.
     </p>
     <p style="margin:0 0 24px;font-size:16px;color:#333333;line-height:1.6;">
-      In the meantime, you\u2019re welcome to start your free 60-day trial immediately \u2014
-      no credit card required.
+      In the meantime, you\u2019re welcome to start your free 60-day trial immediately.
+      A card is required to start \u2014 you won\u2019t be charged until your 60-day trial ends.
     </p>
     ${cta('Start free trial \u2192', 'https://gettempo.ca/sign-up')}
     <p style="margin:0;font-size:15px;color:#555555;">
@@ -502,85 +516,57 @@ const TEMPLATES: SeedTemplate[] = [
   // 15 ── cold_outreach ────────────────────────────────────────────────────────
   {
     name:        'cold_outreach',
-    description: 'Sent automatically when a Cold lead is manually created — introduces Tempo Books',
-    subject:     'A smarter way to manage your books \u2014 Tempo Books',
+    description: 'Sent automatically when a Cold lead is manually created — introduces Tempo Books with CRA emphasis',
+    subject:     'Most Canadian small businesses overpay CRA. Here\u2019s how to stop.',
     from_email:  'admin@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['first_name'],
     html_body: wrap(`
-  ${hero('Smart bookkeeping for Canadian and US small businesses.')}
+  ${hero('Most Canadian small businesses overpay CRA. Here\u2019s how to stop.')}
   <tr><td style="padding:36px 40px;">
     <p style="margin:0 0 16px;font-size:16px;color:#333333;">Hi {{first_name}},</p>
-    <p style="margin:0 0 20px;font-size:16px;color:#333333;line-height:1.7;">
-      I'm Ade, founder of <strong>Tempo Books</strong> \u2014 a cloud bookkeeping platform built
-      specifically for Canadian and US small businesses, freelancers, and accounting firms who
-      want clear financial visibility without the complexity or cost of traditional accounting software.
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      Every year, the Canada Revenue Agency keeps millions of dollars that small business owners never claim \u2014
+      not because the deductions weren\u2019t real, but because the paperwork wasn\u2019t right.
     </p>
 
-    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">What Tempo Books does for you:</p>
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      Studies consistently show the average Canadian small business misses thousands in legitimate deductions
+      annually \u2014 simply because their books weren\u2019t organized enough to defend the claims at filing time.
+      That\u2019s money you earned. And it\u2019s sitting with CRA.
+    </p>
+
+    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
+      I built Tempo Books because I watched too many business owners go through the same painful cycle:
+      scramble at tax time, miss deductions, overpay, repeat. The problem was never effort \u2014
+      it was the lack of the right system.
+    </p>
+
+    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">Here\u2019s what Tempo does differently:</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
-      <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:28px;">
-          <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
-        </td>
-        <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0;">
-          <p style="margin:0;font-size:15px;color:#333333;">
-            <strong>Automatic bank sync</strong> \u2014 connect your accounts via Plaid and transactions import automatically. No manual entry.
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:28px;">
-          <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
-        </td>
-        <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0;">
-          <p style="margin:0;font-size:15px;color:#333333;">
-            <strong>Real-time financial reports</strong> \u2014 Income Statement, Balance Sheet, Trial Balance, and General Ledger always up to date.
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:28px;">
-          <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
-        </td>
-        <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0;">
-          <p style="margin:0;font-size:15px;color:#333333;">
-            <strong>HST/GST tracking</strong> \u2014 Canadian tax codes built in. File-ready HST reports at the end of every period.
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:28px;">
-          <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
-        </td>
-        <td style="padding:10px 0 10px 12px;border-bottom:1px solid #f0f0f0;">
-          <p style="margin:0;font-size:15px;color:#333333;">
-            <strong>Invoicing</strong> \u2014 create and send professional invoices with Stripe payment links. Get paid faster.
-          </p>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 0;vertical-align:top;width:28px;">
-          <span style="color:#0F6E56;font-size:18px;line-height:1;">&#10003;</span>
-        </td>
-        <td style="padding:10px 0 10px 12px;">
-          <p style="margin:0;font-size:15px;color:#333333;">
-            <strong>AI-powered classification</strong> \u2014 Tempo learns your transaction patterns and categorizes automatically, flagging anomalies for your review.
-          </p>
-        </td>
-      </tr>
+      ${check('Every transaction documented', '\u2014 automatically classified and posted to the correct expense account so every deduction is defensible at audit')}
+      ${check('HST/GST calculated on every transaction', '\u2014 configure your remittance period once (monthly, quarterly, or annually) and Tempo prepares your exact remittance amount when it\u2019s due. No guessing. No overpaying. No surprises.')}
+      ${check('Real-time financial reports', '\u2014 Income Statement, Balance Sheet, and CRA remittance report always current, not just at tax time')}
+      ${check('AI anomaly detection', '\u2014 flags unusual charges before they become expensive problems')}
+      ${check('6-year receipt repository', '\u2014 every document CRA might ask for, stored and searchable')}
     </table>
 
-    <table cellpadding="0" cellspacing="0"
-           style="background:#EDF7F2;border-radius:8px;margin:0 0 28px;width:100%;">
-      <tr><td style="padding:16px 24px;">
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
+      <tr><td style="padding:16px 20px;">
         <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
-          <strong>Free 60-day trial.</strong> No credit card required. Full access to every feature from day one.
+          The businesses that claim every dollar they\u2019re owed aren\u2019t bigger or smarter \u2014
+          they just have better systems.
         </p>
       </td></tr>
     </table>
 
-    ${cta('Start your free trial \u2192', 'https://gettempo.ca/sign-up')}
+    ${cta('Start your free 60-day trial \u2192', 'https://gettempo.ca/sign-up')}
+
+    <p style="margin:-16px 0 24px;font-size:13px;color:#888888;font-style:italic;">
+      A card is required to start \u2014 you won\u2019t be charged until your 60-day trial ends.
+    </p>
 
     <p style="margin:0;font-size:15px;color:#555555;">
       Adesanya Ehinmidu<br/>
@@ -593,6 +579,14 @@ const TEMPLATES: SeedTemplate[] = [
 
 ];
 
+// ── Templates that must be force-updated on every deploy ─────────────────────
+// Add a template name here when its copy has been intentionally revised.
+// The seed will overwrite html_body and subject in the DB on next Railway deploy.
+const FORCE_UPDATE_NAMES = new Set<string>([
+  'cold_outreach',
+  'lead_acknowledgement',
+]);
+
 interface SeedRule {
   name: string;
   trigger_event: string;
@@ -601,18 +595,18 @@ interface SeedRule {
 }
 
 const RULE_SEEDS: SeedRule[] = [
-  { name: 'Welcome on signup',          trigger_event: 'user.created',           template_name: 'signup_welcome',           delay_minutes: 0 },
-  { name: 'Trial ending — 7 days',      trigger_event: 'trial.ending_7d',        template_name: 'trial_ending',             delay_minutes: 0 },
-  { name: 'Trial ending — 3 days',      trigger_event: 'trial.ending_3d',        template_name: 'trial_ending',             delay_minutes: 0 },
-  { name: 'Trial ending — today',       trigger_event: 'trial.ending_0d',        template_name: 'trial_ending',             delay_minutes: 0 },
-  { name: 'Payment failed',             trigger_event: 'payment.failed',         template_name: 'payment_failed',           delay_minutes: 0 },
-  { name: 'Abandoned cart',             trigger_event: 'cart.abandoned',         template_name: 'abandoned_cart',           delay_minutes: 60 },
-  { name: 'New lead acknowledgement',   trigger_event: 'lead.created',           template_name: 'lead_acknowledgement',     delay_minutes: 0 },
-  { name: 'Upcoming payment reminder',  trigger_event: 'upcoming.payment',       template_name: 'upcoming_payment',         delay_minutes: 0 },
-  { name: 'AI quota warning',           trigger_event: 'ai.cap_warning',         template_name: 'ai_cap_warning',           delay_minutes: 0 },
-  { name: 'Subscription cancelled',     trigger_event: 'subscription.cancelled', template_name: 'cancellation_confirmation', delay_minutes: 0 },
-  { name: 'Trial reminder (cron)',      trigger_event: 'trial.reminder_cron',    template_name: 'trial_reminder_cron',      delay_minutes: 0 },
-  { name: 'Cold lead outreach',         trigger_event: 'lead.cold_created',      template_name: 'cold_outreach',            delay_minutes: 0 },
+  { name: 'Welcome on signup',          trigger_event: 'user.created',           template_name: 'signup_welcome',            delay_minutes: 0  },
+  { name: 'Trial ending — 7 days',      trigger_event: 'trial.ending_7d',        template_name: 'trial_ending',              delay_minutes: 0  },
+  { name: 'Trial ending — 3 days',      trigger_event: 'trial.ending_3d',        template_name: 'trial_ending',              delay_minutes: 0  },
+  { name: 'Trial ending — today',       trigger_event: 'trial.ending_0d',        template_name: 'trial_ending',              delay_minutes: 0  },
+  { name: 'Payment failed',             trigger_event: 'payment.failed',         template_name: 'payment_failed',            delay_minutes: 0  },
+  { name: 'Abandoned cart',             trigger_event: 'cart.abandoned',         template_name: 'abandoned_cart',            delay_minutes: 60 },
+  { name: 'New lead acknowledgement',   trigger_event: 'lead.created',           template_name: 'lead_acknowledgement',      delay_minutes: 0  },
+  { name: 'Upcoming payment reminder',  trigger_event: 'upcoming.payment',       template_name: 'upcoming_payment',          delay_minutes: 0  },
+  { name: 'AI quota warning',           trigger_event: 'ai.cap_warning',         template_name: 'ai_cap_warning',            delay_minutes: 0  },
+  { name: 'Subscription cancelled',     trigger_event: 'subscription.cancelled', template_name: 'cancellation_confirmation', delay_minutes: 0  },
+  { name: 'Trial reminder (cron)',      trigger_event: 'trial.reminder_cron',    template_name: 'trial_reminder_cron',       delay_minutes: 0  },
+  { name: 'Cold lead outreach',         trigger_event: 'lead.cold_created',      template_name: 'cold_outreach',             delay_minutes: 0  },
 ];
 
 // ── Service ──────────────────────────────────────────────────────────────────
@@ -629,10 +623,13 @@ export class TemplateSeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    // ── 1. Seed templates ──────────────────────────────────────────────────
+    // ── 1. Seed / force-update templates ──────────────────────────────────
     let templatesSeeded = 0;
+    let templatesUpdated = 0;
+
     for (const t of TEMPLATES) {
       const existing = await this.repo.findOne({ where: { name: t.name } });
+
       if (!existing) {
         await this.repo.save(
           this.repo.create({
@@ -648,23 +645,29 @@ export class TemplateSeedService implements OnModuleInit {
           }),
         );
         templatesSeeded++;
+      } else if (FORCE_UPDATE_NAMES.has(t.name)) {
+        // Force-update html_body and subject — preserves admin edits to
+        // from_email, from_name, and variables.
+        existing.subject  = t.subject;
+        existing.html_body = t.html_body;
+        existing.version  = (existing.version ?? 1) + 1;
+        await this.repo.save(existing);
+        templatesUpdated++;
       }
     }
 
-    if (templatesSeeded > 0) {
-      this.logger.log(`Email template seed: ${templatesSeeded} new template(s) created`);
-    } else {
+    if (templatesSeeded > 0)  this.logger.log(`Email template seed: ${templatesSeeded} new template(s) created`);
+    if (templatesUpdated > 0) this.logger.log(`Email template seed: ${templatesUpdated} template(s) force-updated`);
+    if (templatesSeeded === 0 && templatesUpdated === 0) {
       this.logger.log(`Email template seed: all ${TEMPLATES.length} templates already present`);
     }
 
     // ── 2. Seed automation rules ───────────────────────────────────────────
     let rulesSeeded = 0;
     for (const r of RULE_SEEDS) {
-      // Skip if rule already exists by name
       const existingRule = await this.ruleRepo.findOne({ where: { name: r.name } });
       if (existingRule) continue;
 
-      // Look up the template ID
       const template = await this.repo.findOne({ where: { name: r.template_name } });
       if (!template) {
         this.logger.warn(`Rule seed: template "${r.template_name}" not found — skipping rule "${r.name}"`);
