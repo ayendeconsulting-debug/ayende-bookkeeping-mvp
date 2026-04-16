@@ -2,6 +2,7 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { EmailTemplate } from './email-template.entity';
+import { AutomationRule } from './automation-rule.entity';
 
 // ── Shared brand helpers ──────────────────────────────────────────────────────
 
@@ -500,6 +501,29 @@ const TEMPLATES: SeedTemplate[] = [
 
 ];
 
+// ── Default automation rules ──────────────────────────────────────────────────
+
+interface SeedRule {
+  name: string;
+  trigger_event: string;
+  template_name: string;
+  delay_minutes: number;
+}
+
+const RULE_SEEDS: SeedRule[] = [
+  { name: 'Welcome on signup',          trigger_event: 'user.created',           template_name: 'signup_welcome',           delay_minutes: 0 },
+  { name: 'Trial ending — 7 days',      trigger_event: 'trial.ending_7d',        template_name: 'trial_ending',             delay_minutes: 0 },
+  { name: 'Trial ending — 3 days',      trigger_event: 'trial.ending_3d',        template_name: 'trial_ending',             delay_minutes: 0 },
+  { name: 'Trial ending — today',       trigger_event: 'trial.ending_0d',        template_name: 'trial_ending',             delay_minutes: 0 },
+  { name: 'Payment failed',             trigger_event: 'payment.failed',         template_name: 'payment_failed',           delay_minutes: 0 },
+  { name: 'Abandoned cart',             trigger_event: 'cart.abandoned',         template_name: 'abandoned_cart',           delay_minutes: 60 },
+  { name: 'New lead acknowledgement',   trigger_event: 'lead.created',           template_name: 'lead_acknowledgement',     delay_minutes: 0 },
+  { name: 'Upcoming payment reminder',  trigger_event: 'upcoming.payment',       template_name: 'upcoming_payment',         delay_minutes: 0 },
+  { name: 'AI quota warning',           trigger_event: 'ai.cap_warning',         template_name: 'ai_cap_warning',           delay_minutes: 0 },
+  { name: 'Subscription cancelled',     trigger_event: 'subscription.cancelled', template_name: 'cancellation_confirmation', delay_minutes: 0 },
+  { name: 'Trial reminder (cron)',      trigger_event: 'trial.reminder_cron',    template_name: 'trial_reminder_cron',      delay_minutes: 0 },
+];
+
 // ── Service ──────────────────────────────────────────────────────────────────
 
 @Injectable()
@@ -509,10 +533,13 @@ export class TemplateSeedService implements OnModuleInit {
   constructor(
     @InjectRepository(EmailTemplate)
     private readonly repo: Repository<EmailTemplate>,
+    @InjectRepository(AutomationRule)
+    private readonly ruleRepo: Repository<AutomationRule>,
   ) {}
 
   async onModuleInit(): Promise<void> {
-    let seeded = 0;
+    // ── 1. Seed templates ──────────────────────────────────────────────────
+    let templatesSeeded = 0;
     for (const t of TEMPLATES) {
       const existing = await this.repo.findOne({ where: { name: t.name } });
       if (!existing) {
@@ -529,13 +556,46 @@ export class TemplateSeedService implements OnModuleInit {
             version:     1,
           }),
         );
-        seeded++;
+        templatesSeeded++;
       }
     }
-    if (seeded > 0) {
-      this.logger.log(`Email template seed: ${seeded} new template(s) created`);
+
+    if (templatesSeeded > 0) {
+      this.logger.log(`Email template seed: ${templatesSeeded} new template(s) created`);
     } else {
       this.logger.log(`Email template seed: all ${TEMPLATES.length} templates already present`);
+    }
+
+    // ── 2. Seed automation rules ───────────────────────────────────────────
+    let rulesSeeded = 0;
+    for (const r of RULE_SEEDS) {
+      // Skip if rule already exists by name
+      const existingRule = await this.ruleRepo.findOne({ where: { name: r.name } });
+      if (existingRule) continue;
+
+      // Look up the template ID
+      const template = await this.repo.findOne({ where: { name: r.template_name } });
+      if (!template) {
+        this.logger.warn(`Rule seed: template "${r.template_name}" not found — skipping rule "${r.name}"`);
+        continue;
+      }
+
+      await this.ruleRepo.save(
+        this.ruleRepo.create({
+          name:          r.name,
+          trigger_event: r.trigger_event,
+          template_id:   template.id,
+          delay_minutes: r.delay_minutes,
+          is_active:     true,
+        }),
+      );
+      rulesSeeded++;
+    }
+
+    if (rulesSeeded > 0) {
+      this.logger.log(`Automation rule seed: ${rulesSeeded} new rule(s) created`);
+    } else {
+      this.logger.log(`Automation rule seed: all ${RULE_SEEDS.length} rules already present`);
     }
   }
 }

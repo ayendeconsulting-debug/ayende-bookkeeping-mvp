@@ -134,11 +134,17 @@ interface AutomationRule {
 }
 
 const TRIGGER_LABELS: Record<string, string> = {
-  'user.created':      'New user signup',
-  'trial.ending_7d':   'Trial ending in 7 days',
-  'trial.ending_3d':   'Trial ending in 3 days',
-  'payment.failed':    'Payment failed',
-  'lead.created':      'New lead from form',
+  'user.created':           'New user signup',
+  'trial.ending_7d':        'Trial ending in 7 days',
+  'trial.ending_3d':        'Trial ending in 3 days',
+  'trial.ending_0d':        'Trial ending today',
+  'payment.failed':         'Payment failed',
+  'cart.abandoned':         'Abandoned cart',
+  'lead.created':           'New lead from form',
+  'upcoming.payment':       'Upcoming payment',
+  'ai.cap_warning':         'AI quota warning',
+  'subscription.cancelled': 'Subscription cancelled',
+  'trial.reminder_cron':    'Trial reminder (cron)',
 };
 
 const TRIGGER_EVENTS = Object.keys(TRIGGER_LABELS);
