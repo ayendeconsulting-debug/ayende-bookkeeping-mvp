@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ──────────────────────────────────────────────────────────────────
 interface EmailTemplate {
   id: string;
   name: string;
@@ -152,7 +152,7 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-CA', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-// â”€â”€ Slide-over â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Slide-over ─────────────────────────────────────────────────────────────
 function SlideOver({ open, title, onClose, children }: {
   open: boolean; title: string; onClose: () => void; children: React.ReactNode;
 }) {
@@ -175,7 +175,7 @@ function SlideOver({ open, title, onClose, children }: {
   );
 }
 
-// â”€â”€ Preview modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Preview modal ──────────────────────────────────────────────────────────
 function PreviewModal({ open, subject, html, onClose }: {
   open: boolean; subject: string; html: string; onClose: () => void;
 }) {
@@ -201,7 +201,7 @@ function PreviewModal({ open, subject, html, onClose }: {
   );
 }
 
-// â”€â”€ Campaign wizard modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Campaign wizard modal ──────────────────────────────────────────────────
 function CampaignWizard({ open, onClose, templates, onCreated }: {
   open: boolean;
   onClose: () => void;
@@ -321,7 +321,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
               {loadingSegs ? (
                 <div className="flex items-center gap-2 text-muted-foreground py-4">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Loading segmentsâ€¦</span>
+                  <span className="text-sm">Loading segments…</span>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -442,7 +442,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
                 </Button>
                 <Button onClick={handleCreateAndSend} disabled={saving}>
                   {sending
-                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sendingâ€¦</>
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</>
                     : <><Send className="w-4 h-4 mr-2" />Send Now</>
                   }
                 </Button>
@@ -455,7 +455,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
   );
 }
 
-// â”€â”€ Campaign recipients drawer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Campaign recipients drawer ─────────────────────────────────────────────
 function RecipientsRow({ campaignId }: { campaignId: string }) {
   const [recipients, setRecipients] = useState<CampaignRecipient[]>([]);
   const [loading, setLoading] = useState(true);
@@ -471,7 +471,7 @@ function RecipientsRow({ campaignId }: { campaignId: string }) {
   if (loading) return (
     <tr><td colSpan={7} className="px-4 py-3">
       <div className="flex items-center gap-2 text-muted-foreground text-xs">
-        <Loader2 className="w-3 h-3 animate-spin" />Loading recipientsâ€¦
+        <Loader2 className="w-3 h-3 animate-spin" />Loading recipients…
       </div>
     </td></tr>
   );
@@ -501,11 +501,11 @@ function RecipientsRow({ campaignId }: { campaignId: string }) {
   );
 }
 
-// â”€â”€ Main export â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main export ────────────────────────────────────────────────────────────
 export function CommandCenterClient() {
   const [activeTab, setActiveTab] = useState('templates');
 
-  // â”€â”€ Templates state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Templates state ────────────────────────────────────────────────────
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [slideOpen, setSlideOpen] = useState(false);
@@ -520,7 +520,7 @@ export function CommandCenterClient() {
   const [sampleVars, setSampleVars] = useState<Record<string, string>>({});
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
-  // â”€â”€ Campaigns state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Campaigns state ────────────────────────────────────────────────────
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loadingCampaigns, setLoadingCampaigns] = useState(true);
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -528,7 +528,7 @@ export function CommandCenterClient() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
 
-  // â”€â”€ Leads state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Leads state ───────────────────────────────────────────────────────
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(true);
   const [leadStatusFilter, setLeadStatusFilter] = useState<Lead['status'] | ''>('');
@@ -583,11 +583,12 @@ export function CommandCenterClient() {
   }, []);
 
 
+  useEffect(() => { loadTemplates(); }, [loadTemplates]);
   useEffect(() => { if (activeTab === 'campaigns') loadCampaigns(); }, [activeTab, loadCampaigns]);
   useEffect(() => { if (activeTab === 'leads') loadLeads(leadStatusFilter || undefined); }, [activeTab, loadLeads, leadStatusFilter]);
   useEffect(() => { if (activeTab === 'automations') loadAutomations(); }, [activeTab, loadAutomations]);
 
-  // â”€â”€ Template actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Template actions ───────────────────────────────────────────────────
   function openNew() {
     setEditingId(null); setForm(EMPTY_FORM); setFormError(''); setSampleVars({}); setSlideOpen(true);
   }
@@ -658,7 +659,7 @@ export function CommandCenterClient() {
     } finally { setTogglingId(null); }
   }
 
-  // â”€â”€ Campaign actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Campaign actions ───────────────────────────────────────────────────
   async function handleSendDraft(id: string) {
     setSendingId(id);
     try {
@@ -678,7 +679,7 @@ export function CommandCenterClient() {
     } finally { setCancellingId(null); }
   }
 
-  // â”€â”€ Automations state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Automations state ─────────────────────────────────────────────────
   const [automations, setAutomations] = useState<AutomationRule[]>([]);
   const [loadingAutomations, setLoadingAutomations] = useState(true);
   const [autoWizardOpen, setAutoWizardOpen] = useState(false);
@@ -764,7 +765,7 @@ export function CommandCenterClient() {
     finally { setImportingCsv(false); }
   }
 
-  // â”€â”€ Automation actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Automation actions ─────────────────────────────────────────────────
   async function handleSaveAuto() {
     if (!autoForm.name.trim())       { setAutoError('Name is required.'); return; }
     if (!autoForm.template_id.trim()) { setAutoError('Template is required.'); return; }
@@ -800,7 +801,7 @@ export function CommandCenterClient() {
     } finally { setDeletingAutoId(null); }
   }
 
-  // â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Render ─────────────────────────────────────────────────────────────
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
       {/* Header */}
@@ -812,7 +813,7 @@ export function CommandCenterClient() {
               Command Center
             </h2>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Email templates, campaigns, leads, and automation rules â€” no deploy needed.
+              Email templates, campaigns, leads, and automation rules — no deploy needed.
             </p>
           </div>
         </div>
@@ -841,7 +842,7 @@ export function CommandCenterClient() {
       {/* Tab content */}
       <div className="p-6">
 
-        {/* â”€â”€ Templates tab â”€â”€ */}
+        {/* ── Templates tab ── */}
         {activeTab === 'templates' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -853,7 +854,7 @@ export function CommandCenterClient() {
 
             {loadingTemplates ? (
               <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading templatesâ€¦</span>
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading templates…</span>
               </div>
             ) : templates.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
@@ -886,7 +887,7 @@ export function CommandCenterClient() {
                           {t.description && <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[160px]">{t.description}</p>}
                         </td>
                         <td className="px-4 py-3 max-w-[200px]"><p className="text-xs text-foreground truncate">{t.subject}</p></td>
-                        <td className="px-4 py-3 hidden md:table-cell"><p className="text-xs text-muted-foreground">{t.from_email || 'â€”'}</p></td>
+                        <td className="px-4 py-3 hidden md:table-cell"><p className="text-xs text-muted-foreground">{t.from_email || '—'}</p></td>
                         <td className="px-4 py-3 hidden lg:table-cell"><p className="text-xs text-muted-foreground">{fmtDate(t.updated_at)}</p></td>
                         <td className="px-4 py-3"><span className="text-xs font-mono text-muted-foreground">v{t.version}</span></td>
                         <td className="px-4 py-3">
@@ -923,7 +924,7 @@ export function CommandCenterClient() {
           </div>
         )}
 
-        {/* â”€â”€ Campaigns tab â”€â”€ */}
+        {/* ── Campaigns tab ── */}
         {activeTab === 'campaigns' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -941,7 +942,7 @@ export function CommandCenterClient() {
 
             {loadingCampaigns ? (
               <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading campaignsâ€¦</span>
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading campaigns…</span>
               </div>
             ) : campaigns.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
@@ -991,7 +992,7 @@ export function CommandCenterClient() {
                             <p className="text-xs text-muted-foreground font-mono">{c.segment_key}</p>
                           </td>
                           <td className="px-4 py-3 hidden lg:table-cell">
-                            <p className="text-xs text-muted-foreground font-mono">{c.template?.name ?? 'â€”'}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{c.template?.name ?? '—'}</p>
                           </td>
                           <td className="px-4 py-3">
                             <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize', STATUS_STYLE[c.status])}>
@@ -999,7 +1000,7 @@ export function CommandCenterClient() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
-                            <p className="text-xs text-muted-foreground">{c.recipient_count > 0 ? c.recipient_count : 'â€”'}</p>
+                            <p className="text-xs text-muted-foreground">{c.recipient_count > 0 ? c.recipient_count : '—'}</p>
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1 justify-end">
@@ -1036,7 +1037,7 @@ export function CommandCenterClient() {
           </div>
         )}
 
-        {/* â”€â”€ Leads tab â”€â”€ */}
+        {/* ── Leads tab ── */}
         {activeTab === 'leads' && (
           <div className="space-y-4">
             {/* Toolbar */}
@@ -1078,18 +1079,18 @@ export function CommandCenterClient() {
                 />
                 {importResult && (
                   <p className="text-xs text-green-600 font-medium">
-                    âœ“ {importResult.imported} imported, {importResult.updated} updated
+                    ✓ {importResult.imported} imported, {importResult.updated} updated
                   </p>
                 )}
                 <Button size="sm" onClick={handleCsvImport} disabled={importingCsv || !csvText.trim()} className="h-8">
-                  {importingCsv ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Importingâ€¦</> : 'Import Rows'}
+                  {importingCsv ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Importing…</> : 'Import Rows'}
                 </Button>
               </div>
             )}
 
             {loadingLeads ? (
               <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading leadsâ€¦</span>
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading leads…</span>
               </div>
             ) : leads.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
@@ -1129,7 +1130,7 @@ export function CommandCenterClient() {
                           <p className="text-xs text-muted-foreground">{l.email}</p>
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell">
-                          <p className="text-xs text-muted-foreground">{l.company || 'â€”'}</p>
+                          <p className="text-xs text-muted-foreground">{l.company || '—'}</p>
                         </td>
                         <td className="px-4 py-3">
                           <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
@@ -1208,14 +1209,14 @@ export function CommandCenterClient() {
                     <div className="space-y-1.5">
                       <Label className="text-xs">Notes</Label>
                       <textarea value={leadForm.notes} onChange={(e) => setLeadForm((p) => ({ ...p, notes: e.target.value }))} rows={3}
-                        placeholder="Any relevant context about this leadâ€¦"
+                        placeholder="Any relevant context about this lead…"
                         className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground resize-none outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
                     </div>
                     {leadError && <p className="text-sm text-destructive">{leadError}</p>}
                     <div className="flex gap-3 pt-2 border-t border-border">
                       <Button variant="outline" onClick={() => setLeadWizardOpen(false)} className="flex-1">Cancel</Button>
                       <Button onClick={handleSaveLead} disabled={savingLead} className="flex-1">
-                        {savingLead ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Savingâ€¦</> : editingLead ? 'Save Changes' : 'Add Lead'}
+                        {savingLead ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : editingLead ? 'Save Changes' : 'Add Lead'}
                       </Button>
                     </div>
                   </div>
@@ -1226,7 +1227,7 @@ export function CommandCenterClient() {
         )}
 
 
-        {/* â”€â”€ Automations tab â”€â”€ */}
+        {/* ── Automations tab ── */}
         {activeTab === 'automations' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -1238,7 +1239,7 @@ export function CommandCenterClient() {
 
             {loadingAutomations ? (
               <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading rulesâ€¦</span>
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading rules…</span>
               </div>
             ) : automations.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
@@ -1341,9 +1342,9 @@ export function CommandCenterClient() {
                       <Label className="text-xs">Email Template <span className="text-destructive">*</span></Label>
                       <select value={autoForm.template_id} onChange={(e) => setAutoForm((p) => ({ ...p, template_id: e.target.value }))}
                         className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary">
-                        <option value="">Select templateâ€¦</option>
+                        <option value="">Select template…</option>
                         {templates.filter((t) => t.is_active).map((t) => (
-                          <option key={t.id} value={t.id}>{t.name} â€” {t.subject}</option>
+                          <option key={t.id} value={t.id}>{t.name} — {t.subject}</option>
                         ))}
                       </select>
                       {templates.filter((t) => t.is_active).length === 0 && (
@@ -1351,7 +1352,7 @@ export function CommandCenterClient() {
                       )}
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs">Delay (minutes) <span className="text-muted-foreground font-normal">â€” 0 = send immediately</span></Label>
+                      <Label className="text-xs">Delay (minutes) <span className="text-muted-foreground font-normal">— 0 = send immediately</span></Label>
                       <Input type="number" min={0} value={autoForm.delay_minutes}
                         onChange={(e) => setAutoForm((p) => ({ ...p, delay_minutes: parseInt(e.target.value) || 0 }))}
                         placeholder="0" />
@@ -1365,7 +1366,7 @@ export function CommandCenterClient() {
                     <div className="flex gap-3 pt-2 border-t border-border">
                       <Button variant="outline" onClick={() => setAutoWizardOpen(false)} className="flex-1">Cancel</Button>
                       <Button onClick={handleSaveAuto} disabled={savingAuto} className="flex-1">
-                        {savingAuto ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Savingâ€¦</> : 'Create Rule'}
+                        {savingAuto ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : 'Create Rule'}
                       </Button>
                     </div>
                   </div>
@@ -1379,7 +1380,7 @@ export function CommandCenterClient() {
 
       </div>
 
-      {/* â”€â”€ Template slide-over â”€â”€ */}
+      {/* ── Template slide-over ── */}
       <SlideOver open={slideOpen} title={editingId ? 'Edit Template' : 'New Template'} onClose={() => { setSlideOpen(false); setEditingId(null); }}>
         {editingId && parseVars(form.variables).length > 0 && (
           <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3 mb-2">
@@ -1435,7 +1436,7 @@ export function CommandCenterClient() {
           {formError && <p className="text-sm text-destructive">{formError}</p>}
           <div className="flex gap-3 pt-2 border-t border-border">
             <Button onClick={handleSave} disabled={saving} className="flex-1">
-              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Savingâ€¦</> : editingId ? 'Save Changes' : 'Create Template'}
+              {saving ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving…</> : editingId ? 'Save Changes' : 'Create Template'}
             </Button>
             <Button variant="outline" onClick={handlePreview} disabled={previewing || !editingId} title={!editingId ? 'Save template first to preview' : 'Preview'}>
               {previewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
@@ -1444,10 +1445,10 @@ export function CommandCenterClient() {
         </div>
       </SlideOver>
 
-      {/* â”€â”€ Preview modal â”€â”€ */}
+      {/* ── Preview modal ── */}
       <PreviewModal open={previewOpen} subject={previewSubject} html={previewHtml} onClose={() => setPreviewOpen(false)} />
 
-      {/* â”€â”€ Campaign wizard â”€â”€ */}
+      {/* ── Campaign wizard ── */}
       <CampaignWizard
         open={wizardOpen}
         onClose={() => setWizardOpen(false)}
@@ -1457,6 +1458,3 @@ export function CommandCenterClient() {
     </div>
   );
 }
-
-
-
