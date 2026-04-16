@@ -12,9 +12,9 @@ export async function POST(
   const token = await getToken();
   let body: unknown = {};
   try { body = await request.json(); } catch { /* no body */ }
-  const res = await fetch(${API_URL}/admin/templates//, {
+  const res = await fetch(API_URL + '/admin/templates/' + id + '/' + action, {
     method: 'POST',
-    headers: { Authorization: Bearer , 'Content-Type': 'application/json' },
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   const data = await res.json();

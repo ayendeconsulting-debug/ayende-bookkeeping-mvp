@@ -11,9 +11,9 @@ export async function PATCH(
   const { getToken } = await auth();
   const token = await getToken();
   const body = await request.json();
-  const res = await fetch(${API_URL}/admin/templates/, {
+  const res = await fetch(API_URL + '/admin/templates/' + id, {
     method: 'PATCH',
-    headers: { Authorization: Bearer , 'Content-Type': 'application/json' },
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   const data = await res.json();
@@ -27,9 +27,9 @@ export async function DELETE(
   const { id } = await params;
   const { getToken } = await auth();
   const token = await getToken();
-  const res = await fetch(${API_URL}/admin/templates/, {
+  const res = await fetch(API_URL + '/admin/templates/' + id, {
     method: 'DELETE',
-    headers: { Authorization: Bearer  },
+    headers: { Authorization: 'Bearer ' + token },
   });
   const data = await res.json();
   return NextResponse.json(data, { status: res.status });
