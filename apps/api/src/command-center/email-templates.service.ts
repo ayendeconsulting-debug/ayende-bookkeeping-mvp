@@ -1,11 +1,15 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
+import { Resend } from 'resend';
 import { EmailTemplate } from './email-template.entity';
+import { EmailSendLog } from './email-send-log.entity';
 
 export interface CreateTemplateDto {
   name: string;
@@ -29,10 +33,18 @@ export interface UpdateTemplateDto {
 
 @Injectable()
 export class EmailTemplatesService {
+  private readonly logger = new Logger(EmailTemplatesService.name);
+  private readonly resend: Resend;
+
   constructor(
     @InjectRepository(EmailTemplate)
     private readonly repo: Repository<EmailTemplate>,
-  ) {}
+    @InjectRepository(EmailSendLog)
+    private readonly logRepo: Repository<EmailSendLog>,
+    private readonly configService: ConfigService,
+  ) {
+    this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
+  }
 
   findAll(): Promise<EmailTemplate[]> {
     return this.repo.find({ order: { created_at: 'DESC' } });
@@ -65,7 +77,6 @@ export class EmailTemplatesService {
   async update(id: string, dto: UpdateTemplateDto): Promise<EmailTemplate> {
     const template = await this.findOne(id);
     Object.assign(template, dto);
-    // Increment version on every content-affecting save
     if (
       dto.subject !== undefined ||
       dto.html_body !== undefined ||
@@ -98,12 +109,73 @@ export class EmailTemplatesService {
     const template = await this.findOne(id);
     return {
       subject: this.renderVars(template.subject, sampleVars),
-      html: this.renderVars(template.html_body, sampleVars),
+      html:    this.renderVars(template.html_body, sampleVars),
     };
   }
 
-  // ── Shared renderer used by AutomationsService in Phase 23d ──────────────
+  // ── Shared renderer ──────────────────────────────────────────────────────────
   renderVars(content: string, vars: Record<string, string>): string {
     return content.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? `{{${key}}}`);
+  }
+
+  // ── Core send — used by EmailService + AutomationsService + CampaignProcessor ─
+  async sendFromTemplate(
+    templateName: string,
+    to: string,
+    vars: Record<string, string>,
+    fromOverride?: string,
+  ): Promise<boolean> {
+    const template = await this.repo.findOne({
+      where: { name: templateName, is_active: true },
+    });
+
+    if (!template) {
+      this.logger.warn(
+        `sendFromTemplate: "${templateName}" not found or inactive — falling back to hardcoded`,
+      );
+      return false;
+    }
+
+    const subject   = this.renderVars(template.subject,   vars);
+    const html      = this.renderVars(template.html_body, vars);
+    const fromEmail = fromOverride ?? template.from_email ?? 'noreply@gettempo.ca';
+    const fromName  = template.from_name ?? 'Tempo Books';
+
+    try {
+      const result = await this.resend.emails.send({
+        from: `${fromName} <${fromEmail}>`,
+        to,
+        subject,
+        html,
+      });
+
+      await this.logRepo.save(
+        this.logRepo.create({
+          to_email:      to,
+          template_name: templateName,
+          subject,
+          trigger:       'email_service',
+          status:        'sent',
+          resend_id:     (result.data as any)?.id ?? null,
+        }),
+      );
+
+      this.logger.log(`Template email sent: "${templateName}" → ${to}`);
+      return true;
+    } catch (err) {
+      await this.logRepo.save(
+        this.logRepo.create({
+          to_email:      to,
+          template_name: templateName,
+          subject,
+          trigger:       'email_service',
+          status:        'failed',
+        }),
+      );
+      this.logger.error(
+        `sendFromTemplate "${templateName}" → ${to}: ${(err as Error).message}`,
+      );
+      return false;
+    }
   }
 }

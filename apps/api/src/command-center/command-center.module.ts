@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { EmailTemplate } from './email-template.entity';
@@ -20,6 +20,7 @@ import { LeadsService } from './leads.service';
 import { AdminLeadsController, PublicLeadsController } from './leads.controller';
 import { AutomationsService } from './automations.service';
 import { AdminAutomationsController } from './automations.controller';
+import { TemplateSeedService } from './template-seed.service';
 import { AdminGuard } from '../admin/admin.guard';
 
 @Module({
@@ -52,6 +53,7 @@ import { AdminGuard } from '../admin/admin.guard';
     CampaignEmailProcessor,
     LeadsService,
     AutomationsService,
+    TemplateSeedService,
     AdminGuard,
   ],
   exports: [EmailTemplatesService, SegmentationService, LeadsService, AutomationsService],

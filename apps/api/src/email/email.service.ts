@@ -6,6 +6,7 @@ import { trialEndingTemplate, TrialEndingTemplateVars } from './templates/trial-
 import { paymentFailedTemplate, PaymentFailedTemplateVars } from './templates/payment-failed';
 import { abandonedCartTemplate, AbandonedCartTemplateVars } from './templates/abandoned-cart';
 import { invoiceEmailTemplate, InvoiceEmailVars } from './templates/invoice-email';
+import { EmailTemplatesService } from '../command-center/email-templates.service';
 
 export interface StaffInviteTemplateVars {
   firstName: string;
@@ -19,303 +20,336 @@ export class EmailService {
   private readonly resend: Resend;
   private readonly from: string;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(
+    private readonly config: ConfigService,
+    private readonly emailTemplatesService: EmailTemplatesService,
+  ) {
     this.resend = new Resend(this.config.get<string>('RESEND_API_KEY'));
     this.from = this.config.get<string>('EMAIL_FROM') ?? 'noreply@gettempo.ca';
   }
 
-  // â”€â”€ Core send method â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  private async send(to: string, subject: string, html: string): Promise<void> {
+  // ── Core hardcoded send (fallback) ────────────────────────────────────────
+  private async send(to: string, subject: string, html: string, from?: string): Promise<void> {
     try {
-      await this.resend.emails.send({ from: this.from, to, subject, html });
-      this.logger.log(`Email sent â†’ ${to} | ${subject}`);
+      await this.resend.emails.send({ from: from ?? this.from, to, subject, html });
+      this.logger.log(`Email sent → ${to} | ${subject}`);
     } catch (err) {
-      this.logger.error(`Email failed â†’ ${to} | ${subject} | ${(err as Error).message}`);
+      this.logger.error(`Email failed → ${to} | ${subject} | ${(err as Error).message}`);
     }
   }
 
-  // â”€â”€ Existing send methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Welcome (trial started) ───────────────────────────────────────────────
   async sendWelcome(to: string, vars: WelcomeTemplateVars): Promise<void> {
-    await this.send(to, 'Welcome to Tempo â€” your free trial has started', welcomeTemplate(vars));
+    const sent = await this.emailTemplatesService.sendFromTemplate('signup_welcome', to, {
+      first_name:    vars.firstName,
+      dashboard_url: vars.dashboardUrl,
+    });
+    if (!sent) {
+      await this.send(to, 'Welcome to Tempo \u2014 your free trial has started', welcomeTemplate(vars));
+    }
   }
 
+  // ── Trial ending ──────────────────────────────────────────────────────────
   async sendTrialEnding(to: string, vars: TrialEndingTemplateVars): Promise<void> {
-    const { subject, html } = trialEndingTemplate(vars);
-    await this.send(to, subject, html);
+    const { subject: fallbackSubject, html: fallbackHtml } = trialEndingTemplate(vars);
+
+    // Pre-render conditional parts
+    let headlineText: string;
+    let bodyText: string;
+    let heroBg: string;
+    let heroColour: string;
+
+    if (vars.daysRemaining === 0) {
+      headlineText = 'Your free trial ends today.';
+      bodyText     = `Your ${vars.planName} plan will continue and your payment method will be charged <strong>${vars.planPrice}/${vars.billingCycle === 'monthly' ? 'month' : 'year'}</strong>. Everything stays exactly as it is.`;
+      heroBg       = '#FEF3C7';
+      heroColour   = '#92400E';
+    } else if (vars.daysRemaining <= 3) {
+      headlineText = `Your Tempo free trial ends in ${vars.daysRemaining} days.`;
+      bodyText     = `Your ${vars.planName} plan will continue automatically at <strong>${vars.planPrice}/${vars.billingCycle === 'monthly' ? 'month' : 'year'}</strong>. Your payment method will be charged on <strong>${vars.trialEndDate}</strong>.`;
+      heroBg       = '#FEF9EC';
+      heroColour   = '#92400E';
+    } else {
+      headlineText = `Your Tempo free trial ends in ${vars.daysRemaining} days.`;
+      bodyText     = `After that, you'll be charged <strong>${vars.planPrice}/${vars.billingCycle === 'monthly' ? 'month' : 'year'}</strong> for your ${vars.planName} plan. No action needed \u2014 your subscription continues automatically on <strong>${vars.trialEndDate}</strong>.`;
+      heroBg       = '#EDF7F2';
+      heroColour   = '#065F46';
+    }
+
+    const subjectLine = vars.daysRemaining === 0
+      ? 'Your Tempo trial ends today'
+      : `Your Tempo trial ends in ${vars.daysRemaining} days`;
+
+    const sent = await this.emailTemplatesService.sendFromTemplate('trial_ending', to, {
+      first_name:   vars.firstName,
+      subject_line: subjectLine,
+      headline_text: headlineText,
+      hero_bg:      heroBg,
+      hero_colour:  heroColour,
+      body_text:    bodyText,
+      portal_url:   vars.portalUrl,
+    });
+    if (!sent) {
+      await this.send(to, fallbackSubject, fallbackHtml);
+    }
   }
 
+  // ── Payment failed ────────────────────────────────────────────────────────
   async sendPaymentFailed(to: string, vars: PaymentFailedTemplateVars): Promise<void> {
-    await this.send(to, 'Action required â€” payment failed for your Tempo subscription', paymentFailedTemplate(vars));
+    const retryNote = vars.nextRetryDate
+      ? `Stripe will retry automatically on <strong>${vars.nextRetryDate}</strong>, but we recommend updating your payment method now to avoid any interruption.`
+      : 'Please update your payment method to keep access to your account.';
+
+    const sent = await this.emailTemplatesService.sendFromTemplate('payment_failed', to, {
+      first_name: vars.firstName,
+      amount:     vars.amount,
+      plan_name:  vars.planName,
+      retry_note: retryNote,
+      portal_url: vars.portalUrl,
+    });
+    if (!sent) {
+      await this.send(
+        to,
+        'Action required \u2014 payment failed for your Tempo subscription',
+        paymentFailedTemplate(vars),
+      );
+    }
   }
 
-  async sendInvoice(to: string, vars: InvoiceEmailVars): Promise<void> {
-    const { subject, html } = invoiceEmailTemplate(vars);
-    await this.send(to, subject, html);
-  }
-
+  // ── Abandoned cart ────────────────────────────────────────────────────────
   async sendAbandonedCart(to: string, vars: AbandonedCartTemplateVars): Promise<void> {
-    await this.send(to, 'You left something behind â€” complete your Tempo setup', abandonedCartTemplate(vars));
+    const sent = await this.emailTemplatesService.sendFromTemplate('abandoned_cart', to, {
+      checkout_url: vars.checkoutUrl,
+    });
+    if (!sent) {
+      await this.send(
+        to,
+        'You left something behind \u2014 complete your Tempo setup',
+        abandonedCartTemplate(vars),
+      );
+    }
   }
 
-  // â”€â”€ Phase 10: Staff invite â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Invoice ───────────────────────────────────────────────────────────────
+  async sendInvoice(to: string, vars: InvoiceEmailVars): Promise<void> {
+    const { subject: fallbackSubject, html: fallbackHtml } = invoiceEmailTemplate(vars);
+
+    // Pre-render dynamic HTML blocks
+    const lineItemsHtml = vars.lineItems.map((item) =>
+      `<tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;">${item.description}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;text-align:center;">${item.quantity}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;text-align:right;">$${Number(item.unit_price).toFixed(2)}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#374151;text-align:right;font-weight:600;">$${Number(item.line_total).toFixed(2)}</td>
+      </tr>`,
+    ).join('');
+
+    const notesHtml = vars.notes
+      ? `<p style="font-size:14px;color:#6B7280;border-top:1px solid #f3f4f6;padding-top:16px;">${vars.notes}</p>`
+      : '';
+
+    const paymentButtonHtml = vars.stripePaymentLink
+      ? `<div style="text-align:center;margin:32px 0;"><a href="${vars.stripePaymentLink}" style="display:inline-block;background:#0F6E56;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:600;">Pay Now</a></div>`
+      : '';
+
+    let reminderBannerHtml = '';
+    if (vars.isOverdue) {
+      reminderBannerHtml = `<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;padding:12px 16px;margin-bottom:24px;"><p style="margin:0;font-size:14px;color:#B91C1C;">This invoice is <strong>overdue</strong>. Please arrange payment at your earliest convenience.</p></div>`;
+    } else if (vars.isReminder) {
+      reminderBannerHtml = `<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:12px 16px;margin-bottom:24px;"><p style="margin:0;font-size:14px;color:#92400E;">This is a friendly reminder that invoice ${vars.invoiceNumber} is due in <strong>${vars.daysUntilDue} day${vars.daysUntilDue === 1 ? '' : 's'}</strong>.</p></div>`;
+    }
+
+    const sent = await this.emailTemplatesService.sendFromTemplate('invoice_email', to, {
+      invoice_subject:     fallbackSubject,
+      client_name:         vars.clientName,
+      business_name:       vars.businessName,
+      invoice_number:      vars.invoiceNumber,
+      issue_date:          vars.issueDate,
+      due_date:            vars.dueDate,
+      total:               vars.total,
+      line_items_html:     lineItemsHtml,
+      notes_html:          notesHtml,
+      payment_button_html: paymentButtonHtml,
+      reminder_banner_html: reminderBannerHtml,
+    });
+    if (!sent) {
+      await this.send(to, fallbackSubject, fallbackHtml);
+    }
+  }
+
+  // ── Staff invite ──────────────────────────────────────────────────────────
   async sendStaffInvite(to: string, vars: StaffInviteTemplateVars): Promise<void> {
-    const html = `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-        <tr><td style="background:#1B3A5C;padding:32px 40px;">
-          <p style="margin:0;color:#ffffff;font-size:22px;font-weight:bold;">Tempo Books</p>
-        </td></tr>
-        <tr><td style="padding:40px;">
-          <p style="margin:0 0 16px;font-size:16px;color:#111827;">Hi ${vars.firstName},</p>
-          <p style="margin:0 0 16px;font-size:16px;color:#374151;">
-            You've been invited to join <strong>${vars.firmName}</strong> on Tempo Books as a staff member.
-          </p>
-          <p style="margin:0 0 32px;font-size:16px;color:#374151;">
-            Click the button below to create your account and accept the invitation.
-          </p>
-          <table cellpadding="0" cellspacing="0"><tr><td>
-            <a href="${vars.signUpUrl}" style="display:inline-block;background:#E07B39;color:#ffffff;font-size:16px;font-weight:bold;text-decoration:none;padding:14px 28px;border-radius:6px;">
-              Accept Invitation
-            </a>
-          </td></tr></table>
-          <p style="margin:32px 0 0;font-size:14px;color:#6b7280;">
-            If you weren't expecting this invitation, you can safely ignore this email.
-          </p>
-        </td></tr>
-        <tr><td style="padding:24px 40px;border-top:1px solid #e5e7eb;">
-          <p style="margin:0;font-size:12px;color:#9ca3af;">
-            Tempo Books &mdash; gettempo.ca &mdash; This email was sent on behalf of ${vars.firmName}.
-          </p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-    await this.send(to, `You've been invited to join ${vars.firmName} on Tempo Books`, html);
+    const sent = await this.emailTemplatesService.sendFromTemplate('staff_invite', to, {
+      first_name:  vars.firstName,
+      firm_name:   vars.firmName,
+      sign_up_url: vars.signUpUrl,
+    });
+    if (!sent) {
+      await this.send(
+        to,
+        `You've been invited to join ${vars.firmName} on Tempo Books`,
+        this.staffInviteFallback(vars),
+      );
+    }
   }
 
-  // â”€â”€ Phase 11: Access request notification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Access request ────────────────────────────────────────────────────────
   async sendAccessRequest(to: string, vars: {
     firmName: string; accountantName: string; accessNote: string;
     requestedExpiry: string; approveUrl: string; denyUrl: string;
   }): Promise<void> {
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;">
-        <tr><td style="background:#1B3A5C;padding:32px 40px;"><p style="margin:0;color:#fff;font-size:22px;font-weight:bold;">Tempo Books</p></td></tr>
-        <tr><td style="padding:40px;">
-          <p style="margin:0 0 16px;font-size:16px;color:#374151;"><strong>${vars.firmName}</strong> has requested edit access to your Tempo Books account.</p>
-          <table cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:16px;margin:0 0 24px;width:100%;"><tr><td>
-            <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">REASON</p>
-            <p style="margin:0 0 16px;font-size:15px;color:#111827;">${vars.accessNote}</p>
-            <p style="margin:0 0 8px;font-size:13px;color:#6b7280;">REQUESTED UNTIL</p>
-            <p style="margin:0;font-size:15px;color:#111827;">${vars.requestedExpiry}</p>
-          </td></tr></table>
-          <table cellpadding="0" cellspacing="0"><tr>
-            <td style="padding-right:12px;"><a href="${vars.approveUrl}" style="display:inline-block;background:#0F6E56;color:#fff;font-size:14px;font-weight:bold;text-decoration:none;padding:12px 24px;border-radius:6px;">Approve Access</a></td>
-            <td><a href="${vars.denyUrl}" style="display:inline-block;background:#ef4444;color:#fff;font-size:14px;font-weight:bold;text-decoration:none;padding:12px 24px;border-radius:6px;">Deny</a></td>
-          </tr></table>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-    await this.send(to, `${vars.firmName} has requested edit access to your books`, html);
+    const sent = await this.emailTemplatesService.sendFromTemplate('access_request', to, {
+      firm_name:        vars.firmName,
+      access_note:      vars.accessNote,
+      requested_expiry: vars.requestedExpiry,
+      approve_url:      vars.approveUrl,
+      deny_url:         vars.denyUrl,
+    });
+    if (!sent) {
+      await this.send(to, `${vars.firmName} has requested edit access to your books`, this.accessRequestFallback(vars));
+    }
   }
 
-  // â”€â”€ Phase 11: Access response notification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Access response ───────────────────────────────────────────────────────
   async sendAccessResponse(to: string, vars: {
     firmName: string; decision: 'approved' | 'denied';
     businessName: string; expiresAt?: string;
   }): Promise<void> {
-    const approved = vars.decision === 'approved';
-    const colour = approved ? '#0F6E56' : '#ef4444';
-    const statusText = approved ? 'Approved' : 'Denied';
-    const bodyText = approved
+    const approved   = vars.decision === 'approved';
+    const statusWord = approved ? 'Approved' : 'Denied';
+    const statusColour = approved ? '#0F6E56' : '#ef4444';
+    const bodyText   = approved
       ? `Your edit access request has been approved. Access is valid until ${vars.expiresAt ?? 'further notice'}.`
       : 'Your edit access request has been denied by the client.';
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;">
-        <tr><td style="background:#1B3A5C;padding:32px 40px;"><p style="margin:0;color:#fff;font-size:22px;font-weight:bold;">Tempo Books</p></td></tr>
-        <tr><td style="padding:40px;">
-          <p style="margin:0 0 16px;font-size:16px;color:#111827;">Access Request â€” <strong style="color:${colour};">${statusText}</strong></p>
-          <p style="margin:0 0 24px;font-size:16px;color:#374151;">${bodyText}</p>
-          <p style="margin:0;font-size:13px;color:#6b7280;">Log in to Tempo Books to view your firm portal.</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-    await this.send(to, `Edit access request ${statusText.toLowerCase()} â€” Tempo Books`, html);
+
+    const sent = await this.emailTemplatesService.sendFromTemplate('access_response', to, {
+      firm_name:     vars.firmName,
+      status_word:   statusWord,
+      status_colour: statusColour,
+      body_text:     bodyText,
+      business_name: vars.businessName,
+    });
+    if (!sent) {
+      await this.send(
+        to,
+        `Edit access request ${statusWord.toLowerCase()} \u2014 Tempo Books`,
+        this.accessResponseFallback(vars),
+      );
+    }
   }
 
-  // â”€â”€ Phase 13: Trial reminder (CRON-triggered) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Trial reminder cron ───────────────────────────────────────────────────
   async sendTrialReminderCron(to: string, vars: {
-    daysRemaining: number;
-    trialEndDate: string;
-    portalUrl: string;
+    daysRemaining: number; trialEndDate: string; portalUrl: string;
   }): Promise<void> {
-    const urgency = vars.daysRemaining <= 3;
-    const accentColour = urgency ? '#dc2626' : '#E07B39';
-    const dayText = vars.daysRemaining === 1
-      ? '1 day'
-      : `${vars.daysRemaining} days`;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-        <tr><td style="background:#1B3A5C;padding:32px 40px;"><p style="margin:0;color:#fff;font-size:22px;font-weight:bold;">Tempo Books</p></td></tr>
-        <tr><td style="padding:40px;">
-          <p style="margin:0 0 16px;font-size:16px;color:#111827;">Hi there,</p>
-          <p style="margin:0 0 16px;font-size:16px;color:#374151;">
-            Your Tempo Books free trial ends in <strong style="color:${accentColour};">${dayText}</strong> on ${vars.trialEndDate}.
-          </p>
-          <p style="margin:0 0 32px;font-size:16px;color:#374151;">
-            To keep uninterrupted access to your books, reports, and bank sync, make sure your payment method is up to date before your trial ends.
-          </p>
-          <table cellpadding="0" cellspacing="0"><tr><td>
-            <a href="${vars.portalUrl}" style="display:inline-block;background:${accentColour};color:#fff;font-size:16px;font-weight:bold;text-decoration:none;padding:14px 28px;border-radius:6px;">
-              Manage Subscription
-            </a>
-          </td></tr></table>
-          <p style="margin:32px 0 0;font-size:14px;color:#6b7280;">Questions? Reply to this email and we'll help you out.</p>
-        </td></tr>
-        <tr><td style="padding:24px 40px;border-top:1px solid #e5e7eb;">
-          <p style="margin:0;font-size:12px;color:#9ca3af;">Tempo Books &mdash; gettempo.ca</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-    const subject = vars.daysRemaining === 1
+    const urgency       = vars.daysRemaining <= 3;
+    const accentColour  = urgency ? '#dc2626' : '#E07B39';
+    const dayText       = vars.daysRemaining === 1 ? '1 day' : `${vars.daysRemaining} days`;
+    const reminderSubject = vars.daysRemaining === 1
       ? 'Your Tempo Books trial ends tomorrow'
       : `Your Tempo Books trial ends in ${dayText}`;
-    await this.send(to, subject, html);
+
+    const sent = await this.emailTemplatesService.sendFromTemplate('trial_reminder_cron', to, {
+      reminder_subject: reminderSubject,
+      day_text:         dayText,
+      trial_end_date:   vars.trialEndDate,
+      accent_colour:    accentColour,
+      portal_url:       vars.portalUrl,
+    });
+    if (!sent) {
+      await this.send(to, reminderSubject, this.trialReminderFallback(vars));
+    }
   }
 
-  // â”€â”€ Phase 13: Upcoming payment â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Upcoming payment ──────────────────────────────────────────────────────
   async sendUpcomingPayment(to: string, vars: {
-    amount: string;
-    renewalDate: string;
-    planName: string;
-    portalUrl: string;
+    amount: string; renewalDate: string; planName: string; portalUrl: string;
   }): Promise<void> {
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-        <tr><td style="background:#1B3A5C;padding:32px 40px;"><p style="margin:0;color:#fff;font-size:22px;font-weight:bold;">Tempo Books</p></td></tr>
-        <tr><td style="padding:40px;">
-          <p style="margin:0 0 16px;font-size:16px;color:#111827;">Hi there,</p>
-          <p style="margin:0 0 16px;font-size:16px;color:#374151;">
-            Your <strong>${vars.planName}</strong> subscription will renew on <strong>${vars.renewalDate}</strong> for <strong>${vars.amount}</strong>.
-          </p>
-          <p style="margin:0 0 32px;font-size:16px;color:#374151;">
-            No action is needed if your payment details are up to date. To make changes, visit your subscription settings.
-          </p>
-          <table cellpadding="0" cellspacing="0"><tr><td>
-            <a href="${vars.portalUrl}" style="display:inline-block;background:#1B3A5C;color:#fff;font-size:16px;font-weight:bold;text-decoration:none;padding:14px 28px;border-radius:6px;">
-              Manage Subscription
-            </a>
-          </td></tr></table>
-        </td></tr>
-        <tr><td style="padding:24px 40px;border-top:1px solid #e5e7eb;">
-          <p style="margin:0;font-size:12px;color:#9ca3af;">Tempo Books &mdash; gettempo.ca</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-    await this.send(to, `Your Tempo Books subscription renews on ${vars.renewalDate}`, html);
+    const sent = await this.emailTemplatesService.sendFromTemplate('upcoming_payment', to, {
+      plan_name:    vars.planName,
+      renewal_date: vars.renewalDate,
+      amount:       vars.amount,
+      portal_url:   vars.portalUrl,
+    });
+    if (!sent) {
+      await this.send(
+        to,
+        `Your Tempo Books subscription renews on ${vars.renewalDate}`,
+        this.upcomingPaymentFallback(vars),
+      );
+    }
   }
 
-  // â”€â”€ Phase 13: AI cap warning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── AI cap warning ────────────────────────────────────────────────────────
   async sendAiCapWarning(to: string, vars: {
-    usageCount: number;
-    cap: number;
-    percentage: number;
-    isAtCap: boolean;
-    pricingUrl: string;
+    usageCount: number; cap: number; percentage: number;
+    isAtCap: boolean; pricingUrl: string;
   }): Promise<void> {
-    const accentColour = vars.isAtCap ? '#dc2626' : '#E07B39';
-    const subject = vars.isAtCap
+    const accentColour   = vars.isAtCap ? '#dc2626' : '#E07B39';
+    const warnSubject    = vars.isAtCap
       ? 'Your Tempo Books AI quota has been reached'
       : `You've used ${vars.percentage}% of your Tempo Books AI quota`;
-    const bodyText = vars.isAtCap
+    const bodyText       = vars.isAtCap
       ? `You've used all <strong>${vars.cap} AI credits</strong> for this month. AI features are paused until next month or until you upgrade.`
       : `You've used <strong>${vars.usageCount} of ${vars.cap} AI credits</strong> this month (${vars.percentage}%). Upgrade to Pro for a higher limit.`;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-        <tr><td style="background:#1B3A5C;padding:32px 40px;"><p style="margin:0;color:#fff;font-size:22px;font-weight:bold;">Tempo Books</p></td></tr>
-        <tr><td style="padding:40px;">
-          <p style="margin:0 0 16px;font-size:16px;color:#111827;">Hi there,</p>
-          <p style="margin:0 0 32px;font-size:16px;color:#374151;">${bodyText}</p>
-          <table cellpadding="0" cellspacing="0"><tr><td>
-            <a href="${vars.pricingUrl}" style="display:inline-block;background:${accentColour};color:#fff;font-size:16px;font-weight:bold;text-decoration:none;padding:14px 28px;border-radius:6px;">
-              Upgrade Plan
-            </a>
-          </td></tr></table>
-        </td></tr>
-        <tr><td style="padding:24px 40px;border-top:1px solid #e5e7eb;">
-          <p style="margin:0;font-size:12px;color:#9ca3af;">Tempo Books &mdash; gettempo.ca</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-    await this.send(to, subject, html);
+
+    const sent = await this.emailTemplatesService.sendFromTemplate('ai_cap_warning', to, {
+      warning_subject: warnSubject,
+      body_text:       bodyText,
+      accent_colour:   accentColour,
+      pricing_url:     vars.pricingUrl,
+    });
+    if (!sent) {
+      await this.send(to, warnSubject, this.aiCapFallback(vars));
+    }
   }
 
-  // â”€â”€ Phase 13: Cancellation confirmation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Cancellation confirmation ─────────────────────────────────────────────
   async sendCancellationConfirmation(to: string, vars: {
-    planName: string;
-    accessEndDate: string;
-    resubscribeUrl: string;
+    planName: string; accessEndDate: string; resubscribeUrl: string;
   }): Promise<void> {
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-        <tr><td style="background:#1B3A5C;padding:32px 40px;"><p style="margin:0;color:#fff;font-size:22px;font-weight:bold;">Tempo Books</p></td></tr>
-        <tr><td style="padding:40px;">
-          <p style="margin:0 0 16px;font-size:16px;color:#111827;">Hi there,</p>
-          <p style="margin:0 0 16px;font-size:16px;color:#374151;">
-            Your <strong>${vars.planName}</strong> subscription has been cancelled. You'll retain access to all features until <strong>${vars.accessEndDate}</strong>.
-          </p>
-          <p style="margin:0 0 32px;font-size:16px;color:#374151;">
-            Changed your mind? You can resubscribe at any time to restore full access.
-          </p>
-          <table cellpadding="0" cellspacing="0"><tr><td>
-            <a href="${vars.resubscribeUrl}" style="display:inline-block;background:#0F6E56;color:#fff;font-size:16px;font-weight:bold;text-decoration:none;padding:14px 28px;border-radius:6px;">
-              Resubscribe
-            </a>
-          </td></tr></table>
-        </td></tr>
-        <tr><td style="padding:24px 40px;border-top:1px solid #e5e7eb;">
-          <p style="margin:0;font-size:12px;color:#9ca3af;">Tempo Books &mdash; gettempo.ca</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-    await this.send(to, 'Your Tempo Books subscription has been cancelled', html);
+    const sent = await this.emailTemplatesService.sendFromTemplate('cancellation_confirmation', to, {
+      plan_name:        vars.planName,
+      access_end_date:  vars.accessEndDate,
+      resubscribe_url:  vars.resubscribeUrl,
+    });
+    if (!sent) {
+      await this.send(
+        to,
+        'Your Tempo Books subscription has been cancelled',
+        this.cancellationFallback(vars),
+      );
+    }
+  }
+
+  // ── Lead acknowledgement ──────────────────────────────────────────────────
+  async sendLeadAcknowledgement(to: string, vars: { firstName: string }): Promise<void> {
+    await this.emailTemplatesService.sendFromTemplate('lead_acknowledgement', to, {
+      first_name: vars.firstName,
+    });
+  }
+
+  // ── Minimal hardcoded fallbacks (used only if DB template missing) ─────────
+  private staffInviteFallback(vars: StaffInviteTemplateVars): string {
+    return `<p>Hi ${vars.firstName}, you've been invited to join ${vars.firmName} on Tempo Books. <a href="${vars.signUpUrl}">Accept invitation</a></p>`;
+  }
+  private accessRequestFallback(vars: any): string {
+    return `<p>${vars.firmName} has requested edit access to your books until ${vars.requestedExpiry}. <a href="${vars.approveUrl}">Approve</a> | <a href="${vars.denyUrl}">Deny</a></p>`;
+  }
+  private accessResponseFallback(vars: any): string {
+    const approved = vars.decision === 'approved';
+    return `<p>Your edit access request was ${approved ? 'approved' : 'denied'}.</p>`;
+  }
+  private trialReminderFallback(vars: any): string {
+    return `<p>Your trial ends in ${vars.daysRemaining} days on ${vars.trialEndDate}. <a href="${vars.portalUrl}">Manage subscription</a></p>`;
+  }
+  private upcomingPaymentFallback(vars: any): string {
+    return `<p>Your ${vars.planName} renews on ${vars.renewalDate} for ${vars.amount}. <a href="${vars.portalUrl}">Manage subscription</a></p>`;
+  }
+  private aiCapFallback(vars: any): string {
+    return `<p>You've used ${vars.usageCount} of ${vars.cap} AI credits. <a href="${vars.pricingUrl}">Upgrade</a></p>`;
+  }
+  private cancellationFallback(vars: any): string {
+    return `<p>Your ${vars.planName} subscription has been cancelled. Access ends ${vars.accessEndDate}. <a href="${vars.resubscribeUrl}">Resubscribe</a></p>`;
   }
 }
-
