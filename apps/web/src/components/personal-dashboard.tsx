@@ -82,12 +82,12 @@ export function PersonalDashboard({
 
       {/* Hero money flow */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="rounded-2xl bg-card border border-border p-4 md:p-5">
+        <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderTop: '2px solid var(--color-primary)' }}>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Money in</p>
           <p className="text-3xl font-bold text-primary tabular-nums">{formatCurrency(moneyIn)}</p>
           <p className="text-xs text-muted-foreground mt-1">{monthName}</p>
         </div>
-        <div className="rounded-2xl bg-card border border-border p-4 md:p-5">
+        <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderTop: '2px solid #c0392b' }}>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Money out</p>
           <p className="text-3xl font-bold text-danger tabular-nums">{formatCurrency(moneyOut)}</p>
           <p className="text-xs text-muted-foreground mt-1">{monthName}</p>
@@ -97,7 +97,7 @@ export function PersonalDashboard({
       {/* Net worth hero */}
       {netWorth && (
         <Link href="/personal/networth" className="block mb-6">
-          <div className="rounded-2xl bg-card border border-border p-4 md:p-5 hover:border-primary/30 transition-colors">
+          <div className="rounded-2xl bg-card border border-border p-4 md:p-5 hover:border-primary/30 transition-colors" style={{ borderTop: '2px solid #185fa5' }}>
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Net worth</p>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
@@ -134,7 +134,7 @@ export function PersonalDashboard({
         <div className="col-span-1 lg:col-span-2 flex flex-col gap-4">
 
           {/* Budget vs Actual */}
-          <div className="rounded-2xl bg-card border border-border p-4 md:p-5">
+          <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderTop: '2px solid #d97706' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base font-semibold text-foreground">Budget — {monthName}</h2>
@@ -204,7 +204,7 @@ export function PersonalDashboard({
         <div className="flex flex-col gap-4">
 
           {/* Savings Goals */}
-          <div className="rounded-2xl bg-card border border-border p-4 md:p-5">
+          <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderTop: '2px solid var(--color-primary)' }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-foreground">Savings goals</h2>
               <Link href="/personal/goals" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">

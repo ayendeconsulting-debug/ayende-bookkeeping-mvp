@@ -58,6 +58,7 @@ export function FreelancerDashboard({
           iconColor="text-primary"
           iconBg="bg-primary-light"
           sub={new Date().toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })}
+          accentColor="var(--color-primary)"
         />
         <MetricCard
           label="This Month Expenses"
@@ -66,6 +67,7 @@ export function FreelancerDashboard({
           iconColor="text-danger"
           iconBg="bg-danger-light"
           sub="Business expenses only"
+          accentColor="#c0392b"
         />
         <MetricCard
           label={`Q${currentQ} Tax Estimate`}
@@ -76,6 +78,7 @@ export function FreelancerDashboard({
           sub={currentQEstimate
             ? `Due ${new Date(currentQEstimate.due_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}`
             : 'No data yet'}
+          accentColor="#d97706"
         />
         <MetricCard
           label="Outstanding Invoices"
@@ -84,6 +87,7 @@ export function FreelancerDashboard({
           iconColor="text-blue-600 dark:text-blue-400"
           iconBg="bg-blue-50 dark:bg-blue-900/20"
           sub={`${outstandingInvoices.length} invoice${outstandingInvoices.length !== 1 ? 's' : ''} unpaid`}
+          accentColor="#2563eb"
         />
       </div>
 
@@ -216,12 +220,12 @@ export function FreelancerDashboard({
   );
 }
 
-function MetricCard({ label, value, icon: Icon, iconColor, iconBg, sub }: {
+function MetricCard({ label, value, icon: Icon, iconColor, iconBg, sub, accentColor }: {
   label: string; value: string; icon: React.ElementType;
-  iconColor: string; iconBg: string; sub: string;
+  iconColor: string; iconBg: string; sub: string; accentColor?: string;
 }) {
   return (
-    <Card>
+    <Card style={accentColor ? { borderTop: `2px solid ${accentColor}` } : undefined}>
       <CardContent className="pt-4 pb-4">
         <div className="flex items-start justify-between mb-2">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight pr-1">{label}</div>
