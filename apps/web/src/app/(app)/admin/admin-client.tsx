@@ -2,14 +2,18 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useOrganizationList } from '@clerk/nextjs';
-import { Copy, Check, Loader2, Trash2, Database, UserPlus, RefreshCw, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { useOrganizationList, useUser } from '@clerk/nextjs';
+import {
+  Copy, Check, Loader2, Trash2, Database, RefreshCw,
+  ArrowRightLeft, AlertTriangle, Layers, ChevronRight,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
-const selectCls = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
+const selectCls =
+  'w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
 
 const MODE_BADGE: Record<string, string> = {
   business:   'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
@@ -32,14 +36,6 @@ const SCENARIOS = [
 const ONE_YEAR = new Date();
 ONE_YEAR.setFullYear(ONE_YEAR.getFullYear() + 1);
 
-const DEFAULT_FORM = {
-  businessName: '',
-  clerkOrgId: '',
-  mode: 'freelancer',
-  plan: 'pro',
-  trialEndsAt: ONE_YEAR.toISOString().split('T')[0],
-};
-
 interface DemoAccount {
   businessId: string;
   name: string;
@@ -49,9 +45,93 @@ interface DemoAccount {
   createdAt: string;
 }
 
+interface ProvisionResult {
+  starter:    { businessId: string; created: boolean };
+  pro:        { businessId: string; created: boolean };
+  accountant: { businessId: string; created: boolean; firmId: string };
+  client1:    { businessId: string; created: boolean };
+  client2:    { businessId: string; created: boolean };
+}
+
+// ── Copy button (inline) ──────────────────────────────────────────────────────
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  function doCopy() {
+    navigator.clipboard.writeText(value);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+  return (
+    <button onClick={doCopy} className="text-muted-foreground hover:text-primary transition-colors flex-shrink-0">
+      {copied ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
+    </button>
+  );
+}
+
+// ── Result row ────────────────────────────────────────────────────────────────
+function ResultRow({ label, businessId, created }: { label: string; businessId: string; created: boolean }) {
+  return (
+    <div className="flex items-center gap-2 text-xs">
+      <span className="text-muted-foreground w-20 flex-shrink-0">{label}</span>
+      <code className="font-mono text-foreground bg-muted px-2 py-0.5 rounded flex-1 truncate">
+        {businessId}
+      </code>
+      <CopyButton value={businessId} />
+      <span className={cn(
+        'text-[10px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0',
+        created
+          ? 'bg-primary-light text-primary dark:bg-primary/20'
+          : 'bg-muted text-muted-foreground'
+      )}>
+        {created ? 'new' : 'updated'}
+      </span>
+    </div>
+  );
+}
+
+// ── Slot input group ──────────────────────────────────────────────────────────
+function SlotField({
+  label,
+  orgIdKey,
+  nameKey,
+  orgIdPlaceholder,
+  namePlaceholder,
+  form,
+  setForm,
+}: {
+  label: string;
+  orgIdKey: string;
+  nameKey: string;
+  orgIdPlaceholder: string;
+  namePlaceholder: string;
+  form: Record<string, string>;
+  setForm: (fn: (f: Record<string, string>) => Record<string, string>) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{label}</p>
+      <div className="flex flex-col gap-1.5">
+        <Input
+          value={form[orgIdKey] ?? ''}
+          onChange={(e) => setForm((f) => ({ ...f, [orgIdKey]: e.target.value }))}
+          placeholder={orgIdPlaceholder}
+          className="font-mono text-xs h-8"
+        />
+        <Input
+          value={form[nameKey] ?? ''}
+          onChange={(e) => setForm((f) => ({ ...f, [nameKey]: e.target.value }))}
+          placeholder={namePlaceholder}
+          className="text-xs h-8"
+        />
+      </div>
+    </div>
+  );
+}
+
 export function AdminClient() {
   const router = useRouter();
   const { setActive } = useOrganizationList();
+  const { user } = useUser();
 
   // ── Card 0: Demo Account Switcher ──────────────────────────────────────────
   const [accounts, setAccounts] = useState<DemoAccount[]>([]);
@@ -96,12 +176,65 @@ export function AdminClient() {
     }
   }
 
-  // ── Card 1: Create Test Account ────────────────────────────────────────────
-  const [form, setForm] = useState(DEFAULT_FORM);
-  const [creating, setCreating] = useState(false);
-  const [createResult, setCreateResult] = useState<{ businessId: string; created: boolean } | null>(null);
-  const [createError, setCreateError] = useState('');
-  const [copied, setCopied] = useState(false);
+  // ── Card 1: Demo Suite Provisioner ────────────────────────────────────────
+  const DEFAULT_SUITE_FORM: Record<string, string> = {
+    starterOrgId:        '',
+    starterBusinessName: 'Maple Leaf Construction',
+    proOrgId:            '',
+    proBusinessName:     'Jordan Rivera Design',
+    accountantOrgId:     '',
+    firmName:            'Clearview Accounting',
+    firmSubdomain:       'clearview',
+    client1OrgId:        '',
+    client1BusinessName: 'Northgate Café',
+    client2OrgId:        '',
+    client2BusinessName: 'Rivera Consulting',
+    trialEndsAt:         ONE_YEAR.toISOString().split('T')[0],
+  };
+
+  const [suiteForm, setSuiteForm] = useState<Record<string, string>>(DEFAULT_SUITE_FORM);
+  const [provisioning, setProvisioning] = useState(false);
+  const [suiteResult, setSuiteResult] = useState<ProvisionResult | null>(null);
+  const [suiteError, setSuiteError] = useState('');
+
+  async function handleProvision() {
+    const required = [
+      'starterOrgId', 'proOrgId', 'accountantOrgId',
+      'client1OrgId', 'client2OrgId', 'firmSubdomain', 'firmName',
+    ];
+    const missing = required.filter((k) => !suiteForm[k]?.trim());
+    if (missing.length > 0) {
+      setSuiteError(`Missing fields: ${missing.join(', ')}`);
+      return;
+    }
+    if (!user?.id) {
+      setSuiteError('Could not read your Clerk user ID. Please refresh and try again.');
+      return;
+    }
+
+    setProvisioning(true);
+    setSuiteError('');
+    setSuiteResult(null);
+
+    try {
+      const res = await fetch('/api/proxy/admin/provision-demo-suite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ownerClerkUserId: user.id,
+          ...suiteForm,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? 'Provision failed');
+      setSuiteResult(data);
+      await loadAccounts();
+    } catch (e: any) {
+      setSuiteError(e.message);
+    } finally {
+      setProvisioning(false);
+    }
+  }
 
   // ── Card 2: Seed Transactions ──────────────────────────────────────────────
   const [seedBizId, setSeedBizId] = useState('');
@@ -111,36 +244,6 @@ export function AdminClient() {
   const [seedError, setSeedError] = useState('');
   const [clearing, setClearing] = useState(false);
   const [clearResult, setClearResult] = useState<{ deleted: number } | null>(null);
-
-  async function handleCreate() {
-    if (!form.businessName.trim() || !form.clerkOrgId.trim()) {
-      setCreateError('Business name and Clerk Org ID are required.');
-      return;
-    }
-    setCreating(true); setCreateError(''); setCreateResult(null);
-    try {
-      const res = await fetch('/api/proxy/admin/seed-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? 'Failed');
-      setCreateResult(data);
-      setSeedBizId(data.businessId);
-      await loadAccounts(); // refresh Card 0
-    } catch (e: any) {
-      setCreateError(e.message);
-    } finally {
-      setCreating(false);
-    }
-  }
-
-  function handleCopy(text: string) {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
 
   async function handleSeed() {
     if (!seedBizId.trim()) { setSeedError('Business ID is required.'); return; }
@@ -171,11 +274,11 @@ export function AdminClient() {
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto space-y-8">
+    <div className="p-8 max-w-4xl mx-auto space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Platform Admin</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Internal tool — create Stripe-bypassed test accounts and seed synthetic data for demos and training videos.
+          Internal tool — provision demo suites and seed synthetic data for demos and training videos.
         </p>
       </div>
 
@@ -208,7 +311,10 @@ export function AdminClient() {
         ) : (
           <div className="divide-y divide-border rounded-xl border border-border overflow-hidden">
             {accounts.map((account) => (
-              <div key={account.businessId} className="flex items-center gap-3 px-4 py-3 bg-card hover:bg-muted/30 transition-colors">
+              <div
+                key={account.businessId}
+                className="flex items-center gap-3 px-4 py-3 bg-card hover:bg-muted/30 transition-colors"
+              >
                 <div className="w-8 h-8 rounded-lg bg-primary-light dark:bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs font-bold text-primary">
                     {account.name.slice(0, 2).toUpperCase()}
@@ -226,7 +332,6 @@ export function AdminClient() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Pre-fill seed card with this business ID */}
                   <button
                     onClick={() => setSeedBizId(account.businessId)}
                     className="text-xs text-muted-foreground hover:text-primary px-2 py-1 rounded transition-colors"
@@ -234,8 +339,6 @@ export function AdminClient() {
                   >
                     Use
                   </button>
-
-                  {/* Switch to this org in Clerk */}
                   <Button
                     size="sm"
                     variant="outline"
@@ -248,8 +351,6 @@ export function AdminClient() {
                       ? <Loader2 className="w-3 h-3 animate-spin" />
                       : 'Switch'}
                   </Button>
-
-                  {/* Delete with confirmation */}
                   {confirmDeleteId === account.businessId ? (
                     <div className="flex items-center gap-1">
                       <button
@@ -290,74 +391,167 @@ export function AdminClient() {
         )}
       </div>
 
-      {/* ── Card 1: Create Test Account ── */}
-      <div className="rounded-2xl border border-border bg-card p-6 space-y-5">
+      {/* ── Card 1: Demo Suite Provisioner ── */}
+      <div className="rounded-2xl border border-border bg-card p-6 space-y-6">
         <div className="flex items-center gap-2">
-          <UserPlus className="w-5 h-5 text-primary" />
-          <h2 className="text-base font-semibold text-foreground">Create Test Account</h2>
+          <Layers className="w-5 h-5 text-primary" />
+          <h2 className="text-base font-semibold text-foreground">Demo Suite Provisioner</h2>
         </div>
+        <p className="text-xs text-muted-foreground -mt-2">
+          Provisions all 3 demo profiles at once for your account. Each Clerk Org ID must already exist in your Clerk dashboard.
+        </p>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label>Business Name</Label>
-            <Input
-              value={form.businessName}
-              onChange={(e) => setForm((f) => ({ ...f, businessName: e.target.value }))}
-              placeholder="e.g. Acme Plumbing Demo"
-            />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label>Clerk Org ID</Label>
-            <Input
-              value={form.clerkOrgId}
-              onChange={(e) => setForm((f) => ({ ...f, clerkOrgId: e.target.value }))}
-              placeholder="org_xxxxxxxxxxxxxxxx"
-              className="font-mono text-sm"
-            />
-            <p className="text-xs text-muted-foreground">Found in Clerk Dashboard → Organizations</p>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Business Mode</Label>
-            <select value={form.mode} onChange={(e) => setForm((f) => ({ ...f, mode: e.target.value }))} className={selectCls}>
-              <option value="business">Business</option>
-              <option value="freelancer">Freelancer</option>
-              <option value="personal">Personal</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>Plan</Label>
-            <select value={form.plan} onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value }))} className={selectCls}>
-              <option value="starter">Starter</option>
-              <option value="pro">Pro</option>
-              <option value="accountant">Accountant</option>
-            </select>
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label>Trial / Access End Date</Label>
-            <Input type="date" value={form.trialEndsAt} onChange={(e) => setForm((f) => ({ ...f, trialEndsAt: e.target.value }))} />
-          </div>
-        </div>
+        {/* 3-column grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-        {createError && <p className="text-sm text-destructive">{createError}</p>}
-
-        {createResult && (
-          <div className="rounded-xl bg-primary-light dark:bg-primary/10 border border-primary/20 px-4 py-3 space-y-2">
-            <p className="text-sm font-semibold text-primary">
-              Account {createResult.created ? 'created' : 'updated'} ✓
-            </p>
+          {/* Starter column */}
+          <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
             <div className="flex items-center gap-2">
-              <code className="text-xs font-mono text-foreground bg-muted px-2 py-1 rounded flex-1 truncate">
-                {createResult.businessId}
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['starter'])}>
+                Starter
+              </span>
+              <ChevronRight className="w-3 h-3 text-muted-foreground" />
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['business'])}>
+                Business
+              </span>
+            </div>
+            <SlotField
+              label="Starter Slot"
+              orgIdKey="starterOrgId"
+              nameKey="starterBusinessName"
+              orgIdPlaceholder="org_starter…"
+              namePlaceholder="Business name"
+              form={suiteForm}
+              setForm={setSuiteForm}
+            />
+            <p className="text-[10px] text-muted-foreground">Seeds: business_6mo (65 transactions)</p>
+          </div>
+
+          {/* Pro column */}
+          <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['pro'])}>
+                Pro
+              </span>
+              <ChevronRight className="w-3 h-3 text-muted-foreground" />
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['freelancer'])}>
+                Freelancer
+              </span>
+            </div>
+            <SlotField
+              label="Pro Slot"
+              orgIdKey="proOrgId"
+              nameKey="proBusinessName"
+              orgIdPlaceholder="org_pro…"
+              namePlaceholder="Freelancer name"
+              form={suiteForm}
+              setForm={setSuiteForm}
+            />
+            <p className="text-[10px] text-muted-foreground">Seeds: freelancer_6mo (75 transactions)</p>
+          </div>
+
+          {/* Accountant column */}
+          <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
+            <div className="flex items-center gap-2">
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['accountant'])}>
+                Accountant
+              </span>
+            </div>
+
+            {/* Firm details */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Firm</p>
+              <Input
+                value={suiteForm['accountantOrgId'] ?? ''}
+                onChange={(e) => setSuiteForm((f) => ({ ...f, accountantOrgId: e.target.value }))}
+                placeholder="org_accountant…"
+                className="font-mono text-xs h-8"
+              />
+              <Input
+                value={suiteForm['firmName'] ?? ''}
+                onChange={(e) => setSuiteForm((f) => ({ ...f, firmName: e.target.value }))}
+                placeholder="Firm display name"
+                className="text-xs h-8"
+              />
+              <Input
+                value={suiteForm['firmSubdomain'] ?? ''}
+                onChange={(e) => setSuiteForm((f) => ({ ...f, firmSubdomain: e.target.value }))}
+                placeholder="subdomain (e.g. clearview)"
+                className="font-mono text-xs h-8"
+              />
+            </div>
+
+            {/* Client 1 */}
+            <SlotField
+              label="Client 1 — Business"
+              orgIdKey="client1OrgId"
+              nameKey="client1BusinessName"
+              orgIdPlaceholder="org_client1…"
+              namePlaceholder="Client business name"
+              form={suiteForm}
+              setForm={setSuiteForm}
+            />
+
+            {/* Client 2 */}
+            <SlotField
+              label="Client 2 — Freelancer"
+              orgIdKey="client2OrgId"
+              nameKey="client2BusinessName"
+              orgIdPlaceholder="org_client2…"
+              namePlaceholder="Client freelancer name"
+              form={suiteForm}
+              setForm={setSuiteForm}
+            />
+
+            <p className="text-[10px] text-muted-foreground">
+              Each client seeded with 6mo transactions.
+            </p>
+          </div>
+        </div>
+
+        {/* Shared trial date */}
+        <div className="flex flex-col gap-1.5 max-w-xs">
+          <Label className="text-xs">Trial / Access End Date (all slots)</Label>
+          <Input
+            type="date"
+            value={suiteForm['trialEndsAt'] ?? ''}
+            onChange={(e) => setSuiteForm((f) => ({ ...f, trialEndsAt: e.target.value }))}
+            className="h-8 text-xs"
+          />
+        </div>
+
+        {/* Error */}
+        {suiteError && (
+          <p className="text-sm text-destructive">{suiteError}</p>
+        )}
+
+        {/* Result */}
+        {suiteResult && (
+          <div className="rounded-xl bg-primary-light dark:bg-primary/10 border border-primary/20 px-4 py-4 space-y-2">
+            <p className="text-sm font-semibold text-primary mb-3">All 3 slots provisioned ✓</p>
+            <ResultRow label="Starter"  businessId={suiteResult.starter.businessId}    created={suiteResult.starter.created} />
+            <ResultRow label="Pro"      businessId={suiteResult.pro.businessId}         created={suiteResult.pro.created} />
+            <ResultRow label="Acct Biz" businessId={suiteResult.accountant.businessId} created={suiteResult.accountant.created} />
+            <ResultRow label="Client 1" businessId={suiteResult.client1.businessId}    created={suiteResult.client1.created} />
+            <ResultRow label="Client 2" businessId={suiteResult.client2.businessId}    created={suiteResult.client2.created} />
+            <div className="pt-1 flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground w-20">Firm ID</span>
+              <code className="font-mono text-foreground bg-muted px-2 py-0.5 rounded flex-1 truncate">
+                {suiteResult.accountant.firmId}
               </code>
-              <button onClick={() => handleCopy(createResult.businessId)} className="text-muted-foreground hover:text-primary transition-colors">
-                {copied ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
-              </button>
+              <CopyButton value={suiteResult.accountant.firmId} />
             </div>
           </div>
         )}
 
-        <Button onClick={handleCreate} disabled={creating} className="w-full">
-          {creating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating…</> : 'Create Test Account'}
+        <Button
+          onClick={handleProvision}
+          disabled={provisioning}
+          className="w-full"
+        >
+          {provisioning
+            ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Provisioning all 3…</>
+            : 'Provision All 3 & Seed Data'}
         </Button>
       </div>
 

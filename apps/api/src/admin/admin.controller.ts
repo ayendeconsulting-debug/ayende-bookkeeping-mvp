@@ -71,4 +71,28 @@ export class AdminController {
   clearTransactions(@Query('businessId') businessId: string) {
     return this.adminService.clearTransactions(businessId);
   }
+
+  /** POST /admin/provision-demo-suite */
+  @Post('provision-demo-suite')
+  @HttpCode(HttpStatus.CREATED)
+  provisionDemoSuite(
+    @Body()
+    body: {
+      ownerClerkUserId: string;
+      starterOrgId: string;
+      starterBusinessName: string;
+      proOrgId: string;
+      proBusinessName: string;
+      accountantOrgId: string;
+      firmName: string;
+      firmSubdomain: string;
+      client1OrgId: string;
+      client1BusinessName: string;
+      client2OrgId: string;
+      client2BusinessName: string;
+      trialEndsAt?: string;
+    },
+  ) {
+    return this.adminService.provisionDemoSuite(body);
+  }
 }

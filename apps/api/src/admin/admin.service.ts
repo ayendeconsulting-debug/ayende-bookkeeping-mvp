@@ -1,9 +1,18 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Business, BusinessMode } from '../entities/business.entity';
 import { Subscription, SubscriptionPlan } from '../entities/subscription.entity';
 import { RawTransaction, RawTransactionStatus, RawTransactionSource } from '../entities/raw-transaction.entity';
+import { AccountantFirm } from '../entities/accountant-firm.entity';
+import { FirmStaff, FirmStaffRole } from '../entities/firm-staff.entity';
+import { FirmClient, FirmClientStatus } from '../entities/firm-client.entity';
 import { BusinessesService } from '../businesses/businesses.service';
 import { FREELANCER_6MO } from './seed-data/freelancer-6mo';
 import { BUSINESS_6MO } from './seed-data/business-6mo';
@@ -12,6 +21,12 @@ import { PERSONAL_6MO } from './seed-data/personal-6mo';
 export type SeedScenario = 'freelancer_6mo' | 'business_6mo' | 'personal_6mo';
 
 const SYNTHETIC_SOURCE = 'SYNTHETIC_CHEQUING';
+
+const ONE_YEAR_FROM_NOW = (): string => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().split('T')[0];
+};
 
 @Injectable()
 export class AdminService {
@@ -22,6 +37,12 @@ export class AdminService {
     private readonly subscriptionRepo: Repository<Subscription>,
     @InjectRepository(RawTransaction)
     private readonly rawTxRepo: Repository<RawTransaction>,
+    @InjectRepository(AccountantFirm)
+    private readonly firmRepo: Repository<AccountantFirm>,
+    @InjectRepository(FirmStaff)
+    private readonly staffRepo: Repository<FirmStaff>,
+    @InjectRepository(FirmClient)
+    private readonly firmClientRepo: Repository<FirmClient>,
     private readonly businessesService: BusinessesService,
     private readonly dataSource: DataSource,
   ) {}
@@ -36,7 +57,6 @@ export class AdminService {
     clerkOrgId: string | null;
     createdAt: Date;
   }[]> {
-    // Test accounts have no stripe_customer_id on their subscription
     const rows = await this.dataSource.query(`
       SELECT
         b.id            AS "businessId",
@@ -61,53 +81,23 @@ export class AdminService {
     const business = await this.businessRepo.findOne({ where: { id: businessId } });
     if (!business) throw new NotFoundException(`Business ${businessId} not found`);
 
-    // Safety guard — refuse to delete real paying accounts
     const subscription = await this.subscriptionRepo.findOne({ where: { business_id: businessId } });
     if (subscription?.stripe_customer_id) {
       throw new ForbiddenException('Cannot delete a real paying account through the admin tool');
     }
 
-    // Hard delete in dependency order using raw queries for speed
     await this.dataSource.transaction(async (manager) => {
-      // Journal lines → journal entries
-      await manager.query(
-        `DELETE FROM journal_lines WHERE business_id = $1`, [businessId],
-      );
-      await manager.query(
-        `DELETE FROM journal_entries WHERE business_id = $1`, [businessId],
-      );
-      // Classified transactions
-      await manager.query(
-        `DELETE FROM classified_transactions WHERE business_id = $1`, [businessId],
-      );
-      // Transaction splits
-      await manager.query(
-        `DELETE FROM transaction_splits WHERE business_id = $1`, [businessId],
-      );
-      // Raw transactions
-      await manager.query(
-        `DELETE FROM raw_transactions WHERE business_id = $1`, [businessId],
-      );
-      // Tax transactions
-      await manager.query(
-        `DELETE FROM tax_transactions WHERE business_id = $1`, [businessId],
-      );
-      // Recurring transactions
-      await manager.query(
-        `DELETE FROM recurring_transactions WHERE business_id = $1`, [businessId],
-      );
-      // Subscriptions
-      await manager.query(
-        `DELETE FROM subscriptions WHERE business_id = $1`, [businessId],
-      );
-      // Accounts (chart of accounts)
-      await manager.query(
-        `DELETE FROM accounts WHERE business_id = $1`, [businessId],
-      );
-      // Business itself
-      await manager.query(
-        `DELETE FROM businesses WHERE id = $1`, [businessId],
-      );
+      await manager.query(`DELETE FROM journal_lines WHERE business_id = $1`, [businessId]);
+      await manager.query(`DELETE FROM journal_entries WHERE business_id = $1`, [businessId]);
+      await manager.query(`DELETE FROM classified_transactions WHERE business_id = $1`, [businessId]);
+      await manager.query(`DELETE FROM transaction_splits WHERE business_id = $1`, [businessId]);
+      await manager.query(`DELETE FROM raw_transactions WHERE business_id = $1`, [businessId]);
+      await manager.query(`DELETE FROM tax_transactions WHERE business_id = $1`, [businessId]);
+      await manager.query(`DELETE FROM recurring_transactions WHERE business_id = $1`, [businessId]);
+      await manager.query(`DELETE FROM subscriptions WHERE business_id = $1`, [businessId]);
+      await manager.query(`DELETE FROM accounts WHERE business_id = $1`, [businessId]);
+      await manager.query(`DELETE FROM firm_clients WHERE business_id = $1`, [businessId]);
+      await manager.query(`DELETE FROM businesses WHERE id = $1`, [businessId]);
     });
 
     return { deleted: true };
@@ -233,6 +223,175 @@ export class AdminService {
     );
 
     return { deleted: result[1] ?? 0 };
+  }
+
+  // ── Provision Demo Suite ────────────────────────────────────────────────────
+
+  async provisionDemoSuite(dto: {
+    ownerClerkUserId: string;
+    starterOrgId: string;
+    starterBusinessName: string;
+    proOrgId: string;
+    proBusinessName: string;
+    accountantOrgId: string;
+    firmName: string;
+    firmSubdomain: string;
+    client1OrgId: string;
+    client1BusinessName: string;
+    client2OrgId: string;
+    client2BusinessName: string;
+    trialEndsAt?: string;
+  }): Promise<{
+    starter: { businessId: string; created: boolean };
+    pro: { businessId: string; created: boolean };
+    accountant: { businessId: string; created: boolean; firmId: string };
+    client1: { businessId: string; created: boolean };
+    client2: { businessId: string; created: boolean };
+  }> {
+    const trialEndsAt = dto.trialEndsAt ?? ONE_YEAR_FROM_NOW();
+
+    // ── Step 1: Starter slot — Business mode, Starter plan ──
+    const starter = await this.seedAccount({
+      businessName: dto.starterBusinessName,
+      clerkOrgId: dto.starterOrgId,
+      mode: BusinessMode.BUSINESS,
+      plan: 'starter' as SubscriptionPlan,
+      trialEndsAt,
+    });
+    await this.seedTransactions(starter.businessId, 'business_6mo');
+
+    // ── Step 2: Pro slot — Freelancer mode, Pro plan ──
+    const pro = await this.seedAccount({
+      businessName: dto.proBusinessName,
+      clerkOrgId: dto.proOrgId,
+      mode: BusinessMode.FREELANCER,
+      plan: 'pro' as SubscriptionPlan,
+      trialEndsAt,
+    });
+    await this.seedTransactions(pro.businessId, 'freelancer_6mo');
+
+    // ── Step 3: Accountant slot — creates the billing context business ──
+    const accountantBiz = await this.seedAccount({
+      businessName: dto.firmName,
+      clerkOrgId: dto.accountantOrgId,
+      mode: BusinessMode.BUSINESS,
+      plan: 'accountant' as SubscriptionPlan,
+      trialEndsAt,
+    });
+
+    // ── Step 4: Find or create the AccountantFirm record ──
+    const subdomainClean = dto.firmSubdomain
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '');
+
+    let firm = await this.firmRepo.findOne({
+      where: { owner_clerk_id: dto.ownerClerkUserId },
+    });
+
+    if (!firm) {
+      // Check subdomain availability
+      const takenBySubdomain = await this.firmRepo.findOne({
+        where: { subdomain: subdomainClean },
+      });
+      if (takenBySubdomain) {
+        throw new ConflictException(
+          `Subdomain "${subdomainClean}" is already taken. Choose a different firmSubdomain.`,
+        );
+      }
+
+      firm = await this.firmRepo.save(
+        this.firmRepo.create({
+          name: dto.firmName,
+          subdomain: subdomainClean,
+          owner_clerk_id: dto.ownerClerkUserId,
+          logo_url: null,
+          brand_colour: null,
+          stripe_customer_id: null,
+        }),
+      );
+
+      // Auto-create firm_owner staff row
+      const existingStaff = await this.staffRepo.findOne({
+        where: { firm_id: firm.id, clerk_user_id: dto.ownerClerkUserId },
+      });
+      if (!existingStaff) {
+        await this.staffRepo.save(
+          this.staffRepo.create({
+            firm_id: firm.id,
+            clerk_user_id: dto.ownerClerkUserId,
+            role: FirmStaffRole.FIRM_OWNER,
+            invited_email: null,
+            accepted_at: new Date(),
+          }),
+        );
+      }
+    }
+
+    // ── Step 5: Client 1 — Business mode ──
+    const client1 = await this._provisionClientBusiness({
+      clerkOrgId: dto.client1OrgId,
+      businessName: dto.client1BusinessName,
+      mode: BusinessMode.BUSINESS,
+      firmId: firm.id,
+      trialEndsAt,
+    });
+    await this.seedTransactions(client1.businessId, 'business_6mo');
+
+    // ── Step 6: Client 2 — Freelancer mode ──
+    const client2 = await this._provisionClientBusiness({
+      clerkOrgId: dto.client2OrgId,
+      businessName: dto.client2BusinessName,
+      mode: BusinessMode.FREELANCER,
+      firmId: firm.id,
+      trialEndsAt,
+    });
+    await this.seedTransactions(client2.businessId, 'freelancer_6mo');
+
+    return {
+      starter,
+      pro,
+      accountant: { ...accountantBiz, firmId: firm.id },
+      client1,
+      client2,
+    };
+  }
+
+  /** Creates a client business linked to a firm via firm_clients. Idempotent. */
+  private async _provisionClientBusiness(opts: {
+    clerkOrgId: string;
+    businessName: string;
+    mode: BusinessMode;
+    firmId: string;
+    trialEndsAt: string;
+  }): Promise<{ businessId: string; created: boolean }> {
+    const result = await this.seedAccount({
+      businessName: opts.businessName,
+      clerkOrgId: opts.clerkOrgId,
+      mode: opts.mode,
+      plan: 'pro' as SubscriptionPlan,
+      trialEndsAt: opts.trialEndsAt,
+    });
+
+    // Stamp created_by_firm_id on the business
+    await this.businessRepo.update(result.businessId, {
+      created_by_firm_id: opts.firmId,
+    });
+
+    // Ensure firm_clients row exists
+    const existing = await this.firmClientRepo.findOne({
+      where: { firm_id: opts.firmId, business_id: result.businessId },
+    });
+    if (!existing) {
+      await this.firmClientRepo.save(
+        this.firmClientRepo.create({
+          firm_id: opts.firmId,
+          business_id: result.businessId,
+          status: FirmClientStatus.ACTIVE,
+        }),
+      );
+    }
+
+    return result;
   }
 
   // ── Admin Check ─────────────────────────────────────────────────────────────
