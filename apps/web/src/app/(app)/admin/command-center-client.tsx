@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
   Mail, Plus, Pencil, Eye, X, Loader2,
-  ToggleLeft, ToggleRight, Megaphone, Users, Zap,
+  ToggleLeft, ToggleRight, Trash2, Megaphone, Users, Zap,
   Send, Ban, ChevronDown, ChevronRight, RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -532,6 +532,7 @@ export function CommandCenterClient() {
   const [previewing, setPreviewing] = useState(false);
   const [sampleVars, setSampleVars] = useState<Record<string, string>>({});
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
 
   // ── Campaigns state ────────────────────────────────────────────────────
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -670,6 +671,15 @@ export function CommandCenterClient() {
       const res = await fetch(url, { method });
       if (res.ok) setTemplates((prev) => prev.map((item) => item.id === t.id ? { ...item, is_active: !t.is_active } : item));
     } finally { setTogglingId(null); }
+  }
+
+  async function handleDeleteTemplate(t: EmailTemplate) {
+    if (!window.confirm(`Permanently delete "${t.name}"? This cannot be undone.`)) return;
+    setDeletingTemplateId(t.id);
+    try {
+      const res = await fetch('/api/proxy/admin/templates/' + t.id + '/delete', { method: 'POST' });
+      if (res.ok) setTemplates((prev) => prev.filter((item) => item.id !== t.id));
+    } finally { setDeletingTemplateId(null); }
   }
 
   // ── Campaign actions ───────────────────────────────────────────────────
@@ -925,6 +935,10 @@ export function CommandCenterClient() {
                               title={t.is_active ? 'Deactivate' : 'Reactivate'}>
                               {togglingId === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
                                 : t.is_active ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
+                            </button>
+                            <button onClick={() => handleDeleteTemplate(t)} disabled={deletingTemplateId === t.id}
+                              className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded" title="Delete permanently">
+                              {deletingTemplateId === t.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                             </button>
                           </div>
                         </td>
