@@ -16,7 +16,6 @@ const EMPTY: FormState = {
 };
 
 interface RequestDemoButtonProps {
-  /** Visual variant — controls button styling */
   variant?: 'hero' | 'footer' | 'nav';
   label?: string;
 }
@@ -41,7 +40,6 @@ export function RequestDemoButton({
 
     setSubmitting(true); setError('');
     try {
-      // Capture any UTM params from the current URL
       const params = new URLSearchParams(window.location.search);
       const utm = {
         utm_source:   params.get('utm_source')   ?? undefined,
@@ -55,9 +53,7 @@ export function RequestDemoButton({
         body: JSON.stringify({ ...form, ...utm }),
       });
 
-      if (res.status === 429) {
-        throw new Error('Too many submissions. Please try again later.');
-      }
+      if (res.status === 429) throw new Error('Too many submissions. Please try again later.');
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.message ?? 'Submission failed — please try again.');
@@ -71,7 +67,6 @@ export function RequestDemoButton({
     }
   }
 
-  // ── Button styles by variant ──────────────────────────────────────────────
   const btnCls = {
     hero:   'inline-flex items-center gap-2 bg-[#E07B39] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#c96a2c] transition-colors shadow-sm',
     footer: 'inline-flex items-center gap-2 bg-[#E07B39] text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-[#c96a2c] transition-colors',
@@ -80,45 +75,60 @@ export function RequestDemoButton({
 
   return (
     <>
-      {/* Trigger button */}
       <button onClick={openModal} className={btnCls}>
         {label}
         {variant !== 'nav' && <ArrowRight className="w-4 h-4" />}
       </button>
 
-      {/* Modal overlay */}
       {open && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
 
-            {/* Header */}
-            <div className="bg-[#1B3A5C] px-6 py-5 flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-bold text-white">Request a Demo</h2>
-                <p className="text-sm text-white/70 mt-0.5">
-                  We&apos;ll walk you through Tempo Books personally.
-                </p>
+            {/* Header — Tempo branded */}
+            <div className="bg-[#0F6E56] px-6 py-5">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  {/* Tempo Logo lockup */}
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                      <svg viewBox="0 0 16 16" className="w-4 h-4" aria-hidden="true">
+                        <rect x="1"   y="10" width="3" height="5" rx="0.5" fill="white" opacity="0.55" />
+                        <rect x="6.5" y="7"  width="3" height="8" rx="0.5" fill="white" opacity="0.8"  />
+                        <rect x="12"  y="3"  width="3" height="12" rx="0.5" fill="white" />
+                      </svg>
+                    </div>
+                    <span className="text-white font-bold text-base tracking-tight leading-none">
+                      Tempo Books
+                    </span>
+                  </div>
+                  <h2 className="text-lg font-bold text-white leading-tight">Request a Demo</h2>
+                  <p className="text-sm text-white/75 mt-0.5">
+                    We&apos;ll walk you through Tempo Books personally.
+                  </p>
+                </div>
+                <button
+                  onClick={closeModal}
+                  className="text-white/60 hover:text-white transition-colors mt-0.5 flex-shrink-0 ml-4"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                onClick={closeModal}
-                className="text-white/60 hover:text-white transition-colors mt-0.5 flex-shrink-0 ml-4"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
+
+            {/* Accent stripe */}
+            <div className="h-0.5 bg-gradient-to-r from-[#5ECBA1] via-[#C3E8D8] to-[#EDF7F2]" />
 
             {/* Body */}
             <div className="px-6 py-5">
               {success ? (
-                /* Success state */
                 <div className="flex flex-col items-center text-center py-6 gap-4">
-                  <div className="w-14 h-14 rounded-full bg-green-50 flex items-center justify-center">
-                    <CheckCircle2 className="w-8 h-8 text-green-600" />
+                  <div className="w-14 h-14 rounded-full bg-[#EDF7F2] flex items-center justify-center">
+                    <CheckCircle2 className="w-8 h-8 text-[#0F6E56]" />
                   </div>
                   <div>
                     <p className="text-base font-semibold text-gray-900">You&apos;re on the list!</p>
                     <p className="text-sm text-gray-500 mt-1">
-                      Thanks — we&apos;ll be in touch soon to set up your demo.
+                      Thanks &mdash; we&apos;ll be in touch soon to set up your demo.
                     </p>
                   </div>
                   <button
@@ -129,7 +139,6 @@ export function RequestDemoButton({
                   </button>
                 </div>
               ) : (
-                /* Form */
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -183,7 +192,9 @@ export function RequestDemoButton({
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-gray-700">Phone <span className="text-gray-400 font-normal">(optional)</span></label>
+                    <label className="text-xs font-medium text-gray-700">
+                      Phone <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
                     <input
                       type="tel"
                       value={form.phone}
@@ -203,7 +214,7 @@ export function RequestDemoButton({
                     className="w-full bg-[#E07B39] text-white font-semibold text-sm py-3 rounded-xl hover:bg-[#c96a2c] transition-colors disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
                   >
                     {submitting
-                      ? <><Loader2 className="w-4 h-4 animate-spin" />Submitting…</>
+                      ? <><Loader2 className="w-4 h-4 animate-spin" />Submitting&hellip;</>
                       : 'Request Demo'}
                   </button>
 
