@@ -337,7 +337,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
                   <span className="text-sm">Loading segments…</span>
                 </div>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                   {segments.map((seg) => (
                     <button
                       key={seg.key}
@@ -377,7 +377,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
               {templates.filter((t) => t.is_active).length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4">No active templates. Create and activate a template first.</p>
               ) : (
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                   {templates.filter((t) => t.is_active).map((t) => (
                     <button
                       key={t.id}
