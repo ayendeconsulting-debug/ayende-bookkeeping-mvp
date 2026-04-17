@@ -527,20 +527,29 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0 0 16px;font-size:16px;color:#333333;">Hi {{first_name}},</p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      Every year, the Canada Revenue Agency keeps millions of dollars that small business owners never claim \u2014
-      not because the deductions weren\u2019t real, but because the paperwork wasn\u2019t right.
+      Every year, the Canada Revenue Agency keeps millions of dollars that small business owners, freelancers,
+      and individuals never claim \u2014 not because the deductions weren\u2019t real, but because the
+      paperwork wasn\u2019t right.
     </p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      Studies consistently show the average Canadian small business misses thousands in legitimate deductions
-      annually \u2014 simply because their books weren\u2019t organized enough to defend the claims at filing time.
+      Studies consistently show the average Canadian misses thousands in legitimate deductions annually \u2014
+      simply because their records weren\u2019t organized enough to defend the claims at filing time.
       That\u2019s money you earned. And it\u2019s sitting with CRA.
     </p>
 
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      We built Tempo Books because of lived experience. I\u2019ve been there personally \u2014 scrambling to
+      collect bank statements and receipts weeks before the filing deadline, not knowing exactly what I could
+      claim, and not fully understanding what my accountant was doing on my behalf until CRA came asking
+      questions. That moment of panic \u2014 realizing your financial story isn\u2019t as clear as it should be \u2014
+      is something no one should have to go through.
+    </p>
+
     <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
-      I built Tempo Books because I watched too many business owners go through the same painful cycle:
-      scramble at tax time, miss deductions, overpay, repeat. The problem was never effort \u2014
-      it was the lack of the right system.
+      Whether you run a corporation, freelance under your own name, or simply want to stop leaving money
+      with CRA \u2014 the problem has never been effort. It has always been the lack of the right system.
+      Tempo Books is that system.
     </p>
 
     <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">Here\u2019s what Tempo does differently:</p>
