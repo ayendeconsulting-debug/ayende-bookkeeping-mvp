@@ -31,6 +31,7 @@ const SEGMENT_META: Omit<SegmentInfo, 'count'>[] = [
   { key: 'no_bank_connected',  label: 'No Bank Connected',        description: 'Signed up but no Plaid connection' },
   { key: 'payment_failed',     label: 'Payment Failed',           description: 'Subscriptions with past_due status' },
   { key: 'cold_leads',         label: 'Cold Leads',               description: 'Manually added cold leads not yet converted' },
+  { key: 'partnership_leads',  label: 'Partnership Leads',        description: 'Government agencies, funds, and organizations targeted for partnership' },
 ];
 
 @Injectable()
@@ -46,25 +47,26 @@ export class SegmentationService {
     private readonly leadRepo: Repository<Lead>,
   ) {}
 
-  // ── Public: resolve a segment key into a recipient list ──────────────────
+  // ── Public: resolve a segment key into a recipient list ──────────────────────
   async resolve(segmentKey: string): Promise<SegmentRecipient[]> {
     switch (segmentKey) {
-      case 'all_users':         return this.querySubs([]);
-      case 'all_active':        return this.querySubs([], 'active');
-      case 'trial_active':      return this.querySubs([], 'trialing');
-      case 'trial_expiring_7d': return this.queryTrialExpiring(7);
-      case 'trial_expiring_3d': return this.queryTrialExpiring(3);
-      case 'plan_starter':      return this.queryByPlan('starter');
-      case 'plan_pro':          return this.queryByPlan('pro');
-      case 'plan_accountant':   return this.queryByPlan('accountant');
-      case 'no_bank_connected': return this.queryNoBankConnected();
-      case 'payment_failed':    return this.querySubs([], 'past_due');
-      case 'cold_leads':        return this.queryColdLeads();
-      default:                  return [];
+      case 'all_users':          return this.querySubs([]);
+      case 'all_active':         return this.querySubs([], 'active');
+      case 'trial_active':       return this.querySubs([], 'trialing');
+      case 'trial_expiring_7d':  return this.queryTrialExpiring(7);
+      case 'trial_expiring_3d':  return this.queryTrialExpiring(3);
+      case 'plan_starter':       return this.queryByPlan('starter');
+      case 'plan_pro':           return this.queryByPlan('pro');
+      case 'plan_accountant':    return this.queryByPlan('accountant');
+      case 'no_bank_connected':  return this.queryNoBankConnected();
+      case 'payment_failed':     return this.querySubs([], 'past_due');
+      case 'cold_leads':         return this.queryColdLeads();
+      case 'partnership_leads':  return this.queryPartnershipLeads();
+      default:                   return [];
     }
   }
 
-  // ── Public: return all segments with live counts ──────────────────────────
+  // ── Public: return all segments with live counts ──────────────────────────────
   async getSegmentInfos(): Promise<SegmentInfo[]> {
     const results = await Promise.all(
       SEGMENT_META.map(async (meta) => {
@@ -75,7 +77,7 @@ export class SegmentationService {
     return results;
   }
 
-  // ── Cold leads — manually added, type=cold, not yet converted ─────────────
+  // ── Cold leads ── manually added, type=cold, not yet converted ────────────────
   private async queryColdLeads(): Promise<SegmentRecipient[]> {
     const leads = await this.leadRepo
       .createQueryBuilder('lead')
@@ -92,7 +94,24 @@ export class SegmentationService {
     }));
   }
 
-  // ── Base query — subs joined to businesses ────────────────────────────────
+  // ── Partnership leads ── type=partnership, not yet converted ──────────────────
+  private async queryPartnershipLeads(): Promise<SegmentRecipient[]> {
+    const leads = await this.leadRepo
+      .createQueryBuilder('lead')
+      .where('lead.type = :type', { type: 'partnership' })
+      .andWhere('lead.status != :status', { status: 'converted' })
+      .andWhere('lead.deleted_at IS NULL')
+      .select(['lead.email', 'lead.first_name', 'lead.last_name', 'lead.company'])
+      .getMany();
+
+    return leads.map((l) => ({
+      email:        l.email,
+      businessName: l.company ?? `${l.first_name} ${l.last_name}`,
+      businessId:   '',
+    }));
+  }
+
+  // ── Base query ── subs joined to businesses ───────────────────────────────────
   private async querySubs(
     plans: string[],
     status?: string,

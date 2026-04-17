@@ -86,6 +86,18 @@ function check(strong: string, rest: string): string {
   </tr>`;
 }
 
+function bullet(text: string): string {
+  return `
+  <tr>
+    <td style="padding:8px 0;border-bottom:1px solid #f0f0f0;vertical-align:top;width:20px;">
+      <span style="color:#0F6E56;font-size:16px;line-height:1;">&bull;</span>
+    </td>
+    <td style="padding:8px 0 8px 12px;border-bottom:1px solid #f0f0f0;">
+      <p style="margin:0;font-size:15px;color:#333333;">${text}</p>
+    </td>
+  </tr>`;
+}
+
 // ── Template definitions ──────────────────────────────────────────────────────
 
 interface SeedTemplate {
@@ -176,7 +188,7 @@ const TEMPLATES: SeedTemplate[] = [
   // 3 ── trial_ending ──────────────────────────────────────────────────────────
   {
     name:        'trial_ending',
-    description: 'Trial ending notification — body_text and subject_line are pre-rendered by EmailService',
+    description: 'Trial ending notification \u2014 body_text and subject_line are pre-rendered by EmailService',
     subject:     '{{subject_line}}',
     from_email:  'noreply@gettempo.ca',
     from_name:   'Tempo Books',
@@ -202,7 +214,7 @@ const TEMPLATES: SeedTemplate[] = [
   // 4 ── payment_failed ────────────────────────────────────────────────────────
   {
     name:        'payment_failed',
-    description: 'Stripe payment failure alert — retry_note is pre-rendered by EmailService',
+    description: 'Stripe payment failure alert \u2014 retry_note is pre-rendered by EmailService',
     subject:     'Action required \u2014 payment failed for your Tempo subscription',
     from_email:  'noreply@gettempo.ca',
     from_name:   'Tempo Books',
@@ -255,7 +267,7 @@ const TEMPLATES: SeedTemplate[] = [
   // 6 ── invoice_email ─────────────────────────────────────────────────────────
   {
     name:        'invoice_email',
-    description: 'Invoice sent to client — complex pre-rendered HTML vars passed by EmailService',
+    description: 'Invoice sent to client \u2014 complex pre-rendered HTML vars passed by EmailService',
     subject:     '{{invoice_subject}}',
     from_email:  'noreply@gettempo.ca',
     from_name:   'Tempo Books',
@@ -305,7 +317,7 @@ const TEMPLATES: SeedTemplate[] = [
 </body></html>`,
   },
 
-  // 7 ── staff_invite ───────────────────────────────────────────────────────────
+  // 7 ── staff_invite ──────────────────────────────────────────────────────────
   {
     name:        'staff_invite',
     description: 'Invitation email sent to new firm staff members',
@@ -380,10 +392,10 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 9 ── access_response ────────────────────────────────────────────────────────
+  // 9 ── access_response ───────────────────────────────────────────────────────
   {
     name:        'access_response',
-    description: 'Sent to accountant firm when client approves or denies access — status_colour and body_text pre-rendered',
+    description: 'Sent to accountant firm when client approves or denies access \u2014 status_colour and body_text pre-rendered',
     subject:     'Edit access request {{status_word}} \u2014 Tempo Books',
     from_email:  'noreply@gettempo.ca',
     from_name:   'Tempo Books',
@@ -399,7 +411,7 @@ const TEMPLATES: SeedTemplate[] = [
   // 10 ── trial_reminder_cron ──────────────────────────────────────────────────
   {
     name:        'trial_reminder_cron',
-    description: 'CRON-triggered trial reminder — reminder_subject, day_text, accent_colour pre-rendered',
+    description: 'CRON-triggered trial reminder \u2014 reminder_subject, day_text, accent_colour pre-rendered',
     subject:     '{{reminder_subject}}',
     from_email:  'noreply@gettempo.ca',
     from_name:   'Tempo Books',
@@ -448,7 +460,7 @@ const TEMPLATES: SeedTemplate[] = [
   // 12 ── ai_cap_warning ───────────────────────────────────────────────────────
   {
     name:        'ai_cap_warning',
-    description: 'AI credit quota warning — warning_subject, body_text, accent_colour pre-rendered',
+    description: 'AI credit quota warning \u2014 warning_subject, body_text, accent_colour pre-rendered',
     subject:     '{{warning_subject}}',
     from_email:  'noreply@gettempo.ca',
     from_name:   'Tempo Books',
@@ -488,7 +500,7 @@ const TEMPLATES: SeedTemplate[] = [
   // 14 ── lead_acknowledgement ─────────────────────────────────────────────────
   {
     name:        'lead_acknowledgement',
-    description: 'Sent to marketing form leads — confirms we received their demo request',
+    description: 'Sent to marketing form leads \u2014 confirms we received their demo request',
     subject:     'Thanks for your interest in Tempo Books',
     from_email:  'admin@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
@@ -516,7 +528,7 @@ const TEMPLATES: SeedTemplate[] = [
   // 15 ── cold_outreach ────────────────────────────────────────────────────────
   {
     name:        'cold_outreach',
-    description: 'Sent automatically when a Cold lead is manually created — introduces Tempo Books with CRA emphasis',
+    description: 'Sent automatically when a Cold lead is manually created \u2014 introduces Tempo Books with CRA emphasis',
     subject:     'Most Canadian small businesses overpay CRA. Here\u2019s how to stop.',
     from_email:  'admin@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
@@ -586,14 +598,402 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
+  // ── PARTNERSHIP TEMPLATES (16–21) ────────────────────────────────────────────
+
+  // 16 ── partnership_mission_fund ─────────────────────────────────────────────
+  {
+    name:        'partnership_mission_fund',
+    description: 'Partnership outreach to mission-aligned funds (BOF, FACE) \u2014 sponsored access model',
+    subject:     'Tempo Books \u2014 Bookkeeping platform for your members',
+    from_email:  'admin@gettempo.ca',
+    from_name:   'Adesanya Ehinmidu',
+    variables:   ['contact_name', 'organization_name'],
+    html_body: wrap(`
+  ${hero('Bookkeeping infrastructure for your members.', '#f8fafc', '#1B3A5C', '#e2e8f0')}
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      My name is Adesanya Ehinmidu. I am the founder of Tempo Books, a Canadian bookkeeping platform
+      built specifically for small and Black-owned businesses.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      Every year, thousands of Black business owners across Canada overpay CRA by $2,000 to $10,000 in
+      missed deductions and unclaimed input tax credits. The cause is not dishonesty \u2014 it is
+      disorganization. Most lack access to affordable bookkeeping tools that work month-to-month,
+      not just at tax time.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      Tempo Books solves this. The platform connects to 12,000+ Canadian bank accounts, classifies every
+      transaction with AI, auto-splits HST/GST, and stores receipts for 6 years in the format CRA
+      requires for audits.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      I am reaching out because {{organization_name}}\u2019s work aligns directly with what we built.
+      Your members are the exact entrepreneurs who need this protection \u2014 and right now, most of
+      them do not have it.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
+          <strong>I would like to explore a partnership where {{organization_name}} members receive
+          full access to Tempo Books at no personal cost, funded through your existing program budget.</strong>
+        </p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
+      I have attached a one-page Partnership Brief with details on how this would work.
+      I would welcome 20 minutes of your time to discuss what a pilot could look like.
+    </p>
+
+    <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you for your time.</p>
+    <p style="margin:0;font-size:15px;color:#555555;">
+      Adesanya Ehinmidu<br/>
+      <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
+        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        &nbsp;|&nbsp;
+        <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
+      </span>
+    </p>
+  </td></tr>`),
+  },
+
+  // 17 ── partnership_community_workshop ───────────────────────────────────────
+  {
+    name:        'partnership_community_workshop',
+    description: 'Partnership outreach to community / workshop organizations (CBCC, BEBC) \u2014 member pricing + workshop model',
+    subject:     'Bookkeeping workshops for {{organization_name}} members \u2014 Tempo Books',
+    from_email:  'admin@gettempo.ca',
+    from_name:   'Adesanya Ehinmidu',
+    variables:   ['contact_name', 'organization_name', 'org_program_type'],
+    html_body: wrap(`
+  ${hero('A bookkeeping partnership for your members.', '#f8fafc', '#1B3A5C', '#e2e8f0')}
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      My name is Adesanya Ehinmidu. I am the founder of Tempo Books, a Canadian bookkeeping platform
+      built for small and Black-owned businesses.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      I have followed {{organization_name}}\u2019s work supporting Black entrepreneurs through
+      {{org_program_type}}, and I believe there is a natural fit between what you deliver and what
+      we have built.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      Most small business owners we speak with share the same challenge: they know bookkeeping matters,
+      but they have never had a tool that makes it manageable. Tax season becomes a scramble, deductions
+      get missed, and CRA compliance feels out of reach. Tempo Books changes that \u2014 the platform
+      automates bank syncing, transaction classification, HST/GST splitting, and receipt storage, all
+      in one place, all CRA-ready.
+    </p>
+
+    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">I would like to propose two things:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+      ${bullet('<strong>A co-branded bookkeeping workshop</strong> for your members, delivered by Tempo Books, covering CRA compliance, receipt management, and monthly close basics.')}
+      ${bullet('<strong>A permanent member pricing arrangement</strong> where {{organization_name}} members lock in our Pro plan at $25/month CAD \u2014 permanently \u2014 even after the public price returns to $49/month.')}
+    </table>
+
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
+          There is no cost to {{organization_name}}. Your members sign up individually, and you deliver
+          an exclusive, lasting benefit.
+        </p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
+      I have attached a one-page overview. Would you be open to a short call to discuss timing?
+    </p>
+
+    <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you,</p>
+    <p style="margin:0;font-size:15px;color:#555555;">
+      Adesanya Ehinmidu<br/>
+      <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
+        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        &nbsp;|&nbsp;
+        <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
+      </span>
+    </p>
+  </td></tr>`),
+  },
+
+  // 18 ── partnership_government_program ───────────────────────────────────────
+  {
+    name:        'partnership_government_program',
+    description: 'Partnership outreach to government programs (BEP, FedDev Ontario) \u2014 infrastructure framing',
+    subject:     'Bookkeeping infrastructure for BEP-funded businesses \u2014 Tempo Books',
+    from_email:  'admin@gettempo.ca',
+    from_name:   'Adesanya Ehinmidu',
+    variables:   ['contact_name', 'organization_name', 'program_name'],
+    html_body: wrap(`
+  ${hero('Financial infrastructure for program participants.', '#f8fafc', '#1B3A5C', '#e2e8f0')}
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      My name is Adesanya Ehinmidu. I am the founder of Tempo Books, a Canadian bookkeeping platform
+      designed for small and Black-owned businesses.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      {{program_name}} represents a significant public investment in Black entrepreneurship across Canada.
+      That level of commitment deserves infrastructure to match \u2014 including the financial tools that
+      help funded businesses survive past year one.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      One of the most common reasons small businesses fail is poor financial visibility. Not lack of
+      revenue, but lack of organized books. Missed deductions, unclaimed input tax credits, and
+      disorganized receipts cost Canadian small business owners $2,000 to $10,000 per year in
+      overpaid taxes alone.
+    </p>
+
+    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">Tempo Books addresses this directly:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+      ${check('Automated bank sync', 'with 12,000+ Canadian institutions')}
+      ${check('AI-powered transaction classification', 'that learns from each correction')}
+      ${check('HST/GST engine', 'generating CRA-ready remittance reports')}
+      ${check('6-year receipt repository', 'meeting CRA audit requirements')}
+    </table>
+
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
+          I would like to discuss how Tempo Books could serve as a bookkeeping resource for
+          {{program_name}} participants \u2014 either through sponsored access or as a recommended
+          tool within your ecosystem partner network.
+        </p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
+      I have attached a Partnership Brief with details on the platform and proposed engagement models.
+      I am happy to provide a demo or additional documentation your team may need for evaluation.
+    </p>
+
+    <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you for your consideration.</p>
+    <p style="margin:0;font-size:15px;color:#555555;">
+      Adesanya Ehinmidu<br/>
+      <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
+        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        &nbsp;|&nbsp;
+        <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
+      </span>
+    </p>
+  </td></tr>`),
+  },
+
+  // 19 ── partnership_bank_program ─────────────────────────────────────────────
+  {
+    name:        'partnership_bank_program',
+    description: 'Partnership outreach to bank entrepreneur programs (RBC, TD, Scotiabank) \u2014 sponsored access + revenue share models',
+    subject:     'Bookkeeping support for {{bank_name}} Black entrepreneur clients \u2014 Tempo Books',
+    from_email:  'admin@gettempo.ca',
+    from_name:   'Adesanya Ehinmidu',
+    variables:   ['contact_name', 'bank_name'],
+    html_body: wrap(`
+  ${hero('Bookkeeping support for your entrepreneur clients.', '#f8fafc', '#1B3A5C', '#e2e8f0')}
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      My name is Adesanya Ehinmidu. I am the founder of Tempo Books, a Canadian bookkeeping platform
+      built for small and Black-owned businesses.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      {{bank_name}}\u2019s commitment to Black entrepreneurship is well documented, and the businesses
+      you support face a challenge your program is uniquely positioned to address: most of them do not
+      have organized books.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      This means missed deductions, unclaimed input tax credits, and a scramble every tax season.
+      For businesses that have received financing, the stakes are higher \u2014 disorganized books make
+      it harder to demonstrate financial health, access follow-on capital, and survive a CRA audit.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      Tempo Books automates the entire bookkeeping process: bank sync with 12,000+ Canadian institutions
+      (including {{bank_name}}), AI-powered classification, automatic HST/GST splitting, and 6-year
+      CRA-compliant receipt storage.
+    </p>
+
+    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">I see two potential models:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+      ${bullet('<strong>Sponsored Access:</strong> {{bank_name}} subscribes on behalf of program participants at a negotiated bulk rate. Businesses get full Pro access at no personal cost.')}
+      ${bullet('<strong>Revenue Share Referral:</strong> {{bank_name}} recommends Tempo Books to clients through its entrepreneur program. We handle billing, support, and onboarding. {{bank_name}} earns a commission on every conversion.')}
+    </table>
+
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
+          Either model gives {{bank_name}}\u2019s clients clean, audit-ready books from day one \u2014
+          and gives your program a measurable financial literacy outcome.
+        </p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
+      I have attached a one-page Partnership Brief. I would welcome the opportunity to discuss a pilot.
+    </p>
+
+    <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you,</p>
+    <p style="margin:0;font-size:15px;color:#555555;">
+      Adesanya Ehinmidu<br/>
+      <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
+        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        &nbsp;|&nbsp;
+        <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
+      </span>
+    </p>
+  </td></tr>`),
+  },
+
+  // 20 ── partnership_cra_liaison ───────────────────────────────────────────────
+  {
+    name:        'partnership_cra_liaison',
+    description: 'Outreach to CRA Liaison Officer Initiative \u2014 resource listing framing, no endorsement ask',
+    subject:     'Bookkeeping platform for small businesses \u2014 Tempo Books partnership inquiry',
+    from_email:  'admin@gettempo.ca',
+    from_name:   'Adesanya Ehinmidu',
+    variables:   ['contact_name'],
+    html_body: wrap(`
+  ${hero('Helping small businesses act on CRA guidance.', '#f8fafc', '#1B3A5C', '#e2e8f0')}
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      My name is Adesanya Ehinmidu. I am the founder of Tempo Books, a Canadian bookkeeping platform
+      for small businesses.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      The CRA Liaison Officer program provides a valuable service by helping small businesses understand
+      their tax obligations before problems arise. I have built a tool that addresses the other half of
+      that equation: making sure those businesses can actually maintain organized books on an ongoing basis.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      Many small business owners we work with understand what CRA requires. They simply lack the tools to
+      do it consistently. Tempo Books automates bank syncing, transaction categorization, HST/GST splitting,
+      and receipt storage \u2014 giving business owners CRA-ready books every month, not just at filing time.
+    </p>
+
+    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
+      The platform also maintains a 6-year receipt repository, storing receipts and invoices from the date
+      of upload in the format CRA accepts for audits.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
+          I would like to explore whether Tempo Books could be included as a recommended resource in
+          Liaison Officer workshops and educational materials \u2014 not as an endorsement, but as an
+          available tool that helps business owners put your guidance into practice.
+        </p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
+      I have attached a brief overview of the platform. I am happy to provide a walkthrough or answer
+      any questions about how the tool supports CRA compliance.
+    </p>
+
+    <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you for your time.</p>
+    <p style="margin:0;font-size:15px;color:#555555;">
+      Adesanya Ehinmidu<br/>
+      <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
+        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        &nbsp;|&nbsp;
+        <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
+      </span>
+    </p>
+  </td></tr>`),
+  },
+
+  // 21 ── partnership_followup ──────────────────────────────────────────────────
+  {
+    name:        'partnership_followup',
+    description: 'Follow-up to all Wave 1 partnership contacts who did not respond within 10\u201314 business days',
+    subject:     'Re: Tempo Books \u2014 following up',
+    from_email:  'admin@gettempo.ca',
+    from_name:   'Adesanya Ehinmidu',
+    variables:   ['contact_name', 'organization_name', 'original_send_date'],
+    html_body: wrap(`
+  ${hero('Following up on our partnership inquiry.', '#f8fafc', '#1B3A5C', '#e2e8f0')}
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      I wanted to follow up on the email I sent on {{original_send_date}} regarding a potential
+      partnership between {{organization_name}} and Tempo Books.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      I understand your schedule is busy. I will keep this brief.
+    </p>
+
+    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
+      Tempo Books is a Canadian bookkeeping platform that gives small and Black-owned businesses clean,
+      CRA-ready books every month. We automate bank syncing, transaction classification, HST/GST, and
+      6-year receipt storage.
+    </p>
+
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
+      <tr><td style="padding:16px 20px;">
+        <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
+          I believe there is a strong fit between what {{organization_name}} does for its members and
+          the financial infrastructure Tempo Books provides. I would welcome even 15 minutes to explore
+          whether a partnership makes sense.
+        </p>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
+      If the timing is not right, no problem at all \u2014 I am happy to reconnect later in the year.
+    </p>
+
+    <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you,</p>
+    <p style="margin:0;font-size:15px;color:#555555;">
+      Adesanya Ehinmidu<br/>
+      <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
+        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        &nbsp;|&nbsp;
+        <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
+      </span>
+    </p>
+  </td></tr>`),
+  },
+
 ];
 
-// ── Templates that must be force-updated on every deploy ─────────────────────
+// ── Templates that must be force-updated on every deploy ──────────────────────
 // Add a template name here when its copy has been intentionally revised.
-// The seed will overwrite html_body and subject in the DB on next Railway deploy.
 const FORCE_UPDATE_NAMES = new Set<string>([
   'cold_outreach',
   'lead_acknowledgement',
+  'partnership_mission_fund',
+  'partnership_community_workshop',
+  'partnership_government_program',
+  'partnership_bank_program',
+  'partnership_cra_liaison',
+  'partnership_followup',
 ]);
 
 interface SeedRule {
@@ -605,9 +1005,9 @@ interface SeedRule {
 
 const RULE_SEEDS: SeedRule[] = [
   { name: 'Welcome on signup',          trigger_event: 'user.created',           template_name: 'signup_welcome',            delay_minutes: 0  },
-  { name: 'Trial ending — 7 days',      trigger_event: 'trial.ending_7d',        template_name: 'trial_ending',              delay_minutes: 0  },
-  { name: 'Trial ending — 3 days',      trigger_event: 'trial.ending_3d',        template_name: 'trial_ending',              delay_minutes: 0  },
-  { name: 'Trial ending — today',       trigger_event: 'trial.ending_0d',        template_name: 'trial_ending',              delay_minutes: 0  },
+  { name: 'Trial ending \u2014 7 days', trigger_event: 'trial.ending_7d',        template_name: 'trial_ending',              delay_minutes: 0  },
+  { name: 'Trial ending \u2014 3 days', trigger_event: 'trial.ending_3d',        template_name: 'trial_ending',              delay_minutes: 0  },
+  { name: 'Trial ending \u2014 today',  trigger_event: 'trial.ending_0d',        template_name: 'trial_ending',              delay_minutes: 0  },
   { name: 'Payment failed',             trigger_event: 'payment.failed',         template_name: 'payment_failed',            delay_minutes: 0  },
   { name: 'Abandoned cart',             trigger_event: 'cart.abandoned',         template_name: 'abandoned_cart',            delay_minutes: 60 },
   { name: 'New lead acknowledgement',   trigger_event: 'lead.created',           template_name: 'lead_acknowledgement',      delay_minutes: 0  },
@@ -618,7 +1018,7 @@ const RULE_SEEDS: SeedRule[] = [
   { name: 'Cold lead outreach',         trigger_event: 'lead.cold_created',      template_name: 'cold_outreach',             delay_minutes: 0  },
 ];
 
-// ── Service ──────────────────────────────────────────────────────────────────
+// ── Service ───────────────────────────────────────────────────────────────────
 
 @Injectable()
 export class TemplateSeedService implements OnModuleInit {
@@ -632,7 +1032,7 @@ export class TemplateSeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    // ── 1. Seed / force-update templates ──────────────────────────────────
+    // ── 1. Seed / force-update templates ──────────────────────────────────────
     let templatesSeeded = 0;
     let templatesUpdated = 0;
 
@@ -657,9 +1057,9 @@ export class TemplateSeedService implements OnModuleInit {
       } else if (FORCE_UPDATE_NAMES.has(t.name)) {
         // Force-update html_body and subject — preserves admin edits to
         // from_email, from_name, and variables.
-        existing.subject  = t.subject;
+        existing.subject   = t.subject;
         existing.html_body = t.html_body;
-        existing.version  = (existing.version ?? 1) + 1;
+        existing.version   = (existing.version ?? 1) + 1;
         await this.repo.save(existing);
         templatesUpdated++;
       }
@@ -671,7 +1071,7 @@ export class TemplateSeedService implements OnModuleInit {
       this.logger.log(`Email template seed: all ${TEMPLATES.length} templates already present`);
     }
 
-    // ── 2. Seed automation rules ───────────────────────────────────────────
+    // ── 2. Seed automation rules ───────────────────────────────────────────────
     let rulesSeeded = 0;
     for (const r of RULE_SEEDS) {
       const existingRule = await this.ruleRepo.findOne({ where: { name: r.name } });

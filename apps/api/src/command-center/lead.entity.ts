@@ -1,4 +1,4 @@
-﻿import {
+import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
@@ -7,7 +7,7 @@
 } from 'typeorm';
 
 export type LeadStatus = 'new' | 'contacted' | 'nurturing' | 'converted' | 'lost';
-export type LeadType   = 'inbound' | 'cold';
+export type LeadType   = 'inbound' | 'cold' | 'partnership';
 
 @Entity('leads')
 export class Lead {
@@ -34,7 +34,7 @@ export class Lead {
 
   @Column({
     type: 'enum',
-    enum: ['inbound', 'cold'],
+    enum: ['inbound', 'cold', 'partnership'],
     default: 'inbound',
   })
   type: LeadType;
