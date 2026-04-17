@@ -899,7 +899,7 @@ export function CommandCenterClient() {
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Updated</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-16">v</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-20">Status</th>
-                      <th className="px-4 py-2.5 w-24" />
+                      <th className="px-4 py-2.5 w-36" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
