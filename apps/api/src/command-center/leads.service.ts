@@ -1,4 +1,4 @@
-﻿import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { Lead, LeadStatus, LeadType } from './lead.entity';
@@ -38,7 +38,7 @@ export class LeadsService {
   ) {}
 
   findAll(status?: LeadStatus): Promise<Lead[]> {
-    const where: any = { deleted_at: null };
+    const where: any = { deleted_at: IsNull() };
     if (status) where.status = status;
     return this.repo.find({ where, order: { created_at: 'DESC' } });
   }

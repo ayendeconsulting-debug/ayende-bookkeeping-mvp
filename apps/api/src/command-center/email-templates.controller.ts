@@ -59,6 +59,13 @@ export class EmailTemplatesController {
     return this.service.preview(id, body.vars ?? {});
   }
 
+  /** POST /admin/templates/:id/delete — permanent hard delete */
+  @Post(':id/delete')
+  @HttpCode(HttpStatus.OK)
+  hardDelete(@Param('id') id: string) {
+    return this.service.hardDelete(id);
+  }
+
   /** POST /admin/templates/:id/reactivate */
   @Post(':id/reactivate')
   @HttpCode(HttpStatus.OK)

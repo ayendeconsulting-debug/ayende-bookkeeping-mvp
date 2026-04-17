@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   ConflictException,
@@ -99,6 +99,12 @@ export class EmailTemplatesService {
     const template = await this.findOne(id);
     template.is_active = true;
     await this.repo.save(template);
+    return { success: true };
+  }
+
+  async hardDelete(id: string): Promise<{ success: boolean }> {
+    const template = await this.findOne(id);
+    await this.repo.remove(template);
     return { success: true };
   }
 
