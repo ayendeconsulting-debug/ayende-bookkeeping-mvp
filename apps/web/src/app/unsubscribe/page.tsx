@@ -1,4 +1,4 @@
-import { UnsubscribeForm } from './unsubscribe-form';
+﻿import { UnsubscribeForm } from './unsubscribe-form';
 
 const API_URL = process.env.API_URL || 'http://127.0.0.1:3005';
 
@@ -7,7 +7,6 @@ interface PageProps {
 }
 
 export default async function UnsubscribePage({ searchParams }: PageProps) {
-  // Support both Next.js 14 (sync) and 15 (async Promise) searchParams
   const params = await Promise.resolve(searchParams);
   const token  = params.token ?? '';
 
@@ -18,18 +17,21 @@ export default async function UnsubscribePage({ searchParams }: PageProps) {
     initialError = 'Missing or invalid unsubscribe link. Please use the link from your email.';
   } else {
     try {
-      const res = await fetch(
-        `${API_URL}/unsubscribe?token=${encodeURIComponent(token)}`,
-        { cache: 'no-store' },
-      );
-      const data = await res.json();
-      if (!res.ok || data.message || data.error) {
-        initialError = 'This unsubscribe link is invalid. Please use the link from your email.';
+      const url = `${API_URL}/unsubscribe?token=${encodeURIComponent(token)}`;
+      const res = await fetch(url, { cache: 'no-store' });
+      const text = await res.text();
+      let data: Record<string, unknown> = {};
+      try { data = JSON.parse(text); } catch { /* not JSON */ }
+
+      if (!res.ok) {
+        const msg = (data.message as string) ?? text.slice(0, 200);
+        initialError = `[${res.status}] ${msg}`;
       } else {
-        initialPrefs = data;
+        initialPrefs = data as any;
       }
-    } catch {
-      initialError = 'Something went wrong loading your preferences. Please try again.';
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'unknown';
+      initialError = `Network error: ${msg}`;
     }
   }
 
