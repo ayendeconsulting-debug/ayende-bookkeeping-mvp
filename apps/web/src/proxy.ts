@@ -1,4 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+﻿import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.API_URL || 'http://localhost:3005';
@@ -20,7 +20,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/unsubscribe(.*)',
   '/api/public/leads',
-  '/api/public/unsubscribe(.*)',
+  '/api/public/unsubscribe',
 ]);
 
 // ── Subdomain extraction ──────────────────────────────────────────────────────
