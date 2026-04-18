@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Get,
   Post,
@@ -7,6 +7,7 @@ import {
   BadRequestException,
   Logger,
 } from '@nestjs/common';
+import { Public } from '../auth/public.decorator';
 import { ConfigService } from '@nestjs/config';
 import { EmailPreferencesService, PreferenceFlags } from './email-preferences.service';
 import { verifyToken } from './unsubscribe.helper';
@@ -30,6 +31,7 @@ export class UnsubscribeController {
   ) {}
 
   // ── GET /unsubscribe?token= ── return current preferences ──────────────────
+  @Public()
   @Get()
   async getPreferences(@Query('token') token: string) {
     const secret = this.configService.get<string>('UNSUBSCRIBE_SECRET') ?? '';
@@ -41,6 +43,7 @@ export class UnsubscribeController {
   }
 
   // ── POST /unsubscribe ── save updated preferences ──────────────────────────
+  @Public()
   @Post()
   async savePreferences(@Body() body: SavePreferencesDto) {
     const secret = this.configService.get<string>('UNSUBSCRIBE_SECRET') ?? '';
