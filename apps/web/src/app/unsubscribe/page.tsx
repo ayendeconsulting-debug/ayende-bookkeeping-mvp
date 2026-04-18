@@ -17,21 +17,18 @@ export default async function UnsubscribePage({ searchParams }: PageProps) {
     initialError = 'Missing or invalid unsubscribe link. Please use the link from your email.';
   } else {
     try {
-      const url = `${API_URL}/unsubscribe?token=${encodeURIComponent(token)}`;
-      const res = await fetch(url, { cache: 'no-store' });
-      const text = await res.text();
-      let data: Record<string, unknown> = {};
-      try { data = JSON.parse(text); } catch { /* not JSON */ }
-
+      const res = await fetch(
+        `${API_URL}/unsubscribe?token=${encodeURIComponent(token)}`,
+        { cache: 'no-store' },
+      );
+      const data = await res.json();
       if (!res.ok) {
-        const msg = (data.message as string) ?? text.slice(0, 200);
-        initialError = `[${res.status}] ${msg}`;
+        initialError = 'This unsubscribe link is invalid. Please use the link from your email.';
       } else {
-        initialPrefs = data as any;
+        initialPrefs = data;
       }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'unknown';
-      initialError = `Network error: ${msg}`;
+    } catch {
+      initialError = 'Something went wrong loading your preferences. Please try again.';
     }
   }
 
