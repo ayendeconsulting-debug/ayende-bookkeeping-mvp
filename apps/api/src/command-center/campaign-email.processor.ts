@@ -8,6 +8,12 @@ import { Resend } from 'resend';
 import { CampaignRecipient } from './campaign-recipient.entity';
 import { Campaign } from './campaign.entity';
 import { EmailTemplatesService } from './email-templates.service';
+import { EmailPreferencesService } from './email-preferences.service';
+import {
+  TEMPLATE_CATEGORY_MAP,
+  generateToken,
+  injectUnsubscribeFooter,
+} from './unsubscribe.helper';
 
 export interface CampaignEmailJobData {
   campaignId: string;
@@ -28,6 +34,7 @@ export class CampaignEmailProcessor extends WorkerHost {
     @InjectRepository(Campaign)
     private readonly campaignRepo: Repository<Campaign>,
     private readonly templatesService: EmailTemplatesService,
+    private readonly prefsService: EmailPreferencesService,
     private readonly configService: ConfigService,
   ) {
     super();
@@ -40,13 +47,35 @@ export class CampaignEmailProcessor extends WorkerHost {
     try {
       const template = await this.templatesService.findOne(templateId);
 
+      // ── CASL unsubscribe check ─────────────────────────────────────────────
+      // Templates in TEMPLATE_CATEGORY_MAP use their mapped category.
+      // All other campaign sends are treated as 'broadcasts'.
+      const category = TEMPLATE_CATEGORY_MAP[template.name] ?? 'broadcasts';
+      const isUnsubscribed = await this.prefsService.isUnsubscribed(email, category);
+
+      if (isUnsubscribed) {
+        await this.recipientRepo.update(recipientId, {
+          status: 'failed',
+          error_message: 'CASL: recipient unsubscribed',
+        });
+        this.logger.log(`Campaign email skipped (unsubscribed) → ${email} (campaign: ${campaignId})`);
+        await this.checkCampaignComplete(campaignId);
+        return;
+      }
+
       const vars: Record<string, string> = {
         business_name: businessName,
-        first_name: businessName,
+        first_name:    businessName,
       };
 
-      const subject = this.templatesService.renderVars(template.subject, vars);
-      const html = this.templatesService.renderVars(template.html_body, vars);
+      const subject  = this.templatesService.renderVars(template.subject,   vars);
+      const rawHtml  = this.templatesService.renderVars(template.html_body, vars);
+
+      // ── Inject CASL-compliant unsubscribe footer ───────────────────────────
+      const secret = this.configService.get<string>('UNSUBSCRIBE_SECRET') ?? '';
+      const appUrl = this.configService.get<string>('APP_URL') ?? 'https://gettempo.ca';
+      const token  = generateToken(email, secret);
+      const html   = injectUnsubscribeFooter(rawHtml, token, appUrl);
 
       const fromName  = template.from_name  || 'Tempo Books';
       const fromEmail = template.from_email || 'noreply@gettempo.ca';
@@ -73,7 +102,6 @@ export class CampaignEmailProcessor extends WorkerHost {
       this.logger.error(`Campaign email failed → ${email}: ${msg}`);
     }
 
-    // Check if all recipients for this campaign are done
     await this.checkCampaignComplete(campaignId);
   }
 

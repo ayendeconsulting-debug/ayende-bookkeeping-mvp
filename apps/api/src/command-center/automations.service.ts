@@ -6,6 +6,12 @@ import { Resend } from 'resend';
 import { AutomationRule } from './automation-rule.entity';
 import { EmailSendLog } from './email-send-log.entity';
 import { EmailTemplatesService } from './email-templates.service';
+import { EmailPreferencesService } from './email-preferences.service';
+import {
+  TEMPLATE_CATEGORY_MAP,
+  generateToken,
+  injectUnsubscribeFooter,
+} from './unsubscribe.helper';
 
 export interface CreateAutomationRuleDto {
   name: string;
@@ -33,6 +39,7 @@ export class AutomationsService {
     @InjectRepository(EmailSendLog)
     private readonly logRepo: Repository<EmailSendLog>,
     private readonly templatesService: EmailTemplatesService,
+    private readonly prefsService: EmailPreferencesService,
     private readonly configService: ConfigService,
   ) {
     this.resend = new Resend(this.configService.get<string>('RESEND_API_KEY'));
@@ -90,6 +97,9 @@ export class AutomationsService {
       return;
     }
 
+    const secret = this.configService.get<string>('UNSUBSCRIBE_SECRET') ?? '';
+    const appUrl = this.configService.get<string>('APP_URL') ?? 'https://gettempo.ca';
+
     for (const rule of rules) {
       let template;
       try {
@@ -112,10 +122,39 @@ export class AutomationsService {
         continue;
       }
 
+      // ── CASL unsubscribe check ─────────────────────────────────────────────
+      const category = TEMPLATE_CATEGORY_MAP[template.name];
+      if (category) {
+        const isUnsubscribed = await this.prefsService.isUnsubscribed(toEmail, category);
+        if (isUnsubscribed) {
+          const subject = this.templatesService.renderVars(template.subject, vars);
+          await this.logRepo.save(
+            this.logRepo.create({
+              to_email:      toEmail,
+              template_name: template.name,
+              subject,
+              trigger:       `automation:${triggerEvent}`,
+              status:        'skipped_unsubscribed',
+            }),
+          );
+          this.logger.log(
+            `Automation skipped (unsubscribed): "${rule.name}" (${triggerEvent}) → ${toEmail}`,
+          );
+          continue;
+        }
+      }
+
       const subject   = this.templatesService.renderVars(template.subject,   vars);
-      const html      = this.templatesService.renderVars(template.html_body, vars);
+      const rawHtml   = this.templatesService.renderVars(template.html_body, vars);
       const fromName  = template.from_name  || 'Tempo Books';
       const fromEmail = template.from_email || 'noreply@gettempo.ca';
+
+      // ── Inject CASL-compliant unsubscribe footer for commercial templates ──
+      let html = rawHtml;
+      if (category) {
+        const token = generateToken(toEmail, secret);
+        html = injectUnsubscribeFooter(rawHtml, token, appUrl);
+      }
 
       try {
         const result = await this.resend.emails.send({

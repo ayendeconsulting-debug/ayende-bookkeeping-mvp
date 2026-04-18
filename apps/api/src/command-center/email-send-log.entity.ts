@@ -21,10 +21,10 @@ export class EmailSendLog {
 
   @Column({
     type: 'enum',
-    enum: ['sent', 'failed'],
+    enum: ['sent', 'failed', 'skipped_unsubscribed'],
     default: 'sent',
   })
-  status: 'sent' | 'failed';
+  status: 'sent' | 'failed' | 'skipped_unsubscribed';
 
   @Column({ length: 255, nullable: true })
   resend_id: string;

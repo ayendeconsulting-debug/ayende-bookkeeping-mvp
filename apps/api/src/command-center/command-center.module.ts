@@ -1,4 +1,4 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { EmailTemplate } from './email-template.entity';
@@ -7,6 +7,7 @@ import { CampaignRecipient } from './campaign-recipient.entity';
 import { Lead } from './lead.entity';
 import { AutomationRule } from './automation-rule.entity';
 import { EmailSendLog } from './email-send-log.entity';
+import { EmailPreferences } from './email-preferences.entity';
 import { Subscription } from '../entities/subscription.entity';
 import { Business } from '../entities/business.entity';
 import { PlaidItem } from '../entities/plaid-item.entity';
@@ -21,6 +22,8 @@ import { AdminLeadsController, PublicLeadsController } from './leads.controller'
 import { AutomationsService } from './automations.service';
 import { AdminAutomationsController } from './automations.controller';
 import { TemplateSeedService } from './template-seed.service';
+import { EmailPreferencesService } from './email-preferences.service';
+import { UnsubscribeController } from './unsubscribe.controller';
 import { AdminGuard } from '../admin/admin.guard';
 
 @Module({
@@ -32,6 +35,7 @@ import { AdminGuard } from '../admin/admin.guard';
       Lead,
       AutomationRule,
       EmailSendLog,
+      EmailPreferences,
       Subscription,
       Business,
       PlaidItem,
@@ -45,6 +49,7 @@ import { AdminGuard } from '../admin/admin.guard';
     AdminLeadsController,
     PublicLeadsController,
     AdminAutomationsController,
+    UnsubscribeController,
   ],
   providers: [
     EmailTemplatesService,
@@ -54,8 +59,15 @@ import { AdminGuard } from '../admin/admin.guard';
     LeadsService,
     AutomationsService,
     TemplateSeedService,
+    EmailPreferencesService,
     AdminGuard,
   ],
-  exports: [EmailTemplatesService, SegmentationService, LeadsService, AutomationsService],
+  exports: [
+    EmailTemplatesService,
+    SegmentationService,
+    LeadsService,
+    AutomationsService,
+    EmailPreferencesService,
+  ],
 })
 export class CommandCenterModule {}
