@@ -34,7 +34,7 @@ export class PlaidService {
   private readonly logger = new Logger(PlaidService.name);
   private readonly plaidClient: PlaidApi;
 
-  /** In-memory JWK cache – keys are rotated rarely; cache indefinitely per kid */
+  /** In-memory JWK cache -- keys are rotated rarely; cache indefinitely per kid */
   private readonly jwkCache = new Map<string, any>();
 
   constructor(
@@ -70,7 +70,7 @@ export class PlaidService {
     this.plaidClient = new PlaidApi(config);
   }
 
-  // ─── LINK TOKEN ──────────────────────────────────────────────────────────
+  // --- LINK TOKEN ----------------------------------------------------------
 
   async createLinkToken(businessId: string, userId: string): Promise<string> {
     try {
@@ -89,7 +89,7 @@ export class PlaidService {
     }
   }
 
-  // ─── TOKEN EXCHANGE ──────────────────────────────────────────────────────
+  // --- TOKEN EXCHANGE ------------------------------------------------------
 
   async exchangeToken(businessId: string, dto: ExchangeTokenDto): Promise<PlaidItem> {
     let exchangeResponse;
@@ -141,7 +141,7 @@ export class PlaidService {
     });
   }
 
-  // ─── ACCOUNTS ────────────────────────────────────────────────────────────
+  // --- ACCOUNTS ------------------------------------------------------------
 
   private async fetchAndSaveAccounts(
     manager: any,
@@ -195,7 +195,7 @@ export class PlaidService {
     });
   }
 
-  // ─── CONNECTED ITEMS ─────────────────────────────────────────────────────
+  // --- CONNECTED ITEMS -----------------------------------------------------
 
   async getItemsForBusiness(businessId: string): Promise<PlaidItem[]> {
     return this.plaidItemRepo.find({
@@ -231,7 +231,7 @@ export class PlaidService {
     this.logger.log(`Disconnected Plaid item ${itemId} for business ${businessId}`);
   }
 
-  // ─── WEBHOOK SIGNATURE VERIFICATION ──────────────────────────────────────
+  // --- WEBHOOK SIGNATURE VERIFICATION --------------------------------------
 
   async verifyWebhookSignature(rawBody: string, signature: string): Promise<void> {
     const isSandbox = (process.env.PLAID_ENV || 'sandbox') === 'sandbox';
@@ -264,7 +264,7 @@ export class PlaidService {
       const claimedHash    = (payload as any).request_body_sha256 as string;
 
       if (!claimedHash || claimedHash !== bodyHash) {
-        throw new Error('request_body_sha256 mismatch – possible replay or tampering');
+        throw new Error('request_body_sha256 mismatch -- possible replay or tampering');
       }
     } catch (err: any) {
       if (err?.status === 401) throw err;
@@ -273,7 +273,7 @@ export class PlaidService {
     }
   }
 
-  // ─── WEBHOOK HANDLING ─────────────────────────────────────────────────────
+  // --- WEBHOOK HANDLING ----------------------------------------------------
 
   async handleWebhook(
     payload: Record<string, any>,
@@ -340,7 +340,7 @@ export class PlaidService {
     }
   }
 
-  // ─── TRANSACTION SYNC ─────────────────────────────────────────────────────
+  // --- TRANSACTION SYNC ----------------------------------------------------
 
   async syncTransactions(plaidItemId: string): Promise<{ added: number; modified: number; removed: number }> {
     const plaidItem = await this.plaidItemRepo.findOne({
@@ -350,21 +350,25 @@ export class PlaidService {
 
     const access_token = decryptToken(plaidItem.access_token_encrypted);
 
-    // ── Refresh account balances on every sync ────────────────────────────
+    // -- Refresh account names and balances on every sync ------------------
+    // Fix: name and official_name are now included so account names stay
+    // current if the user renames an account at their bank.
     try {
       const balRes = await this.plaidClient.accountsGet({ access_token });
       for (const acct of balRes.data.accounts) {
         await this.plaidAccountRepo.update(
           { account_id: acct.account_id },
           {
+            name:              acct.name              ?? undefined,
+            official_name:     acct.official_name     ?? undefined,
             current_balance:   acct.balances?.current   ?? undefined,
             available_balance: acct.balances?.available ?? undefined,
           },
         );
       }
-      this.logger.log(`Balances refreshed for item ${plaidItemId}`);
+      this.logger.log(`Account names and balances refreshed for item ${plaidItemId}`);
     } catch (balErr: any) {
-      this.logger.warn(`Balance refresh skipped for item ${plaidItemId}: ${balErr.message}`);
+      this.logger.warn(`Account refresh skipped for item ${plaidItemId}: ${balErr.message}`);
     }
 
     const cursorRecord = await this.plaidSyncCursorRepo.findOne({ where: { plaid_item_id: plaidItemId } });
