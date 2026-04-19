@@ -41,11 +41,11 @@ export class Business {
   @Column({ type: 'date', default: '2024-12-31' })
   fiscal_year_end: Date;
 
-  // Clerk Organization ID — links Clerk org to this business record
+  // Clerk Organization ID -- links Clerk org to this business record
   @Column({ name: 'clerk_org_id', type: 'varchar', length: 255, nullable: true, unique: true })
   clerk_org_id: string | null;
 
-  // Phase 5: Platform mode — determines UI experience and available features
+  // Phase 5: Platform mode -- determines UI experience and available features
   @Column({
     type: 'enum',
     enum: BusinessMode,
@@ -54,7 +54,7 @@ export class Business {
   })
   mode: BusinessMode;
 
-  // Phase 5: Country code — drives tax rate calculations and mileage rates (CA or US)
+  // Phase 5: Country code -- drives tax rate calculations and mileage rates (CA or US)
   @Column({ type: 'varchar', length: 2, default: 'CA' })
   country: string;
 
@@ -70,7 +70,7 @@ export class Business {
   @Column({ type: 'jsonb', default: {} })
   settings: Record<string, any>;
 
-  // ── Phase 9: Canadian Tax Settings ───────────────────────────────────────
+  // -- Phase 9: Canadian Tax Settings --------------------------------------
 
   // Province/territory where the business operates (ISO 3166-2 CA code: ON, BC, AB, etc.)
   @Column({ type: 'varchar', length: 2, nullable: true })
@@ -80,7 +80,7 @@ export class Business {
   @Column({ type: 'varchar', length: 20, nullable: true })
   hst_registration_number: string | null;
 
-  // HST/GST reporting frequency — determines default period length
+  // HST/GST reporting frequency -- determines default period length
   @Column({
     type: 'enum',
     enum: HstReportingFrequency,
@@ -90,7 +90,7 @@ export class Business {
   })
   hst_reporting_frequency: HstReportingFrequency | null;
 
-  // ── Phase 10: Accountant Portal ──────────────────────────────────────────
+  // -- Phase 10: Accountant Portal -----------------------------------------
 
   // Soft reference to the accountant firm that created this business.
   // Null for self-onboarded businesses. Used by metered billing job to
@@ -98,13 +98,21 @@ export class Business {
   @Column({ type: 'uuid', nullable: true })
   created_by_firm_id: string | null;
 
-  // ── Phase 12: Business Recurring Detection ───────────────────────────────
+  // -- Phase 12: Business Recurring Detection ------------------------------
 
   // Stores confirmed and dismissed detection keys so the detection panel
   // does not re-surface patterns the user has already acted on.
   // Shape: { confirmed: string[], dismissed: string[] }
   @Column({ type: 'jsonb', nullable: true })
   recurring_detection_settings: { confirmed: string[]; dismissed: string[] } | null;
+
+  // -- Phase 20: Mobile Push Notifications ---------------------------------
+
+  // Expo push token for the mobile app. Upserted on every app launch after
+  // the user grants notification permission. Null when permission is denied
+  // or the user has never signed in from the mobile app.
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  expo_push_token: string | null;
 
   // Relationships
   @OneToMany(() => BusinessUser, (businessUser) => businessUser.business)

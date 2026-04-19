@@ -28,6 +28,10 @@ export class UpdateBusinessDto {
   @IsOptional() settings?: Record<string, any>;
 }
 
+export class UpdatePushTokenDto {
+  @IsString() @IsOptional() token?: string | null;
+}
+
 export class SeedAccountsDto {
   @IsString()
   @IsIn(['general', 'retail', 'services', 'construction', 'restaurant', 'freelancer', 'personal'])
@@ -51,7 +55,7 @@ export class BusinessesController {
 
   /**
    * POST /businesses/provision
-   * Public — idempotent, called by frontend on every page load.
+   * Public -- idempotent, called by frontend on every page load.
    */
   @Public()
   @Post('provision')
@@ -61,7 +65,7 @@ export class BusinessesController {
   }
 
   /**
-   * GET /businesses/me — all roles
+   * GET /businesses/me -- all roles
    */
   @Get('me')
   async getMe(@Req() req: Request) {
@@ -84,7 +88,7 @@ export class BusinessesController {
   }
 
   /**
-   * PATCH /businesses/me — admin only
+   * PATCH /businesses/me -- admin only
    */
   @Roles('admin')
   @Patch('me')
@@ -102,7 +106,19 @@ export class BusinessesController {
   }
 
   /**
-   * PATCH /businesses/me/tax-settings — admin only
+   * PATCH /businesses/me/push-token
+   * Any authenticated user -- no role restriction.
+   * Called by the mobile app on every launch after permission is granted.
+   * Pass token: null to clear the token on sign-out.
+   */
+  @Patch('me/push-token')
+  async updatePushToken(@Req() req: Request, @Body() dto: UpdatePushTokenDto) {
+    await this.businessesService.updatePushToken(req.user!.businessId, dto.token ?? null);
+    return { ok: true };
+  }
+
+  /**
+   * PATCH /businesses/me/tax-settings -- admin only
    */
   @Roles('admin')
   @Patch('me/tax-settings')
@@ -117,7 +133,7 @@ export class BusinessesController {
   }
 
   /**
-   * POST /businesses/seed-accounts — admin only
+   * POST /businesses/seed-accounts -- admin only
    */
   @Roles('admin')
   @Post('seed-accounts')
@@ -125,7 +141,7 @@ export class BusinessesController {
     return this.businessesService.seedAccounts(req.user!.businessId, dto.industry);
   }
 
-  // ── Phase 11: Access Request endpoints (client/business-owner side) ────────
+  // -- Phase 11: Access Request endpoints (client/business-owner side) ------
 
   /**
    * GET /businesses/me/access-requests

@@ -28,24 +28,24 @@ interface DefaultAccountSeed {
 }
 
 const DEFAULT_ACCOUNTS: DefaultAccountSeed[] = [
-  // ── Assets ──────────────────────────────────────────────────────────────
+  // -- Assets --------------------------------------------------------------
   { account_code: '1000', account_name: 'Cash and Bank',            account_type: AccountType.ASSET,     account_subtype: AccountSubtype.BANK },
   { account_code: '1100', account_name: 'Accounts Receivable',      account_type: AccountType.ASSET,     account_subtype: AccountSubtype.ACCOUNTS_RECEIVABLE },
   { account_code: '1200', account_name: 'Other Current Assets',     account_type: AccountType.ASSET,     account_subtype: null },
-  // ── Liabilities ─────────────────────────────────────────────────────────
+  // -- Liabilities ---------------------------------------------------------
   { account_code: '2000', account_name: 'Accounts Payable',         account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.ACCOUNTS_PAYABLE },
   { account_code: '2100', account_name: 'Credit Card Payable',      account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.CREDIT_CARD },
   { account_code: '2200', account_name: 'HST / GST Payable',        account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.TAX_PAYABLE },
   { account_code: '2300', account_name: 'Other Current Liabilities',account_type: AccountType.LIABILITY, account_subtype: null },
-  // ── Equity ──────────────────────────────────────────────────────────────
+  // -- Equity --------------------------------------------------------------
   { account_code: '3000', account_name: "Owner's Equity",           account_type: AccountType.EQUITY,    account_subtype: null },
   { account_code: '3100', account_name: 'Owner Contribution',       account_type: AccountType.EQUITY,    account_subtype: AccountSubtype.OWNER_CONTRIBUTION },
   { account_code: '3200', account_name: 'Owner Draw',               account_type: AccountType.EQUITY,    account_subtype: AccountSubtype.OWNER_DRAW },
   { account_code: '3300', account_name: 'Retained Earnings',        account_type: AccountType.EQUITY,    account_subtype: null },
-  // ── Revenue ─────────────────────────────────────────────────────────────
+  // -- Revenue -------------------------------------------------------------
   { account_code: '4000', account_name: 'Revenue',                  account_type: AccountType.REVENUE,   account_subtype: null },
   { account_code: '4100', account_name: 'Other Income',             account_type: AccountType.REVENUE,   account_subtype: null },
-  // ── Expenses ────────────────────────────────────────────────────────────
+  // -- Expenses ------------------------------------------------------------
   { account_code: '5000', account_name: 'Cost of Goods Sold',       account_type: AccountType.EXPENSE,   account_subtype: null },
   { account_code: '5100', account_name: 'Advertising & Marketing',  account_type: AccountType.EXPENSE,   account_subtype: null },
   { account_code: '5200', account_name: 'Bank Fees & Charges',      account_type: AccountType.EXPENSE,   account_subtype: null },
@@ -114,7 +114,22 @@ export class BusinessesService {
     return this.businessRepo.save(business);
   }
 
-  // ── Phase 9: Update Canadian tax settings ────────────────────────────────
+  // -- Phase 20: Upsert Expo push token ------------------------------------
+
+  /**
+   * Stores or clears the Expo push token for a business.
+   * Called on every mobile app launch (upsert) and on sign-out (null).
+   * Does nothing if the token is already the same value -- avoids
+   * unnecessary writes on repeated launches.
+   */
+  async updatePushToken(id: string, token: string | null): Promise<void> {
+    const business = await this.findById(id);
+    if (business.expo_push_token === token) return;
+    business.expo_push_token = token;
+    await this.businessRepo.save(business);
+  }
+
+  // -- Phase 9: Update Canadian tax settings --------------------------------
   async updateTaxSettings(
     id: string,
     dto: UpdateTaxSettingsDto,
@@ -174,7 +189,7 @@ export class BusinessesService {
       console.warn(`seedDefaultAccounts failed for business ${saved.id}: ${err.message}`);
     }
 
-    // Send welcome email — fire-and-forget
+    // Send welcome email -- fire-and-forget
     if (ownerEmail) {
       const appUrl = this.config.get<string>('APP_URL') ?? 'https://gettempo.ca';
       const trialEndDate = new Date();
@@ -195,7 +210,7 @@ export class BusinessesService {
     return saved;
   }
 
-  // ── Phase 12: Seed standard default chart of accounts ─────────────────────
+  // -- Phase 12: Seed standard default chart of accounts -------------------
   async seedDefaultAccounts(
     businessId: string,
   ): Promise<{ added: number; skipped: number }> {
@@ -230,7 +245,7 @@ export class BusinessesService {
     return { added, skipped };
   }
 
-  // ── Seed Chart of Accounts (industry-specific, called from onboarding) ────
+  // -- Seed Chart of Accounts (industry-specific, called from onboarding) --
   async seedAccounts(
     businessId: string,
     industry: string,
@@ -262,7 +277,7 @@ export class BusinessesService {
     return { seeded: accounts.length, skipped: false };
   }
 
-  // ── Account seed templates ─────────────────────────────────────────────────
+  // -- Account seed templates ----------------------------------------------
 
   private buildAccountSeeds(country: string, industry: string): AccountSeed[] {
     const isCA = country === 'CA';
