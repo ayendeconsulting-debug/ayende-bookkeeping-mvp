@@ -128,7 +128,7 @@ function HistoryPanel({ recurringId }: { recurringId: string }) {
     const result = await getRecurringHistory(recurringId);
     setLoading(false);
     if (result.success) setEntries(result.data ?? []);
-    else setError(result.error ?? 'Failed to load history');
+    else setEntries([]);
   }
 
   if (loading) return (

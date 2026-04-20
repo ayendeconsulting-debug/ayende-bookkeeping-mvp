@@ -573,4 +573,17 @@ export class RecurringService implements OnModuleInit {
     }
     return next;
   }
+
+  async getHistory(businessId: string, id: string): Promise<JournalEntry[]> {
+    await this.findOne(businessId, id);
+    return this.journalEntryRepo.find({
+      where: {
+        business_id: businessId,
+        reference_type: 'recurring_transaction',
+        reference_id: id,
+      },
+      order: { entry_date: 'DESC' },
+      take: 24,
+    });
+  }
 }

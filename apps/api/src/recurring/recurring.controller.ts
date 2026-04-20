@@ -83,6 +83,12 @@ export class RecurringController {
     return this.recurringService.findAll(req.user!.businessId);
   }
 
+  /** GET /recurring/:id/history — all roles — MUST be before :id */
+  @Get(':id/history')
+  getHistory(@Req() req: Request, @Param('id') id: string) {
+    return this.recurringService.getHistory(req.user!.businessId, id);
+  }
+
   /** GET /recurring/:id — all roles */
   @Get(':id')
   findOne(@Req() req: Request, @Param('id') id: string) {
