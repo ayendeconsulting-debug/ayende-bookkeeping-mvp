@@ -48,6 +48,18 @@ export class Campaign {
   @Column({ length: 255, nullable: true })
   created_by: string;
 
+  // -- Phase 25: Per-campaign template variable values ---------------------
+  // Stored at create time; injected into every email sent for this campaign.
+  // Shape: { contact_name: 'John', organization_name: 'BOF', ... }
+  @Column({ type: 'jsonb', nullable: true })
+  template_variables: Record<string, string> | null;
+
+  // -- Phase 25: Optional recipient filter ----------------------------------
+  // When set, send() restricts the resolved segment to only these emails.
+  // Null = send to entire segment.
+  @Column({ type: 'jsonb', nullable: true })
+  recipient_filter: string[] | null;
+
   @CreateDateColumn()
   created_at: Date;
 

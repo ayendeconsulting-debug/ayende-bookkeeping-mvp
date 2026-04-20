@@ -1,4 +1,4 @@
-﻿import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -21,6 +21,8 @@ export interface CampaignEmailJobData {
   email: string;
   businessName: string;
   templateId: string;
+  // Phase 25: per-campaign variable values entered in the campaign wizard
+  templateVariables?: Record<string, string>;
 }
 
 @Processor('campaign-email')
@@ -42,14 +44,19 @@ export class CampaignEmailProcessor extends WorkerHost {
   }
 
   async process(job: Job<CampaignEmailJobData>): Promise<void> {
-    const { campaignId, recipientId, email, businessName, templateId } = job.data;
+    const {
+      campaignId,
+      recipientId,
+      email,
+      businessName,
+      templateId,
+      templateVariables,
+    } = job.data;
 
     try {
       const template = await this.templatesService.findOne(templateId);
 
-      // ── CASL unsubscribe check ─────────────────────────────────────────────
-      // Templates in TEMPLATE_CATEGORY_MAP use their mapped category.
-      // All other campaign sends are treated as 'broadcasts'.
+      // -- CASL unsubscribe check ------------------------------------------
       const category = TEMPLATE_CATEGORY_MAP[template.name] ?? 'broadcasts';
       const isUnsubscribed = await this.prefsService.isUnsubscribed(email, category);
 
@@ -58,20 +65,27 @@ export class CampaignEmailProcessor extends WorkerHost {
           status: 'failed',
           error_message: 'CASL: recipient unsubscribed',
         });
-        this.logger.log(`Campaign email skipped (unsubscribed) → ${email} (campaign: ${campaignId})`);
+        this.logger.log(
+          `Campaign email skipped (unsubscribed) -> ${email} (campaign: ${campaignId})`,
+        );
         await this.checkCampaignComplete(campaignId);
         return;
       }
 
+      // Phase 25: merge campaign-level template variables with recipient vars.
+      // Template variables take precedence over auto-generated fallbacks so
+      // that values entered in the wizard (contact_name, organization_name,
+      // bank_name, etc.) are always used.
       const vars: Record<string, string> = {
         business_name: businessName,
         first_name:    businessName,
+        ...(templateVariables ?? {}),
       };
 
       const subject  = this.templatesService.renderVars(template.subject,   vars);
       const rawHtml  = this.templatesService.renderVars(template.html_body, vars);
 
-      // ── Inject CASL-compliant unsubscribe footer ───────────────────────────
+      // -- Inject CASL-compliant unsubscribe footer -------------------------
       const secret = this.configService.get<string>('UNSUBSCRIBE_SECRET') ?? '';
       const appUrl = this.configService.get<string>('APP_URL') ?? 'https://gettempo.ca';
       const token  = generateToken(email, secret);
@@ -80,26 +94,32 @@ export class CampaignEmailProcessor extends WorkerHost {
       const fromName  = template.from_name  || 'Tempo Books';
       const fromEmail = template.from_email || 'noreply@gettempo.ca';
 
+      // Phase 24: BCC partnership@gettempo.ca on all partnership emails
+      const isPartnership = template.name.startsWith('partnership_');
+
       await this.resend.emails.send({
-        from: `${fromName} <${fromEmail}>`,
-        to: email,
+        from:    `${fromName} <${fromEmail}>`,
+        to:      email,
         subject,
         html,
+        ...(isPartnership ? { bcc: ['partnership@gettempo.ca'] } : {}),
       });
 
       await this.recipientRepo.update(recipientId, {
-        status: 'sent',
+        status:  'sent',
         sent_at: new Date(),
       });
 
-      this.logger.log(`Campaign email sent → ${email} (campaign: ${campaignId})`);
+      this.logger.log(
+        `Campaign email sent -> ${email} (campaign: ${campaignId})`,
+      );
     } catch (err) {
       const msg = (err as Error).message ?? 'Unknown error';
       await this.recipientRepo.update(recipientId, {
-        status: 'failed',
+        status:        'failed',
         error_message: msg.substring(0, 490),
       });
-      this.logger.error(`Campaign email failed → ${email}: ${msg}`);
+      this.logger.error(`Campaign email failed -> ${email}: ${msg}`);
     }
 
     await this.checkCampaignComplete(campaignId);
@@ -116,7 +136,7 @@ export class CampaignEmailProcessor extends WorkerHost {
       });
       if (sentCount > 0) {
         await this.campaignRepo.update(campaignId, {
-          status: 'sent',
+          status:  'sent',
           sent_at: new Date(),
         });
         this.logger.log(`Campaign ${campaignId} marked as sent`);

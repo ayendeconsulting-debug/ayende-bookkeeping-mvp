@@ -14,8 +14,7 @@ import { AdminGuard } from '../admin/admin.guard';
 import { CampaignsService, CreateCampaignDto } from './campaigns.service';
 import { SegmentationService } from './segmentation.service';
 
-// ── Campaigns ──────────────────────────────────────────────────────────────
-
+// -- Campaigns ---------------------------------------------------------------
 @Controller('admin/campaigns')
 @UseGuards(AuthGuard('jwt'), AdminGuard)
 export class CampaignsController {
@@ -37,7 +36,7 @@ export class CampaignsController {
     });
   }
 
-  /** GET /admin/campaigns/:id/recipients — must be before :id/send|cancel */
+  /** GET /admin/campaigns/:id/recipients -- must be before :id/send|cancel */
   @Get(':id/recipients')
   getRecipients(@Param('id') id: string) {
     return this.service.getRecipients(id);
@@ -58,16 +57,25 @@ export class CampaignsController {
   }
 }
 
-// ── Segments ───────────────────────────────────────────────────────────────
-
+// -- Segments ----------------------------------------------------------------
 @Controller('admin/segments')
 @UseGuards(AuthGuard('jwt'), AdminGuard)
 export class SegmentationController {
   constructor(private readonly service: SegmentationService) {}
 
-  /** GET /admin/segments — returns all segments with live counts */
+  /** GET /admin/segments -- returns all segments with live counts */
   @Get()
   getSegments() {
     return this.service.getSegmentInfos();
+  }
+
+  /**
+   * GET /admin/segments/:key/recipients
+   * Phase 25: resolves a segment into the full recipient list so the wizard
+   * can display individual checkboxes for targeted campaigns.
+   */
+  @Get(':key/recipients')
+  getSegmentRecipients(@Param('key') key: string) {
+    return this.service.resolve(key);
   }
 }

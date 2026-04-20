@@ -1,10 +1,10 @@
 ﻿'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Mail, Plus, Pencil, Eye, X, Loader2,
   ToggleLeft, ToggleRight, Trash2, Megaphone, Users, Zap,
-  Send, Ban, ChevronDown, ChevronRight, RefreshCw,
+  Send, Ban, ChevronDown, ChevronRight, RefreshCw, Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,6 +65,12 @@ interface SegmentInfo {
   label: string;
   description: string;
   count: number;
+}
+
+interface SegmentRecipient {
+  email: string;
+  businessName: string;
+  businessId: string;
 }
 
 const EMPTY_FORM: TemplateFormState = {
@@ -222,17 +228,42 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
   templates: EmailTemplate[];
   onCreated: () => void;
 }) {
-  const [step, setStep] = useState(1);
   const [segments, setSegments] = useState<SegmentInfo[]>([]);
   const [loadingSegs, setLoadingSegs] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [templateVarValues, setTemplateVarValues] = useState<Record<string, string>>({});
+  const [segRecipients, setSegRecipients] = useState<SegmentRecipient[]>([]);
+  const [loadingRecipients, setLoadingRecipients] = useState(false);
+  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [campaignName, setCampaignName] = useState('');
+  const [scheduleMode, setScheduleMode] = useState<'now' | 'later'>('now');
+  const [scheduledAt, setScheduledAt] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewSubject, setPreviewSubject] = useState('');
+  const [previewHtml, setPreviewHtml] = useState('');
+  const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [step, setStep] = useState(1);
 
-  const selectCls = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
+  const selectedSeg = segments.find((s) => s.key === selectedSegment);
+  const selectedTpl = templates.find((t) => t.id === selectedTemplate);
+  const hasVars = (selectedTpl?.variables?.length ?? 0) > 0;
+  const showRecipientPicker = (selectedSeg?.count ?? 0) > 0 && (selectedSeg?.count ?? 0) <= 50;
+
+  type WizardStepKey = 'segment' | 'template' | 'variables' | 'recipients' | 'confirm';
+  const STEPS: WizardStepKey[] = useMemo(() => {
+    const s: WizardStepKey[] = ['segment', 'template'];
+    if (hasVars) s.push('variables');
+    if (showRecipientPicker) s.push('recipients');
+    s.push('confirm');
+    return s;
+  }, [hasVars, showRecipientPicker]);
+
+  const currentStep = STEPS[step - 1];
+  const totalSteps  = STEPS.length;
 
   useEffect(() => {
     if (open && segments.length === 0) {
@@ -245,72 +276,112 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
     }
   }, [open]);
 
+  useEffect(() => {
+    if (currentStep === 'recipients' && selectedSegment && segRecipients.length === 0) {
+      setLoadingRecipients(true);
+      fetch('/api/proxy/admin/segments/' + selectedSegment + '/recipients')
+        .then((r) => r.json())
+        .then((d: SegmentRecipient[]) => {
+          const list = Array.isArray(d) ? d : [];
+          setSegRecipients(list);
+          setSelectedEmails(new Set(list.map((r) => r.email)));
+        })
+        .catch(() => {})
+        .finally(() => setLoadingRecipients(false));
+    }
+  }, [currentStep, selectedSegment]);
+
+  useEffect(() => { setTemplateVarValues({}); }, [selectedTemplate]);
+  useEffect(() => { setSegRecipients([]); setSelectedEmails(new Set()); }, [selectedSegment]);
+
   function handleClose() {
-    setStep(1); setSelectedSegment(''); setSelectedTemplate('');
-    setCampaignName(''); setError(''); onClose();
+    setStep(1);
+    setSelectedSegment(''); setSelectedTemplate('');
+    setTemplateVarValues({});
+    setSegRecipients([]); setSelectedEmails(new Set());
+    setCampaignName('');
+    setScheduleMode('now'); setScheduledAt('');
+    setPreviewOpen(false); setError('');
+    onClose();
   }
 
-  async function handleCreateAndSend() {
+  function handleNext() { setError(''); setStep((s) => s + 1); }
+  function handleBack() { setError(''); setStep((s) => s - 1); }
+
+  async function handlePreview() {
+    if (!selectedTpl) return;
+    setPreviewing(true);
+    try {
+      const res = await fetch('/api/proxy/admin/templates/' + selectedTpl.id + '/preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vars: templateVarValues }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? 'Preview failed');
+      setPreviewSubject(data.subject);
+      setPreviewHtml(data.html);
+      setPreviewOpen(true);
+    } catch (e: any) { setError(e.message); }
+    finally { setPreviewing(false); }
+  }
+
+  async function doCreate(sendAfter: boolean) {
     if (!campaignName.trim()) { setError('Campaign name is required.'); return; }
     setSaving(true); setError('');
     try {
-      // Create campaign
+      const recipientFilter =
+        showRecipientPicker && selectedEmails.size < segRecipients.length
+          ? Array.from(selectedEmails)
+          : undefined;
+
+      const payload: Record<string, any> = {
+        name:        campaignName.trim(),
+        template_id: selectedTemplate,
+        segment_key: selectedSegment,
+        ...(hasVars && Object.keys(templateVarValues).length > 0
+          ? { template_variables: templateVarValues }
+          : {}),
+        ...(recipientFilter ? { recipient_filter: recipientFilter } : {}),
+        ...(scheduleMode === 'later' && scheduledAt ? { scheduled_at: scheduledAt } : {}),
+      };
+
       const createRes = await fetch('/api/proxy/admin/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: campaignName, template_id: selectedTemplate, segment_key: selectedSegment }),
+        body: JSON.stringify(payload),
       });
       const campaign = await createRes.json();
       if (!createRes.ok) throw new Error(campaign.message ?? 'Create failed');
 
-      // Send immediately
-      setSending(true);
-      const sendRes = await fetch('/api/proxy/admin/campaigns/' + campaign.id + '/send', { method: 'POST' });
-      const sendData = await sendRes.json();
-      if (!sendRes.ok) throw new Error(sendData.message ?? 'Send failed');
+      if (sendAfter) {
+        setSending(true);
+        const sendRes = await fetch('/api/proxy/admin/campaigns/' + campaign.id + '/send', { method: 'POST' });
+        const sendData = await sendRes.json();
+        if (!sendRes.ok) throw new Error(sendData.message ?? 'Send failed');
+      }
 
       onCreated();
       handleClose();
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setSaving(false); setSending(false);
-    }
+    } catch (e: any) { setError(e.message); }
+    finally { setSaving(false); setSending(false); }
   }
 
-  async function handleSaveDraft() {
-    if (!campaignName.trim()) { setError('Campaign name is required.'); return; }
-    setSaving(true); setError('');
-    try {
-      const res = await fetch('/api/proxy/admin/campaigns', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: campaignName, template_id: selectedTemplate, segment_key: selectedSegment }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? 'Save failed');
-      onCreated();
-      handleClose();
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const selectedSeg = segments.find((s) => s.key === selectedSegment);
-  const selectedTpl = templates.find((t) => t.id === selectedTemplate);
+  const nextDisabled =
+    (currentStep === 'segment'    && !selectedSegment)  ||
+    (currentStep === 'template'   && !selectedTemplate) ||
+    (currentStep === 'recipients' && selectedEmails.size === 0);
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-      <div className="bg-card rounded-2xl border border-border w-full max-w-xl shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="bg-card rounded-2xl border border-border w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh]">
+
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-0.5">
-              Step {step} of 3
+              Step {step} of {totalSteps}
             </p>
             <h3 className="text-base font-semibold text-foreground">New Campaign</h3>
           </div>
@@ -319,48 +390,40 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
           </button>
         </div>
 
-        {/* Step indicator */}
-        <div className="flex px-6 pt-4 gap-2">
-          {[1, 2, 3].map((s) => (
-            <div key={s} className={cn('flex-1 h-1 rounded-full transition-colors',
-              s <= step ? 'bg-primary' : 'bg-muted')} />
+        <div className="flex px-6 pt-4 gap-2 flex-shrink-0">
+          {STEPS.map((_, i) => (
+            <div key={i} className={cn('flex-1 h-1 rounded-full transition-colors',
+              i < step ? 'bg-primary' : 'bg-muted')} />
           ))}
         </div>
 
-        <div className="px-6 py-5 space-y-4">
-          {/* Step 1: Segment */}
-          {step === 1 && (
+        <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+
+          {currentStep === 'segment' && (
             <>
               <p className="text-sm font-medium text-foreground">Choose audience segment</p>
               {loadingSegs ? (
                 <div className="flex items-center gap-2 text-muted-foreground py-4">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Loading segments…</span>
+                  <span className="text-sm">Loading segments&hellip;</span>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                   {segments.map((seg) => (
-                    <button
-                      key={seg.key}
-                      onClick={() => setSelectedSegment(seg.key)}
-                      className={cn(
-                        'w-full text-left rounded-xl border px-4 py-3 transition-colors',
+                    <button key={seg.key} onClick={() => setSelectedSegment(seg.key)}
+                      className={cn('w-full text-left rounded-xl border px-4 py-3 transition-colors',
                         selectedSegment === seg.key
                           ? 'border-primary bg-primary-light dark:bg-primary/10'
-                          : 'border-border hover:border-primary/50 hover:bg-muted/30',
-                      )}
-                    >
+                          : 'border-border hover:border-primary/50 hover:bg-muted/30')}>
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-foreground">{seg.label}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">{seg.description}</p>
                         </div>
-                        <span className={cn(
-                          'text-xs font-semibold px-2 py-0.5 rounded-full ml-3 flex-shrink-0',
+                        <span className={cn('text-xs font-semibold px-2 py-0.5 rounded-full ml-3 flex-shrink-0',
                           seg.count > 0
                             ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                            : 'bg-muted text-muted-foreground',
-                        )}>
+                            : 'bg-muted text-muted-foreground')}>
                           {seg.count} recipient{seg.count !== 1 ? 's' : ''}
                         </span>
                       </div>
@@ -371,30 +434,22 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
             </>
           )}
 
-          {/* Step 2: Template */}
-          {step === 2 && (
+          {currentStep === 'template' && (
             <>
               <p className="text-sm font-medium text-foreground">Choose email template</p>
               {templates.filter((t) => t.is_active).length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">No active templates. Create and activate a template first.</p>
+                <p className="text-sm text-muted-foreground py-4">No active templates.</p>
               ) : (
                 <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
                   {templates.filter((t) => t.is_active).map((t) => (
-                    <button
-                      key={t.id}
-                      onClick={() => setSelectedTemplate(t.id)}
-                      className={cn(
-                        'w-full text-left rounded-xl border px-4 py-3 transition-colors',
+                    <button key={t.id} onClick={() => setSelectedTemplate(t.id)}
+                      className={cn('w-full text-left rounded-xl border px-4 py-3 transition-colors',
                         selectedTemplate === t.id
                           ? 'border-primary bg-primary-light dark:bg-primary/10'
-                          : 'border-border hover:border-primary/50 hover:bg-muted/30',
-                      )}
-                    >
+                          : 'border-border hover:border-primary/50 hover:bg-muted/30')}>
                       <p className="text-sm font-mono font-semibold text-foreground">{t.name}</p>
                       <p className="text-xs text-muted-foreground mt-0.5 truncate">{t.subject}</p>
-                      {t.description && (
-                        <p className="text-xs text-muted-foreground/70 mt-0.5">{t.description}</p>
-                      )}
+                      {t.description && <p className="text-xs text-muted-foreground/70 mt-0.5">{t.description}</p>}
                     </button>
                   ))}
                 </div>
@@ -402,30 +457,134 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
             </>
           )}
 
-          {/* Step 3: Name + confirm */}
-          {step === 3 && (
+          {currentStep === 'variables' && selectedTpl && (
+            <>
+              <p className="text-sm font-medium text-foreground">Fill in template variables</p>
+              <p className="text-xs text-muted-foreground">
+                These values are substituted into every email sent in this campaign.
+              </p>
+              <div className="space-y-3">
+                {selectedTpl.variables.map((v) => (
+                  <div key={v} className="space-y-1.5">
+                    <Label className="text-xs font-mono text-muted-foreground">{`{{${v}}}`}</Label>
+                    <Input value={templateVarValues[v] ?? ''}
+                      onChange={(e) => setTemplateVarValues((p) => ({ ...p, [v]: e.target.value }))}
+                      placeholder={`Enter ${v.replace(/_/g, ' ')}`} />
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {currentStep === 'recipients' && (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-foreground">Select recipients</p>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setSelectedEmails(new Set(segRecipients.map((r) => r.email)))}
+                    className="text-xs text-primary hover:underline">Select all</button>
+                  <span className="text-muted-foreground text-xs">&middot;</span>
+                  <button onClick={() => setSelectedEmails(new Set())}
+                    className="text-xs text-muted-foreground hover:text-foreground hover:underline">Deselect all</button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground -mt-2">
+                {selectedEmails.size} of {segRecipients.length} selected
+              </p>
+              {loadingRecipients ? (
+                <div className="flex items-center gap-2 text-muted-foreground py-4">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span className="text-sm">Loading recipients&hellip;</span>
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+                  {segRecipients.map((r) => (
+                    <label key={r.email}
+                      className={cn('flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors',
+                        selectedEmails.has(r.email)
+                          ? 'border-primary bg-primary-light dark:bg-primary/10'
+                          : 'border-border hover:border-primary/30')}>
+                      <input type="checkbox" checked={selectedEmails.has(r.email)}
+                        onChange={(e) => {
+                          const next = new Set(selectedEmails);
+                          if (e.target.checked) next.add(r.email); else next.delete(r.email);
+                          setSelectedEmails(next);
+                        }}
+                        className="w-4 h-4 accent-primary flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{r.businessName || r.email}</p>
+                        <p className="text-xs text-muted-foreground truncate">{r.email}</p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {currentStep === 'confirm' && (
             <>
               <p className="text-sm font-medium text-foreground">Name this campaign</p>
               <div className="space-y-1.5">
                 <Label className="text-xs">Campaign Name</Label>
-                <Input
-                  value={campaignName}
-                  onChange={(e) => setCampaignName(e.target.value)}
-                  placeholder="e.g. April trial nudge"
-                  autoFocus
-                />
+                <Input value={campaignName} onChange={(e) => setCampaignName(e.target.value)}
+                  placeholder="e.g. BOF Partnership Wave 1" autoFocus />
               </div>
 
-              {/* Summary */}
               <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Segment</span>
-                  <span className="font-medium text-foreground">{selectedSeg?.label} ({selectedSeg?.count} recipients)</span>
+                  <span className="font-medium text-foreground">
+                    {selectedSeg?.label} ({showRecipientPicker
+                      ? `${selectedEmails.size} selected`
+                      : `${selectedSeg?.count} recipients`})
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Template</span>
                   <span className="font-mono text-foreground">{selectedTpl?.name}</span>
                 </div>
+                {hasVars && Object.keys(templateVarValues).length > 0 && (
+                  <div className="pt-2 border-t border-border space-y-1">
+                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Variables</p>
+                    {Object.entries(templateVarValues).map(([k, v]) => (
+                      <div key={k} className="flex justify-between text-xs">
+                        <span className="text-muted-foreground font-mono">{`{{${k}}}`}</span>
+                        <span className="text-foreground truncate ml-2 max-w-[200px]">{v}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button onClick={handlePreview} disabled={previewing}
+                className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors font-medium disabled:opacity-50">
+                {previewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                Preview email before sending
+              </button>
+
+              <div className="space-y-3 pt-1">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">When to send</p>
+                <div className="flex gap-3">
+                  {(['now', 'later'] as const).map((mode) => (
+                    <button key={mode} onClick={() => setScheduleMode(mode)}
+                      className={cn('flex-1 py-2 rounded-lg border text-sm font-medium transition-colors',
+                        scheduleMode === mode
+                          ? 'border-primary bg-primary-light dark:bg-primary/10 text-primary'
+                          : 'border-border text-muted-foreground hover:border-primary/50')}>
+                      {mode === 'now' ? 'Send Now' : 'Schedule'}
+                    </button>
+                  ))}
+                </div>
+                {scheduleMode === 'later' && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Send at</Label>
+                    <input type="datetime-local" value={scheduledAt}
+                      onChange={(e) => setScheduledAt(e.target.value)}
+                      min={new Date(Date.now() + 5 * 60000).toISOString().slice(0, 16)}
+                      className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary" />
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -433,43 +592,38 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
-        {/* Footer nav */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-border gap-3">
-          <Button variant="outline" onClick={step === 1 ? handleClose : () => setStep(step - 1)} className="flex-shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-border gap-3 flex-shrink-0">
+          <Button variant="outline" onClick={step === 1 ? handleClose : handleBack} className="flex-shrink-0">
             {step === 1 ? 'Cancel' : 'Back'}
           </Button>
           <div className="flex gap-2">
-            {step < 3 ? (
-              <Button
-                onClick={() => { setError(''); setStep(step + 1); }}
-                disabled={
-                  (step === 1 && !selectedSegment) ||
-                  (step === 2 && !selectedTemplate)
-                }
-              >
-                Next
-              </Button>
+            {currentStep !== 'confirm' ? (
+              <Button onClick={handleNext} disabled={nextDisabled}>Next</Button>
             ) : (
               <>
-                <Button variant="outline" onClick={handleSaveDraft} disabled={saving}>
+                <Button variant="outline" onClick={() => doCreate(false)} disabled={saving}>
                   {saving && !sending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Draft'}
                 </Button>
-                <Button onClick={handleCreateAndSend} disabled={saving}>
+                <Button onClick={() => doCreate(true)} disabled={saving}>
                   {sending
-                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending…</>
-                    : <><Send className="w-4 h-4 mr-2" />Send Now</>
+                    ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending&hellip;</>
+                    : scheduleMode === 'later'
+                      ? <><Calendar className="w-4 h-4 mr-2" />Schedule</>
+                      : <><Send className="w-4 h-4 mr-2" />Send Now</>
                   }
                 </Button>
               </>
             )}
           </div>
         </div>
+
+        <PreviewModal open={previewOpen} subject={previewSubject} html={previewHtml}
+          onClose={() => setPreviewOpen(false)} />
       </div>
     </div>
   );
 }
 
-// ── Campaign recipients drawer ─────────────────────────────────────────────
 function RecipientsRow({ campaignId }: { campaignId: string }) {
   const [recipients, setRecipients] = useState<CampaignRecipient[]>([]);
   const [loading, setLoading] = useState(true);

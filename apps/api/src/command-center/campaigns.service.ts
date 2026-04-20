@@ -19,6 +19,10 @@ export interface CreateCampaignDto {
   segment_key: string;
   scheduled_at?: string;
   created_by?: string;
+  // Phase 25: variable values to inject into every email in this campaign
+  template_variables?: Record<string, string>;
+  // Phase 25: optional allowlist of emails -- restricts segment at send time
+  recipient_filter?: string[];
 }
 
 @Injectable()
@@ -42,19 +46,22 @@ export class CampaignsService {
   }
 
   async create(dto: CreateCampaignDto): Promise<Campaign> {
-    // Validate template exists and is active
     const template = await this.templatesService.findOne(dto.template_id);
     if (!template.is_active) {
-      throw new BadRequestException('Template is inactive — activate it before creating a campaign');
+      throw new BadRequestException(
+        'Template is inactive -- activate it before creating a campaign',
+      );
     }
 
     const campaign = this.campaignRepo.create({
-      name: dto.name.trim(),
-      template_id: dto.template_id,
-      segment_key: dto.segment_key,
-      status: 'draft',
-      created_by: dto.created_by ?? null,
-      scheduled_at: dto.scheduled_at ? new Date(dto.scheduled_at) : null,
+      name:               dto.name.trim(),
+      template_id:        dto.template_id,
+      segment_key:        dto.segment_key,
+      status:             'draft',
+      created_by:         dto.created_by ?? null,
+      scheduled_at:       dto.scheduled_at ? new Date(dto.scheduled_at) : null,
+      template_variables: dto.template_variables ?? null,
+      recipient_filter:   dto.recipient_filter ?? null,
     });
     return this.campaignRepo.save(campaign);
   }
@@ -69,41 +76,60 @@ export class CampaignsService {
       );
     }
 
-    // Resolve segment → recipient list
-    const recipients = await this.segmentationService.resolve(campaign.segment_key);
+    // Resolve segment -> full recipient list
+    let recipients = await this.segmentationService.resolve(campaign.segment_key);
+
+    // Phase 25: apply recipient filter if present
+    if (campaign.recipient_filter && campaign.recipient_filter.length > 0) {
+      const filterSet = new Set(campaign.recipient_filter);
+      recipients = recipients.filter((r) => filterSet.has(r.email));
+    }
+
     if (recipients.length === 0) {
-      throw new BadRequestException('Segment resolved to 0 recipients — no emails to send');
+      throw new BadRequestException(
+        'Segment resolved to 0 recipients -- no emails to send',
+      );
     }
 
     // Persist recipient rows
     const recipientRows = this.recipientRepo.create(
       recipients.map((r) => ({
-        campaign_id: id,
-        email: r.email,
+        campaign_id:   id,
+        email:         r.email,
         business_name: r.businessName,
-        status: 'pending' as const,
+        status:        'pending' as const,
       })),
     );
     const saved = await this.recipientRepo.save(recipientRows);
 
-    // Update campaign
-    campaign.status = 'sending';
+    // Phase 25: compute BullMQ delay for scheduled campaigns
+    const now         = Date.now();
+    const isScheduled = !!(campaign.scheduled_at && campaign.scheduled_at.getTime() > now);
+    const delay       = isScheduled ? Math.max(0, campaign.scheduled_at!.getTime() - now) : 0;
+
+    // Update campaign status
+    campaign.status          = isScheduled ? 'scheduled' : 'sending';
     campaign.recipient_count = recipients.length;
     await this.campaignRepo.save(campaign);
 
-    // Enqueue one BullMQ job per recipient
+    // Enqueue one BullMQ job per recipient (delayed when scheduled)
     await Promise.all(
       saved.map((r) =>
         this.campaignQueue.add(
           'send-email',
           {
-            campaignId: id,
-            recipientId: r.id,
-            email: r.email,
-            businessName: r.business_name ?? '',
-            templateId: campaign.template_id,
+            campaignId:        id,
+            recipientId:       r.id,
+            email:             r.email,
+            businessName:      r.business_name ?? '',
+            templateId:        campaign.template_id,
+            templateVariables: campaign.template_variables ?? {},
           } as CampaignEmailJobData,
-          { attempts: 2, backoff: { type: 'fixed', delay: 5000 } },
+          {
+            attempts: 2,
+            backoff: { type: 'fixed', delay: 5000 },
+            ...(delay > 0 ? { delay } : {}),
+          },
         ),
       ),
     );
@@ -117,7 +143,7 @@ export class CampaignsService {
 
     if (!['draft', 'scheduled'].includes(campaign.status)) {
       throw new BadRequestException(
-        `Only draft or scheduled campaigns can be cancelled`,
+        'Only draft or scheduled campaigns can be cancelled',
       );
     }
     campaign.status = 'cancelled';
