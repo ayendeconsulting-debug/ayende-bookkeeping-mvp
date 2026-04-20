@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useTheme } from '@/components/theme-provider';
 import {
   Users, Settings, CreditCard, LayoutDashboard,
-  ArrowLeftRight, Building2,
+  ArrowLeftRight, Building2, Sun, Moon,
 } from 'lucide-react';
 
 interface Firm {
@@ -30,6 +31,7 @@ const navItems = [
 
 export function AccountantSidebar({ firm, onClose }: AccountantSidebarProps) {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="flex flex-col h-full">
@@ -51,7 +53,7 @@ export function AccountantSidebar({ firm, onClose }: AccountantSidebarProps) {
         )}
         <div className="flex flex-col min-w-0">
           <span className="text-sm font-semibold text-foreground truncate">{firm.name}</span>
-          <span className="text-xs text-muted-foreground truncate">Firm Portal</span>
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground truncate">Firm Portal</span>
         </div>
       </div>
 
@@ -66,9 +68,9 @@ export function AccountantSidebar({ firm, onClose }: AccountantSidebarProps) {
                   href={href}
                   onClick={onClose}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                    'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150',
                     active
-                      ? 'bg-primary text-primary-foreground'
+                      ? 'border-l-2 border-accent-teal bg-accent-teal-muted text-accent-teal font-semibold'
                       : 'text-muted-foreground hover:text-foreground hover:bg-accent',
                   )}
                 >
@@ -81,16 +83,24 @@ export function AccountantSidebar({ firm, onClose }: AccountantSidebarProps) {
         </ul>
       </nav>
 
-      {/* Footer — switch to client app */}
-      <div className="px-2 py-4 border-t border-border space-y-1">
+      {/* Footer */}
+      <div className="px-2 py-3 border-t border-border space-y-0.5">
         <Link
           href="/dashboard"
           onClick={onClose}
-          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
         >
           <ArrowLeftRight size={16} />
           Switch to Client App
         </Link>
+        <button
+          onClick={toggleTheme}
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors duration-150"
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        </button>
       </div>
     </div>
   );

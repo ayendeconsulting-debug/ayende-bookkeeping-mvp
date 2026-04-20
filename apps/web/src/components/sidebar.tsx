@@ -7,11 +7,12 @@ import { BusinessMode } from '@/types';
 import { BusinessSwitcher } from '@/components/business-switcher';
 import { FirmPortalLink } from '@/components/firm-portal-link';
 import { AdminPortalLink } from '@/components/admin-portal-link';
+import { useTheme } from '@/components/theme-provider';
 import {
   LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
   ClipboardList, Receipt, Filter, Sparkles, Settings, FileText,
   ArrowRightLeft, RefreshCw, Users, Car, Calculator, Tag, PieChart, Target,
-  Landmark, Bell, X, Wand2, Lock,
+  Landmark, Bell, X, Wand2, Lock, Sun, Moon,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -91,6 +92,7 @@ const personalSettingsItems = [
 
 export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   return (
@@ -103,10 +105,10 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
           'w-[210px] h-screen flex flex-col flex-shrink-0',
           'border-r border-border',
           'bg-card',
-          'shadow-[1px_0_6px_rgba(0,0,0,0.06)] dark:shadow-[1px_0_10px_rgba(0,0,0,0.4)]',
           isMobileOpen ? 'fixed inset-y-0 left-0 z-50 flex' : 'hidden md:flex',
         )}
       >
+        {/* Logo header */}
         <div className="px-4 py-5 border-b border-border relative flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center flex-shrink-0">
@@ -129,7 +131,10 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
             <X className="w-4 h-4 text-foreground" />
           </button>
         </div>
+
         <BusinessSwitcher />
+
+        {/* Navigation */}
         <nav className="flex-1 px-2 py-3 overflow-y-auto flex flex-col gap-0.5">
           {mode === 'personal' && (<>
             <NavSection label="Personal Finance" />
@@ -158,8 +163,25 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
             {businessSettingsItems.map((i) => <NavItem key={i.href} {...i} active={isActive(i.href)} onClose={onClose} />)}
           </>)}
         </nav>
+
         <FirmPortalLink onClose={onClose} />
         <AdminPortalLink onClose={onClose} />
+
+        {/* Theme toggle footer */}
+        <div className="px-3 py-3 border-t border-border flex-shrink-0">
+          <button
+            onClick={toggleTheme}
+            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors duration-150"
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 flex-shrink-0" />
+            ) : (
+              <Moon className="w-4 h-4 flex-shrink-0" />
+            )}
+            <span className="truncate">{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+          </button>
+        </div>
       </aside>
     </>
   );
@@ -179,9 +201,9 @@ function NavItem({ href, label, icon: Icon, active, onClose }: {
   return (
     <Link href={href} onClick={onClose}
       className={cn(
-        'flex items-center gap-2.5 px-2.5 py-2 min-h-[44px] rounded-md text-sm transition-colors',
+        'flex items-center gap-2.5 px-2.5 py-2 min-h-[44px] rounded-md text-sm transition-colors duration-150',
         active
-          ? 'bg-primary-light text-primary font-semibold dark:bg-primary/20'
+          ? 'border-l-2 border-accent-teal bg-accent-teal-muted text-accent-teal font-semibold'
           : 'text-foreground hover:bg-muted hover:text-foreground',
       )}>
       <Icon className="w-4 h-4 flex-shrink-0" />

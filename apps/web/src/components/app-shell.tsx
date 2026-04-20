@@ -36,8 +36,6 @@ export function AppShell({ mode, children }: AppShellProps) {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Re-read cookies whenever the pathname changes so the banner
-  // appears/disappears correctly as the accountant navigates
   useEffect(() => {
     setClientCtx(getClientContext());
   }, [pathname]);
@@ -50,21 +48,22 @@ export function AppShell({ mode, children }: AppShellProps) {
         onClose={() => setMobileOpen(false)}
       />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-14 md:h-14 border-b border-border bg-card flex items-center justify-between px-3 md:justify-end md:px-6 flex-shrink-0">
-          {/* Hamburger — mobile only */}
+        {/* Top header bar */}
+        <header className="h-14 border-b border-border bg-card flex items-center justify-between px-3 md:justify-end md:px-6 flex-shrink-0">
+          {/* Hamburger – mobile only */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden flex items-center justify-center w-12 h-12 rounded-xl hover:bg-accent active:bg-accent/80 transition-colors touch-manipulation"
+            className="md:hidden flex items-center justify-center w-12 h-12 rounded-xl hover:bg-accent active:bg-accent/80 transition-colors duration-150 touch-manipulation"
             aria-label="Open navigation menu"
           >
             <Menu className="w-6 h-6 text-foreground" />
           </button>
-          {/* App name — mobile only */}
+          {/* App name – mobile only */}
           <span className="md:hidden text-sm font-semibold text-foreground">Tempo</span>
           <UserButton appearance={{ elements: { avatarBox: 'w-9 h-9' } }} />
         </header>
 
-        {/* Client context banner — shown when accountant is viewing client books */}
+        {/* Client context banner – shown when accountant is viewing client books */}
         {clientCtx && (
           <div className="px-4 pt-3 flex-shrink-0">
             <ClientContextBanner
