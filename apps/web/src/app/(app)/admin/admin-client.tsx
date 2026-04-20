@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { CommandCenterClient } from './command-center-client';
 import { InsightsClient } from './insights-client';
+import { ReferralsClient } from './referrals-client';
 
 const selectCls =
   'w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
@@ -277,20 +278,8 @@ export function AdminClient() {
       {/* ── Insights Tab ── */}
       {activeTab === 'insights' && <InsightsClient />}
 
-      {/* ── Referrals Tab (placeholder — built in 26c–26g) ── */}
-      {activeTab === 'referrals' && (
-        <div className="rounded-2xl border border-border bg-card p-6">
-          <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
-            <div className="w-12 h-12 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
-              <Link2 className="w-6 h-6 text-primary" />
-            </div>
-            <p className="text-sm font-medium text-foreground">Referral Engine</p>
-            <p className="text-xs text-muted-foreground max-w-xs">
-              Partner management, referral tracking, and commission engine — coming in the next build steps.
-            </p>
-          </div>
-        </div>
-      )}
+      {/* ── Referrals Tab ── */}
+      {activeTab === 'referrals' && <ReferralsClient />}
 
       {/* ── Command Center Tab ── */}
       {activeTab === 'command-center' && <CommandCenterClient />}
