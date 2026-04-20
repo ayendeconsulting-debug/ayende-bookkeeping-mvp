@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
 @Injectable()
@@ -174,7 +174,7 @@ export class InsightsService {
         FROM email_campaigns
       `),
       // Skipped emails (unsubscribed)
-      this.dataSource.query(`SELECT COUNT(*)::text AS count FROM campaign_recipients WHERE status = 'skipped'`),
+      this.dataSource.query(`SELECT COUNT(*)::text AS count FROM email_preferences WHERE broadcasts = false`),
       // Lead-to-signup conversion
       this.dataSource.query(`
         SELECT
