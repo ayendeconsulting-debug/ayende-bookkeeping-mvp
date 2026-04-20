@@ -228,7 +228,6 @@ function PreviewModal({ open, subject, html, onClose, onEdit }: {
   );
 }
 
-// ── Campaign wizard modal ──────────────────────────────────────────────────
 // -- Variable mapping: derives template vars from a lead record -------------
 function mapLeadToTemplateVars(
   lead: Lead,
@@ -260,11 +259,12 @@ const SEGMENT_LEAD_TYPE: Record<string, string> = {
   cold_leads:        'cold',
 };
 
-function CampaignWizard({ open, onClose, templates, onCreated }: {
+function CampaignWizard({ open, onClose, templates, onCreated, onEditTemplate }: {
   open: boolean;
   onClose: () => void;
   templates: EmailTemplate[];
   onCreated: () => void;
+  onEditTemplate?: (t: EmailTemplate) => void;
 }) {
   // -- Core wizard state ----------------------------------------------------
   const [segments, setSegments] = useState<SegmentInfo[]>([]);
@@ -286,6 +286,8 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
   // -- Confirm step state ---------------------------------------------------
   const [campaignName, setCampaignName] = useState('');
   const [scheduleMode, setScheduleMode] = useState<'now' | 'later'>('now');
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('09:00');
   const [scheduledAt, setScheduledAt] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewSubject, setPreviewSubject] = useState('');
@@ -371,7 +373,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
     setLeads([]); setSelectedLeadIds(new Set()); setOrgSearch('');
     setTemplateVarValues({});
     setCampaignName('');
-    setScheduleMode('now'); setScheduledAt('');
+    setScheduleMode('now'); setScheduleDate(''); setScheduleTime('09:00'); setScheduledAt('');
     setPreviewOpen(false); setError('');
     onClose();
   }
@@ -400,6 +402,15 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
     } catch (e: any) { setError(e.message); }
     finally { setPreviewing(false); }
   }
+
+  // Combine date + time into ISO string whenever either changes
+  useEffect(() => {
+    if (scheduleDate && scheduleTime) {
+      setScheduledAt(scheduleDate + 'T' + scheduleTime);
+    } else {
+      setScheduledAt('');
+    }
+  }, [scheduleDate, scheduleTime]);
 
   async function doCreate(sendAfter: boolean) {
     if (!campaignName.trim()) { setError('Campaign name is required.'); return; }
@@ -694,9 +705,17 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
                   <span className="text-muted-foreground">Segment</span>
                   <span className="font-medium text-foreground">{selectedSeg?.label}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Template</span>
-                  <span className="font-mono text-foreground">{selectedTpl?.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-foreground text-xs">{selectedTpl?.name}</span>
+                    {onEditTemplate && selectedTpl && (
+                      <button onClick={() => { onEditTemplate(selectedTpl); handleClose(); }}
+                        className="text-muted-foreground hover:text-primary transition-colors p-0.5 rounded" title="Edit template">
+                        <Pencil className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Recipients</span>
@@ -744,12 +763,20 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
                   ))}
                 </div>
                 {scheduleMode === 'later' && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Send at</Label>
-                    <input type="datetime-local" value={scheduledAt}
-                      onChange={(e) => setScheduledAt(e.target.value)}
-                      min={new Date(Date.now() + 5 * 60000).toISOString().slice(0, 16)}
-                      className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Date</Label>
+                      <input type="date" value={scheduleDate}
+                        onChange={(e) => setScheduleDate(e.target.value)}
+                        min={new Date().toISOString().slice(0, 10)}
+                        className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Time</Label>
+                      <input type="time" value={scheduleTime}
+                        onChange={(e) => setScheduleTime(e.target.value)}
+                        className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary" />
+                    </div>
                   </div>
                 )}
               </div>
