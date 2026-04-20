@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -245,7 +245,7 @@ export function AdminClient() {
   }
 
   return (
-    <div className="p-8 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Platform Admin</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -254,7 +254,7 @@ export function AdminClient() {
       </div>
 
       {/* ── Tab Bar ── */}
-      <div className="flex gap-1 border-b border-border -mx-8 px-8">
+      <div className="flex gap-1 border-b border-border -mx-4 px-4 sm:-mx-6 sm:px-6 md:-mx-8 md:px-8 overflow-x-auto">
         {ADMIN_TABS.map((tab) => {
           const Icon = tab.icon;
           return (
