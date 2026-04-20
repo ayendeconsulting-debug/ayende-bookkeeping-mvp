@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -12,6 +13,8 @@ import { ReferralCommission } from '../entities/referral-commission.entity';
 
 @Injectable()
 export class ReferralsService {
+  private readonly logger = new Logger(ReferralsService.name);
+
   constructor(
     @InjectRepository(ReferralPartner)
     private readonly partnerRepo: Repository<ReferralPartner>,
@@ -118,8 +121,7 @@ export class ReferralsService {
       is_active: true,
     });
 
-    const saved = await this.partnerRepo.save(partner);
-    return saved;
+    return this.partnerRepo.save(partner);
   }
 
   async updatePartner(
@@ -142,6 +144,78 @@ export class ReferralsService {
     if (dto.email !== undefined) partner.email = dto.email.trim().toLowerCase();
 
     return this.partnerRepo.save(partner);
+  }
+
+  // ── Referral Attribution ──────────────────────────────────────────────
+
+  /**
+   * Log a click event for a referral code. Public, no auth required.
+   * NFR-3: must not block the redirect — called asynchronously.
+   */
+  async trackClick(
+    referralCode: string,
+    metadata?: Record<string, any>,
+  ): Promise<{ tracked: boolean }> {
+    const partner = await this.partnerRepo.findOne({
+      where: { referral_code: referralCode, is_active: true },
+    });
+    if (!partner) {
+      this.logger.warn('Click for unknown/inactive referral code: ' + referralCode);
+      return { tracked: false };
+    }
+
+    await this.eventRepo.save(
+      this.eventRepo.create({
+        partner_id: partner.id,
+        event_type: 'click',
+        user_id: null,
+        metadata: metadata ?? null,
+      }),
+    );
+
+    this.logger.log('Referral click tracked — partner: ' + partner.name + ' code: ' + referralCode);
+    return { tracked: true };
+  }
+
+  /**
+   * Attribute a signup to a referral partner. Called after user lands on dashboard.
+   * First-touch: if user already has a signup event, skip (FR-30).
+   */
+  async attributeSignup(
+    userId: string,
+    referralCode: string,
+  ): Promise<{ attributed: boolean; reason?: string }> {
+    // Check if user is already attributed (first-touch wins)
+    const existingAttribution = await this.eventRepo.findOne({
+      where: { user_id: userId, event_type: 'signup' },
+    });
+    if (existingAttribution) {
+      return { attributed: false, reason: 'already_attributed' };
+    }
+
+    // Resolve partner
+    const partner = await this.partnerRepo.findOne({
+      where: { referral_code: referralCode, is_active: true },
+    });
+    if (!partner) {
+      return { attributed: false, reason: 'invalid_code' };
+    }
+
+    // Create signup event
+    await this.eventRepo.save(
+      this.eventRepo.create({
+        partner_id: partner.id,
+        event_type: 'signup',
+        user_id: userId,
+      }),
+    );
+
+    this.logger.log(
+      'Referral signup attributed — user: ' + userId +
+      ' partner: ' + partner.name +
+      ' code: ' + referralCode,
+    );
+    return { attributed: true };
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────

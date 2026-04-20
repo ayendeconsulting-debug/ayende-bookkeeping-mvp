@@ -1,5 +1,6 @@
 import { AccessRequestBanner } from '@/components/access-request-banner';
 import { AnomalyCard } from '@/components/anomaly-card';
+import { ReferralAttributor } from '@/components/referral-attributor';
 import { getAccessRequests } from '@/app/(app)/settings/actions';
 import { redirect } from 'next/navigation';
 import { apiGet } from '@/lib/api';
@@ -63,6 +64,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
+      {/* Phase 26: attribute referral signup on first dashboard load */}
+      <ReferralAttributor />
+
       <div className="mb-5">
         <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -84,7 +88,7 @@ export default async function DashboardPage() {
         <AccessRequestBanner key={r.id} request={r} />
       ))}
 
-      {/* KPI cards — accent border uses inline style to avoid purging issues with dynamic Tailwind */}
+      {/* KPI cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
         <MetricCard label="Total Revenue" value={formatCurrency(revenue)} icon={TrendingUp} iconColor="text-primary" iconBg="bg-primary-light" sub={`YTD ${new Date().getFullYear()}`} sparklineData={revenueSparkline} sparklineColor="#0F6E56" accentColor="var(--color-primary)" />
         <MetricCard label="Total Expenses" value={formatCurrency(expenses)} icon={TrendingDown} iconColor="text-danger" iconBg="bg-danger-light" sub={`YTD ${new Date().getFullYear()}`} sparklineData={expensesSparkline} sparklineColor="#c0392b" accentColor="#c0392b" />
@@ -99,7 +103,7 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle>Recent Transactions</CardTitle>
-              <a href="/transactions" className="text-xs text-primary hover:underline font-medium">View all →</a>
+              <a href="/transactions" className="text-xs text-primary hover:underline font-medium">View all &rarr;</a>
             </CardHeader>
             <CardContent className="p-0">
               {transactions.length === 0 ? (
@@ -191,7 +195,7 @@ function HstPositionCard({ position }: { position: HstPosition }) {
         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${badgeClass}`}>{badgeLabel}</span>
       </CardHeader>
       <CardContent className="pt-0 flex flex-col gap-3">
-        <p className="text-xs text-muted-foreground">{formatDate(position.period_start)} — {formatDate(position.period_end)}</p>
+        <p className="text-xs text-muted-foreground">{formatDate(position.period_start)} &ndash; {formatDate(position.period_end)}</p>
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">HST Collected (L103)</span>
@@ -199,7 +203,7 @@ function HstPositionCard({ position }: { position: HstPosition }) {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">ITC Eligible (L106)</span>
-            <span className="text-xs font-medium text-primary">−${position.total_itc_eligible.toFixed(2)}</span>
+            <span className="text-xs font-medium text-primary">&minus;${position.total_itc_eligible.toFixed(2)}</span>
           </div>
           <div className="h-px bg-border" />
           <div className="flex items-center justify-between">
@@ -210,7 +214,7 @@ function HstPositionCard({ position }: { position: HstPosition }) {
         {position.unposted_transaction_count > 0 && (
           <div className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
             <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-            <span>{position.unposted_transaction_count} unposted transaction{position.unposted_transaction_count > 1 ? 's' : ''} — report may be incomplete</span>
+            <span>{position.unposted_transaction_count} unposted transaction{position.unposted_transaction_count > 1 ? 's' : ''} &mdash; report may be incomplete</span>
           </div>
         )}
         <a href="/tax" className="flex items-center gap-1 text-xs text-primary hover:underline font-medium w-fit">View full CRA report <ExternalLink className="w-3 h-3" /></a>

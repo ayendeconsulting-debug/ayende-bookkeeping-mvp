@@ -1,4 +1,4 @@
-﻿import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.API_URL || 'http://localhost:3005';
@@ -77,9 +77,34 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     await auth.protect();
   }
 
-  return NextResponse.next({
+  const response = NextResponse.next({
     request: { headers: requestHeaders },
   });
+
+  // ── Phase 26: Referral cookie handling ─────────────────────────────────────
+  // When a user visits /sign-up?ref={code} and has no existing tempo_ref cookie,
+  // set the cookie (first-touch attribution, FR-30) and log a click event.
+  if (request.nextUrl.pathname.startsWith('/sign-up')) {
+    const refCode = request.nextUrl.searchParams.get('ref');
+    const existingRef = request.cookies.get('tempo_ref');
+    if (refCode && !existingRef) {
+      response.cookies.set('tempo_ref', refCode, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 90 * 24 * 60 * 60, // 90 days
+        path: '/',
+      });
+      // NFR-3: Non-blocking click tracking — fire and forget
+      fetch(`${API_URL}/referrals/track-click`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ referral_code: refCode }),
+      }).catch(() => {});
+    }
+  }
+
+  return response;
 });
 
 export const config = {
