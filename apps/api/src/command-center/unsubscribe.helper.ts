@@ -1,22 +1,23 @@
 import * as crypto from 'crypto';
 
-// ── Category type ─────────────────────────────────────────────────────────────
+// \u2500\u2500 Category type \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 export type UnsubscribeCategory = 'tips' | 'broadcasts' | 'partnership' | 'cold';
 
-// ── Template → category map ───────────────────────────────────────────────────
-// Templates NOT in this map are transactional — no unsubscribe check or footer.
+// \u2500\u2500 Template \u2192 category map \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// Templates NOT in this map are transactional \u2014 no unsubscribe check or footer.
 export const TEMPLATE_CATEGORY_MAP: Record<string, UnsubscribeCategory> = {
   cold_outreach:                   'cold',
   partnership_mission_fund:        'partnership',
   partnership_community_workshop:  'partnership',
   partnership_government_program:  'partnership',
-  partnership_bank_program:        'partnership',
+  partnership_bank_sponsored:      'partnership',
+  partnership_bank_referral:       'partnership',
   partnership_cra_liaison:         'partnership',
   partnership_followup:            'partnership',
-  // Broadcast campaigns use 'broadcasts' — resolved dynamically in processor
+  // Broadcast campaigns use 'broadcasts' \u2014 resolved dynamically in processor
 };
 
-// ── Token helpers ─────────────────────────────────────────────────────────────
+// \u2500\u2500 Token helpers \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 export function generateToken(email: string, secret: string): string {
   const emailB64 = Buffer.from(email.toLowerCase().trim()).toString('base64url');
@@ -47,7 +48,7 @@ export function verifyToken(token: string, secret: string): string | null {
   }
 }
 
-// ── Footer injection ──────────────────────────────────────────────────────────
+// \u2500\u2500 Footer injection \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
 
 export function injectUnsubscribeFooter(
   html: string,
