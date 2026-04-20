@@ -4,50 +4,62 @@ import { Repository } from 'typeorm';
 import { EmailTemplate } from './email-template.entity';
 import { AutomationRule } from './automation-rule.entity';
 
-// ── Shared brand helpers ──────────────────────────────────────────────────────
+// -- Layout helpers ---------------------------------------------------------
 
-const LOGO = `<img src="https://gettempo.ca/logo.svg" alt="Tempo Books" width="140" height="38"
-     style="display:block;border:0;outline:none;text-decoration:none;"
-     onerror="this.style.display='none'"/>`;
+const LOGO = `
+  <div style="display:inline-flex;align-items:center;gap:8px;">
+    <div style="width:28px;height:28px;background:#0F6E56;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;">
+      <svg viewBox="0 0 16 16" width="16" height="16">
+        <rect x="1" y="10" width="3" height="5" rx="0.5" fill="white" opacity="0.5"/>
+        <rect x="6.5" y="7" width="3" height="8" rx="0.5" fill="white" opacity="0.75"/>
+        <rect x="12" y="3" width="3" height="12" rx="0.5" fill="white"/>
+      </svg>
+    </div>
+    <span style="font-size:18px;font-weight:bold;color:#ffffff;font-family:Arial,sans-serif;letter-spacing:-.3px;">Tempo Books</span>
+  </div>`;
 
-const HEADER = `
-  <tr><td style="background:#0F6E56;padding:24px 40px;">${LOGO}</td></tr>`;
-
-const FOOTER = `
-  <tr>
-    <td style="background:#f4f4f5;padding:24px 40px;border-top:1px solid #e5e7eb;">
-      <p style="margin:0;font-size:13px;color:#888888;">
-        Tempo Books &mdash; <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
-        &mdash; Support: <a href="mailto:support@gettempo.ca" style="color:#0F6E56;text-decoration:none;">support@gettempo.ca</a>
-      </p>
-    </td>
-  </tr>`;
-
-function wrap(content: string): string {
+function wrap(inner: string): string {
   return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/></head>
-<body style="margin:0;padding:0;background:#f4f4f5;font-family:Arial,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:40px 0;">
-    <tr><td align="center">
-      <table width="600" cellpadding="0" cellspacing="0"
-             style="max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
-        ${HEADER}${content}${FOOTER}
-      </table>
-    </td></tr>
-  </table>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
+  <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);">
+    <div style="background:#0F6E56;padding:24px 40px;">
+      ${LOGO}
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      ${inner}
+    </table>
+    <div style="padding:20px 40px;background:#f9fafb;border-top:1px solid #f3f4f6;text-align:center;">
+      <p style="margin:0;font-size:12px;color:#9CA3AF;">
+        Tempo Books &nbsp;&middot;&nbsp;
+        <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
+      </p>
+    </div>
+  </div>
 </body></html>`;
 }
 
-function hero(text: string, bg = '#EDF7F2', colour = '#0F6E56', borderColour = '#c6e8d8'): string {
+function hero(
+  text: string,
+  bg     = '#0F6E56',
+  colour = '#ffffff',
+  border = '#0F6E56',
+): string {
   return `
   <tr>
-    <td style="background:${bg};padding:20px 40px;border-bottom:1px solid ${borderColour};">
-      <p style="margin:0;font-size:17px;font-weight:bold;color:${colour};font-family:Arial,sans-serif;">${text}</p>
+    <td style="background:${bg};padding:24px 40px;border-bottom:1px solid ${border};">
+      <p style="margin:0;font-size:20px;font-weight:bold;color:${colour};font-family:Arial,sans-serif;line-height:1.3;">
+        ${text}
+      </p>
     </td>
   </tr>`;
 }
 
-function cta(label: string, urlPlaceholder: string, colour = '#0F6E56'): string {
+function cta(
+  label:          string,
+  urlPlaceholder: string,
+  colour          = '#0F6E56',
+): string {
   return `
   <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
     <tr><td style="background:${colour};border-radius:6px;">
@@ -98,7 +110,7 @@ function bullet(text: string): string {
   </tr>`;
 }
 
-// ── Template definitions ──────────────────────────────────────────────────────
+// -- Template definitions ---------------------------------------------------
 
 interface SeedTemplate {
   name: string;
@@ -112,7 +124,7 @@ interface SeedTemplate {
 
 const TEMPLATES: SeedTemplate[] = [
 
-  // 1 ── signup_welcome ────────────────────────────────────────────────────────
+  // 1 -- signup_welcome ------------------------------------------------------
   {
     name:        'signup_welcome',
     description: 'Sent to every new user immediately after sign-up via user.created automation',
@@ -155,7 +167,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 2 ── admin_signup_alert ────────────────────────────────────────────────────
+  // 2 -- admin_signup_alert --------------------------------------------------
   {
     name:        'admin_signup_alert',
     description: 'Hardwired admin notification on every user.created event',
@@ -185,7 +197,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 3 ── trial_ending ──────────────────────────────────────────────────────────
+  // 3 -- trial_ending --------------------------------------------------------
   {
     name:        'trial_ending',
     description: 'Trial ending notification \u2014 body_text and subject_line are pre-rendered by EmailService',
@@ -211,7 +223,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 4 ── payment_failed ────────────────────────────────────────────────────────
+  // 4 -- payment_failed ------------------------------------------------------
   {
     name:        'payment_failed',
     description: 'Stripe payment failure alert \u2014 retry_note is pre-rendered by EmailService',
@@ -241,7 +253,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 5 ── abandoned_cart ────────────────────────────────────────────────────────
+  // 5 -- abandoned_cart ------------------------------------------------------
   {
     name:        'abandoned_cart',
     description: 'Sent when a user starts but does not complete Stripe checkout',
@@ -264,7 +276,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 6 ── invoice_email ─────────────────────────────────────────────────────────
+  // 6 -- invoice_email -------------------------------------------------------
   {
     name:        'invoice_email',
     description: 'Invoice sent to client \u2014 complex pre-rendered HTML vars passed by EmailService',
@@ -317,7 +329,7 @@ const TEMPLATES: SeedTemplate[] = [
 </body></html>`,
   },
 
-  // 7 ── staff_invite ──────────────────────────────────────────────────────────
+  // 7 -- staff_invite --------------------------------------------------------
   {
     name:        'staff_invite',
     description: 'Invitation email sent to new firm staff members',
@@ -342,7 +354,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 8 ── access_request ────────────────────────────────────────────────────────
+  // 8 -- access_request ------------------------------------------------------
   {
     name:        'access_request',
     description: 'Sent to a client when an accountant firm requests edit access',
@@ -392,7 +404,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 9 ── access_response ───────────────────────────────────────────────────────
+  // 9 -- access_response -----------------------------------------------------
   {
     name:        'access_response',
     description: 'Sent to accountant firm when client approves or denies access \u2014 status_colour and body_text pre-rendered',
@@ -408,7 +420,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 10 ── trial_reminder_cron ──────────────────────────────────────────────────
+  // 10 -- trial_reminder_cron ------------------------------------------------
   {
     name:        'trial_reminder_cron',
     description: 'CRON-triggered trial reminder \u2014 reminder_subject, day_text, accent_colour pre-rendered',
@@ -433,7 +445,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 11 ── upcoming_payment ─────────────────────────────────────────────────────
+  // 11 -- upcoming_payment ---------------------------------------------------
   {
     name:        'upcoming_payment',
     description: 'Sent before subscription renewal charge',
@@ -457,7 +469,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 12 ── ai_cap_warning ───────────────────────────────────────────────────────
+  // 12 -- ai_cap_warning -----------------------------------------------------
   {
     name:        'ai_cap_warning',
     description: 'AI credit quota warning \u2014 warning_subject, body_text, accent_colour pre-rendered',
@@ -474,7 +486,7 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 13 ── cancellation_confirmation ────────────────────────────────────────────
+  // 13 -- cancellation_confirmation ------------------------------------------
   {
     name:        'cancellation_confirmation',
     description: 'Sent when a subscription is cancelled',
@@ -497,12 +509,12 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 14 ── lead_acknowledgement ─────────────────────────────────────────────────
+  // 14 -- lead_acknowledgement -----------------------------------------------
   {
     name:        'lead_acknowledgement',
     description: 'Sent to marketing form leads \u2014 confirms we received their demo request',
     subject:     'Thanks for your interest in Tempo Books',
-    from_email:  'admin@gettempo.ca',
+    from_email:  'ade.ehinmidu@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['first_name'],
     html_body: wrap(`
@@ -525,12 +537,12 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 15 ── cold_outreach ────────────────────────────────────────────────────────
+  // 15 -- cold_outreach ------------------------------------------------------
   {
     name:        'cold_outreach',
     description: 'Sent automatically when a Cold lead is manually created \u2014 introduces Tempo Books with CRA emphasis',
     subject:     'Most Canadian small businesses overpay CRA. Here\u2019s how to stop.',
-    from_email:  'admin@gettempo.ca',
+    from_email:  'ade.ehinmidu@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['first_name'],
     html_body: wrap(`
@@ -598,14 +610,14 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // ── PARTNERSHIP TEMPLATES (16–21) ────────────────────────────────────────────
+  // -- PARTNERSHIP TEMPLATES (16-21) -----------------------------------------
 
-  // 16 ── partnership_mission_fund ─────────────────────────────────────────────
+  // 16 -- partnership_mission_fund -------------------------------------------
   {
     name:        'partnership_mission_fund',
     description: 'Partnership outreach to mission-aligned funds (BOF, FACE) \u2014 sponsored access model',
-    subject:     'Tempo Books \u2014 Bookkeeping platform for your members',
-    from_email:  'admin@gettempo.ca',
+    subject:     'Tempo Books \u2014 Black-owned bookkeeping platform for your members',
+    from_email:  'ade.ehinmidu@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name', 'organization_name'],
     html_body: wrap(`
@@ -614,8 +626,14 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      My name is Adesanya Ehinmidu. I am the founder of Tempo Books, a Canadian bookkeeping platform
-      built specifically for small and Black-owned businesses.
+      My name is Adesanya Ehinmidu. I am the founder of <strong>Tempo Books</strong> \u2014 a
+      Black-owned Canadian bookkeeping platform built specifically for small and Black-owned businesses.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      Tempo Books is exactly the kind of Black-owned business {{organization_name}} exists to support.
+      I am reaching out because your mandate includes companies like ours \u2014 and I believe a
+      partnership between us would serve your members directly.
     </p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
@@ -625,17 +643,16 @@ const TEMPLATES: SeedTemplate[] = [
       not just at tax time.
     </p>
 
-    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      Tempo Books solves this. The platform connects to 12,000+ Canadian bank accounts, classifies every
-      transaction with AI, auto-splits HST/GST, and stores receipts for 6 years in the format CRA
-      requires for audits.
-    </p>
-
-    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      I am reaching out because {{organization_name}}\u2019s work aligns directly with what we built.
-      Your members are the exact entrepreneurs who need this protection \u2014 and right now, most of
-      them do not have it.
-    </p>
+    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">What Tempo Books delivers for your members:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+      ${check('12,000+ Banks supported via Plaid Canada &amp; United States', '\u2014 transactions import automatically, no manual entry ever')}
+      ${check('AI transaction classification', '\u2014 every expense posted to the correct account and defensible at audit')}
+      ${check('HST/GST auto-split on every transaction', '\u2014 CRA remittance report (GST34 lines 101\u2013113) always one click away')}
+      ${check('6-year receipt repository', '\u2014 stored in the format CRA accepts for audits, from date of upload')}
+      ${check('Real-time Income Statement and Balance Sheet', '\u2014 financial clarity every month, not just at tax time')}
+      ${check('AI anomaly detection', '\u2014 flags unusual charges before they become expensive problems')}
+      ${check('60-day free trial', '\u2014 no charge until the trial ends')}
+    </table>
 
     <table width="100%" cellpadding="0" cellspacing="0"
            style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
@@ -643,6 +660,8 @@ const TEMPLATES: SeedTemplate[] = [
         <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
           <strong>I would like to explore a partnership where {{organization_name}} members receive
           full access to Tempo Books at no personal cost, funded through your existing program budget.</strong>
+          As a Black-owned platform built for this community, this is exactly the kind of ecosystem
+          investment your mandate exists to make.
         </p>
       </td></tr>
     </table>
@@ -652,11 +671,13 @@ const TEMPLATES: SeedTemplate[] = [
       I would welcome 20 minutes of your time to discuss what a pilot could look like.
     </p>
 
-    <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you for your time.</p>
+    <p style="margin:0 0 4px;font-size:15px;color:#555555;">
+      Thank you for everything you do for this community \u2014 and for considering this.
+    </p>
     <p style="margin:0;font-size:15px;color:#555555;">
       Adesanya Ehinmidu<br/>
       <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
-        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        <a href="mailto:ade.ehinmidu@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade.ehinmidu@gettempo.ca</a>
         &nbsp;|&nbsp;
         <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
       </span>
@@ -664,12 +685,12 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 17 ── partnership_community_workshop ───────────────────────────────────────
+  // 17 -- partnership_community_workshop -------------------------------------
   {
     name:        'partnership_community_workshop',
     description: 'Partnership outreach to community / workshop organizations (CBCC, BEBC) \u2014 member pricing + workshop model',
-    subject:     'Bookkeeping workshops for {{organization_name}} members \u2014 Tempo Books',
-    from_email:  'admin@gettempo.ca',
+    subject:     'Bookkeeping workshops for {{organization_name}} members \u2014 Tempo Books (Black-owned)',
+    from_email:  'ade.ehinmidu@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name', 'organization_name', 'org_program_type'],
     html_body: wrap(`
@@ -678,36 +699,38 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      My name is Adesanya Ehinmidu. I am the founder of Tempo Books, a Canadian bookkeeping platform
-      built for small and Black-owned businesses.
+      My name is Adesanya Ehinmidu. I am the founder of <strong>Tempo Books</strong> \u2014 a
+      Black-owned Canadian bookkeeping platform built for small and Black-owned businesses.
     </p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      I have followed {{organization_name}}\u2019s work supporting Black entrepreneurs through
-      {{org_program_type}}, and I believe there is a natural fit between what you deliver and what
-      we have built.
+      Tempo Books is exactly the kind of Black-owned business {{organization_name}} exists to support.
+      I have followed your work supporting Black entrepreneurs through {{org_program_type}}, and I
+      believe there is a natural fit between what you deliver and what we have built.
     </p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
       Most small business owners we speak with share the same challenge: they know bookkeeping matters,
       but they have never had a tool that makes it manageable. Tax season becomes a scramble, deductions
       get missed, and CRA compliance feels out of reach. Tempo Books changes that \u2014 the platform
-      automates bank syncing, transaction classification, HST/GST splitting, and receipt storage, all
-      in one place, all CRA-ready.
+      connects to 12,000+ Banks supported via Plaid Canada &amp; United States, classifies every
+      transaction with AI, auto-splits HST/GST, and stores receipts for 6 years in the format CRA
+      requires for audits, all CRA-ready every month.
     </p>
 
     <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">I would like to propose two things:</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
-      ${bullet('<strong>A co-branded bookkeeping workshop</strong> for your members, delivered by Tempo Books, covering CRA compliance, receipt management, and monthly close basics.')}
-      ${bullet('<strong>A permanent member pricing arrangement</strong> where {{organization_name}} members lock in our Pro plan at $25/month CAD \u2014 permanently \u2014 even after the public price returns to $49/month.')}
+      ${bullet('<strong>A co-branded bookkeeping workshop</strong> for your members, delivered by Tempo Books, covering CRA compliance, receipt management, and monthly close basics \u2014 at no cost to {{organization_name}}.')}
+      ${bullet('<strong>A permanent member pricing arrangement</strong> where {{organization_name}} members lock in our Pro plan at $25/month CAD, permanently, even after the public price returns to $49/month.')}
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0"
            style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
       <tr><td style="padding:16px 20px;">
         <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
-          There is no cost to {{organization_name}}. Your members sign up individually, and you deliver
-          an exclusive, lasting benefit.
+          There is no cost to {{organization_name}}. Your members sign up individually and you deliver
+          an exclusive, lasting financial benefit to your community. As a Black-owned platform, I built
+          Tempo specifically for entrepreneurs like your members.
         </p>
       </td></tr>
     </table>
@@ -720,7 +743,7 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0;font-size:15px;color:#555555;">
       Adesanya Ehinmidu<br/>
       <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
-        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        <a href="mailto:ade.ehinmidu@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade.ehinmidu@gettempo.ca</a>
         &nbsp;|&nbsp;
         <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
       </span>
@@ -728,12 +751,12 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 18 ── partnership_government_program ───────────────────────────────────────
+  // 18 -- partnership_government_program -------------------------------------
   {
     name:        'partnership_government_program',
     description: 'Partnership outreach to government programs (BEP, FedDev Ontario) \u2014 infrastructure framing',
-    subject:     'Bookkeeping infrastructure for BEP-funded businesses \u2014 Tempo Books',
-    from_email:  'admin@gettempo.ca',
+    subject:     'Bookkeeping infrastructure for {{program_name}} participants \u2014 Tempo Books',
+    from_email:  'ade.ehinmidu@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name', 'organization_name', 'program_name'],
     html_body: wrap(`
@@ -742,29 +765,34 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      My name is Adesanya Ehinmidu. I am the founder of Tempo Books, a Canadian bookkeeping platform
-      designed for small and Black-owned businesses.
+      My name is Adesanya Ehinmidu. I am the founder of <strong>Tempo Books</strong> \u2014 a
+      Black-owned Canadian bookkeeping platform designed for small and Black-owned businesses.
+    </p>
+
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
+      Tempo Books is exactly the kind of Black-owned business {{program_name}} was designed to support.
+      I am reaching out because your mandate includes companies like ours \u2014 and I believe our
+      platform directly serves the entrepreneurs your program is investing in.
     </p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
       {{program_name}} represents a significant public investment in Black entrepreneurship across Canada.
       That level of commitment deserves infrastructure to match \u2014 including the financial tools that
-      help funded businesses survive past year one.
-    </p>
-
-    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      One of the most common reasons small businesses fail is poor financial visibility. Not lack of
-      revenue, but lack of organized books. Missed deductions, unclaimed input tax credits, and
-      disorganized receipts cost Canadian small business owners $2,000 to $10,000 per year in
-      overpaid taxes alone.
+      help funded businesses survive past year one. The most common reason small businesses fail is not
+      lack of revenue, but lack of financial visibility. Disorganized books mean missed deductions,
+      unclaimed input tax credits, and a scramble at filing time \u2014 costing Canadian small business
+      owners $2,000 to $10,000 annually in overpaid taxes alone.
     </p>
 
     <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">Tempo Books addresses this directly:</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
-      ${check('Automated bank sync', 'with 12,000+ Canadian institutions')}
-      ${check('AI-powered transaction classification', 'that learns from each correction')}
-      ${check('HST/GST engine', 'generating CRA-ready remittance reports')}
-      ${check('6-year receipt repository', 'meeting CRA audit requirements')}
+      ${check('12,000+ Banks supported via Plaid Canada &amp; United States', '\u2014 transactions import automatically, zero manual entry')}
+      ${check('AI-powered transaction classification', '\u2014 learns from corrections, improves month over month')}
+      ${check('HST/GST engine', '\u2014 generates CRA remittance reports with GST34 lines 101\u2013113 pre-calculated')}
+      ${check('6-year receipt repository', '\u2014 every document stored from date of upload in the format CRA accepts for audits')}
+      ${check('Real double-entry accounting', '\u2014 Income Statement and Balance Sheet always current')}
+      ${check('Fiscal year locking', '\u2014 retroactive changes blocked once a period is filed')}
+      ${check('60-day free trial', '\u2014 no charge until the trial ends')}
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0"
@@ -787,7 +815,7 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0;font-size:15px;color:#555555;">
       Adesanya Ehinmidu<br/>
       <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
-        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        <a href="mailto:ade.ehinmidu@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade.ehinmidu@gettempo.ca</a>
         &nbsp;|&nbsp;
         <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
       </span>
@@ -795,12 +823,12 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 19 ── partnership_bank_program ─────────────────────────────────────────────
+  // 19 -- partnership_bank_program -------------------------------------------
   {
     name:        'partnership_bank_program',
     description: 'Partnership outreach to bank entrepreneur programs (RBC, TD, Scotiabank) \u2014 sponsored access + revenue share models',
     subject:     'Bookkeeping support for {{bank_name}} Black entrepreneur clients \u2014 Tempo Books',
-    from_email:  'admin@gettempo.ca',
+    from_email:  'ade.ehinmidu@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name', 'bank_name'],
     html_body: wrap(`
@@ -809,32 +837,40 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      My name is Adesanya Ehinmidu. I am the founder of Tempo Books, a Canadian bookkeeping platform
-      built for small and Black-owned businesses.
+      My name is Adesanya Ehinmidu. I am the founder of <strong>Tempo Books</strong> \u2014 a
+      Black-owned Canadian bookkeeping platform built for small and Black-owned businesses.
     </p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      {{bank_name}}\u2019s commitment to Black entrepreneurship is well documented, and the businesses
-      you support face a challenge your program is uniquely positioned to address: most of them do not
-      have organized books.
+      Tempo Books is exactly the kind of Black-owned business {{bank_name}}\u2019s entrepreneur programs
+      exist to support. I am reaching out because your mandate includes companies like ours \u2014 and
+      because our platform directly serves the entrepreneurs your program is investing in.
     </p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      This means missed deductions, unclaimed input tax credits, and a scramble every tax season.
-      For businesses that have received financing, the stakes are higher \u2014 disorganized books make
-      it harder to demonstrate financial health, access follow-on capital, and survive a CRA audit.
+      {{bank_name}}\u2019s commitment to Black entrepreneurship is well documented. The businesses you
+      support face a challenge your program is uniquely positioned to address: most of them do not have
+      organized books. This means missed deductions, unclaimed input tax credits, and a scramble every
+      tax season. For businesses that have received financing, the stakes are higher \u2014 disorganized
+      books make it harder to demonstrate financial health, access follow-on capital, and survive a
+      CRA audit.
     </p>
 
-    <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      Tempo Books automates the entire bookkeeping process: bank sync with 12,000+ Canadian institutions
-      (including {{bank_name}}), AI-powered classification, automatic HST/GST splitting, and 6-year
-      CRA-compliant receipt storage.
-    </p>
+    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">Tempo Books automates the entire bookkeeping process:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+      ${check('12,000+ Banks supported via Plaid Canada &amp; United States', '\u2014 including {{bank_name}}, transactions import automatically')}
+      ${check('AI-powered classification', '\u2014 learns your client\u2019s patterns over time')}
+      ${check('Automatic HST/GST splitting', '\u2014 CRA remittance report (GST34 lines 101\u2013113) always ready')}
+      ${check('6-year CRA-compliant receipt storage', '\u2014 audit-ready from date of upload')}
+      ${check('Real double-entry accounting', '\u2014 Income Statement and Balance Sheet updated in real time')}
+      ${check('AI anomaly detection', '\u2014 flags unusual charges before they become expensive problems')}
+      ${check('60-day free trial', '\u2014 no charge until the trial ends')}
+    </table>
 
-    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">I see two potential models:</p>
+    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">Two potential models:</p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
       ${bullet('<strong>Sponsored Access:</strong> {{bank_name}} subscribes on behalf of program participants at a negotiated bulk rate. Businesses get full Pro access at no personal cost.')}
-      ${bullet('<strong>Revenue Share Referral:</strong> {{bank_name}} recommends Tempo Books to clients through its entrepreneur program. We handle billing, support, and onboarding. {{bank_name}} earns a commission on every conversion.')}
+      ${bullet('<strong>Revenue Share Referral:</strong> {{bank_name}} recommends Tempo Books to clients. We handle billing, support, and onboarding. {{bank_name}} earns a commission on every conversion.')}
     </table>
 
     <table width="100%" cellpadding="0" cellspacing="0"
@@ -855,7 +891,7 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0;font-size:15px;color:#555555;">
       Adesanya Ehinmidu<br/>
       <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
-        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        <a href="mailto:ade.ehinmidu@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade.ehinmidu@gettempo.ca</a>
         &nbsp;|&nbsp;
         <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
       </span>
@@ -863,12 +899,12 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 20 ── partnership_cra_liaison ───────────────────────────────────────────────
+  // 20 -- partnership_cra_liaison --------------------------------------------
   {
     name:        'partnership_cra_liaison',
     description: 'Outreach to CRA Liaison Officer Initiative \u2014 resource listing framing, no endorsement ask',
-    subject:     'Bookkeeping platform for small businesses \u2014 Tempo Books partnership inquiry',
-    from_email:  'admin@gettempo.ca',
+    subject:     'Bookkeeping platform for small businesses \u2014 Tempo Books (Black-owned, Canadian)',
+    from_email:  'ade.ehinmidu@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name'],
     html_body: wrap(`
@@ -877,8 +913,8 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0 0 16px;font-size:16px;color:#333333;">Dear {{contact_name}},</p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      My name is Adesanya Ehinmidu. I am the founder of Tempo Books, a Canadian bookkeeping platform
-      for small businesses.
+      My name is Adesanya Ehinmidu. I am the founder of <strong>Tempo Books</strong> \u2014 a
+      Black-owned Canadian bookkeeping platform for small businesses.
     </p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
@@ -888,15 +924,20 @@ const TEMPLATES: SeedTemplate[] = [
     </p>
 
     <p style="margin:0 0 16px;font-size:16px;color:#333333;line-height:1.7;">
-      Many small business owners we work with understand what CRA requires. They simply lack the tools to
-      do it consistently. Tempo Books automates bank syncing, transaction categorization, HST/GST splitting,
-      and receipt storage \u2014 giving business owners CRA-ready books every month, not just at filing time.
+      Many small business owners understand what CRA requires. They simply lack the tools to do it
+      consistently. Tempo Books automates bank syncing across 12,000+ Banks supported via Plaid
+      Canada &amp; United States, AI-powered transaction categorization, HST/GST splitting, and
+      receipt storage \u2014 giving business owners CRA-ready books every month, not just at filing time.
     </p>
 
-    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
-      The platform also maintains a 6-year receipt repository, storing receipts and invoices from the date
-      of upload in the format CRA accepts for audits.
-    </p>
+    <p style="margin:0 0 12px;font-size:15px;font-weight:bold;color:#0F6E56;">Specifically, the platform provides:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
+      ${check('Automatic HST/GST calculation', '\u2014 GST34 lines 101\u2013113 pre-calculated, remittance always one click away')}
+      ${check('6-year receipt repository', '\u2014 digital images stored and searchable, meeting CRA\u2019s record-keeping requirements')}
+      ${check('Real double-entry accounting', '\u2014 every transaction balanced, every journal entry auditable')}
+      ${check('Fiscal year locking', '\u2014 prevents retroactive changes to closed periods')}
+      ${check('AI anomaly detection', '\u2014 flags unusual charges before they attract CRA attention')}
+    </table>
 
     <table width="100%" cellpadding="0" cellspacing="0"
            style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
@@ -918,7 +959,7 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0;font-size:15px;color:#555555;">
       Adesanya Ehinmidu<br/>
       <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
-        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        <a href="mailto:ade.ehinmidu@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade.ehinmidu@gettempo.ca</a>
         &nbsp;|&nbsp;
         <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
       </span>
@@ -926,12 +967,12 @@ const TEMPLATES: SeedTemplate[] = [
   </td></tr>`),
   },
 
-  // 21 ── partnership_followup ──────────────────────────────────────────────────
+  // 21 -- partnership_followup -----------------------------------------------
   {
     name:        'partnership_followup',
     description: 'Follow-up to all Wave 1 partnership contacts who did not respond within 10\u201314 business days',
     subject:     'Re: Tempo Books \u2014 following up',
-    from_email:  'admin@gettempo.ca',
+    from_email:  'ade.ehinmidu@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name', 'organization_name', 'original_send_date'],
     html_body: wrap(`
@@ -949,18 +990,19 @@ const TEMPLATES: SeedTemplate[] = [
     </p>
 
     <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
-      Tempo Books is a Canadian bookkeeping platform that gives small and Black-owned businesses clean,
-      CRA-ready books every month. We automate bank syncing, transaction classification, HST/GST, and
-      6-year receipt storage.
+      <strong>Tempo Books</strong> is a Black-owned Canadian bookkeeping platform that gives small and
+      Black-owned businesses clean, CRA-ready books every month. The platform connects to 12,000+ Banks
+      supported via Plaid Canada &amp; United States, automates transaction classification with AI,
+      handles HST/GST with a one-click CRA remittance report, and maintains a 6-year CRA-compliant
+      receipt repository \u2014 all included from the first day of a 60-day free trial.
     </p>
 
     <table width="100%" cellpadding="0" cellspacing="0"
            style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
       <tr><td style="padding:16px 20px;">
         <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
-          I believe there is a strong fit between what {{organization_name}} does for its members and
-          the financial infrastructure Tempo Books provides. I would welcome even 15 minutes to explore
-          whether a partnership makes sense.
+          Tempo Books is exactly the kind of Black-owned business {{organization_name}} exists to support.
+          I would welcome even 15 minutes to explore whether a partnership makes sense.
         </p>
       </td></tr>
     </table>
@@ -973,7 +1015,7 @@ const TEMPLATES: SeedTemplate[] = [
     <p style="margin:0;font-size:15px;color:#555555;">
       Adesanya Ehinmidu<br/>
       <span style="color:#888888;">Founder \u2014 Tempo Books &nbsp;|&nbsp;
-        <a href="mailto:ade@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade@gettempo.ca</a>
+        <a href="mailto:ade.ehinmidu@gettempo.ca" style="color:#0F6E56;text-decoration:none;">ade.ehinmidu@gettempo.ca</a>
         &nbsp;|&nbsp;
         <a href="https://gettempo.ca" style="color:#0F6E56;text-decoration:none;">gettempo.ca</a>
       </span>
@@ -983,8 +1025,7 @@ const TEMPLATES: SeedTemplate[] = [
 
 ];
 
-// ── Templates that must be force-updated on every deploy ──────────────────────
-// Add a template name here when its copy has been intentionally revised.
+// -- Templates that must be force-updated on every deploy -------------------
 const FORCE_UPDATE_NAMES = new Set<string>([
   'cold_outreach',
   'lead_acknowledgement',
@@ -1004,21 +1045,21 @@ interface SeedRule {
 }
 
 const RULE_SEEDS: SeedRule[] = [
-  { name: 'Welcome on signup',          trigger_event: 'user.created',           template_name: 'signup_welcome',            delay_minutes: 0  },
-  { name: 'Trial ending \u2014 7 days', trigger_event: 'trial.ending_7d',        template_name: 'trial_ending',              delay_minutes: 0  },
-  { name: 'Trial ending \u2014 3 days', trigger_event: 'trial.ending_3d',        template_name: 'trial_ending',              delay_minutes: 0  },
-  { name: 'Trial ending \u2014 today',  trigger_event: 'trial.ending_0d',        template_name: 'trial_ending',              delay_minutes: 0  },
-  { name: 'Payment failed',             trigger_event: 'payment.failed',         template_name: 'payment_failed',            delay_minutes: 0  },
-  { name: 'Abandoned cart',             trigger_event: 'cart.abandoned',         template_name: 'abandoned_cart',            delay_minutes: 60 },
-  { name: 'New lead acknowledgement',   trigger_event: 'lead.created',           template_name: 'lead_acknowledgement',      delay_minutes: 0  },
-  { name: 'Upcoming payment reminder',  trigger_event: 'upcoming.payment',       template_name: 'upcoming_payment',          delay_minutes: 0  },
-  { name: 'AI quota warning',           trigger_event: 'ai.cap_warning',         template_name: 'ai_cap_warning',            delay_minutes: 0  },
-  { name: 'Subscription cancelled',     trigger_event: 'subscription.cancelled', template_name: 'cancellation_confirmation', delay_minutes: 0  },
-  { name: 'Trial reminder (cron)',      trigger_event: 'trial.reminder_cron',    template_name: 'trial_reminder_cron',       delay_minutes: 0  },
-  { name: 'Cold lead outreach',         trigger_event: 'lead.cold_created',      template_name: 'cold_outreach',             delay_minutes: 0  },
+  { name: 'Welcome on signup',            trigger_event: 'user.created',           template_name: 'signup_welcome',            delay_minutes: 0  },
+  { name: 'Trial ending \u2014 7 days',   trigger_event: 'trial.ending_7d',        template_name: 'trial_ending',              delay_minutes: 0  },
+  { name: 'Trial ending \u2014 3 days',   trigger_event: 'trial.ending_3d',        template_name: 'trial_ending',              delay_minutes: 0  },
+  { name: 'Trial ending \u2014 today',    trigger_event: 'trial.ending_0d',        template_name: 'trial_ending',              delay_minutes: 0  },
+  { name: 'Payment failed',               trigger_event: 'payment.failed',         template_name: 'payment_failed',            delay_minutes: 0  },
+  { name: 'Abandoned cart',               trigger_event: 'cart.abandoned',         template_name: 'abandoned_cart',            delay_minutes: 60 },
+  { name: 'New lead acknowledgement',     trigger_event: 'lead.created',           template_name: 'lead_acknowledgement',      delay_minutes: 0  },
+  { name: 'Upcoming payment reminder',    trigger_event: 'upcoming.payment',       template_name: 'upcoming_payment',          delay_minutes: 0  },
+  { name: 'AI quota warning',             trigger_event: 'ai.cap_warning',         template_name: 'ai_cap_warning',            delay_minutes: 0  },
+  { name: 'Subscription cancelled',       trigger_event: 'subscription.cancelled', template_name: 'cancellation_confirmation', delay_minutes: 0  },
+  { name: 'Trial reminder (cron)',        trigger_event: 'trial.reminder_cron',    template_name: 'trial_reminder_cron',       delay_minutes: 0  },
+  { name: 'Cold lead outreach',           trigger_event: 'lead.cold_created',      template_name: 'cold_outreach',             delay_minutes: 0  },
 ];
 
-// ── Service ───────────────────────────────────────────────────────────────────
+// -- Service ----------------------------------------------------------------
 
 @Injectable()
 export class TemplateSeedService implements OnModuleInit {
@@ -1032,7 +1073,7 @@ export class TemplateSeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    // ── 1. Seed / force-update templates ──────────────────────────────────────
+    // -- 1. Seed / force-update templates ------------------------------------
     let templatesSeeded = 0;
     let templatesUpdated = 0;
 
@@ -1055,11 +1096,12 @@ export class TemplateSeedService implements OnModuleInit {
         );
         templatesSeeded++;
       } else if (FORCE_UPDATE_NAMES.has(t.name)) {
-        // Force-update html_body and subject — preserves admin edits to
-        // from_email, from_name, and variables.
-        existing.subject   = t.subject;
-        existing.html_body = t.html_body;
-        existing.version   = (existing.version ?? 1) + 1;
+        // Force-update subject, html_body, and from_email.
+        // Preserves admin edits to from_name and variables.
+        existing.subject    = t.subject;
+        existing.html_body  = t.html_body;
+        existing.from_email = t.from_email;
+        existing.version    = (existing.version ?? 1) + 1;
         await this.repo.save(existing);
         templatesUpdated++;
       }
@@ -1071,7 +1113,7 @@ export class TemplateSeedService implements OnModuleInit {
       this.logger.log(`Email template seed: all ${TEMPLATES.length} templates already present`);
     }
 
-    // ── 2. Seed automation rules ───────────────────────────────────────────────
+    // -- 2. Seed automation rules -------------------------------------------
     let rulesSeeded = 0;
     for (const r of RULE_SEEDS) {
       const existingRule = await this.ruleRepo.findOne({ where: { name: r.name } });
@@ -1079,7 +1121,7 @@ export class TemplateSeedService implements OnModuleInit {
 
       const template = await this.repo.findOne({ where: { name: r.template_name } });
       if (!template) {
-        this.logger.warn(`Rule seed: template "${r.template_name}" not found — skipping rule "${r.name}"`);
+        this.logger.warn(`Rule seed: template "${r.template_name}" not found -- skipping rule "${r.name}"`);
         continue;
       }
 
