@@ -27,6 +27,7 @@ import { CcaModule } from './cca/cca.module';
 import { VehicleModule } from './vehicle/vehicle.module';
 import { CommandCenterModule } from './command-center/command-center.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { ReferralsModule } from './referrals/referrals.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { LegalAcceptanceGuard } from './legal/legal-acceptance.guard';
@@ -78,6 +79,7 @@ function getRedisBullMQConnection() {
     VehicleModule,
     CommandCenterModule,
     WebhooksModule,
+    ReferralsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
