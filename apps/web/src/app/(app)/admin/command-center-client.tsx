@@ -811,9 +811,9 @@ function CampaignWizard({ open, onClose, templates, onCreated, onEditTemplate }:
             )}
           </div>
         </div>
-
         <PreviewModal open={previewOpen} subject={previewSubject} html={previewHtml}
-          onClose={() => setPreviewOpen(false)} />
+          onClose={() => setPreviewOpen(false)}
+          onEdit={onEditTemplate && selectedTpl ? () => { setPreviewOpen(false); onEditTemplate(selectedTpl); handleClose(); } : undefined} />
       </div>
     </div>
   );
