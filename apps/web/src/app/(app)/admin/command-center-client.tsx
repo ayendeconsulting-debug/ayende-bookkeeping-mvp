@@ -196,8 +196,8 @@ function SlideOver({ open, title, onClose, children }: {
 }
 
 // ── Preview modal ──────────────────────────────────────────────────────────
-function PreviewModal({ open, subject, html, onClose }: {
-  open: boolean; subject: string; html: string; onClose: () => void;
+function PreviewModal({ open, subject, html, onClose, onEdit }: {
+  open: boolean; subject: string; html: string; onClose: () => void; onEdit?: () => void;
 }) {
   if (!open) return null;
   return (
@@ -208,9 +208,16 @@ function PreviewModal({ open, subject, html, onClose }: {
             <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-0.5">Preview</p>
             <p className="text-sm font-medium text-foreground">{subject || '(no subject)'}</p>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <button onClick={onEdit} className="flex items-center gap-1.5 text-xs font-semibold text-primary border border-primary/30 hover:bg-primary/5 px-3 py-1.5 rounded-lg transition-colors">
+                <Pencil className="w-3.5 h-3.5" />Edit Template
+              </button>
+            )}
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
         <div className="flex-1 overflow-auto p-4">
           <iframe srcDoc={html} sandbox="allow-same-origin"
@@ -847,6 +854,7 @@ export function CommandCenterClient() {
   const [previewHtml, setPreviewHtml] = useState('');
   const [previewing, setPreviewing] = useState(false);
   const [sampleVars, setSampleVars] = useState<Record<string, string>>({});
+  const [currentPreviewTemplate, setCurrentPreviewTemplate] = useState<EmailTemplate | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null);
 
@@ -974,6 +982,7 @@ export function CommandCenterClient() {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ vars: {} }) });
       const data = await res.json();
       if (!res.ok) return;
+      setCurrentPreviewTemplate(t);
       setPreviewSubject(data.subject); setPreviewHtml(data.html); setPreviewOpen(true);
     } catch { /* non-fatal */ }
     finally { setPreviewing(false); }
