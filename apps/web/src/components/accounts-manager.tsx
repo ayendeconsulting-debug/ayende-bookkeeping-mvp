@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -26,11 +26,19 @@ const SUBTYPES_BY_TYPE: Record<string, { value: string; label: string }[]> = {
 };
 
 const TYPE_COLORS: Record<AccountType, string> = {
-  asset:     'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/20',
-  liability: 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/20',
-  equity:    'text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-900/20',
-  revenue:   'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/20',
-  expense:   'text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-900/20',
+  asset:     'text-accent-blue bg-accent-blue-muted',
+  liability: 'text-accent-red bg-accent-red-muted',
+  equity:    'text-accent-purple bg-accent-purple-muted',
+  revenue:   'text-accent-teal bg-accent-teal-muted',
+  expense:   'text-accent-coral bg-accent-coral-muted',
+};
+
+const TYPE_ACCENT: Record<AccountType, string> = {
+  asset:     '--de-accent-blue',
+  liability: '--de-accent-red',
+  equity:    '--de-accent-purple',
+  revenue:   '--de-accent-teal',
+  expense:   '--de-accent-coral',
 };
 
 interface AccountsManagerProps { initialAccounts: Account[]; }
@@ -94,14 +102,14 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Chart of Accounts</h1>
+          <h1 className="text-2xl font-extrabold text-foreground">Chart of Accounts</h1>
           <p className="text-sm text-muted-foreground mt-0.5">{accounts.filter((a) => a.is_active).length} active accounts</p>
         </div>
         <div className="flex items-center gap-2">
           {showLoadDefaults && (
             <AdminOnly>
               <Button variant="outline" onClick={handleSeedDefaults} disabled={isSeedPending}
-                className="flex items-center gap-2 border-primary text-primary hover:bg-primary-light">
+                className="flex items-center gap-2 border-accent-teal/60 text-accent-teal hover:bg-accent-teal-muted">
                 <Wand2 className="w-4 h-4" />{isSeedPending ? 'Loading...' : 'Load Default Accounts'}
               </Button>
             </AdminOnly>
@@ -115,7 +123,7 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
       </div>
 
       {accounts.length === 0 && (
-        <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg px-4 py-3 text-sm text-blue-700 dark:text-blue-400">
+        <div className="mb-4 rounded-lg px-4 py-3 text-sm border" style={{ backgroundColor: "var(--de-accent-blue-muted)", borderColor: "color-mix(in srgb, var(--de-accent-blue) 20%, transparent)", color: "var(--de-accent-blue)" }}>
           Your chart of accounts is empty. Click <strong>Load Default Accounts</strong> to add a standard set of 27 accounts, or create them manually.
         </div>
       )}
@@ -125,7 +133,7 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
           const typeAccounts = grouped[type] ?? [];
           const collapsed = collapsedTypes.has(type);
           return (
-            <Card key={type}>
+            <Card key={type} style={{ borderLeft: `3px solid var(${TYPE_ACCENT[type]})`, borderRadius: '0 0.75rem 0.75rem 0' }}>
               <CardHeader className="flex-row items-center justify-between pb-2 cursor-pointer select-none" onClick={() => toggleType(type)}>
                 <div className="flex items-center gap-2">
                   {collapsed ? <ChevronRight className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
@@ -153,7 +161,7 @@ export function AccountsManager({ initialAccounts }: AccountsManagerProps) {
                           <div className="flex items-center gap-2">
                             {!account.is_active && <Badge variant="review">Inactive</Badge>}
                             {account.balance !== undefined && (
-                              <span className="text-sm font-medium text-foreground w-24 text-right">${Number(account.balance).toFixed(2)}</span>
+                              <span className="text-sm font-medium w-24 text-right" style={{ color: Number(account.balance) >= 0 ? 'var(--de-accent-teal)' : 'var(--de-accent-coral)' }}>${Number(account.balance).toFixed(2)}</span>
                             )}
                             <AdminOnly>
                               <Button variant="ghost" size="sm" onClick={() => openEdit(account)} className="text-muted-foreground hover:text-foreground">
