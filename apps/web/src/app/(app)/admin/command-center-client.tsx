@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import {
@@ -95,7 +95,7 @@ interface Lead {
   company: string;
   phone: string;
   source: string;
-  type: 'inbound' | 'cold';
+  type: 'inbound' | 'cold' | 'partnership';
   status: 'new' | 'contacted' | 'nurturing' | 'converted' | 'lost';
   notes: string;
   converted_at: string | null;
@@ -103,8 +103,9 @@ interface Lead {
 }
 
 const LEAD_TYPE_STYLE: Record<Lead['type'], string> = {
-  inbound: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
-  cold:    'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+  inbound:     'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  cold:        'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+  partnership: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
 };
 
 const LEAD_STATUS_STYLE: Record<Lead['status'], string> = {
@@ -1238,6 +1239,7 @@ export function CommandCenterClient() {
                         className="w-full text-sm border border-border rounded-lg px-3 py-2 bg-card text-foreground outline-none focus:border-primary">
                         <option value="inbound">Inbound - came via form or referral</option>
                         <option value="cold">Cold - manually added, send outreach email</option>
+                        <option value="partnership">Partnership - government agency, fund, or organization</option>
                       </select>
                     </div>
                     <div className="space-y-1.5">
