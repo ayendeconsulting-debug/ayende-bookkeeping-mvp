@@ -1214,17 +1214,17 @@ export function CommandCenterClient() {
                 <Button size="sm" onClick={openNew} className="mt-1 gap-1.5"><Plus className="w-3.5 h-3.5" />Create First Template</Button>
               </div>
             ) : (
-              <div className="rounded-xl border border-border overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-xl border border-border overflow-x-auto">
+                <table className="w-full text-sm min-w-[640px]">
                   <thead>
                     <tr className="border-b border-border bg-muted/40">
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Name</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Subject</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden md:table-cell">From</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Updated</th>
-                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-16">v</th>
+
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-20">Status</th>
-                      <th className="px-4 py-2.5 w-36" />
+                      <th className="px-4 py-2.5 w-28" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -1237,7 +1237,7 @@ export function CommandCenterClient() {
                         <td className="px-4 py-3 max-w-[200px]"><p className="text-xs text-foreground truncate">{t.subject}</p></td>
                         <td className="px-4 py-3 hidden md:table-cell"><p className="text-xs text-muted-foreground">{t.from_email || '—'}</p></td>
                         <td className="px-4 py-3 hidden lg:table-cell"><p className="text-xs text-muted-foreground">{fmtDate(t.updated_at)}</p></td>
-                        <td className="px-4 py-3"><span className="text-xs font-mono text-muted-foreground">v{t.version}</span></td>
+
                         <td className="px-4 py-3">
                           <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full',
                             t.is_active ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-muted text-muted-foreground')}>
@@ -1308,8 +1308,8 @@ export function CommandCenterClient() {
                 </Button>
               </div>
             ) : (
-              <div className="rounded-xl border border-border overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-xl border border-border overflow-x-auto">
+                <table className="w-full text-sm min-w-[640px]">
                   <thead>
                     <tr className="border-b border-border bg-muted/40">
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-6" />
@@ -1458,8 +1458,8 @@ export function CommandCenterClient() {
                 </Button>
               </div>
             ) : (
-              <div className="rounded-xl border border-border overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-xl border border-border overflow-x-auto">
+                <table className="w-full text-sm min-w-[640px]">
                   <thead>
                     <tr className="border-b border-border bg-muted/40">
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Name</th>
@@ -1622,8 +1622,8 @@ export function CommandCenterClient() {
                 </Button>
               </div>
             ) : (
-              <div className="rounded-xl border border-border overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="rounded-xl border border-border overflow-x-auto">
+                <table className="w-full text-sm min-w-[640px]">
                   <thead>
                     <tr className="border-b border-border bg-muted/40">
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Rule Name</th>
