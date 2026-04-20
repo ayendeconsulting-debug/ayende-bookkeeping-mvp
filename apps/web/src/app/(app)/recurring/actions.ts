@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
@@ -108,6 +108,15 @@ export async function dismissBusinessDetection(
     });
     revalidatePath('/recurring');
     return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getRecurringHistory(id: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    const result = await api('/recurring/' + id + '/history');
+    return { success: true, data: Array.isArray(result) ? result : [] };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
