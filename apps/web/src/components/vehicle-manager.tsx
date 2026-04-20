@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -55,14 +55,14 @@ function AddVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [k]: e.target.value }));
 
-  const inputClass = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
+  const inputClass = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-accent-teal focus:ring-1 focus:ring-accent-teal';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
       <div className="bg-card border border-border rounded-2xl w-full max-w-lg shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
-            <Car className="w-5 h-5 text-primary" />
+            <Car className="w-5 h-5 text-accent-teal" />
             <h2 className="text-base font-semibold text-foreground">Add Financed Vehicle</h2>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -89,7 +89,7 @@ function AddVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreate
                 </div>
               </div>
               {loanAmount > 0 && (
-                <div className="rounded-lg bg-primary-light dark:bg-primary/10 px-3 py-2 text-sm text-primary font-medium">
+                <div className="rounded-lg px-3 py-2 text-sm font-medium text-accent-teal" style={{ backgroundColor: "var(--de-accent-teal-muted)" }}>
                   Loan amount: {fmt(loanAmount)}
                 </div>
               )}
@@ -121,11 +121,11 @@ function AddVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-xs font-medium text-foreground">Business use percentage</label>
-                <span className="text-sm font-bold text-primary">{form.business_use_pct}%</span>
+                <span className="text-sm font-bold text-accent-teal">{form.business_use_pct}%</span>
               </div>
               <input type="range" min="0" max="100" value={form.business_use_pct}
                 onChange={f('business_use_pct')}
-                className="w-full accent-primary" />
+                className="w-full accent-teal-500" />
               <div className="flex justify-between text-xs text-muted-foreground mt-1">
                 <span>0% (personal only)</span>
                 <span>100% (business only)</span>
@@ -133,7 +133,7 @@ function AddVehicleModal({ onClose, onCreated }: { onClose: () => void; onCreate
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <div className="rounded-lg bg-primary-light dark:bg-primary/10 px-3 py-2 text-center">
                   <p className="text-xs text-muted-foreground">Business</p>
-                  <p className="text-sm font-semibold text-primary">{form.business_use_pct}%</p>
+                  <p className="text-sm font-semibold text-accent-teal">{form.business_use_pct}%</p>
                 </div>
                 <div className="rounded-lg bg-muted px-3 py-2 text-center">
                   <p className="text-xs text-muted-foreground">Personal</p>
@@ -187,7 +187,7 @@ function RecordPaymentModal({
   const f = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((prev) => ({ ...prev, [k]: e.target.value }));
 
-  const inputClass = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
+  const inputClass = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-accent-teal focus:ring-1 focus:ring-accent-teal';
 
   function handleSubmit() {
     setError(null);
@@ -245,7 +245,7 @@ function RecordPaymentModal({
               <input type="number" value={form.interest_amount} onChange={f('interest_amount')} className={inputClass} />
             </div>
           </div>
-          <div className="rounded-lg bg-primary-light dark:bg-primary/10 px-3 py-2 text-xs text-primary">
+          <div className="rounded-lg px-3 py-2 text-xs text-accent-teal" style={{ backgroundColor: "var(--de-accent-teal-muted)" }}>
             Posts as: DR Loan Payable + DR Interest Expense · CR Owner Contribution
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
@@ -279,7 +279,7 @@ function AllocateModal({
     period_end:   today.toISOString().split('T')[0],
   });
 
-  const inputClass = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary';
+  const inputClass = 'w-full text-sm border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:border-accent-teal focus:ring-1 focus:ring-accent-teal';
 
   function handleSubmit() {
     setError(null);
@@ -315,7 +315,7 @@ function AllocateModal({
                 </div>
                 <div className="flex justify-between px-4 py-2.5">
                   <span className="text-muted-foreground">Business ({result.business_pct}%) → Vehicle Expense</span>
-                  <span className="font-semibold text-primary">{fmt(result.business_amount)}</span>
+                  <span className="font-semibold text-accent-teal">{fmt(result.business_amount)}</span>
                 </div>
                 <div className="flex justify-between px-4 py-2.5">
                   <span className="text-muted-foreground">Personal ({100 - result.business_pct}%) → Owner Draw</span>
@@ -328,7 +328,7 @@ function AllocateModal({
               <div className="rounded-lg bg-muted px-4 py-3 text-sm">
                 <p className="text-muted-foreground">Vehicle</p>
                 <p className="font-medium text-foreground">{vehicle.name}</p>
-                <p className="text-xs text-muted-foreground mt-1">Business use: <span className="font-semibold text-primary">{vehicle.business_use_pct}%</span></p>
+                <p className="text-xs text-muted-foreground mt-1">Business use: <span className="font-semibold text-accent-teal">{vehicle.business_use_pct}%</span></p>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -344,7 +344,7 @@ function AllocateModal({
                     className={inputClass} />
                 </div>
               </div>
-              <div className="rounded-lg bg-primary-light dark:bg-primary/10 px-3 py-2 text-xs text-primary">
+              <div className="rounded-lg px-3 py-2 text-xs text-accent-teal" style={{ backgroundColor: "var(--de-accent-teal-muted)" }}>
                 Posts as: DR Vehicle Expense + DR Owner Draw · CR Interest Expense (clearing)
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
@@ -410,11 +410,11 @@ function VehicleDetail({
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
-              <Car className="w-5 h-5 text-primary" />
+              <Car className="w-5 h-5 text-accent-teal" />
             </div>
             <div>
               <h2 className="font-semibold text-foreground">{vehicle.name}</h2>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${paidOff ? 'bg-muted text-muted-foreground' : 'bg-primary-light dark:bg-primary/10 text-primary'}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${paidOff ? 'bg-muted text-muted-foreground' : 'bg-accent-teal-muted text-accent-teal'}`}>
                 {paidOff ? 'Paid Off' : 'Active'}
               </span>
             </div>
@@ -439,7 +439,7 @@ function VehicleDetail({
             <span>{progressPct}%</span>
           </div>
           <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${progressPct}%` }} />
+            <div className="h-full bg-accent-teal rounded-full transition-all" style={{ width: `${progressPct}%` }} />
           </div>
         </div>
 
@@ -482,7 +482,7 @@ function VehicleDetail({
 
       <div className="bg-card border border-border rounded-2xl overflow-hidden">
         <div className="px-5 py-3.5 border-b border-border flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-primary" />
+          <BarChart3 className="w-4 h-4 text-accent-teal" />
           <h3 className="text-sm font-semibold text-foreground">Amortization Schedule</h3>
         </div>
         {loadingSchedule ? (
@@ -507,7 +507,7 @@ function VehicleDetail({
                   <tr key={row.period} className="hover:bg-muted/30">
                     <td className="px-4 py-2 text-muted-foreground">{row.period}</td>
                     <td className="px-4 py-2 text-right text-foreground">{fmt(row.payment)}</td>
-                    <td className="px-4 py-2 text-right text-primary">{fmt(row.principal)}</td>
+                    <td className="px-4 py-2 text-right text-accent-teal">{fmt(row.principal)}</td>
                     <td className="px-4 py-2 text-right text-muted-foreground">{fmt(row.interest)}</td>
                     <td className="px-4 py-2 text-right text-foreground">{fmt(row.balance)}</td>
                   </tr>
@@ -573,14 +573,14 @@ export function VehicleManager({ initialVehicles }: { initialVehicles: FinancedV
           ));
           return (
             <button key={v.id} onClick={() => setSelected(v)}
-              className="text-left bg-card border border-border rounded-2xl p-5 hover:border-primary hover:shadow-md transition-all">
+              className="text-left bg-card border border-border rounded-2xl p-5 hover:border-accent-teal hover:shadow-md transition-all">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
-                  <Car className="w-4 h-4 text-primary" />
+                  <Car className="w-4 h-4 text-accent-teal" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm text-foreground truncate">{v.name}</p>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${v.status === 'paid_off' ? 'bg-muted text-muted-foreground' : 'bg-primary-light dark:bg-primary/10 text-primary'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${v.status === 'paid_off' ? 'bg-muted text-muted-foreground' : 'bg-accent-teal-muted text-accent-teal'}`}>
                     {v.status === 'paid_off' ? 'Paid Off' : 'Active'}
                   </span>
                 </div>
@@ -601,7 +601,7 @@ export function VehicleManager({ initialVehicles }: { initialVehicles: FinancedV
                 </div>
               </div>
               <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full" style={{ width: `${progressPct}%` }} />
+                <div className="h-full bg-accent-teal rounded-full" style={{ width: `${progressPct}%` }} />
               </div>
               <p className="text-xs text-muted-foreground mt-1">{progressPct}% paid off</p>
             </button>

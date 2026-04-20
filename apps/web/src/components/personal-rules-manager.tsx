@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -31,7 +31,7 @@ export function PersonalRulesManager({ initialRules, categories }: PersonalRules
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectCls = 'text-sm border border-input rounded-lg px-3 py-2 w-full outline-none bg-card text-foreground focus:border-primary disabled:bg-muted disabled:opacity-60';
+  const selectCls = 'text-sm border border-input rounded-lg px-3 py-2 w-full outline-none bg-card text-foreground focus:border-accent-teal disabled:bg-muted disabled:opacity-60';
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
   const incomeCategories  = categories.filter((c) => c.category_type === 'income');
   const expenseCategories = categories.filter((c) => c.category_type !== 'income');
@@ -75,12 +75,12 @@ export function PersonalRulesManager({ initialRules, categories }: PersonalRules
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Personal Categorization Rules</h1>
+          <h1 className="text-2xl font-extrabold text-foreground">Personal Categorization Rules</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Auto-assign budget categories to personal transactions by keyword or vendor match</p>
         </div>
         <div className="flex items-center gap-2">
           <AdminOnly>
-            <Button variant="outline" onClick={handleRunRules} disabled={running} className="border-primary text-primary hover:bg-primary-light">
+            <Button variant="outline" onClick={handleRunRules} disabled={running} className="border-accent-teal/60 text-accent-teal hover:bg-accent-teal-muted">
               <Wand2 className="w-4 h-4 mr-1.5" />{running ? 'Running…' : 'Run Rules'}
             </Button>
           </AdminOnly>
@@ -90,7 +90,7 @@ export function PersonalRulesManager({ initialRules, categories }: PersonalRules
         </div>
       </div>
 
-      <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg px-4 py-3 text-sm text-blue-700 dark:text-blue-400">
+      <div className="mb-4 rounded-lg border px-4 py-3 text-sm text-accent-blue" style={{ backgroundColor: "var(--de-accent-blue-muted)", borderColor: "color-mix(in srgb, var(--de-accent-blue) 20%, transparent)" }}>
         Rules are applied in priority order (lowest number first). The first matching rule wins.
         Only pending personal-tagged transactions without a category are affected.
       </div>

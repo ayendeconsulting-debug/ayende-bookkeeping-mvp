@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -96,7 +96,7 @@ export function MileageLogManager({ initialData }: MileageLogManagerProps) {
         <Card>
           <CardContent className="pt-5">
             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Total Deduction</div>
-            <div className="text-2xl font-semibold text-primary">{formatCurrency(totals.total_deduction)}</div>
+            <div className="text-2xl font-semibold text-accent-teal">{formatCurrency(totals.total_deduction)}</div>
             <div className="text-xs text-muted-foreground mt-1">Estimated tax deduction</div>
           </CardContent>
         </Card>
@@ -198,7 +198,7 @@ export function MileageLogManager({ initialData }: MileageLogManagerProps) {
                     </TableCell>
                     <TableCell className="text-right text-sm">{Number(log.distance_km).toFixed(1)} {unit}</TableCell>
                     <TableCell className="text-right text-sm text-muted-foreground">${Number(log.rate_per_km).toFixed(2)}/{unit}</TableCell>
-                    <TableCell className="text-right text-sm font-medium text-primary">{formatCurrency(Number(log.deduction_value))}</TableCell>
+                    <TableCell className="text-right text-sm font-medium text-accent-teal">{formatCurrency(Number(log.deduction_value))}</TableCell>
                     <TableCell>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>

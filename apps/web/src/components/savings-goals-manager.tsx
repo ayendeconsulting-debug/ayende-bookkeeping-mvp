@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -138,7 +138,7 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
         <Card>
           <CardContent className="pt-5">
             <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Total Saved</div>
-            <div className="text-2xl font-semibold text-primary">
+            <div className="text-2xl font-semibold text-accent-teal">
               {formatCurrency(active.reduce((s, g) => s + Number(g.current_amount), 0))}
             </div>
           </CardContent>
@@ -262,10 +262,10 @@ export function SavingsGoalsManager({ initialGoals }: SavingsGoalsManagerProps) 
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-1">Completed 🎉</p>
               <div className="grid grid-cols-2 gap-4">
                 {completed.map((goal) => (
-                  <Card key={goal.id} className="border-primary/20 bg-primary-light/20">
+                  <Card key={goal.id} className="border-accent-teal/20" style={{ backgroundColor: "var(--de-accent-teal-muted)" }}>
                     <CardContent className="pt-4">
                       <div className="flex items-center gap-2 mb-1">
-                        <CheckCircle className="w-4 h-4 text-primary" />
+                        <CheckCircle className="w-4 h-4 text-accent-teal" />
                         <span className="text-sm font-medium text-foreground">{goal.name}</span>
                       </div>
                       <p className="text-xs text-muted-foreground">{formatCurrency(Number(goal.target_amount))} saved</p>
@@ -312,13 +312,13 @@ function GoalCard({
               </p>
             )}
           </div>
-          <span className={cn('text-sm font-bold', goal.percentage_complete >= 100 ? 'text-primary' : 'text-foreground')}>
+          <span className={cn('text-sm font-bold', goal.percentage_complete >= 100 ? 'text-accent-teal' : 'text-foreground')}>
             {goal.percentage_complete.toFixed(0)}%
           </span>
         </div>
 
         <div className="h-2.5 bg-muted rounded-full overflow-hidden mb-2">
-          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${goal.percentage_complete}%` }} />
+          <div className="h-full bg-accent-teal rounded-full transition-all" style={{ width: `${goal.percentage_complete}%` }} />
         </div>
 
         <div className="flex justify-between text-xs text-muted-foreground mb-3">
@@ -352,7 +352,7 @@ function GoalCard({
             <button onClick={onPause} className="p-1.5 text-muted-foreground hover:text-amber-500 transition-colors" title="Pause">
               <Pause className="w-3.5 h-3.5" />
             </button>
-            <button onClick={onComplete} className="p-1.5 text-muted-foreground hover:text-primary transition-colors" title="Mark complete">
+            <button onClick={onComplete} className="p-1.5 text-muted-foreground hover:text-accent-teal transition-colors" title="Mark complete">
               <CheckCircle className="w-3.5 h-3.5" />
             </button>
             <AlertDialog>

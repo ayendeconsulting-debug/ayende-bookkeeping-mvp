@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -74,7 +74,7 @@ export function AiChatWidget() {
         onClick={() => setOpen((v) => !v)}
         className={cn(
           'fixed bottom-20 right-4 sm:right-6 z-50 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200',
-          open ? 'bg-foreground/70 hover:bg-foreground/80' : 'bg-primary hover:bg-primary/90',
+          open ? 'bg-foreground/70 hover:bg-foreground/80' : 'bg-accent-teal hover:bg-accent-teal/80',
         )}
         aria-label="Toggle AI Assistant"
       >
@@ -131,13 +131,13 @@ export function AiChatWidget() {
           </div>
 
           <div className="px-3 py-3 border-t border-border flex-shrink-0">
-            <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border border-border focus-within:border-primary transition-colors">
+            <div className="flex items-center gap-2 bg-background rounded-lg px-3 py-2 border border-border focus-within:border-accent-teal transition-colors">
               <input ref={inputRef} type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown}
                 placeholder="Ask about your books…"
                 className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
                 disabled={loading} />
               <button onClick={sendMessage} disabled={!input.trim() || loading}
-                className="text-primary hover:text-primary/80 disabled:text-muted-foreground transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2">
+                className="text-accent-teal hover:text-accent-teal/80 disabled:text-muted-foreground transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center -mr-2">
                 <Send className="w-4 h-4" />
               </button>
             </div>

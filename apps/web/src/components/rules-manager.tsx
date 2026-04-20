@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -60,7 +60,7 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const selectCls = 'text-sm border border-input rounded-lg px-3 py-2 w-full outline-none bg-card text-foreground focus:border-primary disabled:bg-muted disabled:opacity-60';
+  const selectCls = 'text-sm border border-input rounded-lg px-3 py-2 w-full outline-none bg-card text-foreground focus:border-accent-teal disabled:bg-muted disabled:opacity-60';
 
   function openCreate() {
     setEditingRule(null); setForm({ ...EMPTY_FORM, priority: String((rules.length + 1) * 10) }); setError(null); setDialogOpen(true);
@@ -106,7 +106,7 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
     <div className="p-6 max-w-screen-lg mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">Classification Rules</h1>
+          <h1 className="text-2xl font-extrabold text-foreground">Classification Rules</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             Auto-classify transactions by keyword, vendor, or account match
             {rules.length > 0 && (
@@ -123,7 +123,7 @@ export function RulesManager({ initialRules, accounts, taxCodes }: RulesManagerP
         </AdminOnly>
       </div>
 
-      <div className="mb-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400">
+      <div className="mb-4 rounded-lg border px-4 py-3 text-sm text-accent-blue" style={{ backgroundColor: "var(--de-accent-blue-muted)", borderColor: "color-mix(in srgb, var(--de-accent-blue) 20%, transparent)" }}>
         Rules are applied in priority order (lowest number first). The first matching rule wins.
         <span className="ml-2">
           <Wand2 className="inline w-3.5 h-3.5 mr-0.5" />

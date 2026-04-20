@@ -28,8 +28,8 @@ const severityStyles: Record<AlertSeverity, { banner: string; cta: string }> = {
     cta:    'bg-amber-600 hover:bg-amber-700 text-white',
   },
   info: {
-    banner: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-400',
-    cta:    'bg-blue-600 hover:bg-blue-700 text-white',
+    banner: 'bg-accent-blue-muted border-accent-blue/20 text-accent-blue',
+    cta:    'bg-accent-blue hover:bg-accent-blue/80 text-white',
   },
 };
 

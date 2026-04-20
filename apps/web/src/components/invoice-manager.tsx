@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -115,7 +115,7 @@ export function InvoiceManager({
       <div className="px-6 py-5 border-b border-border bg-background">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Invoices</h1>
+            <h1 className="text-2xl font-extrabold text-foreground">Invoices</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {totalCount} total
               {outstanding > 0 && ` · ${formatCurrency(outstanding)} outstanding`}
@@ -141,7 +141,7 @@ export function InvoiceManager({
             <button key={tab.key} onClick={() => updateParams({ status: tab.key })}
               className={cn('px-4 py-2 text-sm border-b-2 transition-colors',
                 currentStatus === tab.key || (tab.key === 'all' && !currentStatus)
-                  ? 'border-primary text-primary font-medium'
+                  ? 'border-accent-teal text-accent-teal font-medium'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
               )}>
               {tab.label}
@@ -189,7 +189,7 @@ export function InvoiceManager({
                     {new Date(invoice.due_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric', year: '2-digit' })}
                   </TableCell>
                   <TableCell className="text-right font-medium text-sm">{formatCurrency(Number(invoice.total))}</TableCell>
-                  <TableCell className={cn('text-right font-medium text-sm', Number(invoice.balance_due) > 0 ? 'text-orange-500' : 'text-muted-foreground')}>
+                  <TableCell className={cn('text-right font-medium text-sm', Number(invoice.balance_due) > 0 ? 'text-accent-coral' : 'text-muted-foreground')}>
                     {Number(invoice.balance_due) > 0 ? formatCurrency(Number(invoice.balance_due)) : '—'}
                   </TableCell>
                   <TableCell>
