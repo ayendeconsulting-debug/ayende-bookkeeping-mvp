@@ -19,9 +19,12 @@ export interface CreateCampaignDto {
   segment_key: string;
   scheduled_at?: string;
   created_by?: string;
-  // Phase 25: variable values to inject into every email in this campaign
+  // Phase 25: campaign-level fallback variables (non-lead campaigns)
   template_variables?: Record<string, string>;
-  // Phase 25: optional allowlist of emails -- restricts segment at send time
+  // Phase 25: per-recipient variables keyed by email (lead-based campaigns)
+  // Shape: { "email@org.ca": { contact_name: "...", organization_name: "..." } }
+  recipient_variables?: Record<string, Record<string, string>>;
+  // Phase 25: restrict send to these emails only
   recipient_filter?: string[];
 }
 
@@ -60,8 +63,9 @@ export class CampaignsService {
       status:             'draft',
       created_by:         dto.created_by ?? null,
       scheduled_at:       dto.scheduled_at ? new Date(dto.scheduled_at) : null,
-      template_variables: dto.template_variables ?? null,
-      recipient_filter:   dto.recipient_filter ?? null,
+      template_variables: dto.template_variables  ?? null,
+      recipient_variables: dto.recipient_variables ?? null,
+      recipient_filter:   dto.recipient_filter    ?? null,
     });
     return this.campaignRepo.save(campaign);
   }
@@ -79,7 +83,7 @@ export class CampaignsService {
     // Resolve segment -> full recipient list
     let recipients = await this.segmentationService.resolve(campaign.segment_key);
 
-    // Phase 25: apply recipient filter if present
+    // Apply recipient allowlist if set
     if (campaign.recipient_filter && campaign.recipient_filter.length > 0) {
       const filterSet = new Set(campaign.recipient_filter);
       recipients = recipients.filter((r) => filterSet.has(r.email));
@@ -102,7 +106,7 @@ export class CampaignsService {
     );
     const saved = await this.recipientRepo.save(recipientRows);
 
-    // Phase 25: compute BullMQ delay for scheduled campaigns
+    // Compute BullMQ delay for scheduled campaigns
     const now         = Date.now();
     const isScheduled = !!(campaign.scheduled_at && campaign.scheduled_at.getTime() > now);
     const delay       = isScheduled ? Math.max(0, campaign.scheduled_at!.getTime() - now) : 0;
@@ -112,10 +116,15 @@ export class CampaignsService {
     campaign.recipient_count = recipients.length;
     await this.campaignRepo.save(campaign);
 
-    // Enqueue one BullMQ job per recipient (delayed when scheduled)
+    // Enqueue one job per recipient.
+    // Per-recipient vars (from lead mapping) take priority over campaign-level vars.
     await Promise.all(
-      saved.map((r) =>
-        this.campaignQueue.add(
+      saved.map((r) => {
+        const perRecipient  = campaign.recipient_variables?.[r.email] ?? {};
+        const campaignLevel = campaign.template_variables ?? {};
+        const templateVariables = { ...campaignLevel, ...perRecipient };
+
+        return this.campaignQueue.add(
           'send-email',
           {
             campaignId:        id,
@@ -123,15 +132,15 @@ export class CampaignsService {
             email:             r.email,
             businessName:      r.business_name ?? '',
             templateId:        campaign.template_id,
-            templateVariables: campaign.template_variables ?? {},
+            templateVariables,
           } as CampaignEmailJobData,
           {
             attempts: 2,
             backoff: { type: 'fixed', delay: 5000 },
             ...(delay > 0 ? { delay } : {}),
           },
-        ),
-      ),
+        );
+      }),
     );
 
     return campaign;

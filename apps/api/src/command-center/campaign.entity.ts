@@ -48,15 +48,20 @@ export class Campaign {
   @Column({ length: 255, nullable: true })
   created_by: string;
 
-  // -- Phase 25: Per-campaign template variable values ---------------------
-  // Stored at create time; injected into every email sent for this campaign.
-  // Shape: { contact_name: 'John', organization_name: 'BOF', ... }
+  // -- Phase 25: Campaign-level fallback variable values --------------------
+  // Used for non-lead-based campaigns (generic variable step).
   @Column({ type: 'jsonb', nullable: true })
   template_variables: Record<string, string> | null;
 
-  // -- Phase 25: Optional recipient filter ----------------------------------
+  // -- Phase 25: Per-recipient variable values (lead-based campaigns) -------
+  // Keyed by recipient email. Each email gets its own personalised variable
+  // set derived from the lead record at campaign creation time.
+  // Shape: { "john@bof.ca": { contact_name: "John Smith", organization_name: "BOF" } }
+  @Column({ type: 'jsonb', nullable: true })
+  recipient_variables: Record<string, Record<string, string>> | null;
+
+  // -- Phase 25: Optional recipient allowlist -------------------------------
   // When set, send() restricts the resolved segment to only these emails.
-  // Null = send to entire segment.
   @Column({ type: 'jsonb', nullable: true })
   recipient_filter: string[] | null;
 

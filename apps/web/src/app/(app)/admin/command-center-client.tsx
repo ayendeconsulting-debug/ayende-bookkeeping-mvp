@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Mail, Plus, Pencil, Eye, X, Loader2,
   ToggleLeft, ToggleRight, Trash2, Megaphone, Users, Zap,
-  Send, Ban, ChevronDown, ChevronRight, RefreshCw, Calendar,
+  Send, Ban, ChevronDown, ChevronRight, RefreshCw, Calendar, Search,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -222,20 +222,61 @@ function PreviewModal({ open, subject, html, onClose }: {
 }
 
 // ── Campaign wizard modal ──────────────────────────────────────────────────
+// -- Variable mapping: derives template vars from a lead record -------------
+function mapLeadToTemplateVars(
+  lead: Lead,
+  templateVars: string[],
+): Record<string, string> {
+  const today = new Date().toLocaleDateString('en-CA', {
+    year: 'numeric', month: 'long', day: 'numeric',
+  });
+  const mappings: Record<string, string> = {
+    contact_name:       `${lead.first_name} ${lead.last_name}`.trim(),
+    organization_name:  lead.company ?? '',
+    bank_name:          lead.company ?? '',
+    program_name:       lead.company ?? '',
+    org_program_type:   lead.notes   ?? '',
+    original_send_date: today,
+    first_name:         lead.first_name,
+    last_name:          lead.last_name,
+  };
+  return Object.fromEntries(
+    templateVars
+      .filter((v) => v in mappings)
+      .map((v) => [v, mappings[v]]),
+  );
+}
+
+// -- Segment -> lead type mapping -------------------------------------------
+const SEGMENT_LEAD_TYPE: Record<string, string> = {
+  partnership_leads: 'partnership',
+  cold_leads:        'cold',
+};
+
 function CampaignWizard({ open, onClose, templates, onCreated }: {
   open: boolean;
   onClose: () => void;
   templates: EmailTemplate[];
   onCreated: () => void;
 }) {
+  // -- Core wizard state ----------------------------------------------------
   const [segments, setSegments] = useState<SegmentInfo[]>([]);
   const [loadingSegs, setLoadingSegs] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [step, setStep] = useState(1);
+  const [error, setError] = useState('');
+
+  // -- Lead org-picker state (lead-based segments) --------------------------
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loadingLeads, setLoadingLeads] = useState(false);
+  const [orgSearch, setOrgSearch] = useState('');
+  const [selectedLeadIds, setSelectedLeadIds] = useState<Set<string>>(new Set());
+
+  // -- Generic variable state (non-lead segments) ---------------------------
   const [templateVarValues, setTemplateVarValues] = useState<Record<string, string>>({});
-  const [segRecipients, setSegRecipients] = useState<SegmentRecipient[]>([]);
-  const [loadingRecipients, setLoadingRecipients] = useState(false);
-  const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
+
+  // -- Confirm step state ---------------------------------------------------
   const [campaignName, setCampaignName] = useState('');
   const [scheduleMode, setScheduleMode] = useState<'now' | 'later'>('now');
   const [scheduledAt, setScheduledAt] = useState('');
@@ -245,60 +286,83 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
   const [previewing, setPreviewing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState('');
-  const [step, setStep] = useState(1);
 
-  const selectedSeg = segments.find((s) => s.key === selectedSegment);
-  const selectedTpl = templates.find((t) => t.id === selectedTemplate);
-  const hasVars = (selectedTpl?.variables?.length ?? 0) > 0;
-  const showRecipientPicker = (selectedSeg?.count ?? 0) > 0 && (selectedSeg?.count ?? 0) <= 50;
+  // -- Derived values -------------------------------------------------------
+  const selectedSeg      = segments.find((s) => s.key === selectedSegment);
+  const selectedTpl      = templates.find((t) => t.id === selectedTemplate);
+  const segmentLeadType  = SEGMENT_LEAD_TYPE[selectedSegment] ?? null;
+  const isLeadSegment    = segmentLeadType !== null;
+  const hasGenericVars   = !isLeadSegment && (selectedTpl?.variables?.length ?? 0) > 0;
 
-  type WizardStepKey = 'segment' | 'template' | 'variables' | 'recipients' | 'confirm';
+  type WizardStepKey = 'segment' | 'template' | 'organizations' | 'variables' | 'confirm';
   const STEPS: WizardStepKey[] = useMemo(() => {
     const s: WizardStepKey[] = ['segment', 'template'];
-    if (hasVars) s.push('variables');
-    if (showRecipientPicker) s.push('recipients');
+    if (isLeadSegment)   s.push('organizations');
+    else if (hasGenericVars) s.push('variables');
     s.push('confirm');
     return s;
-  }, [hasVars, showRecipientPicker]);
+  }, [isLeadSegment, hasGenericVars]);
 
   const currentStep = STEPS[step - 1];
   const totalSteps  = STEPS.length;
 
+  const filteredLeads = leads.filter((l) => {
+    if (!orgSearch) return true;
+    const q = orgSearch.toLowerCase();
+    return (
+      `${l.first_name} ${l.last_name}`.toLowerCase().includes(q) ||
+      (l.email   ?? '').toLowerCase().includes(q) ||
+      (l.company ?? '').toLowerCase().includes(q)
+    );
+  });
+
+  const selectedLeadsList = Array.from(selectedLeadIds)
+    .map((id) => leads.find((l) => l.id === id))
+    .filter(Boolean) as Lead[];
+
+  // -- Load segments on open ------------------------------------------------
   useEffect(() => {
     if (open && segments.length === 0) {
       setLoadingSegs(true);
       fetch('/api/proxy/admin/segments')
         .then((r) => r.json())
-        .then((d) => setSegments(d))
+        .then((d) => setSegments(Array.isArray(d) ? d : []))
         .catch(() => {})
         .finally(() => setLoadingSegs(false));
     }
   }, [open]);
 
+  // -- Load leads when entering org-picker step -----------------------------
   useEffect(() => {
-    if (currentStep === 'recipients' && selectedSegment && segRecipients.length === 0) {
-      setLoadingRecipients(true);
-      fetch('/api/proxy/admin/segments/' + selectedSegment + '/recipients')
+    if (currentStep === 'organizations' && leads.length === 0 && !loadingLeads) {
+      setLoadingLeads(true);
+      fetch('/api/proxy/admin/leads')
         .then((r) => r.json())
-        .then((d: SegmentRecipient[]) => {
-          const list = Array.isArray(d) ? d : [];
-          setSegRecipients(list);
-          setSelectedEmails(new Set(list.map((r) => r.email)));
+        .then((d: Lead[]) => {
+          const filtered = Array.isArray(d)
+            ? d.filter((l) => l.type === segmentLeadType && l.status !== 'converted')
+            : [];
+          setLeads(filtered);
+          setSelectedLeadIds(new Set(filtered.map((l) => l.id)));
         })
         .catch(() => {})
-        .finally(() => setLoadingRecipients(false));
+        .finally(() => setLoadingLeads(false));
     }
-  }, [currentStep, selectedSegment]);
+  }, [currentStep]);
+
+  // -- Reset downstream state when segment or template changes --------------
+  useEffect(() => {
+    setLeads([]); setSelectedLeadIds(new Set()); setOrgSearch('');
+  }, [selectedSegment]);
 
   useEffect(() => { setTemplateVarValues({}); }, [selectedTemplate]);
-  useEffect(() => { setSegRecipients([]); setSelectedEmails(new Set()); }, [selectedSegment]);
 
+  // -- Handlers -------------------------------------------------------------
   function handleClose() {
     setStep(1);
     setSelectedSegment(''); setSelectedTemplate('');
+    setLeads([]); setSelectedLeadIds(new Set()); setOrgSearch('');
     setTemplateVarValues({});
-    setSegRecipients([]); setSelectedEmails(new Set());
     setCampaignName('');
     setScheduleMode('now'); setScheduledAt('');
     setPreviewOpen(false); setError('');
@@ -310,12 +374,16 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
 
   async function handlePreview() {
     if (!selectedTpl) return;
+    // For lead campaigns, preview using the first selected lead's vars
+    const previewVars = isLeadSegment && selectedLeadsList.length > 0
+      ? mapLeadToTemplateVars(selectedLeadsList[0], selectedTpl.variables)
+      : templateVarValues;
     setPreviewing(true);
     try {
       const res = await fetch('/api/proxy/admin/templates/' + selectedTpl.id + '/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vars: templateVarValues }),
+        body: JSON.stringify({ vars: previewVars }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? 'Preview failed');
@@ -330,21 +398,29 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
     if (!campaignName.trim()) { setError('Campaign name is required.'); return; }
     setSaving(true); setError('');
     try {
-      const recipientFilter =
-        showRecipientPicker && selectedEmails.size < segRecipients.length
-          ? Array.from(selectedEmails)
-          : undefined;
-
-      const payload: Record<string, any> = {
+      let payload: Record<string, any> = {
         name:        campaignName.trim(),
         template_id: selectedTemplate,
         segment_key: selectedSegment,
-        ...(hasVars && Object.keys(templateVarValues).length > 0
-          ? { template_variables: templateVarValues }
-          : {}),
-        ...(recipientFilter ? { recipient_filter: recipientFilter } : {}),
         ...(scheduleMode === 'later' && scheduledAt ? { scheduled_at: scheduledAt } : {}),
       };
+
+      if (isLeadSegment) {
+        // Build per-recipient variable map from selected leads
+        const recipientVariables: Record<string, Record<string, string>> = {};
+        for (const lead of selectedLeadsList) {
+          recipientVariables[lead.email] = mapLeadToTemplateVars(
+            lead, selectedTpl?.variables ?? [],
+          );
+        }
+        payload = {
+          ...payload,
+          recipient_variables: recipientVariables,
+          recipient_filter:    selectedLeadsList.map((l) => l.email),
+        };
+      } else if (hasGenericVars && Object.keys(templateVarValues).length > 0) {
+        payload = { ...payload, template_variables: templateVarValues };
+      }
 
       const createRes = await fetch('/api/proxy/admin/campaigns', {
         method: 'POST',
@@ -368,9 +444,9 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
   }
 
   const nextDisabled =
-    (currentStep === 'segment'    && !selectedSegment)  ||
-    (currentStep === 'template'   && !selectedTemplate) ||
-    (currentStep === 'recipients' && selectedEmails.size === 0);
+    (currentStep === 'segment'       && !selectedSegment)  ||
+    (currentStep === 'template'      && !selectedTemplate) ||
+    (currentStep === 'organizations' && selectedLeadIds.size === 0);
 
   if (!open) return null;
 
@@ -378,6 +454,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
       <div className="bg-card rounded-2xl border border-border w-full max-w-xl shadow-2xl flex flex-col max-h-[90vh]">
 
+        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border flex-shrink-0">
           <div>
             <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold mb-0.5">
@@ -390,6 +467,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
           </button>
         </div>
 
+        {/* Progress */}
         <div className="flex px-6 pt-4 gap-2 flex-shrink-0">
           {STEPS.map((_, i) => (
             <div key={i} className={cn('flex-1 h-1 rounded-full transition-colors',
@@ -397,15 +475,16 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
           ))}
         </div>
 
+        {/* Content */}
         <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
 
+          {/* ── Step: segment ────────────────────────────────────────────── */}
           {currentStep === 'segment' && (
             <>
               <p className="text-sm font-medium text-foreground">Choose audience segment</p>
               {loadingSegs ? (
                 <div className="flex items-center gap-2 text-muted-foreground py-4">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Loading segments&hellip;</span>
+                  <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading&hellip;</span>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
@@ -434,6 +513,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
             </>
           )}
 
+          {/* ── Step: template ───────────────────────────────────────────── */}
           {currentStep === 'template' && (
             <>
               <p className="text-sm font-medium text-foreground">Choose email template</p>
@@ -457,6 +537,121 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
             </>
           )}
 
+          {/* ── Step: organizations (lead-based picker) ──────────────────── */}
+          {currentStep === 'organizations' && (
+            <>
+              <div>
+                <p className="text-sm font-medium text-foreground mb-0.5">Select organizations</p>
+                <p className="text-xs text-muted-foreground">
+                  Variables are auto-filled from each lead record. Review before sending.
+                </p>
+              </div>
+
+              {/* Search */}
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  value={orgSearch}
+                  onChange={(e) => setOrgSearch(e.target.value)}
+                  placeholder="Search by name, email or organization&hellip;"
+                  className="pl-9"
+                />
+              </div>
+
+              {/* Select all / counts */}
+              <div className="flex items-center justify-between -mt-1">
+                <p className="text-xs text-muted-foreground">
+                  {selectedLeadIds.size} of {leads.length} selected
+                </p>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setSelectedLeadIds(new Set(leads.map((l) => l.id)))}
+                    className="text-xs text-primary hover:underline">Select all</button>
+                  <span className="text-muted-foreground text-xs">&middot;</span>
+                  <button onClick={() => setSelectedLeadIds(new Set())}
+                    className="text-xs text-muted-foreground hover:text-foreground hover:underline">Deselect all</button>
+                </div>
+              </div>
+
+              {loadingLeads ? (
+                <div className="flex items-center gap-2 text-muted-foreground py-4">
+                  <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading leads&hellip;</span>
+                </div>
+              ) : leads.length === 0 ? (
+                <div className="rounded-xl border border-border bg-muted/30 p-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    No {segmentLeadType} leads found. Add leads from the Leads tab first.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+                  {filteredLeads.map((lead) => {
+                    const isSelected = selectedLeadIds.has(lead.id);
+                    const vars = selectedTpl
+                      ? mapLeadToTemplateVars(lead, selectedTpl.variables)
+                      : {};
+                    const hasEmptyVars = Object.values(vars).some((v) => !v);
+
+                    return (
+                      <label key={lead.id}
+                        className={cn('flex items-start gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors',
+                          isSelected
+                            ? 'border-primary bg-primary-light dark:bg-primary/10'
+                            : 'border-border hover:border-primary/30')}>
+                        <input type="checkbox" checked={isSelected}
+                          onChange={(e) => {
+                            const next = new Set(selectedLeadIds);
+                            if (e.target.checked) next.add(lead.id); else next.delete(lead.id);
+                            setSelectedLeadIds(next);
+                          }}
+                          className="w-4 h-4 accent-primary mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-foreground">
+                              {lead.first_name} {lead.last_name}
+                            </p>
+                            {hasEmptyVars && isSelected && (
+                              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 flex-shrink-0">
+                                missing vars
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {lead.company ? `${lead.company} \u00b7 ` : ''}{lead.email}
+                          </p>
+                          {/* Variable preview — shown when selected */}
+                          {isSelected && Object.keys(vars).length > 0 && (
+                            <div className="mt-2 pt-2 border-t border-border/50 grid grid-cols-1 gap-1">
+                              {Object.entries(vars).map(([k, v]) => (
+                                <div key={k} className="flex items-baseline gap-2 text-xs">
+                                  <span className="font-mono text-muted-foreground/60 flex-shrink-0 min-w-[120px]">
+                                    {`{{${k}}}`}
+                                  </span>
+                                  {v ? (
+                                    <span className="text-foreground truncate">{v}</span>
+                                  ) : (
+                                    <span className="text-amber-600 dark:text-amber-400 italic">
+                                      empty &mdash; update the lead
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </label>
+                    );
+                  })}
+                  {filteredLeads.length === 0 && orgSearch && (
+                    <p className="text-sm text-muted-foreground py-4 text-center">
+                      No results for &ldquo;{orgSearch}&rdquo;
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── Step: variables (non-lead segments) ──────────────────────── */}
           {currentStep === 'variables' && selectedTpl && (
             <>
               <p className="text-sm font-medium text-foreground">Fill in template variables</p>
@@ -476,52 +671,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
             </>
           )}
 
-          {currentStep === 'recipients' && (
-            <>
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-foreground">Select recipients</p>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setSelectedEmails(new Set(segRecipients.map((r) => r.email)))}
-                    className="text-xs text-primary hover:underline">Select all</button>
-                  <span className="text-muted-foreground text-xs">&middot;</span>
-                  <button onClick={() => setSelectedEmails(new Set())}
-                    className="text-xs text-muted-foreground hover:text-foreground hover:underline">Deselect all</button>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground -mt-2">
-                {selectedEmails.size} of {segRecipients.length} selected
-              </p>
-              {loadingRecipients ? (
-                <div className="flex items-center gap-2 text-muted-foreground py-4">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Loading recipients&hellip;</span>
-                </div>
-              ) : (
-                <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
-                  {segRecipients.map((r) => (
-                    <label key={r.email}
-                      className={cn('flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors',
-                        selectedEmails.has(r.email)
-                          ? 'border-primary bg-primary-light dark:bg-primary/10'
-                          : 'border-border hover:border-primary/30')}>
-                      <input type="checkbox" checked={selectedEmails.has(r.email)}
-                        onChange={(e) => {
-                          const next = new Set(selectedEmails);
-                          if (e.target.checked) next.add(r.email); else next.delete(r.email);
-                          setSelectedEmails(next);
-                        }}
-                        className="w-4 h-4 accent-primary flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{r.businessName || r.email}</p>
-                        <p className="text-xs text-muted-foreground truncate">{r.email}</p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-
+          {/* ── Step: confirm ────────────────────────────────────────────── */}
           {currentStep === 'confirm' && (
             <>
               <p className="text-sm font-medium text-foreground">Name this campaign</p>
@@ -531,38 +681,48 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
                   placeholder="e.g. BOF Partnership Wave 1" autoFocus />
               </div>
 
+              {/* Summary */}
               <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Segment</span>
-                  <span className="font-medium text-foreground">
-                    {selectedSeg?.label} ({showRecipientPicker
-                      ? `${selectedEmails.size} selected`
-                      : `${selectedSeg?.count} recipients`})
-                  </span>
+                  <span className="font-medium text-foreground">{selectedSeg?.label}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Template</span>
                   <span className="font-mono text-foreground">{selectedTpl?.name}</span>
                 </div>
-                {hasVars && Object.keys(templateVarValues).length > 0 && (
-                  <div className="pt-2 border-t border-border space-y-1">
-                    <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide">Variables</p>
-                    {Object.entries(templateVarValues).map(([k, v]) => (
-                      <div key={k} className="flex justify-between text-xs">
-                        <span className="text-muted-foreground font-mono">{`{{${k}}}`}</span>
-                        <span className="text-foreground truncate ml-2 max-w-[200px]">{v}</span>
-                      </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Recipients</span>
+                  <span className="font-medium text-foreground">
+                    {isLeadSegment ? selectedLeadIds.size : selectedSeg?.count ?? 0}
+                    {isLeadSegment && ' organizations'}
+                  </span>
+                </div>
+                {isLeadSegment && selectedLeadsList.length > 0 && (
+                  <div className="pt-1 border-t border-border space-y-0.5">
+                    {selectedLeadsList.map((l) => (
+                      <p key={l.id} className="text-xs text-muted-foreground">
+                        {l.first_name} {l.last_name}
+                        {l.company ? ` \u00b7 ${l.company}` : ''}
+                      </p>
                     ))}
                   </div>
                 )}
               </div>
 
+              {/* Preview */}
               <button onClick={handlePreview} disabled={previewing}
                 className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors font-medium disabled:opacity-50">
                 {previewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
-                Preview email before sending
+                Preview email
+                {isLeadSegment && selectedLeadsList.length > 0 && (
+                  <span className="text-xs text-muted-foreground font-normal">
+                    (using {selectedLeadsList[0].first_name}&apos;s variables)
+                  </span>
+                )}
               </button>
 
+              {/* Schedule toggle */}
               <div className="space-y-3 pt-1">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">When to send</p>
                 <div className="flex gap-3">
@@ -592,6 +752,7 @@ function CampaignWizard({ open, onClose, templates, onCreated }: {
           {error && <p className="text-sm text-destructive">{error}</p>}
         </div>
 
+        {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-border gap-3 flex-shrink-0">
           <Button variant="outline" onClick={step === 1 ? handleClose : handleBack} className="flex-shrink-0">
             {step === 1 ? 'Cancel' : 'Back'}
