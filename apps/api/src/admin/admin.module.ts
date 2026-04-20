@@ -13,6 +13,8 @@ import { BusinessesModule } from '../businesses/businesses.module';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
+import { InsightsController } from './insights.controller';
+import { InsightsService } from './insights.service';
 
 @Module({
   imports: [
@@ -29,7 +31,7 @@ import { AdminGuard } from './admin.guard';
     ]),
     BusinessesModule,
   ],
-  controllers: [AdminController],
-  providers: [AdminService, AdminGuard],
+  controllers: [AdminController, InsightsController],
+  providers: [AdminService, AdminGuard, InsightsService],
 })
 export class AdminModule {}

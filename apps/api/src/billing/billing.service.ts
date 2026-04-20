@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   BadRequestException,
   InternalServerErrorException,
@@ -15,7 +15,7 @@ import {
 import { CreateCheckoutSessionDto } from './dto/billing.dto';
 import { EmailService } from '../email/email.service';
 
-// â”€â”€ Price ID helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Price ID helpers ──────────────────────────────────────────────────────────
 function getPriceId(
   plan: 'starter' | 'pro' | 'accountant',
   cycle: 'monthly' | 'annual',
@@ -89,7 +89,18 @@ function planLabel(plan: SubscriptionPlan): string {
   return labels[plan] ?? 'Starter';
 }
 
-// â”€â”€ Service â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/**
+ * Compute normalised monthly revenue in cents from a Stripe price object.
+ * Annual plans are divided by 12.
+ */
+function computeMonthlyAmountCents(price: Stripe.Price | undefined): number {
+  if (!price) return 0;
+  const unitAmount = price.unit_amount ?? 0;
+  const interval   = price.recurring?.interval;
+  return interval === 'year' ? Math.round(unitAmount / 12) : unitAmount;
+}
+
+// ── Service ───────────────────────────────────────────────────────────────────
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
@@ -102,7 +113,7 @@ export class BillingService {
   ) {
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
-      this.logger.warn('STRIPE_SECRET_KEY not set â€” billing features disabled');
+      this.logger.warn('STRIPE_SECRET_KEY not set – billing features disabled');
     }
     this.stripe = new Stripe(secretKey ?? 'sk_test_placeholder', {
       apiVersion: '2023-10-16',
@@ -260,7 +271,7 @@ export class BillingService {
     }
   }
 
-  // â”€â”€ Webhook handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Webhook handlers ──────────────────────────────────────────────────────
 
   private async handleCheckoutCompleted(
     session: Stripe.Checkout.Session,
@@ -280,11 +291,14 @@ export class BillingService {
 
     let trialEnd:  Date | null = null;
     let periodEnd: Date | null = null;
+    let monthlyAmountCents: number | null = null;
     if (stripeSubscriptionId) {
       try {
         const stripeSub = await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
         trialEnd  = stripeSub.trial_end          ? new Date(stripeSub.trial_end * 1000)          : null;
         periodEnd = stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000) : null;
+        // Phase 26: capture normalised monthly revenue for Insights dashboard
+        monthlyAmountCents = computeMonthlyAmountCents(stripeSub.items.data[0]?.price);
       } catch (err) {
         this.logger.error('Failed to retrieve Stripe subscription', err);
       }
@@ -301,6 +315,7 @@ export class BillingService {
         current_period_end:     periodEnd,
         currency:               'cad',
         customer_email:         customerEmail,
+        monthly_amount_cents:   monthlyAmountCents,
       });
     } else {
       await this.subscriptionRepo.save(
@@ -315,22 +330,23 @@ export class BillingService {
           current_period_end:     periodEnd,
           currency:               'cad',
           customer_email:         customerEmail,
+          monthly_amount_cents:   monthlyAmountCents,
         }),
       );
     }
-    this.logger.log('Subscription created â€” business: ' + businessId + ' plan: ' + plan);
+    this.logger.log('Subscription created – business: ' + businessId + ' plan: ' + plan);
   }
 
   private async handleCheckoutExpired(
     session: Stripe.Checkout.Session,
   ): Promise<void> {
     if (process.env.NODE_ENV !== 'production') {
-      this.logger.log('checkout.session.expired â€” skipping abandoned cart email in non-production');
+      this.logger.log('checkout.session.expired – skipping abandoned cart email in non-production');
       return;
     }
     const customerEmail = session.customer_details?.email ?? session.customer_email;
     if (!customerEmail) {
-      this.logger.warn('checkout.session.expired â€” no customer email, skipping abandoned cart');
+      this.logger.warn('checkout.session.expired – no customer email, skipping abandoned cart');
       return;
     }
     const originalPriceId = session.line_items?.data?.[0]?.price?.id
@@ -349,7 +365,7 @@ export class BillingService {
       });
       if (newSession.url) {
         void this.emailService.sendAbandonedCart(customerEmail, { checkoutUrl: newSession.url });
-        this.logger.log('Abandoned cart email sent â†’ ' + customerEmail);
+        this.logger.log('Abandoned cart email sent → ' + customerEmail);
       }
     } catch (err) {
       this.logger.error('Failed to create abandoned cart checkout session', err);
@@ -366,11 +382,13 @@ export class BillingService {
     const status    = this.mapStripeStatus(stripeSub.status);
     const trialEnd  = stripeSub.trial_end          ? new Date(stripeSub.trial_end * 1000)          : null;
     const periodEnd = stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000) : null;
+    // Phase 26: keep monthly revenue in sync on plan changes
+    const monthlyAmountCents = computeMonthlyAmountCents(stripeSub.items.data[0]?.price);
     await this.subscriptionRepo.update(
       { business_id: businessId },
-      { plan, status, trial_ends_at: trialEnd, current_period_end: periodEnd },
+      { plan, status, trial_ends_at: trialEnd, current_period_end: periodEnd, monthly_amount_cents: monthlyAmountCents },
     );
-    this.logger.log('Subscription updated â€” business: ' + businessId + ' plan: ' + plan + ' status: ' + status);
+    this.logger.log('Subscription updated – business: ' + businessId + ' plan: ' + plan + ' status: ' + status);
   }
 
   private async handleSubscriptionDeleted(
@@ -379,7 +397,7 @@ export class BillingService {
     const businessId = stripeSub.metadata?.business_id;
     if (!businessId) return;
     await this.subscriptionRepo.update({ business_id: businessId }, { status: 'cancelled' });
-    this.logger.log('Subscription cancelled â€” business: ' + businessId);
+    this.logger.log('Subscription cancelled – business: ' + businessId);
 
     // Phase 13: send cancellation confirmation email
     try {
@@ -408,7 +426,7 @@ export class BillingService {
     const customerId = invoice.customer as string;
     if (!customerId) return;
     await this.subscriptionRepo.update({ stripe_customer_id: customerId }, { status: 'past_due' });
-    this.logger.log('Payment failed â€” Stripe customer: ' + customerId);
+    this.logger.log('Payment failed – Stripe customer: ' + customerId);
     try {
       const customer = await this.stripe.customers.retrieve(customerId);
       if (customer.deleted) return;
@@ -433,7 +451,7 @@ export class BillingService {
     }
   }
 
-  // â”€â”€ Phase 13: invoice.upcoming â€” send renewal reminder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Phase 13: invoice.upcoming – send renewal reminder ───────────────────
   private async handleInvoiceUpcoming(invoice: Stripe.Invoice): Promise<void> {
     const customerId = invoice.customer as string;
     if (!customerId) return;
@@ -454,13 +472,13 @@ export class BillingService {
         planName:    planLabel(subscription?.plan ?? 'starter'),
         portalUrl:   frontendUrl + '/settings',
       });
-      this.logger.log('Upcoming payment email sent â†’ ' + email);
+      this.logger.log('Upcoming payment email sent → ' + email);
     } catch (err) {
       this.logger.error('Failed to send upcoming payment email', err);
     }
   }
 
-  // â”€â”€ Phase 10: invoice.updated â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Phase 10: invoice.updated ─────────────────────────────────────────────
   private async handleInvoiceUpdated(invoice: Stripe.Invoice): Promise<void> {
     if (invoice.status !== 'open' && invoice.status !== 'paid') return;
     const customerId = invoice.customer as string;
@@ -469,7 +487,7 @@ export class BillingService {
     const meteredLines = lineItems.filter((l) => l.type === 'invoiceitem' || l.proration === false);
     if (meteredLines.length === 0) return;
     this.logger.log(
-      'invoice.updated â€” customer: ' + customerId +
+      'invoice.updated – customer: ' + customerId +
       ' status: ' + invoice.status +
       ' amount: ' + invoice.amount_due +
       ' lines: ' + meteredLines.length,
@@ -482,7 +500,7 @@ export class BillingService {
     const businessId = stripeSub.metadata?.business_id;
     const trialEnd   = stripeSub.trial_end ? new Date(stripeSub.trial_end * 1000) : null;
     this.logger.log(
-      'Trial ending soon â€” business: ' + (businessId ?? 'unknown') +
+      'Trial ending soon – business: ' + (businessId ?? 'unknown') +
       ' ends: ' + (trialEnd?.toISOString() ?? 'unknown'),
     );
     if (!trialEnd) return;
@@ -490,7 +508,7 @@ export class BillingService {
     const daysRemaining = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
     const validThresholds = [14, 3, 0];
     if (!validThresholds.includes(daysRemaining)) {
-      this.logger.log('Trial ending in ' + daysRemaining + ' days â€” no email threshold matched, skipping');
+      this.logger.log('Trial ending in ' + daysRemaining + ' days – no email threshold matched, skipping');
       return;
     }
     try {
@@ -525,13 +543,13 @@ export class BillingService {
         billingCycle,
         portalUrl,
       });
-      this.logger.log('Trial ending email (' + daysRemaining + 'd) sent â†’ ' + email);
+      this.logger.log('Trial ending email (' + daysRemaining + 'd) sent → ' + email);
     } catch (err) {
       this.logger.error('Failed to send trial ending email', err);
     }
   }
 
-  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   private mapStripeStatus(
     stripeStatus: Stripe.Subscription.Status,
@@ -548,4 +566,3 @@ export class BillingService {
     }
   }
 }
-
