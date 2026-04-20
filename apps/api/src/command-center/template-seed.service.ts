@@ -6,17 +6,7 @@ import { AutomationRule } from './automation-rule.entity';
 
 // -- Layout helpers ---------------------------------------------------------
 
-const LOGO = `
-  <div style="display:inline-flex;align-items:center;gap:8px;">
-    <div style="width:28px;height:28px;background:#0F6E56;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;">
-      <svg viewBox="0 0 16 16" width="16" height="16">
-        <rect x="1" y="10" width="3" height="5" rx="0.5" fill="white" opacity="0.5"/>
-        <rect x="6.5" y="7" width="3" height="8" rx="0.5" fill="white" opacity="0.75"/>
-        <rect x="12" y="3" width="3" height="12" rx="0.5" fill="white"/>
-      </svg>
-    </div>
-    <span style="font-size:18px;font-weight:bold;color:#ffffff;font-family:Arial,sans-serif;letter-spacing:-.3px;">Tempo Books</span>
-  </div>`;
+// Logo rendered inline in wrap() header — no separate constant needed.
 
 function wrap(inner: string): string {
   return `<!DOCTYPE html>
@@ -24,7 +14,15 @@ function wrap(inner: string): string {
 <body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;">
   <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);">
     <div style="background:#0F6E56;padding:24px 40px;">
-      ${LOGO}
+      <table cellpadding="0" cellspacing="0"><tr>
+        <td style="vertical-align:middle;padding-right:10px;">
+          <img src="https://gettempo.ca/tempo-logo-bar.png" alt="Tempo Books" width="40" height="40"
+               style="display:block;border-radius:8px;" />
+        </td>
+        <td style="vertical-align:middle;">
+          <span style="font-size:18px;font-weight:bold;color:#ffffff;font-family:Arial,sans-serif;">Tempo Books</span>
+        </td>
+      </tr></table>
     </div>
     <table width="100%" cellpadding="0" cellspacing="0">
       ${inner}
@@ -45,14 +43,35 @@ function hero(
   colour = '#ffffff',
   border = '#0F6E56',
 ): string {
+  const isGreen = bg === '#0F6E56';
+  const badge = isGreen
+    ? `
+  <tr>
+    <td style="background:#0F6E56;padding:10px 40px 24px;text-align:center;">
+      <span style="display:inline-block;background:rgba(255,255,255,.18);color:#ffffff;
+                   font-size:11px;font-weight:bold;letter-spacing:.07em;text-transform:uppercase;
+                   padding:4px 14px;border-radius:99px;font-family:Arial,sans-serif;">
+        Black-owned &nbsp;&middot;&nbsp; Canadian &nbsp;&middot;&nbsp; CRA-ready
+      </span>
+    </td>
+  </tr>`
+    : '';
   return `
   <tr>
-    <td style="background:${bg};padding:24px 40px;border-bottom:1px solid ${border};">
-      <p style="margin:0;font-size:20px;font-weight:bold;color:${colour};font-family:Arial,sans-serif;line-height:1.3;">
-        ${text}
-      </p>
+    <td style="background:${bg};padding:20px 40px 4px;text-align:center;">
+      <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:44px;
+                line-height:.8;color:rgba(255,255,255,.4);">&ldquo;</p>
     </td>
-  </tr>`;
+  </tr>
+  <tr>
+    <td style="background:${bg};padding:4px 40px 10px;text-align:center;border-bottom:1px solid ${border};">
+      <h2 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:22px;
+                 font-weight:bold;color:${colour};line-height:1.35;text-align:center;">
+        ${text}&rdquo;
+      </h2>
+    </td>
+  </tr>
+  ${badge}`;
 }
 
 function cta(
@@ -290,8 +309,16 @@ const TEMPLATES: SeedTemplate[] = [
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
   <div style="max-width:600px;margin:40px auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);">
-    <div style="background:#0F6E56;padding:28px 32px;">
-      ${LOGO}
+    <div style="background:#0F6E56;padding:24px 32px;">
+      <table cellpadding="0" cellspacing="0"><tr>
+        <td style="vertical-align:middle;padding-right:10px;">
+          <img src="https://gettempo.ca/tempo-logo-bar.png" alt="Tempo Books" width="36" height="36"
+               style="display:block;border-radius:7px;" />
+        </td>
+        <td style="vertical-align:middle;">
+          <span style="font-size:17px;font-weight:bold;color:#ffffff;font-family:Arial,sans-serif;">Tempo Books</span>
+        </td>
+      </tr></table>
       <div style="font-size:13px;color:rgba(255,255,255,.75);margin-top:8px;">Invoice from {{business_name}}</div>
     </div>
     <div style="padding:32px;">
