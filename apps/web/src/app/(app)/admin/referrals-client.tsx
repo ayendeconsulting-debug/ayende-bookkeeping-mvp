@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Loader2, Plus, Pencil, ToggleRight, ToggleLeft, Copy, Check,
-  Link2, Users, Activity, DollarSign, X,
+  Link2, Users, Activity, DollarSign, X, ExternalLink,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -94,6 +94,8 @@ export function ReferralsClient() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [linkCopiedId, setLinkCopiedId] = useState<string | null>(null);
 
   // ── Commission state ──────────────────────────────────────────────────
   const [commissions, setCommissions] = useState<Commission[]>([]);
@@ -206,6 +208,20 @@ export function ReferralsClient() {
       });
       if (res.ok) setPartners((prev) => prev.map((item) => item.id === p.id ? { ...item, is_active: !p.is_active } : item));
     } finally { setTogglingId(null); }
+  }
+
+  async function handleCopyDashboardLink(p: Partner) {
+    setLinkingId(p.id);
+    try {
+      const res = await fetch('/api/proxy/admin/referral-partners/' + p.id + '/generate-link', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        await navigator.clipboard.writeText(data.url);
+        setLinkCopiedId(p.id);
+        setTimeout(() => setLinkCopiedId(null), 3000);
+      }
+    } catch { /* non-fatal */ }
+    finally { setLinkingId(null); }
   }
 
   function toggleSelect(id: string) {
@@ -371,6 +387,13 @@ export function ReferralsClient() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1 justify-end">
+                            <button onClick={() => handleCopyDashboardLink(p)} disabled={linkingId === p.id}
+                              className="text-muted-foreground hover:text-primary transition-colors p-1 rounded"
+                              title={linkCopiedId === p.id ? 'Link copied!' : 'Copy dashboard link'}>
+                              {linkingId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : linkCopiedId === p.id ? <Check className="w-3.5 h-3.5 text-primary" />
+                                : <ExternalLink className="w-3.5 h-3.5" />}
+                            </button>
                             <button onClick={() => openEdit(p)}
                               className="text-muted-foreground hover:text-primary transition-colors p-1 rounded" title="Edit">
                               <Pencil className="w-3.5 h-3.5" />

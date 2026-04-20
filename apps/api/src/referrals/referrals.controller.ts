@@ -1,12 +1,13 @@
 import {
   Controller, Get, Post, Patch, Param, Body, Query, Req,
-  UseGuards, HttpCode, HttpStatus,
+  UseGuards, HttpCode, HttpStatus, ForbiddenException,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { AdminGuard } from '../admin/admin.guard';
 import { Public } from '../auth/public.decorator';
 import { ReferralsService } from './referrals.service';
+import { verifyPartnerToken } from './partner-dashboard.helper';
 
 @Controller('referrals')
 export class ReferralsController {
@@ -27,6 +28,17 @@ export class ReferralsController {
   @HttpCode(HttpStatus.OK)
   attributeSignup(@Req() req: Request, @Body() body: { referral_code: string }) {
     return this.referralsService.attributeSignup(req.user!.userId, body.referral_code);
+  }
+
+  // ── Public: Partner Dashboard ───────────────────────────────────────
+
+  @Public()
+  @Get('partner-dashboard')
+  async getPartnerDashboard(@Query('token') token: string) {
+    if (!token) throw new ForbiddenException('Token required');
+    const email = verifyPartnerToken(token);
+    if (!email) throw new ForbiddenException('Invalid or expired token');
+    return this.referralsService.getPartnerDashboardData(email);
   }
 
   // ── Admin: Partner CRUD ───────────────────────────────────────────────
@@ -54,6 +66,13 @@ export class ReferralsController {
     commission_type?: 'percentage' | 'flat'; commission_value?: number;
     is_active?: boolean; notes?: string; email?: string;
   }) { return this.referralsService.updatePartner(id, dto); }
+
+  @Post('partners/:id/generate-link')
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @HttpCode(HttpStatus.OK)
+  generateDashboardLink(@Param('id') id: string) {
+    return this.referralsService.generateDashboardLink(id);
+  }
 
   // ── Admin: Commission Management ──────────────────────────────────────
 

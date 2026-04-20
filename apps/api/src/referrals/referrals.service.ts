@@ -10,6 +10,7 @@ import { Repository, DataSource, In } from 'typeorm';
 import { ReferralPartner } from '../entities/referral-partner.entity';
 import { ReferralEvent } from '../entities/referral-event.entity';
 import { ReferralCommission } from '../entities/referral-commission.entity';
+import { generatePartnerToken } from './partner-dashboard.helper';
 
 @Injectable()
 export class ReferralsService {
@@ -239,6 +240,103 @@ export class ReferralsService {
     const result = await this.commissionRepo.createQueryBuilder().update().set(updateData).where({ id: In(ids) }).execute();
     this.logger.log('Commissions bulk updated — count: ' + (result.affected ?? 0) + ' status: ' + status);
     return { updated: result.affected ?? 0 };
+  }
+
+  // ── Partner Dashboard ───────────────────────────────────────────────
+
+  /** Generate a signed magic-link URL for a partner's dashboard. */
+  async generateDashboardLink(partnerId: string): Promise<{ url: string }> {
+    const partner = await this.partnerRepo.findOne({ where: { id: partnerId } });
+    if (!partner) throw new NotFoundException('Partner not found');
+    const token = generatePartnerToken(partner.email);
+    const frontendUrl = process.env.FRONTEND_URL || 'https://gettempo.ca';
+    return { url: `${frontendUrl}/partner-dashboard?token=${encodeURIComponent(token)}` };
+  }
+
+  /** Fetch all dashboard data for a partner by email (FR-38 to FR-41). */
+  async getPartnerDashboardData(email: string) {
+    const partner = await this.partnerRepo.findOne({ where: { email: email.toLowerCase().trim() } });
+    if (!partner) throw new NotFoundException('Partner not found');
+
+    // Summary counts
+    const [summary] = await this.dataSource.query(`
+      SELECT
+        COALESCE(COUNT(*) FILTER (WHERE event_type = 'click'), 0)::int AS clicks,
+        COALESCE(COUNT(*) FILTER (WHERE event_type = 'signup'), 0)::int AS signups,
+        COALESCE(COUNT(*) FILTER (WHERE event_type = 'converted'), 0)::int AS conversions
+      FROM referral_events WHERE partner_id = $1
+    `, [partner.id]);
+
+    // Active subscribers: converted users whose subscription is active/trialing
+    const [activeSubs] = await this.dataSource.query(`
+      SELECT COUNT(DISTINCT re.user_id)::int AS count
+      FROM referral_events re
+      JOIN business_users bu ON bu.clerk_user_id = re.user_id
+      JOIN subscriptions s ON s.business_id = bu.business_id
+      WHERE re.partner_id = $1
+        AND re.event_type = 'converted'
+        AND s.status IN ('active', 'trialing')
+    `, [partner.id]);
+
+    // Commission summary
+    const [commSummary] = await this.dataSource.query(`
+      SELECT
+        COALESCE(SUM(commission_amount), 0)::numeric AS total_earned,
+        COALESCE(SUM(commission_amount) FILTER (WHERE status = 'accrued'), 0)::numeric AS current_balance,
+        COALESCE(SUM(commission_amount) FILTER (WHERE status = 'paid'), 0)::numeric AS total_paid
+      FROM referral_commissions WHERE partner_id = $1
+    `, [partner.id]);
+
+    // Referral activity: each referred user
+    const referrals = await this.dataSource.query(`
+      SELECT
+        re.user_id,
+        re.created_at AS signup_date,
+        s.status AS subscription_status,
+        s.plan,
+        COALESCE(cm.total_commission, 0)::numeric AS commission_earned
+      FROM referral_events re
+      LEFT JOIN business_users bu ON bu.clerk_user_id = re.user_id
+      LEFT JOIN subscriptions s ON s.business_id = bu.business_id
+      LEFT JOIN (
+        SELECT re2.user_id, SUM(rc.commission_amount) AS total_commission
+        FROM referral_events re2
+        JOIN referral_commissions rc ON rc.referral_event_id = re2.id
+        WHERE re2.event_type = 'converted'
+        GROUP BY re2.user_id
+      ) cm ON cm.user_id = re.user_id
+      WHERE re.partner_id = $1 AND re.event_type = 'signup'
+      ORDER BY re.created_at DESC
+    `, [partner.id]);
+
+    // Commission line items
+    const commissions = await this.dataSource.query(`
+      SELECT id, period_start, period_end, mrr_amount, commission_amount, status, paid_at, created_at
+      FROM referral_commissions
+      WHERE partner_id = $1
+      ORDER BY created_at DESC
+    `, [partner.id]);
+
+    return {
+      partner: {
+        name: partner.name,
+        referral_code: partner.referral_code,
+        type: partner.type,
+      },
+      summary: {
+        clicks: summary.clicks,
+        signups: summary.signups,
+        conversions: summary.conversions,
+        active_subscribers: activeSubs.count,
+      },
+      commission: {
+        total_earned: parseFloat(commSummary.total_earned),
+        current_balance: parseFloat(commSummary.current_balance),
+        total_paid: parseFloat(commSummary.total_paid),
+      },
+      referrals,
+      commissions,
+    };
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────
