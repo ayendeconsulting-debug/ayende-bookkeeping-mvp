@@ -1,4 +1,4 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { Subscription } from '../entities/subscription.entity';
@@ -14,6 +14,7 @@ import { AccountantBillingJob } from './accountant-billing.job';
 import { TrialMonitorProcessor, TRIAL_MONITOR_QUEUE } from './trial-monitor.processor';
 import { TrialMonitorJob } from './trial-monitor.job';
 import { EmailModule } from '../email/email.module';
+import { ReferralsModule } from '../referrals/referrals.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { EmailModule } from '../email/email.module';
       { name: TRIAL_MONITOR_QUEUE },
     ),
     EmailModule,
+    ReferralsModule,
   ],
   controllers: [BillingController],
   providers: [
@@ -42,4 +44,3 @@ import { EmailModule } from '../email/email.module';
   exports: [BillingService, BillingAlertService],
 })
 export class BillingModule {}
-

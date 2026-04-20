@@ -28,6 +28,20 @@ interface Partner {
   total_earned: number;
 }
 
+interface Commission {
+  id: string;
+  partner_id: string;
+  partner_name: string;
+  referral_code: string;
+  period_start: string;
+  period_end: string;
+  mrr_amount: number;
+  commission_amount: number;
+  status: 'accrued' | 'paid' | 'voided';
+  paid_at: string | null;
+  created_at: string;
+}
+
 const TYPE_BADGE: Record<string, string> = {
   bank:       'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
   accountant: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
@@ -81,6 +95,13 @@ export function ReferralsClient() {
   const [formError, setFormError] = useState('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
+  // ── Commission state ──────────────────────────────────────────────────
+  const [commissions, setCommissions] = useState<Commission[]>([]);
+  const [loadingCommissions, setLoadingCommissions] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+
   const loadPartners = useCallback(async () => {
     setLoading(true);
     try {
@@ -91,6 +112,17 @@ export function ReferralsClient() {
   }, []);
 
   useEffect(() => { loadPartners(); }, [loadPartners]);
+
+  const loadCommissions = useCallback(async () => {
+    setLoadingCommissions(true);
+    try {
+      const res = await fetch('/api/proxy/admin/referral-commissions');
+      if (res.ok) setCommissions(await res.json());
+    } catch { /* non-fatal */ }
+    finally { setLoadingCommissions(false); }
+  }, []);
+
+  useEffect(() => { if (subTab === 'commissions') loadCommissions(); }, [subTab, loadCommissions]);
 
   function openNew() {
     setEditingId(null);
@@ -174,6 +206,46 @@ export function ReferralsClient() {
       });
       if (res.ok) setPartners((prev) => prev.map((item) => item.id === p.id ? { ...item, is_active: !p.is_active } : item));
     } finally { setTogglingId(null); }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const accrued = commissions.filter((c) => c.status === 'accrued');
+    if (selectedIds.size === accrued.length && accrued.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(accrued.map((c) => c.id)));
+    }
+  }
+
+  async function handleBulkUpdate(status: 'paid' | 'voided') {
+    if (!selectedIds.size) return;
+    setBulkUpdating(true);
+    try {
+      const res = await fetch('/api/proxy/admin/referral-commissions/bulk-update', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selectedIds), status, paid_at: status === 'paid' ? payDate : undefined }),
+      });
+      if (res.ok) { setSelectedIds(new Set()); await loadCommissions(); }
+    } catch { /* non-fatal */ }
+    finally { setBulkUpdating(false); }
+  }
+
+  async function handleVoidSingle(id: string) {
+    try {
+      await fetch('/api/proxy/admin/referral-commissions/bulk-update', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [id], status: 'voided' }),
+      });
+      await loadCommissions();
+    } catch { /* non-fatal */ }
   }
 
   return (
@@ -334,16 +406,107 @@ export function ReferralsClient() {
           </div>
         )}
 
-        {/* ── Commissions tab (placeholder) ── */}
+        {/* ── Commissions tab ── */}
         {subTab === 'commissions' && (
-          <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
-            <div className="w-12 h-12 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-primary" />
+          <div className="space-y-4">
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">{commissions.length} commission{commissions.length !== 1 ? 's' : ''}</p>
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
+                  <Input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} className="h-8 text-xs w-36" />
+                  <Button size="sm" onClick={() => handleBulkUpdate('paid')} disabled={bulkUpdating} className="h-8 gap-1.5 text-xs">
+                    {bulkUpdating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                    Mark as Paid
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleBulkUpdate('voided')} disabled={bulkUpdating} className="h-8 text-xs text-destructive hover:text-destructive border-destructive/30">
+                    Void
+                  </Button>
+                </div>
+              )}
             </div>
-            <p className="text-sm font-medium text-foreground">Commission Tracking</p>
-            <p className="text-xs text-muted-foreground max-w-xs">
-              Commission accruals, mark-as-paid, and payout history — built in step 26e.
-            </p>
+
+            {loadingCommissions ? (
+              <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading commissions…</span>
+              </div>
+            ) : commissions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                <div className="w-12 h-12 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
+                  <DollarSign className="w-6 h-6 text-primary" />
+                </div>
+                <p className="text-sm font-medium text-foreground">No commissions yet</p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Commissions accrue automatically when referred users make payments.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border overflow-x-auto">
+                <table className="w-full text-sm min-w-[700px]">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="px-4 py-2.5 w-8">
+                        <input type="checkbox" checked={selectedIds.size > 0 && selectedIds.size === commissions.filter((c) => c.status === 'accrued').length}
+                          onChange={toggleSelectAll} className="rounded border-border" />
+                      </th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Partner</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Period</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden md:table-cell">MRR</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Commission</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-20">Status</th>
+                      <th className="px-4 py-2.5 w-16" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {commissions.map((c) => {
+                      const isAccrued = c.status === 'accrued';
+                      return (
+                        <tr key={c.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-4 py-3">
+                            {isAccrued ? (
+                              <input type="checkbox" checked={selectedIds.has(c.id)}
+                                onChange={() => toggleSelect(c.id)} className="rounded border-border" />
+                            ) : <span className="block w-4" />}
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="text-sm font-medium text-foreground">{c.partner_name}</p>
+                            <p className="text-xs text-muted-foreground font-mono">{c.referral_code}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="text-xs text-foreground">{fmtDate(c.period_start)}</p>
+                            <p className="text-xs text-muted-foreground">&rarr; {fmtDate(c.period_end)}</p>
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            <p className="text-xs text-foreground">{fmtEarned(c.mrr_amount)}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="text-sm font-semibold text-foreground">{fmtEarned(c.commission_amount)}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                              c.status === 'accrued' ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400'
+                                : c.status === 'paid' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                                : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400')}>
+                              {c.status}
+                            </span>
+                            {c.paid_at && <p className="text-[10px] text-muted-foreground mt-0.5">{fmtDate(c.paid_at)}</p>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {isAccrued && (
+                              <button onClick={() => handleVoidSingle(c.id)}
+                                className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded text-xs" title="Void">
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
       </div>

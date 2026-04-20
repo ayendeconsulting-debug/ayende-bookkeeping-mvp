@@ -14,6 +14,7 @@ import {
 } from '../entities/subscription.entity';
 import { CreateCheckoutSessionDto } from './dto/billing.dto';
 import { EmailService } from '../email/email.service';
+import { ReferralsService } from '../referrals/referrals.service';
 
 // ── Price ID helpers ──────────────────────────────────────────────────────────
 function getPriceId(
@@ -110,6 +111,7 @@ export class BillingService {
     @InjectRepository(Subscription)
     private readonly subscriptionRepo: Repository<Subscription>,
     private readonly emailService: EmailService,
+    private readonly referralsService: ReferralsService,
   ) {
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
@@ -256,6 +258,9 @@ export class BillingService {
         break;
       case 'invoice.payment_failed':
         await this.handlePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+      case 'invoice.payment_succeeded':
+        await this.handlePaymentSucceeded(event.data.object as Stripe.Invoice);
         break;
       case 'invoice.updated':
         await this.handleInvoiceUpdated(event.data.object as Stripe.Invoice);
@@ -448,6 +453,35 @@ export class BillingService {
       });
     } catch (err) {
       this.logger.error('Failed to send payment failed email', err);
+    }
+  }
+
+  // ── Phase 26: invoice.payment_succeeded – referral commission accrual ──────
+  private async handlePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
+    const customerId = invoice.customer as string;
+    if (!customerId) return;
+
+    const subscription = await this.subscriptionRepo.findOne({
+      where: { stripe_customer_id: customerId },
+    });
+    if (!subscription) return;
+
+    const periodStart = invoice.period_start
+      ? new Date(invoice.period_start * 1000)
+      : new Date();
+    const periodEnd = invoice.period_end
+      ? new Date(invoice.period_end * 1000)
+      : new Date();
+
+    try {
+      await this.referralsService.processPaymentCommission(
+        subscription.business_id,
+        subscription.monthly_amount_cents ?? 0,
+        periodStart,
+        periodEnd,
+      );
+    } catch (err) {
+      this.logger.error('Failed to process referral commission', err);
     }
   }
 
