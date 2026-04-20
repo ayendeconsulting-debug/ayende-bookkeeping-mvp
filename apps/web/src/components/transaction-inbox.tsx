@@ -336,7 +336,7 @@ export function TransactionInbox({
       <div className="px-6 py-5 border-b border-border bg-background">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Transactions</h1>
+            <h1 className="text-2xl font-extrabold text-foreground">Transactions</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
               {totalCount} total Â· {pendingCount} pending review
               {isFreelancer && (
@@ -352,7 +352,7 @@ export function TransactionInbox({
               <AdminOnly>
                 <Button variant="outline" size="sm" onClick={handleRunRules}
                   disabled={isRunRulesPending}
-                  className="border-primary text-primary hover:bg-primary-light">
+                  className="border-accent-teal/60 text-accent-teal hover:bg-accent-teal-muted">
                   <Wand2 className="w-4 h-4 mr-1.5" />
                   {isRunRulesPending ? 'Runningâ€¦' : 'Run Rules'}
                 </Button>
@@ -413,7 +413,7 @@ export function TransactionInbox({
               className={cn(
                 'px-4 py-2 text-sm border-b-2 transition-colors',
                 currentStatus === tab.key || (tab.key === 'all' && !currentStatus)
-                  ? 'border-primary text-primary font-medium'
+                  ? 'border-accent-teal text-accent-teal font-medium'
                   : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
               )}>
               {tab.label}
@@ -481,7 +481,7 @@ export function TransactionInbox({
                     return (
                       <TableRow key={tx.id} className={cn(
                         tx.is_personal && isFreelancer ? 'opacity-60' : '',
-                        isSelected || isPersonalSelected ? 'bg-primary-light/30' : '',
+                        isSelected || isPersonalSelected ? 'bg-accent-teal-muted/30' : '',
                       )}>
                         {isPersonal && (
                           <TableCell>
@@ -529,7 +529,7 @@ export function TransactionInbox({
                         </TableCell>
                         <TableCell className="text-muted-foreground text-sm">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? 'â€”'}</TableCell>
                         <TableCell className="text-right">
-                          <span className={cn('font-medium text-sm', amount >= 0 ? 'text-primary' : 'text-danger')}>
+                          <span className={cn('font-medium text-sm', amount >= 0 ? 'text-accent-teal' : 'text-accent-coral')}>
                             {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
                           </span>
                         </TableCell>
@@ -539,7 +539,7 @@ export function TransactionInbox({
                               <TransactionTagToggle transactionId={tx.id} isPersonal={tx.is_personal} onToggle={handleTagToggle} />
                             ) : (
                               <span className={cn('text-xs font-medium px-2 py-0.5 rounded-full',
-                                tx.is_personal ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400' : 'bg-primary-light text-primary')}>
+                                tx.is_personal ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400' : 'bg-accent-teal-muted text-accent-teal')}>
                                 {tx.is_personal ? 'Personal' : 'Business'}
                               </span>
                             )}
@@ -556,7 +556,7 @@ export function TransactionInbox({
                             {isPersonal && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
-                                  className="h-7 text-xs border-primary text-primary hover:bg-primary-light"
+                                  className="h-7 text-xs border-accent-teal/60 text-accent-teal hover:bg-accent-teal-muted"
                                   onClick={() => openClassify(tx)}>
                                   {assignedCat ? 'Recategorize' : 'Categorize'}
                                 </Button>
@@ -565,7 +565,7 @@ export function TransactionInbox({
                             {!isPersonal && tx.status === 'pending' && !tx.is_personal && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
-                                  className="h-7 text-xs border-primary text-primary hover:bg-primary-light"
+                                  className="h-7 text-xs border-accent-teal/60 text-accent-teal hover:bg-accent-teal-muted"
                                   onClick={() => openClassify(tx)}>Classify</Button>
                               </AdminOnly>
                             )}
@@ -599,17 +599,17 @@ export function TransactionInbox({
                             {isActionable && (
                               <AdminOnly>
                                 <button onClick={() => openSplit(tx)} title="Split transaction"
-                                  className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-primary">
+                                  className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-accent-teal">
                                   <Split className="w-3.5 h-3.5" />
                                 </button>
                                 <button onClick={() => openTransfer(tx)} title="Mark as transfer"
-                                  className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-primary">
+                                  className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-accent-teal">
                                   <ArrowLeftRight className="w-3.5 h-3.5" />
                                 </button>
                               </AdminOnly>
                             )}
                             <button onClick={() => { setExplainerTx(tx); setExplainerOpen(true); }} title="Explain with AI"
-                              className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-primary">
+                              className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-accent-teal">
                               <Sparkles className="w-3.5 h-3.5" />
                             </button>
                           </div>
@@ -630,7 +630,7 @@ export function TransactionInbox({
                 const isPersonalSelected = personalSelectedIds.has(tx.id);
 
                 return (
-                  <div key={tx.id} className={cn('px-4 py-3 bg-background', isPersonalSelected && 'bg-primary-light/20')}>
+                  <div key={tx.id} className={cn('px-4 py-3 bg-background', isPersonalSelected && 'bg-accent-teal-muted/20')}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         {isPersonal && (
@@ -661,7 +661,7 @@ export function TransactionInbox({
                     )}
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs text-muted-foreground">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? 'â€”'}</span>
-                      <span className={cn('text-sm font-semibold', amount >= 0 ? 'text-primary' : 'text-danger')}>
+                      <span className={cn('text-sm font-semibold', amount >= 0 ? 'text-accent-teal' : 'text-accent-coral')}>
                         {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
                       </span>
                     </div>
@@ -669,7 +669,7 @@ export function TransactionInbox({
                       {isPersonal && (
                         <AdminOnly>
                           <Button size="sm" variant="outline"
-                            className="h-9 text-xs border-primary text-primary hover:bg-primary-light"
+                            className="h-9 text-xs border-accent-teal/60 text-accent-teal hover:bg-accent-teal-muted"
                             onClick={() => openClassify(tx)}>
                             {assignedCat ? 'Recategorize' : 'Categorize'}
                           </Button>
@@ -678,7 +678,7 @@ export function TransactionInbox({
                       {!isPersonal && tx.status === 'pending' && !tx.is_personal && (
                         <AdminOnly>
                           <Button size="sm" variant="outline"
-                            className="h-9 text-xs border-primary text-primary hover:bg-primary-light"
+                            className="h-9 text-xs border-accent-teal/60 text-accent-teal hover:bg-accent-teal-muted"
                             onClick={() => openClassify(tx)}>Classify</Button>
                         </AdminOnly>
                       )}
@@ -737,9 +737,9 @@ export function TransactionInbox({
 
       {/* Personal bulk bar */}
       {somePersonalSelected && (isPersonal || isFreelancer) && (
-        <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-card border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
+        <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-card border-t-2 border-accent-teal/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
           <div className="flex items-center gap-2 flex-shrink-0">
-            <CheckSquare className="w-4 h-4 text-primary" />
+            <CheckSquare className="w-4 h-4 text-accent-teal" />
             <span className="text-sm font-semibold text-foreground">{personalSelectedIds.size} selected</span>
           </div>
           <div className="h-5 w-px bg-border flex-shrink-0" />
@@ -761,9 +761,9 @@ export function TransactionInbox({
 
       {/* Business bulk bar */}
       {someSelected && !isPersonal && (
-        <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-card border-t-2 border-primary/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
+        <div className="fixed bottom-0 left-0 sm:left-[220px] right-0 bg-card border-t-2 border-accent-teal/20 px-4 sm:px-6 py-3 flex items-center gap-3 shadow-2xl z-20 flex-wrap">
           <div className="flex items-center gap-2 flex-shrink-0">
-            <CheckSquare className="w-4 h-4 text-primary" />
+            <CheckSquare className="w-4 h-4 text-accent-teal" />
             <span className="text-sm font-semibold text-foreground">{selectedIds.size} selected</span>
           </div>
           <div className="h-5 w-px bg-border flex-shrink-0" />

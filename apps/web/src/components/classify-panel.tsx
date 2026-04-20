@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { Sparkles, Loader2, AlertCircle, CheckCircle2, ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
@@ -164,7 +164,7 @@ export function ClassifyPanel({
 
         {step === 'done' && (
           <div className="flex flex-col items-center py-6 gap-3">
-            <CheckCircle2 className="w-12 h-12 text-primary" />
+            <CheckCircle2 className="w-12 h-12 text-accent-teal" />
             <p className="text-sm text-muted-foreground">Transaction posted successfully</p>
           </div>
         )}
@@ -174,7 +174,7 @@ export function ClassifyPanel({
             <div className="rounded-lg bg-muted border border-border p-3 flex flex-col gap-1.5">
               <div className="flex justify-between items-start gap-2">
                 <span className="text-sm font-medium text-foreground flex-1 leading-snug">{transaction.description}</span>
-                <span className={`text-sm font-semibold flex-shrink-0 ${amount >= 0 ? 'text-primary' : 'text-danger'}`}>
+                <span className={`text-sm font-semibold flex-shrink-0 ${amount >= 0 ? 'text-accent-teal' : 'text-accent-coral'}`}>
                   {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
                 </span>
               </div>
@@ -298,7 +298,7 @@ export function ClassifyPanel({
                       : <><ArrowUpFromLine className="w-3.5 h-3.5" /> Owner Draw entry</>}
                   </div>
                 )}
-                <div className="rounded-lg bg-muted border border-border p-3 text-sm">
+                <div className="rounded-lg bg-muted border border-border p-3 text-sm" style={{ borderLeft: "2px solid var(--de-accent-teal)" }}>
                   <div className="flex justify-between mb-1">
                     <span className="text-muted-foreground">Debit account</span>
                     <span className="text-foreground font-medium">{accounts.find((a) => a.id === accountId)?.account_name ?? accountId}</span>
