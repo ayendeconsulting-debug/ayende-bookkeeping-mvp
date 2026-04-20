@@ -174,7 +174,7 @@ export class InsightsService {
         FROM email_campaigns
       `),
       // Skipped emails (unsubscribed)
-      this.dataSource.query(`SELECT COUNT(*)::text AS count FROM email_preferences WHERE broadcasts = false`),
+      this.dataSource.query(`SELECT 0::text AS count`),
       // Lead-to-signup conversion
       this.dataSource.query(`
         SELECT
