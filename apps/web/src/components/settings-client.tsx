@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { AccountantAccessSection } from '@/components/accountant-access-section';
 
 import { useState, useTransition } from 'react';
@@ -25,12 +25,12 @@ interface Business { id: string; name: string; legal_name?: string; tax_id?: str
 interface Subscription { status: 'trialing' | 'active' | 'past_due' | 'cancelled' | 'none'; plan: 'starter' | 'pro' | 'accountant' | null; billing_cycle: 'monthly' | 'annual' | null; trial_ends_at: string | null; current_period_end: string | null; days_remaining: number | null; }
 interface SettingsClientProps { business: Business | null; subscription: Subscription | null; provinces: Province[]; }
 
-const selectCls = 'text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-primary bg-background text-foreground';
+const selectCls = 'text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-accent-teal bg-background text-foreground';
 
 function StatusBadge({ status }: { status: Subscription['status'] }) {
   const config: Record<string, { label: string; className: string }> = {
-    trialing:  { label: 'Trial',     className: 'bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400 border-blue-200 dark:border-blue-800' },
-    active:    { label: 'Active',    className: 'bg-primary-light text-primary dark:bg-primary/10 dark:text-emerald-400 border-primary/30 dark:border-primary/30' },
+    trialing:  { label: 'Trial',     className: 'bg-accent-blue-muted text-accent-blue border-accent-blue/30' },
+    active:    { label: 'Active',    className: 'bg-accent-teal-muted text-accent-teal border-accent-teal/30' },
     past_due:  { label: 'Past Due',  className: 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
     cancelled: { label: 'Cancelled', className: 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400 border-red-200 dark:border-red-800' },
     none:      { label: 'No plan',   className: 'bg-muted text-muted-foreground border-border' },
@@ -152,7 +152,7 @@ function TaxSettingsSection({ business, provinces }: { business: Business | null
             {provinces.map((p) => <option key={p.province_code} value={p.province_code}>{p.province_name} ({p.province_code})</option>)}
           </select>
           {taxLabel && (
-            <p className="text-xs text-muted-foreground">Default tax rate: <span className="font-medium text-primary">{taxLabel}</span>{selectedProvince?.is_hst_province ? ' (harmonised)' : ' federal only'}</p>
+            <p className="text-xs text-muted-foreground">Default tax rate: <span className="font-medium text-accent-teal">{taxLabel}</span>{selectedProvince?.is_hst_province ? ' (harmonised)' : ' federal only'}</p>
           )}
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -351,10 +351,10 @@ function IntegritySection() {
         </Button>
         {error && <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />{error}</div>}
         {result && (
-          <div className={`rounded-xl border px-4 py-3 ${result.is_balanced ? 'bg-primary-light dark:bg-primary/10 border-primary/30' : 'bg-destructive/10 border-destructive/30'}`}>
+          <div className={`rounded-xl border px-4 py-3 ${result.is_balanced ? 'bg-accent-teal-muted border-accent-teal/20' : 'bg-destructive/10 border-destructive/30'}`}>
             <div className="flex items-center gap-2 mb-2">
-              {result.is_balanced ? <CheckCircle2 className="w-4 h-4 text-primary" /> : <AlertCircle className="w-4 h-4 text-destructive" />}
-              <span className={`text-sm font-medium ${result.is_balanced ? 'text-primary' : 'text-destructive'}`}>
+              {result.is_balanced ? <CheckCircle2 className="w-4 h-4 text-accent-teal" /> : <AlertCircle className="w-4 h-4 text-destructive" />}
+              <span className={`text-sm font-medium ${result.is_balanced ? 'text-accent-teal' : 'text-destructive'}`}>
                 {result.is_balanced ? 'Books are balanced — no issues found' : 'Books are NOT balanced — review journal entries'}
               </span>
             </div>
@@ -378,7 +378,7 @@ export function SettingsClient({ business, subscription, provinces }: SettingsCl
     <div className="p-6 max-w-screen-md mx-auto">
       <div className="flex items-center gap-2 mb-6">
         <Settings className="w-5 h-5 text-muted-foreground" />
-        <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+        <h1 className="text-2xl font-extrabold text-foreground">Settings</h1>
       </div>
 
       <div className="flex flex-col gap-5">

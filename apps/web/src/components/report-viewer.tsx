@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { Download, FileText, Sparkles, Loader2, AlertCircle, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
@@ -78,16 +78,16 @@ function NarrativePanel({ type, params }: { type: 'income-statement' | 'balance-
 
   return (
     <div className="mt-4">
-      <button onClick={handleLoad} className="flex items-center gap-2 text-sm text-primary hover:text-primary/80 font-medium transition-colors">
+      <button onClick={handleLoad} className="flex items-center gap-2 text-sm text-accent-teal hover:text-accent-teal/80 font-medium transition-colors">
         <Sparkles className="w-4 h-4" />
         {open ? 'Hide' : 'Show'} AI narrative
         {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
       </button>
       {open && (
-        <div className="mt-3 bg-primary-light dark:bg-primary/10 border border-primary/30 rounded-xl px-4 py-4">
+        <div className="mt-3 rounded-xl border px-4 py-4" style={{ backgroundColor: "var(--de-accent-teal-muted)", borderColor: "color-mix(in srgb, var(--de-accent-teal) 20%, transparent)" }}>
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">AI Summary</span>
+            <Sparkles className="w-4 h-4 text-accent-teal" />
+            <span className="text-sm font-medium text-accent-teal">AI Summary</span>
           </div>
           {loading   && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" />Generating narrative...</div>}
           {error     && <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />{error}</div>}
@@ -111,12 +111,12 @@ function IncomeStatementTable({ data }: { data: any }) {
               {(data.revenue ?? []).map((line: any) => (
                 <TableRow key={line.account_id}>
                   <TableCell><span className="text-xs text-muted-foreground mr-2">{line.account_code}</span>{line.account_name}</TableCell>
-                  <TableCell className="text-right text-primary font-medium">{formatCurrency(line.net_amount ?? line.balance ?? line.amount ?? 0)}</TableCell>
+                  <TableCell className="text-right text-accent-teal font-medium">{formatCurrency(line.net_amount ?? line.balance ?? line.amount ?? 0)}</TableCell>
                 </TableRow>
               ))}
               <TableRow className="bg-muted font-semibold">
                 <TableCell>Total Revenue</TableCell>
-                <TableCell className="text-right text-primary">{formatCurrency(data.total_revenue ?? 0)}</TableCell>
+                <TableCell className="text-right text-accent-teal">{formatCurrency(data.total_revenue ?? 0)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -131,12 +131,12 @@ function IncomeStatementTable({ data }: { data: any }) {
               {(data.expenses ?? []).map((line: any) => (
                 <TableRow key={line.account_id}>
                   <TableCell><span className="text-xs text-muted-foreground mr-2">{line.account_code}</span>{line.account_name}</TableCell>
-                  <TableCell className="text-right text-destructive font-medium">{formatCurrency(line.net_amount ?? line.balance ?? line.amount ?? 0)}</TableCell>
+                  <TableCell className="text-right text-accent-coral font-medium">{formatCurrency(line.net_amount ?? line.balance ?? line.amount ?? 0)}</TableCell>
                 </TableRow>
               ))}
               <TableRow className="bg-muted font-semibold">
                 <TableCell>Total Expenses</TableCell>
-                <TableCell className="text-right text-destructive">{formatCurrency(data.total_expenses ?? 0)}</TableCell>
+                <TableCell className="text-right text-accent-coral">{formatCurrency(data.total_expenses ?? 0)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
@@ -145,7 +145,7 @@ function IncomeStatementTable({ data }: { data: any }) {
       <div className="border-t-2 border-border pt-4 px-4">
         <div className="flex items-center justify-between">
           <span className="text-base font-bold text-foreground">Net Income</span>
-          <span className={`text-lg font-bold ${(data.net_income ?? 0) >= 0 ? 'text-primary' : 'text-destructive'}`}>
+          <span className={`text-lg font-bold ${(data.net_income ?? 0) >= 0 ? 'text-accent-teal' : 'text-accent-coral'}`}>
             {formatCurrency(data.net_income ?? 0)}
           </span>
         </div>
@@ -156,9 +156,9 @@ function IncomeStatementTable({ data }: { data: any }) {
 
 function BalanceSheetTable({ data }: { data: any }) {
   const sections = [
-    { key: 'assets',      label: 'Assets',      total: data.total_assets,      colorClass: 'text-primary' },
-    { key: 'liabilities', label: 'Liabilities', total: data.total_liabilities, colorClass: 'text-destructive' },
-    { key: 'equity',      label: 'Equity',      total: data.total_equity,      colorClass: 'text-blue-600 dark:text-blue-400' },
+    { key: 'assets',      label: 'Assets',      total: data.total_assets,      colorClass: 'text-accent-teal' },
+    { key: 'liabilities', label: 'Liabilities', total: data.total_liabilities, colorClass: 'text-accent-coral' },
+    { key: 'equity',      label: 'Equity',      total: data.total_equity,      colorClass: 'text-accent-purple' },
   ];
   return (
     <div className="flex flex-col gap-6">
@@ -186,7 +186,7 @@ function BalanceSheetTable({ data }: { data: any }) {
       ))}
       <div className="px-4 flex items-center gap-2">
         {data.is_balanced
-          ? <div className="flex items-center gap-1.5 text-sm text-primary"><CheckCircle2 className="w-4 h-4" />Balance sheet is balanced - Assets = Liabilities + Equity</div>
+          ? <div className="flex items-center gap-1.5 text-sm text-accent-teal"><CheckCircle2 className="w-4 h-4" />Balance sheet is balanced - Assets = Liabilities + Equity</div>
           : <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />Balance sheet is NOT balanced - review journal entries</div>}
       </div>
     </div>
@@ -222,7 +222,7 @@ function TrialBalanceTable({ data }: { data: any }) {
       </Table>
       <div className="px-4 pt-3 flex items-center gap-2">
         {data.is_balanced
-          ? <div className="flex items-center gap-1.5 text-sm text-primary"><CheckCircle2 className="w-4 h-4" />Trial balance is balanced</div>
+          ? <div className="flex items-center gap-1.5 text-sm text-accent-teal"><CheckCircle2 className="w-4 h-4" />Trial balance is balanced</div>
           : <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />Trial balance is NOT balanced</div>}
       </div>
     </div>
@@ -267,7 +267,7 @@ function GeneralLedgerTable({ data }: { data: any }) {
   );
 }
 
-const inputCls = 'text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-primary bg-background text-foreground transition-colors';
+const inputCls = 'text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-accent-teal bg-background text-foreground transition-colors';
 
 export function ReportViewer({ type, label, data, startDate: initialStart, endDate: initialEnd }: ReportViewerProps) {
   const [startDate, setStartDate] = useState(initialStart);
@@ -288,7 +288,7 @@ export function ReportViewer({ type, label, data, startDate: initialStart, endDa
     <div className="p-4 md:p-6 max-w-screen-lg mx-auto">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">{label}</h1>
+          <h1 className="text-2xl font-extrabold text-foreground">{label}</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {type === 'balance-sheet' ? `As of ${formatDate(endDate)}` : `${formatDate(startDate)} - ${formatDate(endDate)}`}
           </p>
