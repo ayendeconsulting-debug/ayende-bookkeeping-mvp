@@ -64,22 +64,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
-      {/* Phase 26: attribute referral signup on first dashboard load */}
       <ReferralAttributor />
 
       <div className="mb-5">
-        <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
+        <h1 className="text-2xl font-extrabold text-foreground">Dashboard</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           {new Date().toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
 
       {highAnomalies.length > 0 && (
-        <div className="mb-5 flex items-start gap-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 rounded-xl px-4 py-3">
-          <ShieldAlert className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+        <div className="mb-5 flex items-start gap-3 bg-accent-red-muted border border-accent-red/20 rounded-xl px-4 py-3">
+          <ShieldAlert className="w-5 h-5 text-accent-red flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-red-700 dark:text-red-400">{highAnomalies.length} high-severity anomal{highAnomalies.length > 1 ? 'ies' : 'y'} detected</p>
-            <p className="text-xs text-red-500 mt-0.5">{highAnomalies[0].reason}</p>
+            <p className="text-sm font-medium text-accent-red">{highAnomalies.length} high-severity anomal{highAnomalies.length > 1 ? 'ies' : 'y'} detected</p>
+            <p className="text-xs text-accent-red/70 mt-0.5">{highAnomalies[0].reason}</p>
           </div>
         </div>
       )}
@@ -88,12 +87,12 @@ export default async function DashboardPage() {
         <AccessRequestBanner key={r.id} request={r} />
       ))}
 
-      {/* KPI cards */}
+      {/* KPI cards with left accent strips */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-5">
-        <MetricCard label="Total Revenue" value={formatCurrency(revenue)} icon={TrendingUp} iconColor="text-primary" iconBg="bg-primary-light" sub={`YTD ${new Date().getFullYear()}`} sparklineData={revenueSparkline} sparklineColor="#0F6E56" accentColor="var(--color-primary)" />
-        <MetricCard label="Total Expenses" value={formatCurrency(expenses)} icon={TrendingDown} iconColor="text-danger" iconBg="bg-danger-light" sub={`YTD ${new Date().getFullYear()}`} sparklineData={expensesSparkline} sparklineColor="#c0392b" accentColor="#c0392b" />
-        <MetricCard label="Net Income" value={formatCurrency(netIncome)} icon={DollarSign} iconColor={netIncome >= 0 ? 'text-primary' : 'text-danger'} iconBg={netIncome >= 0 ? 'bg-primary-light' : 'bg-danger-light'} sub={netIncome >= 0 ? 'Profitable' : 'Loss'} sparklineData={netSparkline} sparklineColor={netIncome >= 0 ? '#0F6E56' : '#c0392b'} accentColor="#185fa5" />
-        <MetricCard label="Pending Review" value={pendingCount.toString()} icon={Clock} iconColor="text-warning" iconBg="bg-warning-light" sub={pendingCount > 0 ? 'Needs classification' : 'All clear'} sparklineData={pendingSparkline} sparklineColor="#92620a" accentColor="#92620a" />
+        <MetricCard label="Total Revenue" value={formatCurrency(revenue)} icon={TrendingUp} sub={`YTD ${new Date().getFullYear()}`} sparklineData={revenueSparkline} sparklineColor="#1D9E75" accentColor="teal" />
+        <MetricCard label="Total Expenses" value={formatCurrency(expenses)} icon={TrendingDown} sub={`YTD ${new Date().getFullYear()}`} sparklineData={expensesSparkline} sparklineColor="#D85A30" accentColor="coral" />
+        <MetricCard label="Net Income" value={formatCurrency(netIncome)} icon={DollarSign} sub={netIncome >= 0 ? 'Profitable' : 'Loss'} sparklineData={netSparkline} sparklineColor="#534AB7" accentColor="purple" />
+        <MetricCard label="Pending Review" value={pendingCount.toString()} icon={Clock} sub={pendingCount > 0 ? 'Needs classification' : 'All clear'} sparklineData={pendingSparkline} sparklineColor="#BA7517" accentColor="amber" />
       </div>
 
       <DashboardCharts revenueData={sparklines?.revenue ?? []} expensesData={sparklines?.expenses ?? []} netData={sparklines?.net ?? []} />
@@ -103,7 +102,7 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle>Recent Transactions</CardTitle>
-              <a href="/transactions" className="text-xs text-primary hover:underline font-medium">View all &rarr;</a>
+              <a href="/transactions" className="text-xs text-accent-teal hover:underline font-medium">View all &rarr;</a>
             </CardHeader>
             <CardContent className="p-0">
               {transactions.length === 0 ? (
@@ -117,7 +116,7 @@ export default async function DashboardPage() {
                         <TableRow key={tx.id}>
                           <TableCell className="text-muted-foreground whitespace-nowrap text-xs">{new Date(tx.transaction_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}</TableCell>
                           <TableCell className="max-w-[160px] md:max-w-[240px] truncate">{tx.description}</TableCell>
-                          <TableCell className={`whitespace-nowrap font-medium ${tx.amount >= 0 ? 'text-primary' : 'text-destructive'}`}>{tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}</TableCell>
+                          <TableCell className={`whitespace-nowrap font-medium ${tx.amount >= 0 ? 'text-accent-teal' : 'text-foreground'}`}>{tx.amount >= 0 ? '+' : ''}{formatCurrency(tx.amount)}</TableCell>
                           <TableCell><Badge variant={statusVariant(tx.status)}>{tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}</Badge></TableCell>
                         </TableRow>
                       ))}
@@ -134,14 +133,14 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle>Connected Banks</CardTitle>
-              <a href="/banks" className="text-xs text-primary hover:underline font-medium">+ Add</a>
+              <a href="/banks" className="text-xs text-accent-teal hover:underline font-medium">+ Add</a>
             </CardHeader>
             <CardContent className="pt-0">
               {banks.length === 0 ? <EmptyState icon={Building2} message="No banks connected yet." compact /> : (
                 <div className="flex flex-col gap-3">
                   {banks.map((bank) => (
                     <div key={bank.id} className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-md bg-primary-light flex items-center justify-center text-primary text-[10px] font-bold flex-shrink-0">{bank.institution_name.slice(0, 3).toUpperCase()}</div>
+                      <div className="w-8 h-8 rounded-md bg-accent-teal-muted flex items-center justify-center text-accent-teal text-[10px] font-bold flex-shrink-0">{bank.institution_name.slice(0, 3).toUpperCase()}</div>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-foreground truncate">{bank.institution_name}</div>
                         <div className="text-xs text-muted-foreground">{bank.last_synced_at ? `Synced ${new Date(bank.last_synced_at).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}` : 'Pending sync'}</div>
@@ -158,13 +157,13 @@ export default async function DashboardPage() {
             <CardHeader className="pb-3"><CardTitle>P&amp;L Summary</CardTitle></CardHeader>
             <CardContent className="pt-0">
               <div className="flex flex-col gap-2">
-                <SummaryRow label="Revenue"  value={formatCurrency(revenue)}  valueClass="text-primary" />
-                <SummaryRow label="Expenses" value={formatCurrency(expenses)} valueClass="text-destructive" />
+                <SummaryRow label="Revenue"  value={formatCurrency(revenue)}  valueClass="text-accent-teal" />
+                <SummaryRow label="Expenses" value={formatCurrency(expenses)} valueClass="text-accent-coral" />
                 <div className="h-px bg-border my-1" />
-                <SummaryRow label="Net Income" value={formatCurrency(netIncome)} bold valueClass={netIncome >= 0 ? 'text-primary font-semibold' : 'text-destructive font-semibold'} />
+                <SummaryRow label="Net Income" value={formatCurrency(netIncome)} bold valueClass={netIncome >= 0 ? 'text-accent-teal font-semibold' : 'text-accent-red font-semibold'} />
               </div>
               {trialBalance && !trialBalance.is_balanced && (
-                <div className="mt-3 flex items-center gap-1.5 text-xs text-destructive"><AlertCircle className="w-3 h-3" />Trial balance is not balanced</div>
+                <div className="mt-3 flex items-center gap-1.5 text-xs text-accent-red"><AlertCircle className="w-3 h-3" />Trial balance is not balanced</div>
               )}
             </CardContent>
           </Card>
@@ -179,20 +178,15 @@ export default async function DashboardPage() {
 function HstPositionCard({ position }: { position: HstPosition }) {
   const isOwing  = position.position_indicator === 'owing';
   const isRefund = position.position_indicator === 'refund';
-  const accentColor = isOwing ? '#f59e0b' : isRefund ? 'var(--color-primary)' : 'var(--color-border)';
-  const amountColor = isOwing ? 'text-amber-600 dark:text-amber-400' : isRefund ? 'text-primary' : 'text-foreground';
-  const badgeClass  = isOwing
-    ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800'
-    : isRefund ? 'bg-primary-light text-primary border-primary/30 dark:bg-primary/10 dark:text-emerald-400 dark:border-primary/30'
-    : 'bg-muted text-muted-foreground border-border';
-  const badgeLabel = isOwing ? 'Owing' : isRefund ? 'Refund' : 'Nil';
   const formatDate = (d: string) => new Date(d).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' });
 
   return (
-    <Card style={{ borderTop: `2px solid ${accentColor}` }}>
+    <Card className={isOwing ? 'border-l-3 border-l-accent-amber' : isRefund ? 'border-l-3 border-l-accent-teal' : ''} style={{ borderLeftWidth: '3px' }}>
       <CardHeader className="flex-row items-center justify-between pb-3">
         <CardTitle className="flex items-center gap-2 text-sm"><Receipt className="w-4 h-4 text-muted-foreground" />HST / GST Position</CardTitle>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${badgeClass}`}>{badgeLabel}</span>
+        <Badge variant={isOwing ? 'warning' : isRefund ? 'default' : 'secondary'}>
+          {isOwing ? 'Owing' : isRefund ? 'Refund' : 'Nil'}
+        </Badge>
       </CardHeader>
       <CardContent className="pt-0 flex flex-col gap-3">
         <p className="text-xs text-muted-foreground">{formatDate(position.period_start)} &ndash; {formatDate(position.period_end)}</p>
@@ -203,38 +197,49 @@ function HstPositionCard({ position }: { position: HstPosition }) {
           </div>
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">ITC Eligible (L106)</span>
-            <span className="text-xs font-medium text-primary">&minus;${position.total_itc_eligible.toFixed(2)}</span>
+            <span className="text-xs font-medium text-accent-teal">&minus;${position.total_itc_eligible.toFixed(2)}</span>
           </div>
           <div className="h-px bg-border" />
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-foreground">Net Tax (L109)</span>
-            <span className={`text-sm font-semibold ${amountColor}`}>${Math.abs(position.net_tax_owing).toFixed(2)}{isRefund && <span className="text-xs font-normal ml-1">CR</span>}</span>
+            <span className={`text-sm font-semibold ${isOwing ? 'text-accent-amber' : isRefund ? 'text-accent-teal' : 'text-foreground'}`}>${Math.abs(position.net_tax_owing).toFixed(2)}{isRefund && <span className="text-xs font-normal ml-1">CR</span>}</span>
           </div>
         </div>
         {position.unposted_transaction_count > 0 && (
-          <div className="flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400">
+          <div className="flex items-start gap-1.5 text-xs text-accent-amber">
             <AlertCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
             <span>{position.unposted_transaction_count} unposted transaction{position.unposted_transaction_count > 1 ? 's' : ''} &mdash; report may be incomplete</span>
           </div>
         )}
-        <a href="/tax" className="flex items-center gap-1 text-xs text-primary hover:underline font-medium w-fit">View full CRA report <ExternalLink className="w-3 h-3" /></a>
+        <a href="/tax" className="flex items-center gap-1 text-xs text-accent-teal hover:underline font-medium w-fit">View full CRA report <ExternalLink className="w-3 h-3" /></a>
       </CardContent>
     </Card>
   );
 }
 
-function MetricCard({ label, value, icon: Icon, iconColor, iconBg, sub, sparklineData, sparklineColor, accentColor }: {
-  label: string; value: string; icon: React.ElementType; iconColor: string; iconBg: string;
+/* Accent color map for metric cards */
+const ACCENT_MAP: Record<string, { border: string; value: string; iconBg: string; iconText: string }> = {
+  teal:   { border: 'var(--de-accent-teal)',   value: 'text-accent-teal',   iconBg: 'bg-accent-teal-muted',   iconText: 'text-accent-teal' },
+  coral:  { border: 'var(--de-accent-coral)',  value: 'text-accent-coral',  iconBg: 'bg-accent-coral-muted',  iconText: 'text-accent-coral' },
+  purple: { border: 'var(--de-accent-purple)', value: 'text-accent-purple', iconBg: 'bg-accent-purple-muted', iconText: 'text-accent-purple' },
+  amber:  { border: 'var(--de-accent-amber)',  value: 'text-accent-amber',  iconBg: 'bg-accent-amber-muted',  iconText: 'text-accent-amber' },
+  blue:   { border: 'var(--de-accent-blue)',   value: 'text-accent-blue',   iconBg: 'bg-accent-blue-muted',   iconText: 'text-accent-blue' },
+  red:    { border: 'var(--de-accent-red)',    value: 'text-accent-red',    iconBg: 'bg-accent-red-muted',    iconText: 'text-accent-red' },
+};
+
+function MetricCard({ label, value, icon: Icon, sub, sparklineData, sparklineColor, accentColor }: {
+  label: string; value: string; icon: React.ElementType;
   sub: string; sparklineData?: number[]; sparklineColor?: string; accentColor?: string;
 }) {
+  const a = ACCENT_MAP[accentColor ?? 'teal'];
   return (
-    <Card style={accentColor ? { borderTop: `2px solid ${accentColor}` } : undefined}>
+    <Card style={{ borderLeft: `3px solid ${a.border}`, borderRadius: '0 0.75rem 0.75rem 0' }}>
       <CardContent className="pt-4 pb-4">
         <div className="flex items-start justify-between mb-2">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{label}</div>
-          <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}><Icon className={`w-4 h-4 ${iconColor}`} /></div>
+          <div className={`w-8 h-8 rounded-lg ${a.iconBg} flex items-center justify-center flex-shrink-0`}><Icon className={`w-4 h-4 ${a.iconText}`} /></div>
         </div>
-        <div className="text-2xl font-semibold text-foreground mb-1 tracking-tight">{value}</div>
+        <div className={`text-2xl font-bold ${a.value} mb-1 tracking-tight`}>{value}</div>
         <div className="flex items-end justify-between">
           <div className="text-xs text-muted-foreground">{sub}</div>
           {sparklineData && sparklineData.length >= 2 && <Sparkline data={sparklineData} color={sparklineColor} width={72} height={22} />}

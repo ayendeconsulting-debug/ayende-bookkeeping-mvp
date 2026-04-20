@@ -52,7 +52,7 @@ export function PersonalDashboard({
 
       {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">
+        <h1 className="text-2xl font-extrabold text-foreground">
           {business?.name ?? 'My Finances'}
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -62,34 +62,34 @@ export function PersonalDashboard({
 
       {/* Alerts */}
       {upcomingReminders?.balance_warning && (
-        <div className="mb-4 flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3">
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-          <p className="text-sm font-medium text-red-700 dark:text-red-400 flex-1">
-            Balance may be insufficient — {formatCurrency(upcomingReminders.total_due_7_days)} due in 7 days.
+        <div className="mb-4 flex items-start gap-3 bg-accent-red-muted border border-accent-red/20 rounded-xl px-4 py-3">
+          <AlertCircle className="w-5 h-5 text-accent-red flex-shrink-0 mt-0.5" />
+          <p className="text-sm font-medium text-accent-red flex-1">
+            Balance may be insufficient &mdash; {formatCurrency(upcomingReminders.total_due_7_days)} due in 7 days.
           </p>
-          <Link href="/personal/reminders" className="text-xs text-red-600 underline flex-shrink-0">Review</Link>
+          <Link href="/personal/reminders" className="text-xs text-accent-red underline flex-shrink-0">Review</Link>
         </div>
       )}
       {overBudgetCount > 0 && (
-        <div className="mb-4 flex items-start gap-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3">
-          <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <p className="text-sm font-medium text-amber-700 dark:text-amber-400 flex-1">
+        <div className="mb-4 flex items-start gap-3 bg-accent-amber-muted border border-accent-amber/20 rounded-xl px-4 py-3">
+          <AlertCircle className="w-5 h-5 text-accent-amber flex-shrink-0 mt-0.5" />
+          <p className="text-sm font-medium text-accent-amber flex-1">
             {overBudgetCount} budget {overBudgetCount === 1 ? 'category is' : 'categories are'} over target.
           </p>
-          <Link href="/personal/budget" className="text-xs text-amber-600 underline flex-shrink-0">Review</Link>
+          <Link href="/personal/budget" className="text-xs text-accent-amber underline flex-shrink-0">Review</Link>
         </div>
       )}
 
       {/* Hero money flow */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderTop: '2px solid var(--color-primary)' }}>
+        <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderLeft: '3px solid var(--de-accent-teal)', borderRadius: '0 1rem 1rem 0' }}>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Money in</p>
-          <p className="text-3xl font-bold text-primary tabular-nums">{formatCurrency(moneyIn)}</p>
+          <p className="text-3xl font-bold text-accent-teal tabular-nums">{formatCurrency(moneyIn)}</p>
           <p className="text-xs text-muted-foreground mt-1">{monthName}</p>
         </div>
-        <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderTop: '2px solid #c0392b' }}>
+        <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderLeft: '3px solid var(--de-accent-coral)', borderRadius: '0 1rem 1rem 0' }}>
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Money out</p>
-          <p className="text-3xl font-bold text-danger tabular-nums">{formatCurrency(moneyOut)}</p>
+          <p className="text-3xl font-bold text-accent-coral tabular-nums">{formatCurrency(moneyOut)}</p>
           <p className="text-xs text-muted-foreground mt-1">{monthName}</p>
         </div>
       </div>
@@ -97,22 +97,22 @@ export function PersonalDashboard({
       {/* Net worth hero */}
       {netWorth && (
         <Link href="/personal/networth" className="block mb-6">
-          <div className="rounded-2xl bg-card border border-border p-4 md:p-5 hover:border-primary/30 transition-colors" style={{ borderTop: '2px solid #185fa5' }}>
+          <div className="rounded-2xl bg-card border border-border p-4 md:p-5 hover:bg-card-hover transition-colors duration-150" style={{ borderLeft: '3px solid var(--de-accent-blue)', borderRadius: '0 1rem 1rem 0' }}>
             <div className="flex items-center justify-between mb-1">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Net worth</p>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </div>
-            <p className={cn('text-4xl font-bold tabular-nums mb-3', netWorth.net_worth >= 0 ? 'text-primary' : 'text-danger')}>
+            <p className={cn('text-4xl font-bold tabular-nums mb-3', netWorth.net_worth >= 0 ? 'text-accent-blue' : 'text-accent-red')}>
               {formatCurrency(netWorth.net_worth)}
             </p>
             <div className="flex gap-6">
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Assets</p>
-                <p className="text-sm font-semibold text-primary">{formatCurrency(netWorth.total_assets)}</p>
+                <p className="text-sm font-semibold text-accent-teal">{formatCurrency(netWorth.total_assets)}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground mb-0.5">Liabilities</p>
-                <p className="text-sm font-semibold text-danger">{formatCurrency(netWorth.total_liabilities)}</p>
+                <p className="text-sm font-semibold text-accent-coral">{formatCurrency(netWorth.total_liabilities)}</p>
               </div>
               {netWorth.plaid_assets.length > 0 && (
                 <div>
@@ -130,27 +130,27 @@ export function PersonalDashboard({
       {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        {/* Left – budget + recurring */}
+        {/* Left column */}
         <div className="col-span-1 lg:col-span-2 flex flex-col gap-4">
 
           {/* Budget vs Actual */}
-          <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderTop: '2px solid #d97706' }}>
+          <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderLeft: '3px solid var(--de-accent-amber)', borderRadius: '0 1rem 1rem 0' }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-semibold text-foreground">Budget — {monthName}</h2>
+                <h2 className="text-base font-semibold text-foreground">Budget &mdash; {monthName}</h2>
                 {totalMonthlyTarget > 0 && (
                   <p className="text-sm text-muted-foreground mt-0.5">
                     {formatCurrency(totalSpent)} of {formatCurrency(totalMonthlyTarget)} spent
                   </p>
                 )}
               </div>
-              <Link href="/personal/budget" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">
+              <Link href="/personal/budget" className="text-xs text-accent-teal font-medium flex items-center gap-0.5 hover:underline">
                 Manage <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
             {budgetCategories.length === 0 ? (
               <div className="py-8 text-center text-sm text-muted-foreground">
-                <Link href="/personal/budget" className="text-primary underline">Set up your budget</Link>
+                <Link href="/personal/budget" className="text-accent-teal underline">Set up your budget</Link>
               </div>
             ) : (
               <div className="flex flex-col gap-4">
@@ -158,8 +158,8 @@ export function PersonalDashboard({
                   <EmmaBudgetBar key={cat.id} category={cat} />
                 ))}
                 {budgetCategories.length > 8 && (
-                  <Link href="/personal/budget" className="text-xs text-muted-foreground hover:text-primary text-center pt-1">
-                    +{budgetCategories.length - 8} more →
+                  <Link href="/personal/budget" className="text-xs text-muted-foreground hover:text-accent-teal text-center pt-1">
+                    +{budgetCategories.length - 8} more &rarr;
                   </Link>
                 )}
               </div>
@@ -174,7 +174,7 @@ export function PersonalDashboard({
                   <h2 className="text-base font-semibold text-foreground">Recurring payments</h2>
                   <p className="text-sm text-muted-foreground mt-0.5">{formatCurrency(totalMonthlyRecurring)}/mo total</p>
                 </div>
-                <Link href="/personal/recurring" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">
+                <Link href="/personal/recurring" className="text-xs text-accent-teal font-medium flex items-center gap-0.5 hover:underline">
                   See all <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -192,7 +192,7 @@ export function PersonalDashboard({
                         <p className="text-xs text-muted-foreground capitalize">{item.frequency}</p>
                       </div>
                     </div>
-                    <span className="text-sm font-semibold text-danger">-{formatCurrency(item.amount)}</span>
+                    <span className="text-sm font-semibold text-accent-coral">-{formatCurrency(item.amount)}</span>
                   </div>
                 ))}
               </div>
@@ -204,16 +204,16 @@ export function PersonalDashboard({
         <div className="flex flex-col gap-4">
 
           {/* Savings Goals */}
-          <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderTop: '2px solid var(--color-primary)' }}>
+          <div className="rounded-2xl bg-card border border-border p-4 md:p-5" style={{ borderLeft: '3px solid var(--de-accent-teal)', borderRadius: '0 1rem 1rem 0' }}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-semibold text-foreground">Savings goals</h2>
-              <Link href="/personal/goals" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">
+              <Link href="/personal/goals" className="text-xs text-accent-teal font-medium flex items-center gap-0.5 hover:underline">
                 Manage <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
             {activeGoals.length === 0 ? (
               <div className="py-4 text-center text-sm text-muted-foreground">
-                <Link href="/personal/goals" className="text-primary underline">Add a savings goal</Link>
+                <Link href="/personal/goals" className="text-accent-teal underline">Add a savings goal</Link>
               </div>
             ) : (
               <div className="flex flex-col gap-5">
@@ -230,12 +230,12 @@ export function PersonalDashboard({
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-semibold text-foreground">Upcoming</h2>
                 {dueSoonItems.length > 0 && (
-                  <span className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-100 dark:border-amber-800 px-1.5 py-0.5 rounded-full">
+                  <span className="text-[10px] font-bold text-accent-amber bg-accent-amber-muted border border-accent-amber/20 px-1.5 py-0.5 rounded-full">
                     {dueSoonItems.length} due soon
                   </span>
                 )}
               </div>
-              <Link href="/personal/reminders" className="text-xs text-primary font-medium flex items-center gap-0.5 hover:underline">
+              <Link href="/personal/reminders" className="text-xs text-accent-teal font-medium flex items-center gap-0.5 hover:underline">
                 View all <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -247,26 +247,26 @@ export function PersonalDashboard({
   );
 }
 
-/* ── Sub-components ─────────────────────────────────────────────────── */
+/* Sub-components */
 
 function EmmaBudgetBar({ category }: { category: BudgetCategoryWithSpending }) {
   const pct       = category.percentage_spent ?? 0;
   const hasTarget = category.monthly_target != null;
   const isOver    = category.over_budget;
   const isWarn    = !isOver && pct >= 80;
-  const barColor  = isOver ? 'bg-red-400' : isWarn ? 'bg-amber-400' : 'bg-primary';
+  const barColor  = isOver ? 'bg-accent-red' : isWarn ? 'bg-accent-amber' : 'bg-accent-teal';
 
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: category.color ?? '#0F6E56' }} />
+          <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: category.color ?? '#1D9E75' }} />
           <span className="text-sm font-medium text-foreground truncate">{category.name}</span>
-          {isOver && <span className="text-[10px] font-bold text-red-500 uppercase flex-shrink-0">Over</span>}
-          {isWarn && <span className="text-[10px] font-bold text-amber-500 uppercase flex-shrink-0">Almost</span>}
+          {isOver && <span className="text-[10px] font-bold text-accent-red uppercase flex-shrink-0">Over</span>}
+          {isWarn && <span className="text-[10px] font-bold text-accent-amber uppercase flex-shrink-0">Almost</span>}
         </div>
         <div className="text-sm font-medium flex-shrink-0 ml-3">
-          <span className={isOver ? 'text-red-500' : 'text-foreground'}>
+          <span className={isOver ? 'text-accent-red' : 'text-foreground'}>
             {formatCurrency(category.spent_this_month)}
           </span>
           {hasTarget && (
@@ -291,12 +291,12 @@ function EmmaGoalCard({ goal }: { goal: SavingsGoalWithProgress }) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-medium text-foreground truncate">{goal.name}</span>
-        <span className="text-sm font-bold text-primary flex-shrink-0 ml-2">
+        <span className="text-sm font-bold text-accent-teal flex-shrink-0 ml-2">
           {goal.percentage_complete.toFixed(0)}%
         </span>
       </div>
       <div className="h-3 bg-muted rounded-full overflow-hidden mb-2">
-        <div className="h-full bg-primary rounded-full transition-all"
+        <div className="h-full bg-accent-teal rounded-full transition-all"
           style={{ width: `${goal.percentage_complete}%` }} />
       </div>
       <div className="flex justify-between text-xs text-muted-foreground">

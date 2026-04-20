@@ -31,11 +31,14 @@ export function DashboardCharts({ revenueData, expensesData, netData }: Dashboar
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
-  // Pilot warm palette — warm grays for axes and grid
-  const axisColor  = isDark ? '#a09888' : '#888070';
-  const gridColor  = isDark ? '#3a3730' : '#e5e1d8';
-  const bgColor    = isDark ? '#222019' : '#ffffff';
-  const labelColor = isDark ? '#f0ede8' : '#1a1814';
+  // Dark Executive palette
+  const axisColor  = '#888780';
+  const gridColor  = isDark ? '#2E2E2B' : '#E8E6E1';
+  const bgColor    = isDark ? '#1E1E1C' : '#FFFFFF';
+  const labelColor = isDark ? '#F1EFE8' : '#2C2C2A';
+  const revColor   = isDark ? '#5DCAA5' : '#1D9E75';
+  const expColor   = isDark ? '#F0997B' : '#D85A30';
+  const netColor   = isDark ? '#AFA9EC' : '#534AB7';
 
   const barData = revenueData.map((r, i) => ({
     date:     formatShortDate(r.date),
@@ -54,7 +57,6 @@ export function DashboardCharts({ revenueData, expensesData, netData }: Dashboar
   if (!showBar && !showLine) return null;
 
   return (
-    // 1 col on mobile, 2 col on md+
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
 
       {showBar && (
@@ -75,13 +77,13 @@ export function DashboardCharts({ revenueData, expensesData, netData }: Dashboar
                   />
                   <Tooltip
                     formatter={(value, name) => [formatCurrency(Number(value)), String(name)]}
-                    contentStyle={{ backgroundColor: bgColor, border: `1px solid ${gridColor}`, borderRadius: 8, fontSize: 11 }}
+                    contentStyle={{ backgroundColor: bgColor, border: `1px solid ${gridColor}`, borderRadius: 8, fontSize: 11, color: labelColor }}
                     labelStyle={{ color: labelColor, fontWeight: 600 }}
                     cursor={{ fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
                   />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="Revenue"  fill="#0F6E56" radius={[3, 3, 0, 0]} maxBarSize={20} fillOpacity={isDark ? 0.85 : 1} />
-                  <Bar dataKey="Expenses" fill="#c0392b" radius={[3, 3, 0, 0]} maxBarSize={20} fillOpacity={isDark ? 0.85 : 1} />
+                  <Legend wrapperStyle={{ fontSize: 11, color: axisColor }} />
+                  <Bar dataKey="Revenue"  fill={revColor} radius={[3, 3, 0, 0]} maxBarSize={20} />
+                  <Bar dataKey="Expenses" fill={expColor} radius={[3, 3, 0, 0]} maxBarSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -107,15 +109,15 @@ export function DashboardCharts({ revenueData, expensesData, netData }: Dashboar
                   />
                   <Tooltip
                     formatter={(value) => [formatCurrency(Number(value)), 'Net Income']}
-                    contentStyle={{ backgroundColor: bgColor, border: `1px solid ${gridColor}`, borderRadius: 8, fontSize: 11 }}
+                    contentStyle={{ backgroundColor: bgColor, border: `1px solid ${gridColor}`, borderRadius: 8, fontSize: 11, color: labelColor }}
                     labelStyle={{ color: labelColor, fontWeight: 600 }}
                   />
                   <Line
                     type="monotone"
                     dataKey="Net Income"
-                    stroke="#0F6E56"
+                    stroke={netColor}
                     strokeWidth={2}
-                    dot={{ fill: '#0F6E56', r: 3 }}
+                    dot={{ fill: netColor, r: 3 }}
                     activeDot={{ r: 5 }}
                   />
                 </LineChart>

@@ -8,26 +8,26 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-primary-light text-primary dark:bg-primary/20 dark:text-primary',
+          'bg-accent-teal-muted text-accent-teal',
         secondary:
           'bg-muted text-muted-foreground',
         destructive:
-          'bg-danger-light text-danger dark:bg-destructive/20 dark:text-destructive-foreground',
+          'bg-accent-red-muted text-accent-red',
         warning:
-          'bg-warning-light text-warning dark:bg-warning/20 dark:text-warning',
+          'bg-accent-amber-muted text-accent-amber',
         info:
-          'bg-info-light text-info dark:bg-info/20 dark:text-info',
+          'bg-accent-blue-muted text-accent-blue',
         outline:
           'border border-border text-muted-foreground',
         // Transaction status badges
         pending:
-          'bg-warning-light text-warning dark:bg-warning/20 dark:text-warning',
+          'bg-accent-amber-muted text-accent-amber',
         classified:
-          'bg-primary-light text-primary dark:bg-primary/20 dark:text-primary',
+          'bg-accent-teal-muted text-accent-teal',
         posted:
           'bg-muted text-muted-foreground',
         review:
-          'bg-info-light text-info dark:bg-info/20 dark:text-info',
+          'bg-accent-blue-muted text-accent-blue',
       },
     },
     defaultVariants: {

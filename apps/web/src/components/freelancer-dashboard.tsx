@@ -15,6 +15,15 @@ interface FreelancerDashboardProps {
   business:         Business | null;
 }
 
+/* Accent color map for metric cards */
+const ACCENT_MAP: Record<string, { border: string; value: string; iconBg: string; iconText: string }> = {
+  teal:   { border: 'var(--de-accent-teal)',   value: 'text-accent-teal',   iconBg: 'bg-accent-teal-muted',   iconText: 'text-accent-teal' },
+  coral:  { border: 'var(--de-accent-coral)',  value: 'text-accent-coral',  iconBg: 'bg-accent-coral-muted',  iconText: 'text-accent-coral' },
+  purple: { border: 'var(--de-accent-purple)', value: 'text-accent-purple', iconBg: 'bg-accent-purple-muted', iconText: 'text-accent-purple' },
+  amber:  { border: 'var(--de-accent-amber)',  value: 'text-accent-amber',  iconBg: 'bg-accent-amber-muted',  iconText: 'text-accent-amber' },
+  blue:   { border: 'var(--de-accent-blue)',   value: 'text-accent-blue',   iconBg: 'bg-accent-blue-muted',   iconText: 'text-accent-blue' },
+};
+
 function getCurrentQuarter(): number {
   return Math.ceil((new Date().getMonth() + 1) / 3);
 }
@@ -43,51 +52,43 @@ export function FreelancerDashboard({
     <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
 
       <div className="mb-6">
-        <h1 className="text-xl font-semibold text-foreground">{business?.name ?? 'My Business'}</h1>
+        <h1 className="text-2xl font-extrabold text-foreground">{business?.name ?? 'My Business'}</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
           {new Date().toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
 
-      {/* Metric cards */}
+      {/* Metric cards with left accent strips */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6">
         <MetricCard
           label="This Month Income"
           value={formatCurrency(monthlyIncome)}
           icon={TrendingUp}
-          iconColor="text-primary"
-          iconBg="bg-primary-light"
           sub={new Date().toLocaleDateString('en-CA', { month: 'long', year: 'numeric' })}
-          accentColor="var(--color-primary)"
+          accentColor="teal"
         />
         <MetricCard
           label="This Month Expenses"
           value={formatCurrency(monthlyExpenses)}
           icon={TrendingDown}
-          iconColor="text-danger"
-          iconBg="bg-danger-light"
           sub="Business expenses only"
-          accentColor="#c0392b"
+          accentColor="coral"
         />
         <MetricCard
           label={`Q${currentQ} Tax Estimate`}
           value={formatCurrency(currentQEstimate?.estimated_tax ?? 0)}
           icon={Calculator}
-          iconColor="text-amber-600"
-          iconBg="bg-amber-50 dark:bg-amber-900/20"
           sub={currentQEstimate
             ? `Due ${new Date(currentQEstimate.due_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}`
             : 'No data yet'}
-          accentColor="#d97706"
+          accentColor="amber"
         />
         <MetricCard
           label="Outstanding Invoices"
           value={formatCurrency(outstandingTotal)}
           icon={FileText}
-          iconColor="text-blue-600 dark:text-blue-400"
-          iconBg="bg-blue-50 dark:bg-blue-900/20"
           sub={`${outstandingInvoices.length} invoice${outstandingInvoices.length !== 1 ? 's' : ''} unpaid`}
-          accentColor="#2563eb"
+          accentColor="blue"
         />
       </div>
 
@@ -103,23 +104,23 @@ export function FreelancerDashboard({
             </CardHeader>
             <CardContent className="pt-0">
               <div className="flex flex-col gap-3">
-                <SummaryRow label="Total Income" value={formatCurrency(ytdIncome)} valueClass="text-primary font-semibold" />
-                <SummaryRow label="Total Business Expenses" value={formatCurrency(ytdExpenses)} valueClass="text-danger" />
+                <SummaryRow label="Total Income" value={formatCurrency(ytdIncome)} valueClass="text-accent-teal font-semibold" />
+                <SummaryRow label="Total Business Expenses" value={formatCurrency(ytdExpenses)} valueClass="text-accent-coral" />
                 <div className="h-px bg-border" />
                 <SummaryRow
                   label="Net Profit"
                   value={formatCurrency(ytdNetProfit)}
-                  valueClass={cn('font-bold text-base', ytdNetProfit >= 0 ? 'text-primary' : 'text-danger')}
+                  valueClass={cn('font-bold text-base', ytdNetProfit >= 0 ? 'text-accent-teal' : 'text-accent-red')}
                   bold
                 />
               </div>
               {ytdNetProfit > 0 && taxEstimate && (
-                <div className="mt-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800 px-4 py-3">
-                  <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                <div className="mt-4 rounded-lg bg-accent-amber-muted border border-accent-amber/20 px-4 py-3">
+                  <p className="text-xs font-medium text-accent-amber">
                     Estimated annual tax owing:{' '}
                     <span className="font-bold">{formatCurrency(taxEstimate.annual_estimated_tax)}</span>
                   </p>
-                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-0.5">{taxEstimate.disclaimer}</p>
+                  <p className="text-xs text-accent-amber/70 mt-0.5">{taxEstimate.disclaimer}</p>
                 </div>
               )}
             </CardContent>
@@ -129,12 +130,12 @@ export function FreelancerDashboard({
           <Card>
             <CardHeader className="flex-row items-center justify-between pb-3">
               <CardTitle>Unpaid Invoices</CardTitle>
-              <Link href="/invoices" className="text-xs text-primary hover:underline font-medium">View all →</Link>
+              <Link href="/invoices" className="text-xs text-accent-teal hover:underline font-medium">View all &rarr;</Link>
             </CardHeader>
             <CardContent className="pt-0">
               {outstandingInvoices.length === 0 ? (
                 <div className="py-6 text-center text-sm text-muted-foreground">
-                  No outstanding invoices — all caught up!
+                  No outstanding invoices &mdash; all caught up!
                 </div>
               ) : (
                 <div className="flex flex-col gap-2">
@@ -143,7 +144,7 @@ export function FreelancerDashboard({
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-foreground truncate">{inv.client_name}</div>
                         <div className="text-xs text-muted-foreground">
-                          {inv.invoice_number} · Due{' '}
+                          {inv.invoice_number} &middot; Due{' '}
                           {new Date(inv.due_date).toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })}
                         </div>
                       </div>
@@ -170,7 +171,7 @@ export function FreelancerDashboard({
               <QuickLink href="/transactions"      label="Tag transactions"  sub="Mark income & expenses" />
               <QuickLink href="/invoices"           label="Create invoice"    sub="Bill a client" />
               <QuickLink href="/freelancer/mileage" label="Log mileage"       sub={`Track ${unit} for tax deduction`} />
-              <QuickLink href="/freelancer/tax"     label="View tax estimate" sub="Q1–Q4 breakdown" />
+              <QuickLink href="/freelancer/tax"     label="View tax estimate" sub="Q1&ndash;Q4 breakdown" />
             </CardContent>
           </Card>
 
@@ -187,11 +188,11 @@ export function FreelancerDashboard({
                     return (
                       <div key={q.quarter} className={cn(
                         'flex items-center justify-between py-1.5 px-2 rounded-md',
-                        isCurrent ? 'bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800' : '',
+                        isCurrent ? 'bg-accent-amber-muted border border-accent-amber/20' : '',
                       )}>
                         <div>
                           <span className={cn('text-xs font-medium',
-                            isCurrent ? 'text-amber-700 dark:text-amber-400'
+                            isCurrent ? 'text-accent-amber'
                             : isPast ? 'text-muted-foreground' : 'text-foreground')}>
                             {q.label}
                           </span>
@@ -200,7 +201,7 @@ export function FreelancerDashboard({
                           </span>
                         </div>
                         <span className={cn('text-xs font-semibold',
-                          isCurrent ? 'text-amber-700 dark:text-amber-400'
+                          isCurrent ? 'text-accent-amber'
                           : isPast ? 'text-muted-foreground' : 'text-foreground')}>
                           {formatCurrency(q.estimated_tax)}
                         </span>
@@ -220,20 +221,21 @@ export function FreelancerDashboard({
   );
 }
 
-function MetricCard({ label, value, icon: Icon, iconColor, iconBg, sub, accentColor }: {
+function MetricCard({ label, value, icon: Icon, sub, accentColor }: {
   label: string; value: string; icon: React.ElementType;
-  iconColor: string; iconBg: string; sub: string; accentColor?: string;
+  sub: string; accentColor?: string;
 }) {
+  const a = ACCENT_MAP[accentColor ?? 'teal'];
   return (
-    <Card style={accentColor ? { borderTop: `2px solid ${accentColor}` } : undefined}>
+    <Card style={{ borderLeft: `3px solid ${a.border}`, borderRadius: '0 0.75rem 0.75rem 0' }}>
       <CardContent className="pt-4 pb-4">
         <div className="flex items-start justify-between mb-2">
           <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider leading-tight pr-1">{label}</div>
-          <div className={`w-8 h-8 rounded-lg ${iconBg} flex items-center justify-center flex-shrink-0`}>
-            <Icon className={`w-4 h-4 ${iconColor}`} />
+          <div className={`w-8 h-8 rounded-lg ${a.iconBg} flex items-center justify-center flex-shrink-0`}>
+            <Icon className={`w-4 h-4 ${a.iconText}`} />
           </div>
         </div>
-        <div className="text-xl md:text-2xl font-semibold text-foreground mb-1 truncate">{value}</div>
+        <div className={`text-xl md:text-2xl font-bold ${a.value} mb-1 truncate`}>{value}</div>
         <div className="text-xs text-muted-foreground leading-tight">{sub}</div>
       </CardContent>
     </Card>
@@ -254,12 +256,12 @@ function SummaryRow({ label, value, valueClass, bold }: {
 function QuickLink({ href, label, sub }: { href: string; label: string; sub: string }) {
   return (
     <Link href={href}
-      className="flex items-center justify-between px-3 py-3 rounded-lg border border-border hover:border-primary/30 hover:bg-primary-light/30 dark:hover:bg-primary/10 transition-colors group">
+      className="flex items-center justify-between px-3 py-3 rounded-lg border border-border hover:border-accent-teal/30 hover:bg-accent-teal-muted transition-colors duration-150 group">
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium text-foreground group-hover:text-primary truncate">{label}</div>
+        <div className="text-sm font-medium text-foreground group-hover:text-accent-teal truncate">{label}</div>
         <div className="text-xs text-muted-foreground truncate">{sub}</div>
       </div>
-      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 ml-2" />
+      <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-accent-teal transition-colors flex-shrink-0 ml-2" />
     </Link>
   );
 }
