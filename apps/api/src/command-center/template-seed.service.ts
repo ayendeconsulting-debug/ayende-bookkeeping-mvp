@@ -58,16 +58,10 @@ function hero(
     : '';
   return `
   <tr>
-    <td style="background:${bg};padding:20px 40px 4px;text-align:center;">
-      <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:44px;
-                line-height:.8;color:rgba(255,255,255,.4);">&ldquo;</p>
-    </td>
-  </tr>
-  <tr>
-    <td style="background:${bg};padding:4px 40px 10px;text-align:center;border-bottom:1px solid ${border};">
+    <td style="background:${bg};padding:28px 40px 10px;text-align:center;border-bottom:1px solid ${border};">
       <h2 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:22px;
                  font-weight:bold;color:${colour};line-height:1.35;text-align:center;">
-        ${text}&rdquo;
+        &ldquo;${text}&rdquo;
       </h2>
     </td>
   </tr>
@@ -694,8 +688,8 @@ const TEMPLATES: SeedTemplate[] = [
     </table>
 
     <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
-      I have attached a one-page Partnership Brief with details on how this would work.
       I would welcome 20 minutes of your time to discuss what a pilot could look like.
+      Simply reply to this email and we can find a time.
     </p>
 
     <p style="margin:0 0 4px;font-size:15px;color:#555555;">
@@ -763,7 +757,8 @@ const TEMPLATES: SeedTemplate[] = [
     </table>
 
     <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
-      I have attached a one-page overview. Would you be open to a short call to discuss timing?
+      Would you be open to a short call to discuss timing?
+      Simply reply to this email and we can connect.
     </p>
 
     <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you,</p>
@@ -834,8 +829,8 @@ const TEMPLATES: SeedTemplate[] = [
     </table>
 
     <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
-      I have attached a Partnership Brief with details on the platform and proposed engagement models.
-      I am happy to provide a demo or additional documentation your team may need for evaluation.
+      I am happy to provide a full platform walkthrough or any documentation your team may need.
+      Simply reply to this email to connect.
     </p>
 
     <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you for your consideration.</p>
@@ -911,7 +906,8 @@ const TEMPLATES: SeedTemplate[] = [
     </table>
 
     <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
-      I have attached a one-page Partnership Brief. I would welcome the opportunity to discuss a pilot.
+      I would welcome the opportunity to discuss a pilot.
+      Simply reply to this email and we can find a time.
     </p>
 
     <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you,</p>
@@ -978,8 +974,8 @@ const TEMPLATES: SeedTemplate[] = [
     </table>
 
     <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
-      I have attached a brief overview of the platform. I am happy to provide a walkthrough or answer
-      any questions about how the tool supports CRA compliance.
+      I am happy to provide a walkthrough or answer any questions about how the tool supports CRA compliance.
+      Simply reply to this email.
     </p>
 
     <p style="margin:0 0 4px;font-size:15px;color:#555555;">Thank you for your time.</p>
