@@ -638,7 +638,7 @@ const TEMPLATES: SeedTemplate[] = [
     name:        'partnership_mission_fund',
     description: 'Partnership outreach to mission-aligned funds (BOF, FACE) \u2014 sponsored access model',
     subject:     'Tempo Books \u2014 Black-owned bookkeeping platform for your members',
-    from_email:  'ade.ehinmidu@gettempo.ca',
+    from_email:  'partnership@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name', 'organization_name'],
     html_body: wrap(`
@@ -711,7 +711,7 @@ const TEMPLATES: SeedTemplate[] = [
     name:        'partnership_community_workshop',
     description: 'Partnership outreach to community / workshop organizations (CBCC, BEBC) \u2014 member pricing + workshop model',
     subject:     'Bookkeeping workshops for {{organization_name}} members \u2014 Tempo Books (Black-owned)',
-    from_email:  'ade.ehinmidu@gettempo.ca',
+    from_email:  'partnership@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name', 'organization_name', 'org_program_type'],
     html_body: wrap(`
@@ -778,7 +778,7 @@ const TEMPLATES: SeedTemplate[] = [
     name:        'partnership_government_program',
     description: 'Partnership outreach to government programs (BEP, FedDev Ontario) \u2014 infrastructure framing',
     subject:     'Bookkeeping infrastructure for {{program_name}} participants \u2014 Tempo Books',
-    from_email:  'ade.ehinmidu@gettempo.ca',
+    from_email:  'partnership@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name', 'organization_name', 'program_name'],
     html_body: wrap(`
@@ -850,7 +850,7 @@ const TEMPLATES: SeedTemplate[] = [
     name:        'partnership_bank_program',
     description: 'Partnership outreach to bank entrepreneur programs (RBC, TD, Scotiabank) \u2014 sponsored access + revenue share models',
     subject:     'Bookkeeping support for {{bank_name}} Black entrepreneur clients \u2014 Tempo Books',
-    from_email:  'ade.ehinmidu@gettempo.ca',
+    from_email:  'partnership@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name', 'bank_name'],
     html_body: wrap(`
@@ -927,7 +927,7 @@ const TEMPLATES: SeedTemplate[] = [
     name:        'partnership_cra_liaison',
     description: 'Outreach to CRA Liaison Officer Initiative \u2014 resource listing framing, no endorsement ask',
     subject:     'Bookkeeping platform for small businesses \u2014 Tempo Books (Black-owned, Canadian)',
-    from_email:  'ade.ehinmidu@gettempo.ca',
+    from_email:  'partnership@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name'],
     html_body: wrap(`
@@ -995,7 +995,7 @@ const TEMPLATES: SeedTemplate[] = [
     name:        'partnership_followup',
     description: 'Follow-up to all Wave 1 partnership contacts who did not respond within 10\u201314 business days',
     subject:     'Re: Tempo Books \u2014 following up',
-    from_email:  'ade.ehinmidu@gettempo.ca',
+    from_email:  'partnership@gettempo.ca',
     from_name:   'Adesanya Ehinmidu',
     variables:   ['contact_name', 'organization_name', 'original_send_date'],
     html_body: wrap(`
