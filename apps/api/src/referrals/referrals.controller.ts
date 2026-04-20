@@ -74,6 +74,21 @@ export class ReferralsController {
     return this.referralsService.generateDashboardLink(id);
   }
 
+  @Post('partners/:id/send-link')
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  @HttpCode(HttpStatus.OK)
+  sendDashboardLink(@Param('id') id: string) {
+    return this.referralsService.sendDashboardLink(id);
+  }
+
+  // ── Admin: Referral Events ────────────────────────────────────────────
+
+  @Get('events')
+  @UseGuards(AuthGuard('jwt'), AdminGuard)
+  listEvents(@Query('partnerId') partnerId?: string, @Query('eventType') eventType?: string) {
+    return this.referralsService.listEvents(partnerId, eventType);
+  }
+
   // ── Admin: Commission Management ──────────────────────────────────────
 
   @Get('commissions')

@@ -11,6 +11,7 @@ import { ReferralPartner } from '../entities/referral-partner.entity';
 import { ReferralEvent } from '../entities/referral-event.entity';
 import { ReferralCommission } from '../entities/referral-commission.entity';
 import { generatePartnerToken } from './partner-dashboard.helper';
+import { Resend } from 'resend';
 
 @Injectable()
 export class ReferralsService {
@@ -337,6 +338,73 @@ export class ReferralsService {
       referrals,
       commissions,
     };
+  }
+
+  // ── Activity Log ────────────────────────────────────────────────────
+
+  /** List referral events with partner name, filterable by partner and event type (FR-47). */
+  async listEvents(partnerId?: string, eventType?: string) {
+    let query = `
+      SELECT re.*, rp.name AS partner_name, rp.referral_code
+      FROM referral_events re
+      JOIN referral_partners rp ON rp.id = re.partner_id`;
+    const conditions: string[] = [];
+    const params: string[] = [];
+    if (partnerId) { params.push(partnerId); conditions.push(`re.partner_id = $${params.length}`); }
+    if (eventType) { params.push(eventType); conditions.push(`re.event_type = $${params.length}`); }
+    if (conditions.length) query += ` WHERE ` + conditions.join(' AND ');
+    query += ` ORDER BY re.created_at DESC LIMIT 200`;
+    return this.dataSource.query(query, params);
+  }
+
+  /** Send the partner dashboard magic link via email (FR-42, FR-45). */
+  async sendDashboardLink(partnerId: string): Promise<{ sent: boolean; url: string }> {
+    const partner = await this.partnerRepo.findOne({ where: { id: partnerId } });
+    if (!partner) throw new NotFoundException('Partner not found');
+
+    const token = generatePartnerToken(partner.email);
+    const frontendUrl = process.env.FRONTEND_URL || 'https://gettempo.ca';
+    const url = `${frontendUrl}/partner-dashboard?token=${encodeURIComponent(token)}`;
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      this.logger.warn('RESEND_API_KEY not set — skipping dashboard link email');
+      return { sent: false, url };
+    }
+
+    try {
+      const resend = new Resend(apiKey);
+      await resend.emails.send({
+        from: 'Tempo Books <admin@gettempo.ca>',
+        to: [partner.email],
+        subject: 'Your Tempo Books Partner Dashboard',
+        html: `
+<!DOCTYPE html>
+<html><body style="font-family:Arial,sans-serif;margin:0;padding:0;background:#f9fafb;">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;margin:40px auto;">
+  <tr><td style="padding:32px 40px;background:#ffffff;border-radius:12px;border:1px solid #e5e7eb;">
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="display:inline-block;width:40px;height:40px;border-radius:10px;background:#0F6E56;line-height:40px;text-align:center;color:#fff;font-weight:bold;font-size:14px;">TB</div>
+    </div>
+    <h1 style="font-size:20px;color:#111;margin:0 0 8px;text-align:center;">Partner Dashboard Access</h1>
+    <p style="font-size:14px;color:#6b7280;margin:0 0 24px;text-align:center;">Hi ${partner.name},<br/>Click below to view your referral dashboard.</p>
+    <div style="text-align:center;margin-bottom:24px;">
+      <a href="${url}" style="display:inline-block;padding:12px 32px;background:#0F6E56;color:#ffffff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">Open Dashboard</a>
+    </div>
+    <p style="font-size:12px;color:#9ca3af;text-align:center;margin:0;">This link expires in 7 days. If you need a new one, contact your Tempo Books admin.</p>
+  </td></tr>
+  <tr><td style="padding:16px 0;text-align:center;">
+    <p style="font-size:11px;color:#9ca3af;margin:0;">Tempo Books &middot; Ayende CX Inc. &middot; Toronto, ON</p>
+  </td></tr>
+</table>
+</body></html>`,
+      });
+      this.logger.log('Dashboard link email sent → ' + partner.email);
+      return { sent: true, url };
+    } catch (err) {
+      this.logger.error('Failed to send dashboard link email', err);
+      return { sent: false, url };
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────

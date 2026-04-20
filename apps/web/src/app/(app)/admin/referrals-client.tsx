@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Loader2, Plus, Pencil, ToggleRight, ToggleLeft, Copy, Check,
-  Link2, Users, Activity, DollarSign, X, ExternalLink,
+  Link2, Users, Activity, DollarSign, X, ExternalLink, Send,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,16 @@ interface Commission {
   commission_amount: number;
   status: 'accrued' | 'paid' | 'voided';
   paid_at: string | null;
+  created_at: string;
+}
+
+interface ReferralEvent {
+  id: string;
+  partner_id: string;
+  partner_name: string;
+  referral_code: string;
+  event_type: 'click' | 'signup' | 'trial_start' | 'converted' | 'churned';
+  user_id: string | null;
   created_at: string;
 }
 
@@ -96,6 +106,14 @@ export function ReferralsClient() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [linkingId, setLinkingId] = useState<string | null>(null);
   const [linkCopiedId, setLinkCopiedId] = useState<string | null>(null);
+  const [sendingLinkId, setSendingLinkId] = useState<string | null>(null);
+  const [linkSentId, setLinkSentId] = useState<string | null>(null);
+
+  // ── Event log state ───────────────────────────────────────────────────
+  const [events, setEvents] = useState<ReferralEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
+  const [eventPartnerFilter, setEventPartnerFilter] = useState('');
+  const [eventTypeFilter, setEventTypeFilter] = useState('');
 
   // ── Commission state ──────────────────────────────────────────────────
   const [commissions, setCommissions] = useState<Commission[]>([]);
@@ -125,6 +143,21 @@ export function ReferralsClient() {
   }, []);
 
   useEffect(() => { if (subTab === 'commissions') loadCommissions(); }, [subTab, loadCommissions]);
+
+  const loadEvents = useCallback(async () => {
+    setLoadingEvents(true);
+    try {
+      const params = new URLSearchParams();
+      if (eventPartnerFilter) params.set('partnerId', eventPartnerFilter);
+      if (eventTypeFilter) params.set('eventType', eventTypeFilter);
+      const url = '/api/proxy/admin/referral-events' + (params.toString() ? '?' + params.toString() : '');
+      const res = await fetch(url);
+      if (res.ok) setEvents(await res.json());
+    } catch { /* non-fatal */ }
+    finally { setLoadingEvents(false); }
+  }, [eventPartnerFilter, eventTypeFilter]);
+
+  useEffect(() => { if (subTab === 'activity') loadEvents(); }, [subTab, loadEvents]);
 
   function openNew() {
     setEditingId(null);
@@ -222,6 +255,19 @@ export function ReferralsClient() {
       }
     } catch { /* non-fatal */ }
     finally { setLinkingId(null); }
+  }
+
+  async function handleSendLink(p: Partner) {
+    setSendingLinkId(p.id);
+    try {
+      const res = await fetch('/api/proxy/admin/referral-partners/' + p.id + '/send-link', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.sent) {
+        setLinkSentId(p.id);
+        setTimeout(() => setLinkSentId(null), 3000);
+      }
+    } catch { /* non-fatal */ }
+    finally { setSendingLinkId(null); }
   }
 
   function toggleSelect(id: string) {
@@ -394,6 +440,13 @@ export function ReferralsClient() {
                                 : linkCopiedId === p.id ? <Check className="w-3.5 h-3.5 text-primary" />
                                 : <ExternalLink className="w-3.5 h-3.5" />}
                             </button>
+                            <button onClick={() => handleSendLink(p)} disabled={sendingLinkId === p.id}
+                              className="text-muted-foreground hover:text-primary transition-colors p-1 rounded"
+                              title={linkSentId === p.id ? 'Email sent!' : 'Email dashboard link'}>
+                              {sendingLinkId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                : linkSentId === p.id ? <Check className="w-3.5 h-3.5 text-primary" />
+                                : <Send className="w-3.5 h-3.5" />}
+                            </button>
                             <button onClick={() => openEdit(p)}
                               className="text-muted-foreground hover:text-primary transition-colors p-1 rounded" title="Edit">
                               <Pencil className="w-3.5 h-3.5" />
@@ -416,16 +469,79 @@ export function ReferralsClient() {
           </div>
         )}
 
-        {/* ── Activity tab (placeholder) ── */}
+        {/* ── Activity tab ── */}
         {subTab === 'activity' && (
-          <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
-            <div className="w-12 h-12 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
-              <Activity className="w-6 h-6 text-primary" />
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground">{events.length} event{events.length !== 1 ? 's' : ''}</p>
+              <div className="flex items-center gap-2">
+                <select value={eventPartnerFilter} onChange={(e) => setEventPartnerFilter(e.target.value)}
+                  className="text-xs border border-border rounded-lg px-2 py-1 bg-card text-foreground outline-none focus:border-primary">
+                  <option value="">All partners</option>
+                  {partners.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <select value={eventTypeFilter} onChange={(e) => setEventTypeFilter(e.target.value)}
+                  className="text-xs border border-border rounded-lg px-2 py-1 bg-card text-foreground outline-none focus:border-primary">
+                  <option value="">All types</option>
+                  {['click', 'signup', 'trial_start', 'converted', 'churned'].map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
             </div>
-            <p className="text-sm font-medium text-foreground">Referral Activity Log</p>
-            <p className="text-xs text-muted-foreground max-w-xs">
-              All referral events (clicks, signups, conversions, churn) will appear here — built in step 26g.
-            </p>
+
+            {loadingEvents ? (
+              <div className="flex items-center justify-center py-10 gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Loading events…</span>
+              </div>
+            ) : events.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3 text-center">
+                <div className="w-12 h-12 rounded-xl bg-primary-light dark:bg-primary/10 flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-primary" />
+                </div>
+                <p className="text-sm font-medium text-foreground">No referral events yet</p>
+                <p className="text-xs text-muted-foreground max-w-xs">
+                  Events appear here when users click referral links, sign up, or convert to paid.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-border overflow-x-auto">
+                <table className="w-full text-sm min-w-[500px]">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Event</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Partner</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden md:table-cell">User</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {events.map((ev) => (
+                      <tr key={ev.id} className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3">
+                          <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize',
+                            ev.event_type === 'click' ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                            : ev.event_type === 'signup' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                            : ev.event_type === 'converted' ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                            : ev.event_type === 'churned' ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                            : 'bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400')}>
+                            {ev.event_type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs font-medium text-foreground">{ev.partner_name}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono">{ev.referral_code}</p>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                          <p className="text-xs text-muted-foreground font-mono truncate max-w-[120px]">{ev.user_id ?? '—'}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="text-xs text-muted-foreground">{fmtDate(ev.created_at)}</p>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
