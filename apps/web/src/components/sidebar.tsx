@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { BusinessMode } from '@/types';
 import { BusinessSwitcher } from '@/components/business-switcher';
 import { FirmPortalLink } from '@/components/firm-portal-link';
+import { AdminPortalLink } from '@/components/admin-portal-link';
 import {
   LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
   ClipboardList, Receipt, Filter, Sparkles, Settings, FileText,
@@ -80,7 +81,7 @@ const personalItems = [
   { href: '/personal/recurring',  label: 'Recurring Payments',  icon: RefreshCw },
   { href: '/personal/reminders',  label: 'Upcoming Payments',   icon: Bell },
   { href: '/transactions',        label: 'Transactions',        icon: ArrowLeftRight },
-  { href: '/personal/rules',      label: 'Personal Rules',       icon: Filter },
+  { href: '/personal/rules',      label: 'Personal Rules',      icon: Filter },
 ];
 const personalMainItems     = [{ href: '/banks', label: 'Bank Accounts', icon: Building2 }];
 const personalSettingsItems = [
@@ -158,6 +159,7 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
           </>)}
         </nav>
         <FirmPortalLink onClose={onClose} />
+        <AdminPortalLink onClose={onClose} />
       </aside>
     </>
   );
