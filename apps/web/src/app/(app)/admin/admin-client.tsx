@@ -32,6 +32,7 @@ const PLAN_BADGE: Record<string, string> = {
 };
 
 const SCENARIOS = [
+  { value: 'personal_enriched',   label: 'Personal – Enriched (88 tx + budget + goals + recurring)' },
   { value: 'freelancer_enriched', label: 'Freelancer – Enriched (107 tx + mileage + invoices)' },
   { value: 'business_enriched',   label: 'Business – Enriched (99 tx + HST)' },
   { value: 'freelancer_6mo',      label: 'Freelancer – 6 months (legacy)' },
@@ -212,7 +213,7 @@ export function AdminClient() {
 
   // ── Card 2: Seed Transactions ─────────────────────────────────────────
   const [seedBizId, setSeedBizId] = useState('');
-  const [scenario, setScenario] = useState('freelancer_enriched');
+  const [scenario, setScenario] = useState('personal_enriched');
   const [seeding, setSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ inserted: number } | null>(null);
   const [seedError, setSeedError] = useState('');
@@ -370,7 +371,7 @@ export function AdminClient() {
                   <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['personal'])}>Personal</span>
                 </div>
                 <SlotField label="Starter Slot" orgIdKey="starterOrgId" nameKey="starterBusinessName" orgIdPlaceholder="org_starter…" namePlaceholder="Business name" form={suiteForm} setForm={setSuiteForm} />
-                <p className="text-[10px] text-muted-foreground">Seeds: personal_6mo (60 transactions)</p>
+                <p className="text-[10px] text-muted-foreground">Seeds: personal_enriched (88 tx · budget · goals · recurring)</p>
               </div>
               <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
                 <div className="flex items-center gap-2">
