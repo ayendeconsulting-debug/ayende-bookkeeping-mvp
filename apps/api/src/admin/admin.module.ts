@@ -9,6 +9,10 @@ import { FirmClient } from '../entities/firm-client.entity';
 import { ReferralPartner } from '../entities/referral-partner.entity';
 import { ReferralEvent } from '../entities/referral-event.entity';
 import { ReferralCommission } from '../entities/referral-commission.entity';
+import { Account } from '../entities/account.entity';
+import { JournalEntry } from '../entities/journal-entry.entity';
+import { JournalLine } from '../entities/journal-line.entity';
+import { ClassifiedTransaction } from '../entities/classified-transaction.entity';
 import { BusinessesModule } from '../businesses/businesses.module';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
@@ -28,6 +32,10 @@ import { InsightsService } from './insights.service';
       ReferralPartner,
       ReferralEvent,
       ReferralCommission,
+      Account,
+      JournalEntry,
+      JournalLine,
+      ClassifiedTransaction,
     ]),
     BusinessesModule,
   ],
