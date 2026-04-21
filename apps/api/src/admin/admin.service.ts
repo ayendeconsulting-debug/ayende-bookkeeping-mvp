@@ -303,7 +303,7 @@ export class AdminService {
 
     // 4. Process transactions
     for (const tx of dataset.transactions) {
-      const hash = `SYNTHETIC_ENRICHED_${tx.date}_${tx.description.replace(/\s+/g, '_')}_${tx.amount}`;
+      const hash = `ENR_${tx.date}_${tx.description.replace(/\s+/g, '_')}_${tx.amount}`;
 
       const existing = await this.rawTxRepo.findOne({
         where: { business_id: businessId, hash_signature: hash },
