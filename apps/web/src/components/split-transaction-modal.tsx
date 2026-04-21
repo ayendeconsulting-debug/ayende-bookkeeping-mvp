@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition } from 'react';
 import { X, Plus, Trash2, AlertCircle, CheckCircle2, Building2, User, DollarSign, Percent } from 'lucide-react';
@@ -230,7 +230,7 @@ export function SplitTransactionModal({
     }
 
     const splits = lines.map((l) => ({
-      account_id: l.account_id || 'personal',
+      account_id: l.is_personal ? undefined : l.account_id,
       amount: lineAmount(l),
       description: l.description || undefined,
       is_personal: l.is_personal,

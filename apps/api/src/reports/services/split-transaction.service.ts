@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -251,7 +251,7 @@ export class SplitTransactionService {
           split_number: idx + 1,
           amount: Number(split.amount),
           description: split.description ?? null,
-          account_id: split.account_id,
+          account_id: split.is_personal ? null : (split.account_id ?? null),
           tax_code_id: split.tax_code_id ?? null,
         }),
       );

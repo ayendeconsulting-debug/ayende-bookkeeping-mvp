@@ -1,9 +1,10 @@
-import { IsUUID, IsNumber, IsOptional, IsString, IsArray, IsBoolean, IsIn, ValidateNested, Min } from 'class-validator';
+﻿import { IsUUID, IsNumber, IsOptional, IsString, IsArray, IsBoolean, IsIn, ValidateNested, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class SplitLineDto {
+  @IsOptional()
   @IsString()
-  account_id: string;
+  account_id?: string;
 
   @IsNumber()
   @Min(0.01)
