@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -61,17 +61,24 @@ const freelancerMainItems = [
   { href: '/transactions', label: 'Transactions',         icon: ArrowLeftRight },
   { href: '/rules',        label: 'Classification Rules', icon: Filter },
   { href: '/invoices',     label: 'Invoices',             icon: FileText },
+  { href: '/ar-ap',        label: 'AR / AP',              icon: ArrowRightLeft },
   { href: '/recurring',    label: 'Recurring',            icon: RefreshCw },
+  { href: '/payroll',      label: 'Payroll',              icon: Users },
   { href: '/banks',        label: 'Bank Accounts',        icon: Building2 },
 ];
 const freelancerReportItems = [
-  { href: '/reports/income-statement', label: 'Reports', icon: TrendingUp },
+  { href: '/reports/income-statement', label: 'Income Statement', icon: TrendingUp },
+  { href: '/reports/balance-sheet',    label: 'Balance Sheet',    icon: Scale },
+  { href: '/reports/trial-balance',    label: 'Trial Balance',    icon: ClipboardList },
+  { href: '/reports/general-ledger',   label: 'General Ledger',   icon: BookOpen },
+  { href: '/reports/hst',              label: 'HST / GST Report', icon: Receipt },
 ];
 const freelancerSettingsItems = [
-  { href: '/accounts', label: 'Chart of Accounts', icon: BookOpen },
-  { href: '/tax',      label: 'Tax Codes',          icon: Receipt },
-  { href: '/ai',       label: 'AI Assistant',       icon: Sparkles },
-  { href: '/settings', label: 'Settings',           icon: Settings },
+  { href: '/accounts', label: 'Chart of Accounts',   icon: BookOpen },
+  { href: '/tax',      label: 'Tax Codes',            icon: Receipt },
+  { href: '/cca',      label: 'CCA Schedule',         icon: Calculator },
+  { href: '/ai',       label: 'AI Assistant',         icon: Sparkles },
+  { href: '/settings', label: 'Settings',             icon: Settings },
 ];
 const personalItems = [
   { href: '/personal/dashboard',  label: 'My Dashboard',        icon: LayoutDashboard },
