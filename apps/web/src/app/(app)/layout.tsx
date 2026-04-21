@@ -9,7 +9,6 @@ const API_URL = process.env.API_URL || 'http://localhost:3005';
 
 const GRACE_PERIOD_DAYS = 7;
 
-// Routes inside (app) that are exempt from the subscription gate
 const BILLING_EXEMPT_PATHS = [
   '/billing/success',
   '/billing/cancel',
@@ -44,12 +43,9 @@ async function getMyBusiness(
       },
       cache: 'no-store',
     });
-
-    // 451 â€“ legal re-acceptance required
     if (res.status === 451) {
       redirect('/legal/update');
     }
-
     if (!res.ok) return null;
     return res.json();
   } catch (err: any) {
@@ -108,6 +104,12 @@ export default async function AppLayout({
   if (!userId) redirect('/sign-in');
   if (!orgId)  redirect('/select-org');
 
+  const adminIds = (process.env.ADMIN_USER_IDS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const isPlatformAdmin = adminIds.includes(userId);
+
   await provisionBusiness(orgId, orgSlug ?? 'My Business');
 
   const token = await getToken();
@@ -122,32 +124,27 @@ export default async function AppLayout({
       getBillingAlerts(token),
     ]);
 
-    // â”€â”€ Onboarding gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    const onboardingExempt = ['/billing/success', '/billing/cancel', '/admin'];
-    const currentPath = (await headers()).get('x-pathname') ?? '';
-    if (!onboardingExempt.some((p) => currentPath.startsWith(p)) && business && !business.settings?.mode_selected) {
-      redirect('/onboarding');
-    }
-
-    // â”€â”€ Subscription gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    const headersList = await headers();
-    const pathname    = headersList.get('x-pathname') ?? '';
-    const isExempt    = BILLING_EXEMPT_PATHS.some((p) => pathname.startsWith(p));
-
-    if (!isExempt && business?.settings?.mode_selected) {
-      // Hard-redirect on 'cancelled' â€” unambiguous signal the user cancelled.
-      if (subscription?.status === 'cancelled') {
-        redirect('/pricing?start=1');
+    if (!isPlatformAdmin) {
+      const onboardingExempt = ['/billing/success', '/billing/cancel', '/admin'];
+      const currentPath = (await headers()).get('x-pathname') ?? '';
+      if (!onboardingExempt.some((p) => currentPath.startsWith(p)) && business && !business.settings?.mode_selected) {
+        redirect('/onboarding');
       }
 
-      // Redirect on 'none' only after the grace period has elapsed.
-      // 'none' within the first 7 days is treated as a Stripe webhook delay â€”
-      // never lock out a newly registered user.
-      if (
-        subscription?.status === 'none' &&
-        isGracePeriodExpired(business.created_at)
-      ) {
-        redirect('/pricing?start=1');
+      const headersList = await headers();
+      const pathname    = headersList.get('x-pathname') ?? '';
+      const isExempt    = BILLING_EXEMPT_PATHS.some((p) => pathname.startsWith(p));
+
+      if (!isExempt && business?.settings?.mode_selected) {
+        if (subscription?.status === 'cancelled') {
+          redirect('/pricing?start=1');
+        }
+        if (
+          subscription?.status === 'none' &&
+          isGracePeriodExpired(business.created_at)
+        ) {
+          redirect('/pricing?start=1');
+        }
       }
     }
   }
@@ -161,4 +158,3 @@ export default async function AppLayout({
     </AppShell>
   );
 }
-
