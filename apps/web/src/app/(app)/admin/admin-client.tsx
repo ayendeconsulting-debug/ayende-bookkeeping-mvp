@@ -32,9 +32,11 @@ const PLAN_BADGE: Record<string, string> = {
 };
 
 const SCENARIOS = [
-  { value: 'freelancer_6mo', label: 'Freelancer – 6 months' },
-  { value: 'business_6mo',   label: 'Business – 6 months' },
-  { value: 'personal_6mo',   label: 'Personal – 6 months' },
+  { value: 'freelancer_enriched', label: 'Freelancer – Enriched (107 tx + mileage + invoices)' },
+  { value: 'business_enriched',   label: 'Business – Enriched (99 tx + HST)' },
+  { value: 'freelancer_6mo',      label: 'Freelancer – 6 months (legacy)' },
+  { value: 'business_6mo',        label: 'Business – 6 months (legacy)' },
+  { value: 'personal_6mo',        label: 'Personal – 6 months' },
 ];
 
 const ONE_YEAR = new Date();
@@ -210,7 +212,7 @@ export function AdminClient() {
 
   // ── Card 2: Seed Transactions ─────────────────────────────────────────
   const [seedBizId, setSeedBizId] = useState('');
-  const [scenario, setScenario] = useState('freelancer_6mo');
+  const [scenario, setScenario] = useState('freelancer_enriched');
   const [seeding, setSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ inserted: number } | null>(null);
   const [seedError, setSeedError] = useState('');
@@ -377,7 +379,7 @@ export function AdminClient() {
                   <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['freelancer'])}>Freelancer</span>
                 </div>
                 <SlotField label="Pro Slot" orgIdKey="proOrgId" nameKey="proBusinessName" orgIdPlaceholder="org_pro…" namePlaceholder="Freelancer name" form={suiteForm} setForm={setSuiteForm} />
-                <p className="text-[10px] text-muted-foreground">Seeds: freelancer_6mo (75 transactions)</p>
+                <p className="text-[10px] text-muted-foreground">Seeds: freelancer_enriched (107 tx · mileage · invoices · HST · goals)</p>
               </div>
               <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
                 <div className="flex items-center gap-2">
@@ -391,7 +393,7 @@ export function AdminClient() {
                 </div>
                 <SlotField label="Client 1 – Business" orgIdKey="client1OrgId" nameKey="client1BusinessName" orgIdPlaceholder="org_client1…" namePlaceholder="Client business name" form={suiteForm} setForm={setSuiteForm} />
                 <SlotField label="Client 2 – Freelancer" orgIdKey="client2OrgId" nameKey="client2BusinessName" orgIdPlaceholder="org_client2…" namePlaceholder="Client freelancer name" form={suiteForm} setForm={setSuiteForm} />
-                <p className="text-[10px] text-muted-foreground">Each client seeded with 6mo transactions.</p>
+                <p className="text-[10px] text-muted-foreground">Client 1: business_enriched (99 tx). Client 2: freelancer_enriched (107 tx).</p>
               </div>
             </div>
 
