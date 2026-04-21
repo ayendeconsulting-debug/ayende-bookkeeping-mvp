@@ -123,7 +123,7 @@ export default async function AppLayout({
     ]);
 
     // â”€â”€ Onboarding gate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    const onboardingExempt = ['/billing/success', '/billing/cancel'];
+    const onboardingExempt = ['/billing/success', '/billing/cancel', '/admin'];
     const currentPath = (await headers()).get('x-pathname') ?? '';
     if (!onboardingExempt.some((p) => currentPath.startsWith(p)) && business && !business.settings?.mode_selected) {
       redirect('/onboarding');
