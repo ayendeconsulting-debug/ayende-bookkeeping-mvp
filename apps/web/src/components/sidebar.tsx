@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -72,13 +72,16 @@ const freelancerReportItems = [
   { href: '/reports/trial-balance',    label: 'Trial Balance',    icon: ClipboardList },
   { href: '/reports/general-ledger',   label: 'General Ledger',   icon: BookOpen },
   { href: '/reports/hst',              label: 'HST / GST Report', icon: Receipt },
+  { href: '/year-end',                 label: 'Year-End Report',  icon: Wand2 },
 ];
 const freelancerSettingsItems = [
-  { href: '/accounts', label: 'Chart of Accounts',   icon: BookOpen },
-  { href: '/tax',      label: 'Tax Codes',            icon: Receipt },
-  { href: '/cca',      label: 'CCA Schedule',         icon: Calculator },
-  { href: '/ai',       label: 'AI Assistant',         icon: Sparkles },
-  { href: '/settings', label: 'Settings',             icon: Settings },
+  { href: '/accounts',                  label: 'Chart of Accounts',   icon: BookOpen },
+  { href: '/tax',                       label: 'Tax Codes',            icon: Receipt },
+  { href: '/cca',                       label: 'CCA Schedule',         icon: Calculator },
+  { href: '/ai',                        label: 'AI Assistant',         icon: Sparkles },
+  { href: '/settings/fiscal-year-lock', label: 'Fiscal Year Lock',     icon: Lock },
+  { href: '/settings/audit-log',        label: 'Audit Log',            icon: ClipboardList },
+  { href: '/settings',                  label: 'Settings',             icon: Settings },
 ];
 const personalItems = [
   { href: '/personal/dashboard',  label: 'My Dashboard',        icon: LayoutDashboard },
