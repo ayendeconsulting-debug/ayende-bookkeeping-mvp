@@ -9,6 +9,8 @@ import { PlaidItem } from '../../entities/plaid-item.entity';
 import { CurrencyService } from '../../currency/currency.service';
 import { ClassificationService } from '../../reports/services/classification.service';
 import { PersonalService } from '../../personal/personal.service';
+import { BusinessesService } from '../../businesses/businesses.service';
+import { ExpoPushService } from '../../notifications/expo-push.service';
 
 export interface PlaidSyncJobData {
   plaidItemId: string;
@@ -29,6 +31,8 @@ export class PlaidSyncProcessor extends WorkerHost {
     @InjectRepository(PlaidItem)
     private plaidItemRepo: Repository<PlaidItem>,
     private readonly dataSource: DataSource,
+    private readonly businessesService: BusinessesService,
+    private readonly expoPushService: ExpoPushService,
   ) {
     super();
   }
@@ -76,7 +80,7 @@ export class PlaidSyncProcessor extends WorkerHost {
               const mode: string = bizRows[0]?.mode ?? 'business';
 
               if (mode === 'personal') {
-                // Personal mode — run budget category rules
+                // Personal mode -- run budget category rules
                 const personalResult = await this.personalService.runPersonalRules(businessId);
                 if (personalResult.matched > 0) {
                   this.logger.log(
@@ -84,7 +88,7 @@ export class PlaidSyncProcessor extends WorkerHost {
                   );
                 }
               } else {
-                // Business or freelancer mode — run chart-of-accounts classification rules
+                // Business or freelancer mode -- run chart-of-accounts classification rules
                 const batchResult = await this.classificationService.runBatchRules(businessId);
                 if (batchResult.classified > 0) {
                   this.logger.log(
@@ -93,16 +97,38 @@ export class PlaidSyncProcessor extends WorkerHost {
                 }
               }
             } catch (classifyErr: any) {
-              // Non-fatal — log and continue
+              // Non-fatal -- log and continue
               this.logger.warn(
                 `Auto-classification skipped for job ${job.id}: ${classifyErr.message}`,
+              );
+            }
+
+            // Step 5: Send push notification to the business owner
+            // Gated on result.added > 0 -- modifications don't count as "new
+            // work to classify" (usually just pending-to-posted transitions).
+            try {
+              const business = await this.businessesService.findById(businessId);
+              if (business.expo_push_token) {
+                const plural = result.added === 1 ? '' : 's';
+                void this.expoPushService.send([{
+                  to: business.expo_push_token,
+                  title: 'Tempo Books',
+                  body: `${result.added} new transaction${plural} ready to classify.`,
+                  data: { type: 'transaction_sync', count: result.added },
+                  sound: 'default',
+                  _businessId: business.id,
+                }]);
+              }
+            } catch (pushErr: any) {
+              this.logger.warn(
+                `Push for sync job ${job.id} skipped: ${pushErr?.message ?? pushErr}`,
               );
             }
           }
         }
       }
 
-      // Step 5: Update webhook log to processed
+      // Step 6: Update webhook log to processed
       if (webhookLogId) {
         await this.webhookLogRepo.update(webhookLogId, {
           status: WebhookProcessingStatus.PROCESSED,

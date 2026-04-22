@@ -11,6 +11,8 @@ import { PlaidWebhookLog } from '../entities/plaid-webhook-log.entity';
 import { RawTransaction } from '../entities/raw-transaction.entity';
 import { ReportsModule } from '../reports/reports.module';
 import { PersonalModule } from '../personal/personal.module';
+import { BusinessesModule } from '../businesses/businesses.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { PersonalModule } from '../personal/personal.module';
     }),
     ReportsModule,
     PersonalModule,
+    BusinessesModule,
+    NotificationsModule,
   ],
   controllers: [PlaidController],
   providers: [PlaidService, PlaidSyncProcessor],
