@@ -81,6 +81,7 @@ function getRedisBullMQConnection() {
     CommandCenterModule,
     WebhooksModule,
     ReferralsModule,
+    NotificationsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
