@@ -1,10 +1,13 @@
-﻿import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Job } from 'bullmq';
 import { Subscription } from '../entities/subscription.entity';
 import { EmailService } from '../email/email.service';
+import { BusinessesService } from '../businesses/businesses.service';
+import { ExpoPushService } from '../notifications/expo-push.service';
+import { BillingAlertService } from './billing-alert.service';
 
 export const TRIAL_MONITOR_QUEUE = 'trial-monitor';
 
@@ -16,6 +19,9 @@ export class TrialMonitorProcessor extends WorkerHost {
     @InjectRepository(Subscription)
     private readonly subscriptionRepo: Repository<Subscription>,
     private readonly emailService: EmailService,
+    private readonly businessesService: BusinessesService,
+    private readonly expoPushService: ExpoPushService,
+    private readonly billingAlertService: BillingAlertService,
   ) {
     super();
   }
@@ -79,16 +85,36 @@ export class TrialMonitorProcessor extends WorkerHost {
       portalUrl: `${frontendUrl}/settings`,
     });
 
-    // Mark threshold as sent â€” idempotent on next CRON run
+    // Push notification piggyback -- shares the same threshold idempotency
+    // as the email above (same alreadySent.includes(threshold) gate).
+    try {
+      const business = await this.businessesService.findById(sub.business_id);
+      if (business.expo_push_token) {
+        const plural = daysRemaining === 1 ? '' : 's';
+        void this.expoPushService.send([{
+          to: business.expo_push_token,
+          title: 'Tempo Books',
+          body: `Your trial ends in ${daysRemaining} day${plural}. Add a payment method to keep going.`,
+          data: { type: 'trial_ending', daysLeft: daysRemaining },
+          sound: 'default',
+          _businessId: business.id,
+        }]);
+      }
+    } catch (pushErr: any) {
+      this.logger.warn(
+        `Trial push for business ${sub.business_id} skipped: ${pushErr?.message ?? pushErr}`,
+      );
+    }
+
+    // Mark threshold as sent -- idempotent on next CRON run
     const updatedSent = [...alreadySent, threshold];
     await this.subscriptionRepo.update(sub.id, {
       trial_reminder_sent_at: updatedSent,
     });
 
     this.logger.log(
-      `Trial reminder (${threshold}d) sent â†’ ${sub.customer_email} | business: ${sub.business_id}`,
+      `Trial reminder (${threshold}d) sent -> ${sub.customer_email} | business: ${sub.business_id}`,
     );
     return true;
   }
 }
-

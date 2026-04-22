@@ -15,6 +15,8 @@ import { TrialMonitorProcessor, TRIAL_MONITOR_QUEUE } from './trial-monitor.proc
 import { TrialMonitorJob } from './trial-monitor.job';
 import { EmailModule } from '../email/email.module';
 import { ReferralsModule } from '../referrals/referrals.module';
+import { BusinessesModule } from '../businesses/businesses.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { ReferralsModule } from '../referrals/referrals.module';
     ),
     EmailModule,
     ReferralsModule,
+    BusinessesModule,
+    NotificationsModule,
   ],
   controllers: [BillingController],
   providers: [
