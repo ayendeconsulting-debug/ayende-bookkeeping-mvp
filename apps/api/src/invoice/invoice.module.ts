@@ -12,6 +12,8 @@ import { InvoiceService } from './invoice.service';
 import { InvoiceReminderProcessor, INVOICE_REMINDER_QUEUE } from './invoice-reminder.processor';
 import { InvoiceReminderJob } from './invoice-reminder.job';
 import { EmailModule } from '../email/email.module';
+import { BusinessesModule } from '../businesses/businesses.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { EmailModule } from '../email/email.module';
     ]),
     BullModule.registerQueue({ name: INVOICE_REMINDER_QUEUE }),
     EmailModule,
+    BusinessesModule,
+    NotificationsModule,
   ],
   controllers: [InvoiceController],
   providers: [

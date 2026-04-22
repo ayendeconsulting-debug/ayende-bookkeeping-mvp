@@ -1,4 +1,4 @@
-﻿import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual } from 'typeorm';
@@ -6,6 +6,8 @@ import { Job } from 'bullmq';
 import { Invoice, InvoiceStatus } from '../entities/invoice.entity';
 import { InvoiceLineItem } from '../entities/invoice-line-item.entity';
 import { EmailService } from '../email/email.service';
+import { BusinessesService } from '../businesses/businesses.service';
+import { ExpoPushService } from '../notifications/expo-push.service';
 
 export const INVOICE_REMINDER_QUEUE = 'invoice-reminder';
 
@@ -19,6 +21,8 @@ export class InvoiceReminderProcessor extends WorkerHost {
     @InjectRepository(InvoiceLineItem)
     private readonly lineItemRepo: Repository<InvoiceLineItem>,
     private readonly emailService: EmailService,
+    private readonly businessesService: BusinessesService,
+    private readonly expoPushService: ExpoPushService,
   ) { super(); }
 
   async process(_job: Job): Promise<void> {
@@ -34,7 +38,7 @@ export class InvoiceReminderProcessor extends WorkerHost {
     this.logger.log('Invoice reminder CRON complete');
   }
 
-  // â”€â”€ Generate recurring invoices â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Generate recurring invoices ----------------------------------------
 
   private async generateRecurringInvoices(today: Date): Promise<void> {
     const due = await this.invoiceRepo.find({
@@ -77,7 +81,7 @@ export class InvoiceReminderProcessor extends WorkerHost {
     const dueDate   = new Date(today);
     dueDate.setDate(dueDate.getDate() + 30);
 
-    // Create new invoice (not recurring itself â€” it's an instance)
+    // Create new invoice (not recurring itself -- it's an instance)
     const newInvoice = this.invoiceRepo.create({
       business_id:        template.business_id,
       invoice_number:     invoiceNumber,
@@ -126,7 +130,7 @@ export class InvoiceReminderProcessor extends WorkerHost {
     }
   }
 
-  // â”€â”€ Send payment reminders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Send payment reminders ---------------------------------------------
 
   private async sendPaymentReminders(today: Date): Promise<void> {
     // 3 days before due
@@ -170,13 +174,37 @@ export class InvoiceReminderProcessor extends WorkerHost {
       try {
         await this.sendReminderEmail(invoice, invoice.lineItems ?? [], 0, true);
         this.logger.log(`Sent overdue notice for invoice ${invoice.invoice_number}`);
+
+        // === Push: notify the business OWNER (not the customer) ============
+        // The email above goes to invoice.client_email (the customer being
+        // chased). The push below goes to business.expo_push_token (the
+        // OWNER being informed their invoice is overdue). Two different
+        // humans -- do not conflate in future changes.
+        try {
+          const business = await this.businessesService.findById(invoice.business_id);
+          if (business.expo_push_token) {
+            void this.expoPushService.send([{
+              to: business.expo_push_token,
+              title: 'Tempo Books',
+              body: `Invoice ${invoice.invoice_number} is overdue.`,
+              data: { type: 'invoice_overdue', invoiceId: invoice.id },
+              sound: 'default',
+              _businessId: business.id,
+            }]);
+          }
+        } catch (pushErr: any) {
+          this.logger.warn(
+            `Push for overdue invoice ${invoice.id} skipped: ${pushErr?.message ?? pushErr}`,
+          );
+        }
+        // =====================================================================
       } catch (err) {
         this.logger.error(`Overdue notice failed for ${invoice.id}: ${(err as Error).message}`);
       }
     }
   }
 
-  // â”€â”€ Email helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Email helpers -------------------------------------------------------
 
   private async sendInvoiceEmail(invoice: Invoice, lineItems: InvoiceLineItem[], isReminder: boolean): Promise<void> {
     if (!invoice.client_email) return;
