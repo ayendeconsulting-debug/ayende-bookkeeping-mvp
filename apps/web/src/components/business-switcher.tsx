@@ -2,12 +2,13 @@
 
 import { useRef, useState, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useOrganization, useOrganizationList } from '@clerk/nextjs';
+import { useUser, useOrganization, useOrganizationList } from '@clerk/nextjs';
 import { ChevronDown, Check, Loader2, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function BusinessSwitcher() {
   const router = useRouter();
+  const { user } = useUser();
   const { organization } = useOrganization();
   const { userMemberships, setActive } = useOrganizationList({ userMemberships: { infinite: true } });
 
@@ -17,6 +18,9 @@ export function BusinessSwitcher() {
 
   const orgs        = userMemberships?.data ?? [];
   const hasMultiple = orgs.length > 1;
+
+  const adminIds    = (process.env.NEXT_PUBLIC_ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const isAdminUser = !!user && adminIds.includes(user.id);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -29,7 +33,11 @@ export function BusinessSwitcher() {
   function handleSelect(orgId: string) {
     if (orgId === organization?.id) { setOpen(false); return; }
     setOpen(false);
-    startSwitch(async () => { await setActive?.({ organization: orgId }); router.push('/dashboard'); router.refresh(); });
+    startSwitch(async () => {
+      await setActive?.({ organization: orgId });
+      router.push(isAdminUser ? '/admin' : '/dashboard');
+      router.refresh();
+    });
   }
 
   return (
