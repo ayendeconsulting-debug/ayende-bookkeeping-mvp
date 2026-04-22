@@ -19,8 +19,7 @@ export function BusinessSwitcher() {
   const orgs        = userMemberships?.data ?? [];
   const hasMultiple = orgs.length > 1;
 
-  const adminIds    = (process.env.NEXT_PUBLIC_ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
-  const isAdminUser = !!user && adminIds.includes(user.id);
+  const isPlatformAdmin = (user?.publicMetadata as any)?.platform_role === 'admin';
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -35,7 +34,7 @@ export function BusinessSwitcher() {
     setOpen(false);
     startSwitch(async () => {
       await setActive?.({ organization: orgId });
-      router.push(isAdminUser ? '/admin' : '/dashboard');
+      router.push(isPlatformAdmin ? '/admin' : '/dashboard');
       router.refresh();
     });
   }

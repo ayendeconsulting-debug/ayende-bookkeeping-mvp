@@ -1,11 +1,10 @@
 'use client';
-import { OrganizationList } from '@clerk/nextjs';
 import { useUser } from '@clerk/nextjs';
+import { OrganizationList } from '@clerk/nextjs';
 
 export default function SelectOrgPage() {
   const { user } = useUser();
-  const adminIds = (process.env.NEXT_PUBLIC_ADMIN_USER_IDS ?? '').split(',').map(s => s.trim()).filter(Boolean);
-  const isPlatformAdmin = !!user && adminIds.includes(user.id);
+  const isPlatformAdmin = (user?.publicMetadata as any)?.platform_role === 'admin';
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">

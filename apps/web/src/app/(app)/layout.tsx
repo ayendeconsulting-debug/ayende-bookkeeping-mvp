@@ -1,4 +1,4 @@
-﻿import { auth } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { AppShell } from '@/components/app-shell';
@@ -99,16 +99,15 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId, orgId, orgSlug, getToken } = await auth();
+  const { userId, orgId, orgSlug, getToken, sessionClaims } = await auth();
 
   if (!userId) redirect('/sign-in');
   if (!orgId)  redirect('/select-org');
 
-  const adminIds = (process.env.ADMIN_USER_IDS ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const isPlatformAdmin = adminIds.includes(userId);
+  // ── Platform admin bypass ──────────────────────────────────────────────────
+  // Users with platform_role: 'admin' in Clerk publicMetadata skip all gates.
+  // Set via Clerk Dashboard → Users → Public Metadata → { "platform_role": "admin" }
+  const isPlatformAdmin = (sessionClaims as any)?.platform_role === 'admin';
 
   await provisionBusiness(orgId, orgSlug ?? 'My Business');
 
@@ -125,12 +124,14 @@ export default async function AppLayout({
     ]);
 
     if (!isPlatformAdmin) {
+      // ── Onboarding gate ────────────────────────────────────────────────────
       const onboardingExempt = ['/billing/success', '/billing/cancel', '/admin'];
       const currentPath = (await headers()).get('x-pathname') ?? '';
       if (!onboardingExempt.some((p) => currentPath.startsWith(p)) && business && !business.settings?.mode_selected) {
         redirect('/onboarding');
       }
 
+      // ── Subscription gate ──────────────────────────────────────────────────
       const headersList = await headers();
       const pathname    = headersList.get('x-pathname') ?? '';
       const isExempt    = BILLING_EXEMPT_PATHS.some((p) => pathname.startsWith(p));
