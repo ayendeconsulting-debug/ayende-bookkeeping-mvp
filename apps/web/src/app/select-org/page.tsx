@@ -1,8 +1,12 @@
 'use client';
-
 import { OrganizationList } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
 
 export default function SelectOrgPage() {
+  const { user } = useUser();
+  const adminIds = (process.env.NEXT_PUBLIC_ADMIN_USER_IDS ?? '').split(',').map(s => s.trim()).filter(Boolean);
+  const isPlatformAdmin = !!user && adminIds.includes(user.id);
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
       <div className="flex flex-col items-center gap-6">
@@ -19,8 +23,8 @@ export default function SelectOrgPage() {
         </div>
         <OrganizationList
           hidePersonal
-          afterSelectOrganizationUrl="/dashboard"
-          afterCreateOrganizationUrl="/onboarding"
+          afterSelectOrganizationUrl={isPlatformAdmin ? '/admin' : '/dashboard'}
+          afterCreateOrganizationUrl={isPlatformAdmin ? '/admin' : '/onboarding'}
         />
       </div>
     </div>
