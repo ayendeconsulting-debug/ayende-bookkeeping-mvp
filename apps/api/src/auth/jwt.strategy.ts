@@ -18,7 +18,15 @@ import { BusinessesService } from '../businesses/businesses.service';
  * client's data transparently.
  *
  * Required env var:
- *   CLERK_JWKS_URL — Clerk Dashboard → API Keys → Advanced → JWKS URL
+ *   CLERK_JWKS_URL – Clerk Dashboard → API Keys → Advanced → JWKS URL
+ *
+ * JWT template (Clerk Dashboard → Sessions → Customize session token):
+ *   {
+ *     "org_id":        "{{org.id}}",
+ *     "org_role":      "{{org.role}}",
+ *     "org_slug":      "{{org.slug}}",
+ *     "platform_role": "{{user.public_metadata.platform_role}}"
+ *   }
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -58,9 +66,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const effectiveBusinessId = clientBusinessId ?? business.id;
 
     return {
-      userId:     payload.sub as string,
-      businessId: effectiveBusinessId,
-      role:       (payload.org_role as string) ?? null,
+      userId:        payload.sub          as string,
+      businessId:    effectiveBusinessId,
+      role:          (payload.org_role    as string) ?? null,
+      platform_role: (payload.platform_role as string) ?? null,
     };
   }
 }

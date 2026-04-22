@@ -1,28 +1,25 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 
 /**
- * AdminGuard — restricts endpoints to Clerk user IDs listed in the
- * ADMIN_USER_IDS environment variable (comma-separated).
+ * AdminGuard – restricts endpoints to users with platform_role: 'admin'
+ * set in their Clerk publicMetadata.
+ *
+ * The platform_role claim is injected into the JWT via the Clerk session
+ * token template: { "platform_role": "{{user.public_metadata.platform_role}}" }
+ *
+ * To grant admin access: Clerk Dashboard → Users → Public Metadata →
+ * { "platform_role": "admin" }
  *
  * Must run after JwtAuthGuard so that req.user is populated.
- * Usage: @UseGuards(JwtAuthGuard, AdminGuard)
+ * Usage: @UseGuards(AuthGuard('jwt'), AdminGuard)
  */
 @Injectable()
 export class AdminGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const userId: string | undefined = request.user?.userId;
+    const platformRole: string | undefined = request.user?.platform_role;
 
-    if (!userId) {
-      throw new ForbiddenException('Admin access required');
-    }
-
-    const adminIds = (process.env.ADMIN_USER_IDS ?? '')
-      .split(',')
-      .map((id) => id.trim())
-      .filter(Boolean);
-
-    if (!adminIds.includes(userId)) {
+    if (platformRole !== 'admin') {
       throw new ForbiddenException('Admin access required');
     }
 
