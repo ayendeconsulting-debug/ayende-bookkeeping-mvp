@@ -29,6 +29,7 @@ export class TrialMonitorProcessor extends WorkerHost {
   async process(_job: Job): Promise<void> {
     this.logger.log('Trial monitor CRON starting');
 
+    // ---- Trial reminders (existing) -------------------------------------
     const trialingSubscriptions = await this.subscriptionRepo.find({
       where: { status: 'trialing' },
     });
@@ -51,6 +52,68 @@ export class TrialMonitorProcessor extends WorkerHost {
 
     this.logger.log(
       `Trial monitor complete: ${sent} emails sent, ${skipped} skipped`,
+    );
+
+    // ---- Payment failed pass --------------------------------------------
+    // Runs on the same daily cron. Uses BillingAlertService.computeAlerts()
+    // as the source of truth (keeps behaviour in sync with the in-app alert
+    // banner). Idempotent per calendar month via a marker in the existing
+    // trial_reminder_sent_at[] array.
+    const pastDueSubscriptions = await this.subscriptionRepo.find({
+      where: { status: 'past_due' },
+    });
+
+    this.logger.log(
+      `Payment failed pass: checking ${pastDueSubscriptions.length} past_due subscriptions`,
+    );
+
+    let paymentPushSent = 0;
+    for (const sub of pastDueSubscriptions) {
+      try {
+        const month   = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+        const marker  = `payment_failed_${month}`;
+        const already = sub.trial_reminder_sent_at ?? [];
+        if (already.includes(marker)) continue;
+
+        // Validate via the alert engine -- single source of truth.
+        const alerts = await this.billingAlertService.computeAlerts(sub.business_id);
+        const fail   = alerts.find(a => a.type === 'payment_failed');
+        if (!fail) continue;
+
+        const business = await this.businessesService.findById(sub.business_id);
+        if (!business.expo_push_token) {
+          // Still mark as "sent" to avoid re-querying every day.
+          await this.subscriptionRepo.update(sub.id, {
+            trial_reminder_sent_at: [...already, marker],
+          });
+          continue;
+        }
+
+        void this.expoPushService.send([{
+          to: business.expo_push_token,
+          title: 'Tempo Books',
+          body: 'Payment failed. Update your card to avoid losing access.',
+          data: { type: 'payment_failed' },
+          sound: 'default',
+          _businessId: business.id,
+        }]);
+
+        await this.subscriptionRepo.update(sub.id, {
+          trial_reminder_sent_at: [...already, marker],
+        });
+        paymentPushSent++;
+        this.logger.log(
+          `Payment failed push sent for business ${sub.business_id} (${month})`,
+        );
+      } catch (err: any) {
+        this.logger.error(
+          `Payment failed push error for ${sub.business_id}: ${err?.message ?? err}`,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Payment failed pass complete: ${paymentPushSent} pushes sent`,
     );
   }
 
