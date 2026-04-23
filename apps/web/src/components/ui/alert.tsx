@@ -2,6 +2,15 @@ import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
+/*
+ * 27.1.b – Dark-mode banner palette:
+ *   Success → bg #494C4F, text #22E043
+ *   Warning → bg #494C4F, text #FBFB47
+ *   Info    → bg #494C4F, text #60A5FA
+ *   Danger  → bg #01060B, text #FF3E3E
+ * Light-mode classes unchanged.
+ */
+
 const alertVariants = cva(
   'relative w-full rounded-lg border p-4 text-sm [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg+div]:translate-y-[-3px] [&:has(svg)]:pl-11',
   {
@@ -10,13 +19,13 @@ const alertVariants = cva(
         default:
           'border-border bg-card text-foreground',
         destructive:
-          'border-danger-light bg-danger-light text-danger dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400',
+          'border-danger-light bg-danger-light text-danger dark:border-[#FF3E3E]/40 dark:bg-[#01060B] dark:text-[#FF3E3E]',
         success:
-          'border-primary-light bg-primary-light text-primary dark:border-primary/30 dark:bg-primary/10 dark:text-emerald-400',
+          'border-primary-light bg-primary-light text-primary dark:border-[#22E043]/40 dark:bg-[#494C4F] dark:text-[#22E043]',
         warning:
-          'border-warning-light bg-warning-light text-warning dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-400',
+          'border-warning-light bg-warning-light text-warning dark:border-[#FBFB47]/40 dark:bg-[#494C4F] dark:text-[#FBFB47]',
         info:
-          'border-info-light bg-info-light text-info dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-400',
+          'border-info-light bg-info-light text-info dark:border-[#60A5FA]/40 dark:bg-[#494C4F] dark:text-[#60A5FA]',
       },
     },
     defaultVariants: { variant: 'default' },

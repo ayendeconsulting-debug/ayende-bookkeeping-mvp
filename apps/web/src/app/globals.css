@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ── Tempo Books – Dark Executive + 27.1 Readability Polish ──────────────── */
+/* ── Tempo Books – Dark Executive + 27.1 Readability Polish + 27.1.b Floating Blue ── */
 
 @theme {
   /* Brand primary – Tempo Green (unchanged) */
@@ -86,47 +86,47 @@
   --color-text-tertiary:  var(--text-tertiary);
 }
 
-/* ── Light mode ──────────────────────────────────────────────────────────── */
+/* ── Light mode – UNCHANGED ──────────────────────────────────────────────── */
 
 :root {
   --background:             35 18% 95%;    /* #F5F3EE */
   --foreground:             60 4% 16%;     /* #2C2C2A */
   --card:                   0 0% 100%;     /* #FFFFFF */
-  --card-foreground:        60 4% 16%;     /* #2C2C2A */
+  --card-foreground:        60 4% 16%;
   --popover:                0 0% 100%;
   --popover-foreground:     60 4% 16%;
   --primary:                161 78% 25%;   /* #0F6E56 – Tempo Green */
   --primary-foreground:     0 0% 100%;
   --secondary:              36 14% 94%;    /* #F0EDE8 */
   --secondary-foreground:   60 4% 16%;
-  --muted:                  36 14% 94%;    /* #F0EDE8 */
-  --muted-foreground:       40 3% 29%;     /* #4B4A47 – darkened from #888780 for AA+ contrast */
-  --accent:                 240 5% 90%;    /* #E4E4E7 – neutralised from warm #E8E6E1 */
+  --muted:                  36 14% 94%;
+  --muted-foreground:       40 3% 29%;     /* #4B4A47 – 27.1.a readability */
+  --accent:                 240 5% 90%;    /* #E4E4E7 */
   --accent-foreground:      60 4% 16%;
   --destructive:            0 71% 35%;     /* #991B1B */
   --destructive-foreground: 0 0% 100%;
-  --border:                 240 5% 90%;    /* #E4E4E7 */
-  --input:                  240 5% 90%;    /* #E4E4E7 */
+  --border:                 240 5% 90%;
+  --input:                  240 5% 90%;
   --ring:                   161 78% 25%;
   --radius:                 0.5rem;
   --sidebar-width:          210px;
 
   /* 27.1 – tiered text tokens */
-  --text-secondary: #3F3F46;   /* body, card subtitles – readable */
-  --text-muted:     #52525B;   /* labels, section headers – faded but present */
-  --text-tertiary:  #A1A1AA;   /* timestamps, placeholders – fully faded */
+  --text-secondary: #3F3F46;
+  --text-muted:     #52525B;
+  --text-tertiary:  #A1A1AA;
 
-  /* Accent palette – Option 3 (green / red / black-neutral / amber-warnings-only) */
-  --de-accent-teal:         #0F6E56;   /* Tempo Green — matches brand */
+  /* Accent palette – Option 3 (unchanged in light mode) */
+  --de-accent-teal:         #0F6E56;
   --de-accent-teal-muted:   #E1F5EE;
-  --de-accent-purple:       #4B4A47;   /* collapses to neutral */
+  --de-accent-purple:       #4B4A47;
   --de-accent-purple-muted: #F4F4F5;
-  --de-accent-blue:         #4B4A47;   /* collapses to neutral */
+  --de-accent-blue:         #4B4A47;
   --de-accent-blue-muted:   #F4F4F5;
-  --de-accent-coral:        #991B1B;   /* was #D85A30 – proper red, no coral */
+  --de-accent-coral:        #991B1B;
   --de-accent-coral-muted:  #FEE2E2;
-  --de-accent-amber:        #92400E;   /* warnings only – darkened for AA+ */
-  --de-accent-amber-muted:  #FEF3C7;   /* warmer banner bg */
+  --de-accent-amber:        #92400E;
+  --de-accent-amber-muted:  #FEF3C7;
   --de-accent-red:          #991B1B;
   --de-accent-red-muted:    #FEE2E2;
   --de-table-header:        #2C2C2A;
@@ -134,27 +134,27 @@
   --de-card-hover:          #FAFAFA;
 }
 
-/* ── Dark mode – Dark Executive + 27.1 polish ────────────────────────────── */
+/* ── Dark mode – 27.1.b Floating Blue ────────────────────────────────────── */
 
 .dark {
-  --background:             60 3% 8%;      /* #141413 */
-  --foreground:             36 10% 94%;    /* #F1EFE8 */
-  --card:                   60 3% 12%;     /* #1E1E1C */
+  --background:             60 3% 8%;       /* #141413 – canvas (unchanged, cards float on this) */
+  --foreground:             36 10% 94%;     /* #F1EFE8 */
+  --card:                   230 88% 12%;    /* #030836 – FLOATING BLUE */
   --card-foreground:        36 10% 94%;
-  --popover:                60 3% 12%;
+  --popover:                230 88% 12%;    /* #030836 */
   --popover-foreground:     36 10% 94%;
-  --primary:                161 68% 42%;   /* #2ABF8E */
+  --primary:                161 68% 42%;    /* #2ABF8E – Tempo Green (unchanged) */
   --primary-foreground:     0 0% 100%;
-  --secondary:              60 3% 15%;     /* #262624 */
+  --secondary:              233 77% 16%;    /* #0A1048 – lighter blue */
   --secondary-foreground:   36 10% 94%;
-  --muted:                  60 3% 15%;
-  --muted-foreground:       40 5% 63%;     /* #A8A69C – lifted from #888780 for dark-mode legibility */
-  --accent:                 60 3% 17%;
+  --muted:                  233 77% 16%;    /* #0A1048 */
+  --muted-foreground:       40 5% 63%;      /* #A8A69C – 27.1.a readability */
+  --accent:                 232 64% 23%;    /* #121A5A – hover tint */
   --accent-foreground:      36 10% 94%;
   --destructive:            0 70% 70%;
   --destructive-foreground: 36 10% 94%;
-  --border:                 60 3% 18%;     /* #2E2E2B */
-  --input:                  60 3% 18%;
+  --border:                 232 62% 28%;    /* #1A2070 – hairline blue */
+  --input:                  232 62% 28%;
   --ring:                   161 68% 42%;
 
   /* 27.1 – tiered text tokens (dark) */
@@ -162,22 +162,22 @@
   --text-muted:     #A8A69C;
   --text-tertiary:  #71717A;
 
-  /* Accent palette – Option 3 (dark) */
-  --de-accent-teal:         #4ADE80;   /* brighter, more luminous on dark */
+  /* Accent palette – Option 3 (dark), muted-bg values aligned to blue surfaces */
+  --de-accent-teal:         #4ADE80;
   --de-accent-teal-muted:   #0A2E22;
-  --de-accent-purple:       #A8A69C;   /* collapses to neutral */
-  --de-accent-purple-muted: #262624;
-  --de-accent-blue:         #A8A69C;   /* collapses to neutral */
-  --de-accent-blue-muted:   #262624;
-  --de-accent-coral:        #F87171;   /* proper red */
+  --de-accent-purple:       #A8A69C;
+  --de-accent-purple-muted: #121A5A;
+  --de-accent-blue:         #A8A69C;
+  --de-accent-blue-muted:   #121A5A;
+  --de-accent-coral:        #F87171;
   --de-accent-coral-muted:  #2A1414;
-  --de-accent-amber:        #FBBF24;   /* warnings only */
-  --de-accent-amber-muted:  #3B2F0E;   /* richer banner bg */
+  --de-accent-amber:        #FBBF24;
+  --de-accent-amber-muted:  #3B2F0E;
   --de-accent-red:          #F87171;
   --de-accent-red-muted:    #2A1414;
-  --de-table-header:        #262624;
+  --de-table-header:        #0A1048;       /* blue table header */
   --de-table-header-text:   #A8A69C;
-  --de-card-hover:          #262624;
+  --de-card-hover:          #0A1048;       /* blue card hover */
 }
 
 /* ── Base Styles ─────────────────────────────────────────────────────────── */
@@ -197,8 +197,6 @@ body {
 }
 
 /* ── 27.1 – Crisp uppercase label utilities (opt-in) ─────────────────────── */
-/* Apply to KPI card labels, sidebar section headers, table column headers.  */
-/* The weight-upshift (500 → 600) makes muted color feel intentional, not washed out. */
 
 .kpi-label,
 .section-label {
