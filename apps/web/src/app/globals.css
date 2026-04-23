@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* ── Tempo Books – Dark Executive + 27.1 Readability + 27.1.b Floating Blue + 27.1.b.1 Darker ── */
+/* ── Tempo Books – Dark Executive + 27.1 Readability + 27.1.b Floating Blue + 27.1.b.2 Graphite ── */
 
 @theme {
   /* Brand primary – Tempo Green (unchanged) */
@@ -130,27 +130,27 @@
   --de-card-hover:          #FAFAFA;
 }
 
-/* ── Dark mode – 27.1.b.1 Darker Floating Blue ───────────────────────────── */
+/* ── Dark mode – 27.1.b.2 Graphite Floating Blue ─────────────────────────── */
 
 .dark {
   --background:             60 3% 8%;       /* #141413 – canvas (unchanged) */
   --foreground:             36 10% 94%;     /* #F1EFE8 */
-  --card:                   230 68% 7%;     /* #060A1F – DARKER floating blue (was #030836) */
+  --card:                   226 78% 5%;     /* #030818 – GRAPHITE (was #060A1F) */
   --card-foreground:        36 10% 94%;
-  --popover:                230 68% 7%;     /* #060A1F */
+  --popover:                226 78% 5%;     /* #030818 */
   --popover-foreground:     36 10% 94%;
   --primary:                161 68% 42%;    /* Tempo Green (unchanged) */
   --primary-foreground:     0 0% 100%;
-  --secondary:              230 64% 11%;    /* #0A102E – notch lighter */
+  --secondary:              226 74% 9%;     /* #060E28 – notch lighter */
   --secondary-foreground:   36 10% 94%;
-  --muted:                  230 64% 11%;    /* #0A102E */
+  --muted:                  226 74% 9%;     /* #060E28 */
   --muted-foreground:       40 5% 63%;      /* #A8A69C – 27.1.a readability */
-  --accent:                 229 55% 16%;    /* #121A3E – hover tint */
+  --accent:                 226 64% 13%;    /* #0C1636 – hover tint */
   --accent-foreground:      36 10% 94%;
   --destructive:            0 70% 70%;
   --destructive-foreground: 36 10% 94%;
-  --border:                 229 53% 22%;    /* #1A2555 – hairline */
-  --input:                  229 53% 22%;
+  --border:                 228 59% 19%;    /* #14204E – hairline */
+  --input:                  228 59% 19%;
   --ring:                   161 68% 42%;
 
   /* 27.1 – tiered text tokens (dark) */
@@ -158,22 +158,22 @@
   --text-muted:     #A8A69C;
   --text-tertiary:  #71717A;
 
-  /* Accent palette – Option 3 (dark), muted-bg values aligned to darker blue surfaces */
+  /* Accent palette – muted-bg values aligned to graphite surfaces */
   --de-accent-teal:         #4ADE80;
   --de-accent-teal-muted:   #0A2E22;
   --de-accent-purple:       #A8A69C;
-  --de-accent-purple-muted: #121A3E;
+  --de-accent-purple-muted: #0C1636;
   --de-accent-blue:         #A8A69C;
-  --de-accent-blue-muted:   #121A3E;
+  --de-accent-blue-muted:   #0C1636;
   --de-accent-coral:        #F87171;
   --de-accent-coral-muted:  #2A1414;
   --de-accent-amber:        #FBBF24;
   --de-accent-amber-muted:  #3B2F0E;
   --de-accent-red:          #F87171;
   --de-accent-red-muted:    #2A1414;
-  --de-table-header:        #0A102E;       /* darker blue table header */
+  --de-table-header:        #060E28;
   --de-table-header-text:   #A8A69C;
-  --de-card-hover:          #0A102E;       /* darker blue card hover */
+  --de-card-hover:          #060E28;
 }
 
 /* ── Base Styles ─────────────────────────────────────────────────────────── */
