@@ -1,10 +1,19 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from '@/components/theme-provider';
 import { BrandingProvider } from '@/components/branding-provider';
 import { PwaRegister } from '@/components/pwa-register';
 import './globals.css';
+
+// Phase 27.1.a – load Inter properly via next/font/google.
+// Exposes --font-inter for use in globals.css --font-sans stack.
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'Tempo Books - AI-Assisted Bookkeeping for Canadian and US Small Businesses',
@@ -36,7 +45,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning className={inter.variable}>
         <body>
           <script
             dangerouslySetInnerHTML={{

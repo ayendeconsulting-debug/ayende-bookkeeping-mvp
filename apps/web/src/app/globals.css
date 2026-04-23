@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
-/* ── Tempo Books – Dark Executive Theme ──────────────────────────────── */
+/* ── Tempo Books – Dark Executive + 27.1 Readability Polish ──────────────── */
 
 @theme {
-  /* Brand primary – Tempo Green */
+  /* Brand primary – Tempo Green (unchanged) */
   --color-primary:            #0F6E56;
   --color-primary-foreground: #ffffff;
   --color-primary-hover:      #085041;
@@ -12,27 +12,27 @@
   /* Semantic */
   --color-success:       #0F6E56;
   --color-success-light: #E1F5EE;
-  --color-warning:       #BA7517;
-  --color-warning-light: #FDF5E6;
-  --color-danger:        #C0392B;
-  --color-danger-light:  #FDF0EE;
-  --color-info:          #185FA5;
-  --color-info-light:    #E6F1FB;
+  --color-warning:       #92400E;
+  --color-warning-light: #FEF3C7;
+  --color-danger:        #991B1B;
+  --color-danger-light:  #FEE2E2;
+  --color-info:          #4B4A47;
+  --color-info-light:    #F4F4F5;
 
-  /* Warm neutral grays – Dark Executive palette */
-  --color-gray-50:  #F5F3EE;
-  --color-gray-100: #F0EDE8;
-  --color-gray-200: #E8E6E1;
-  --color-gray-300: #D3D1C7;
-  --color-gray-400: #B4B2A9;
-  --color-gray-500: #888780;
-  --color-gray-600: #5F5E5A;
-  --color-gray-700: #444441;
-  --color-gray-800: #2C2C2A;
-  --color-gray-900: #1A1A19;
+  /* Neutral grays – tightened for readability */
+  --color-gray-50:  #FAFAFA;
+  --color-gray-100: #F4F4F5;
+  --color-gray-200: #E4E4E7;
+  --color-gray-300: #D4D4D8;
+  --color-gray-400: #A1A1AA;
+  --color-gray-500: #71717A;
+  --color-gray-600: #52525B;
+  --color-gray-700: #3F3F46;
+  --color-gray-800: #27272A;
+  --color-gray-900: #18181B;
 
   /* Fonts */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "Cascadia Code", monospace;
 
   /* Radius */
@@ -42,7 +42,7 @@
   --radius-xl: 1rem;
 }
 
-/* ── Tailwind v4 semantic token bridge ─────────────────────────────────── */
+/* ── Tailwind v4 semantic token bridge ───────────────────────────────────── */
 
 @theme inline {
   --color-background:             hsl(var(--background));
@@ -63,7 +63,7 @@
   --color-input:                  hsl(var(--input));
   --color-ring:                   hsl(var(--ring));
 
-  /* Dark Executive accent bridge */
+  /* Dark Executive accent bridge – simplified palette (Option 3) */
   --color-accent-teal:         var(--de-accent-teal);
   --color-accent-teal-muted:   var(--de-accent-teal-muted);
   --color-accent-purple:       var(--de-accent-purple);
@@ -79,9 +79,14 @@
   --color-table-header:        var(--de-table-header);
   --color-table-header-text:   var(--de-table-header-text);
   --color-card-hover:          var(--de-card-hover);
+
+  /* 27.1 – tiered text hierarchy (opt-in, paired with .kpi-label / .section-label) */
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted:     var(--text-muted);
+  --color-text-tertiary:  var(--text-tertiary);
 }
 
-/* ── Light mode ─────────────────────────────────────────────────────────── */
+/* ── Light mode ──────────────────────────────────────────────────────────── */
 
 :root {
   --background:             35 18% 95%;    /* #F5F3EE */
@@ -90,78 +95,88 @@
   --card-foreground:        60 4% 16%;     /* #2C2C2A */
   --popover:                0 0% 100%;
   --popover-foreground:     60 4% 16%;
-  --primary:                161 78% 25%;   /* #0F6E56 */
+  --primary:                161 78% 25%;   /* #0F6E56 – Tempo Green */
   --primary-foreground:     0 0% 100%;
   --secondary:              36 14% 94%;    /* #F0EDE8 */
   --secondary-foreground:   60 4% 16%;
   --muted:                  36 14% 94%;    /* #F0EDE8 */
-  --muted-foreground:       36 3% 53%;     /* #888780 */
-  --accent:                 36 12% 91%;    /* #E8E6E1 */
+  --muted-foreground:       40 3% 29%;     /* #4B4A47 – darkened from #888780 for AA+ contrast */
+  --accent:                 240 5% 90%;    /* #E4E4E7 – neutralised from warm #E8E6E1 */
   --accent-foreground:      60 4% 16%;
-  --destructive:            4 62% 46%;
+  --destructive:            0 71% 35%;     /* #991B1B */
   --destructive-foreground: 0 0% 100%;
-  --border:                 36 12% 91%;    /* #E8E6E1 */
-  --input:                  36 12% 91%;    /* #E8E6E1 */
+  --border:                 240 5% 90%;    /* #E4E4E7 */
+  --input:                  240 5% 90%;    /* #E4E4E7 */
   --ring:                   161 78% 25%;
   --radius:                 0.5rem;
   --sidebar-width:          210px;
 
-  /* Dark Executive accents – light mode */
-  --de-accent-teal:         #1D9E75;
+  /* 27.1 – tiered text tokens */
+  --text-secondary: #3F3F46;   /* body, card subtitles – readable */
+  --text-muted:     #52525B;   /* labels, section headers – faded but present */
+  --text-tertiary:  #A1A1AA;   /* timestamps, placeholders – fully faded */
+
+  /* Accent palette – Option 3 (green / red / black-neutral / amber-warnings-only) */
+  --de-accent-teal:         #0F6E56;   /* Tempo Green — matches brand */
   --de-accent-teal-muted:   #E1F5EE;
-  --de-accent-purple:       #534AB7;
-  --de-accent-purple-muted: #EEEDFE;
-  --de-accent-blue:         #185FA5;
-  --de-accent-blue-muted:   #E6F1FB;
-  --de-accent-coral:        #D85A30;
-  --de-accent-coral-muted:  #FAECE7;
-  --de-accent-amber:        #BA7517;
-  --de-accent-amber-muted:  #FFF8E8;
-  --de-accent-red:          #E24B4A;
-  --de-accent-red-muted:    #FEF0F0;
+  --de-accent-purple:       #4B4A47;   /* collapses to neutral */
+  --de-accent-purple-muted: #F4F4F5;
+  --de-accent-blue:         #4B4A47;   /* collapses to neutral */
+  --de-accent-blue-muted:   #F4F4F5;
+  --de-accent-coral:        #991B1B;   /* was #D85A30 – proper red, no coral */
+  --de-accent-coral-muted:  #FEE2E2;
+  --de-accent-amber:        #92400E;   /* warnings only – darkened for AA+ */
+  --de-accent-amber-muted:  #FEF3C7;   /* warmer banner bg */
+  --de-accent-red:          #991B1B;
+  --de-accent-red-muted:    #FEE2E2;
   --de-table-header:        #2C2C2A;
   --de-table-header-text:   #D3D1C7;
-  --de-card-hover:          #FAF8F5;
+  --de-card-hover:          #FAFAFA;
 }
 
-/* ── Dark mode – Dark Executive ────────────────────────────────────────── */
+/* ── Dark mode – Dark Executive + 27.1 polish ────────────────────────────── */
 
 .dark {
   --background:             60 3% 8%;      /* #141413 */
   --foreground:             36 10% 94%;    /* #F1EFE8 */
   --card:                   60 3% 12%;     /* #1E1E1C */
-  --card-foreground:        36 10% 94%;    /* #F1EFE8 */
+  --card-foreground:        36 10% 94%;
   --popover:                60 3% 12%;
   --popover-foreground:     36 10% 94%;
   --primary:                161 68% 42%;   /* #2ABF8E */
   --primary-foreground:     0 0% 100%;
   --secondary:              60 3% 15%;     /* #262624 */
   --secondary-foreground:   36 10% 94%;
-  --muted:                  60 3% 15%;     /* #262624 */
-  --muted-foreground:       36 3% 53%;     /* #888780 */
-  --accent:                 60 3% 17%;     /* #2B2B28 */
+  --muted:                  60 3% 15%;
+  --muted-foreground:       40 5% 63%;     /* #A8A69C – lifted from #888780 for dark-mode legibility */
+  --accent:                 60 3% 17%;
   --accent-foreground:      36 10% 94%;
-  --destructive:            4 50% 45%;
+  --destructive:            0 70% 70%;
   --destructive-foreground: 36 10% 94%;
   --border:                 60 3% 18%;     /* #2E2E2B */
-  --input:                  60 3% 18%;     /* #2E2E2B */
+  --input:                  60 3% 18%;
   --ring:                   161 68% 42%;
 
-  /* Dark Executive accents – dark mode */
-  --de-accent-teal:         #5DCAA5;
+  /* 27.1 – tiered text tokens (dark) */
+  --text-secondary: #D4D4D8;
+  --text-muted:     #A8A69C;
+  --text-tertiary:  #71717A;
+
+  /* Accent palette – Option 3 (dark) */
+  --de-accent-teal:         #4ADE80;   /* brighter, more luminous on dark */
   --de-accent-teal-muted:   #0A2E22;
-  --de-accent-purple:       #AFA9EC;
-  --de-accent-purple-muted: #1A1630;
-  --de-accent-blue:         #85B7EB;
-  --de-accent-blue-muted:   #0C1E2E;
-  --de-accent-coral:        #F0997B;
-  --de-accent-coral-muted:  #2A1C14;
-  --de-accent-amber:        #EF9F27;
-  --de-accent-amber-muted:  #2A2010;
-  --de-accent-red:          #F09595;
+  --de-accent-purple:       #A8A69C;   /* collapses to neutral */
+  --de-accent-purple-muted: #262624;
+  --de-accent-blue:         #A8A69C;   /* collapses to neutral */
+  --de-accent-blue-muted:   #262624;
+  --de-accent-coral:        #F87171;   /* proper red */
+  --de-accent-coral-muted:  #2A1414;
+  --de-accent-amber:        #FBBF24;   /* warnings only */
+  --de-accent-amber-muted:  #3B2F0E;   /* richer banner bg */
+  --de-accent-red:          #F87171;
   --de-accent-red-muted:    #2A1414;
   --de-table-header:        #262624;
-  --de-table-header-text:   #888780;
+  --de-table-header-text:   #A8A69C;
   --de-card-hover:          #262624;
 }
 
@@ -178,6 +193,21 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── 27.1 – Crisp uppercase label utilities (opt-in) ─────────────────────── */
+/* Apply to KPI card labels, sidebar section headers, table column headers.  */
+/* The weight-upshift (500 → 600) makes muted color feel intentional, not washed out. */
+
+.kpi-label,
+.section-label {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1.2;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
