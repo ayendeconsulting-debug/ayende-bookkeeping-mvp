@@ -131,9 +131,9 @@ export default function AccountantSetupPage() {
 
             {/* Error */}
             {error && (
-              <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2.5">
-                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
-                <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+              <div className="flex items-start gap-2 bg-red-50 dark:bg-[#01060B] border border-red-200 dark:border-[#FF3E3E]/40 rounded-lg px-3 py-2.5">
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-[#FF3E3E] flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700 dark:text-[#FF3E3E]">{error}</p>
               </div>
             )}
 

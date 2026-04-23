@@ -92,9 +92,9 @@ export default function AiPage() {
         )}
       </div>
 
-      <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2.5 mb-4 flex-shrink-0">
-        <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-        <p className="text-xs text-amber-700 dark:text-amber-400">
+      <div className="flex items-start gap-2 bg-amber-50 dark:bg-[#494C4F] border border-amber-200 dark:border-[#FBFB47]/40 rounded-lg px-3 py-2.5 mb-4 flex-shrink-0">
+        <Info className="w-4 h-4 text-amber-500 dark:text-[#FBFB47] flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-amber-700 dark:text-[#FBFB47]">
           AI responses are for guidance only and do not constitute professional accounting or tax advice. Always verify with a qualified accountant.
         </p>
       </div>

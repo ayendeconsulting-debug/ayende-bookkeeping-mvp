@@ -151,7 +151,7 @@ export function FiscalYearLockClient({ initialFiscalYears }: FiscalYearLockClien
             </div>
 
             <div className="px-6 py-5 space-y-4">
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+              <div className="bg-amber-50 dark:bg-[#494C4F] border border-amber-200 dark:border-[#FBFB47]/40 rounded-lg px-4 py-3 text-sm text-amber-800 dark:text-[#FBFB47]">
                 You are about to lock <strong>FY{confirmYear}</strong>. All journal entries for this
                 fiscal year will become <strong>read-only</strong>. This cannot be undone without
                 contacting Tempo Books support.

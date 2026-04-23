@@ -105,9 +105,9 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
     return (
       <div>
         {data?.balance_warning && (
-          <div className="flex items-center gap-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-lg px-3 py-2 mb-3">
-            <AlertTriangle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
-            <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+          <div className="flex items-center gap-2 bg-red-50 dark:bg-[#01060B] border border-red-100 dark:border-[#FF3E3E]/40 rounded-lg px-3 py-2 mb-3">
+            <AlertTriangle className="w-3.5 h-3.5 text-red-500 dark:text-[#FF3E3E] flex-shrink-0" />
+            <p className="text-xs text-red-600 dark:text-[#FF3E3E] font-medium">
               Balance may be insufficient for upcoming payments
             </p>
           </div>
@@ -198,11 +198,11 @@ export function UpcomingRemindersWidget({ data, compact = false }: UpcomingRemin
 
       {/* Balance warning */}
       {data.balance_warning && (
-        <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3">
-          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 bg-red-50 dark:bg-[#01060B] border border-red-200 dark:border-[#FF3E3E]/40 rounded-xl px-4 py-3">
+          <AlertTriangle className="w-5 h-5 text-red-500 dark:text-[#FF3E3E] flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-red-700 dark:text-red-400">Insufficient balance warning</p>
-            <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+            <p className="text-sm font-semibold text-red-700 dark:text-[#FF3E3E]">Insufficient balance warning</p>
+            <p className="text-xs text-red-600 dark:text-[#FF3E3E]/80 mt-0.5">
               Your connected accounts have {formatCurrency(data.current_balance)}, but{' '}
               {formatCurrency(data.total_due_7_days)} is due in the next 7 days — a shortfall of{' '}
               {formatCurrency(data.balance_shortfall)}.

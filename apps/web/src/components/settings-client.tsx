@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { AccountantAccessSection } from '@/components/accountant-access-section';
 
 import { useState, useTransition } from 'react';
@@ -75,9 +75,9 @@ function BillingSection({ subscription }: { subscription: Subscription | null })
             <p className="text-sm font-medium text-foreground capitalize">{status === 'none' ? 'No active plan' : status.replace('_', ' ')}</p>
           </div>
           {status === 'trialing' && trialEndsAt && (
-            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-3 col-span-2">
-              <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">Trial ends</p>
-              <p className="text-sm font-medium text-blue-800 dark:text-blue-300">
+            <div className="bg-blue-50 dark:bg-[#494C4F] border border-blue-200 dark:border-[#60A5FA]/40 rounded-lg px-4 py-3 col-span-2">
+              <p className="text-xs text-blue-600 dark:text-[#60A5FA] mb-1">Trial ends</p>
+              <p className="text-sm font-medium text-blue-800 dark:text-[#60A5FA]">
                 {formatDate(trialEndsAt)}{daysLeft !== null && <span className="text-xs font-normal ml-2">({daysLeft} day{daysLeft !== 1 ? 's' : ''} remaining)</span>}
               </p>
             </div>
@@ -89,13 +89,13 @@ function BillingSection({ subscription }: { subscription: Subscription | null })
             </div>
           )}
           {status === 'past_due' && (
-            <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3 col-span-2">
-              <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">⚠️ Payment past due — update your payment method to avoid losing access.</p>
+            <div className="bg-amber-50 dark:bg-[#494C4F] border border-amber-200 dark:border-[#FBFB47]/40 rounded-lg px-4 py-3 col-span-2">
+              <p className="text-xs text-amber-700 dark:text-[#FBFB47] font-medium">⚠️ Payment past due — update your payment method to avoid losing access.</p>
             </div>
           )}
           {status === 'cancelled' && (
-            <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg px-4 py-3 col-span-2">
-              <p className="text-xs text-red-700 dark:text-red-400 font-medium">Your subscription has been cancelled. Reactivate below to restore access.</p>
+            <div className="bg-red-50 dark:bg-[#01060B] border border-red-200 dark:border-[#FF3E3E]/40 rounded-lg px-4 py-3 col-span-2">
+              <p className="text-xs text-red-700 dark:text-[#FF3E3E] font-medium">Your subscription has been cancelled. Reactivate below to restore access.</p>
             </div>
           )}
         </div>
@@ -140,9 +140,9 @@ function TaxSettingsSection({ business, provinces }: { business: Business | null
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {!business?.hst_registration_number && (
-          <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 px-4 py-3">
-            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-amber-700 dark:text-amber-400">Add your HST/GST registration number to enable full CRA remittance reporting.</p>
+          <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-[#494C4F] border border-amber-200 dark:border-[#FBFB47]/40 px-4 py-3">
+            <AlertCircle className="w-4 h-4 text-amber-600 dark:text-[#FBFB47] mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-700 dark:text-[#FBFB47]">Add your HST/GST registration number to enable full CRA remittance reporting.</p>
           </div>
         )}
         <div className="flex flex-col gap-1.5">

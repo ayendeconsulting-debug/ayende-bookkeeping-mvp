@@ -31,8 +31,8 @@ export function BillingBanner({ subscription }: BillingBannerProps) {
     return (
       <div className={['flex items-center gap-3 px-4 py-3 text-sm',
         urgency
-          ? 'bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-900 text-red-700 dark:text-red-400'
-          : 'bg-amber-50 dark:bg-amber-950/40 border-b border-amber-200 dark:border-amber-900 text-amber-700 dark:text-amber-400',
+          ? 'bg-red-50 dark:bg-[#01060B] border-b border-red-200 dark:border-[#FF3E3E]/40 text-red-700 dark:text-[#FF3E3E]'
+          : 'bg-amber-50 dark:bg-[#494C4F] border-b border-amber-200 dark:border-[#FBFB47]/40 text-amber-700 dark:text-[#FBFB47]',
       ].join(' ')}>
         <Clock className="w-4 h-4 flex-shrink-0" />
         <span className="flex-1">
@@ -51,7 +51,7 @@ export function BillingBanner({ subscription }: BillingBannerProps) {
 
   if (status === 'past_due') {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 text-sm bg-red-50 dark:bg-red-950/40 border-b border-red-200 dark:border-red-900 text-red-700 dark:text-red-400">
+      <div className="flex items-center gap-3 px-4 py-3 text-sm bg-red-50 dark:bg-[#01060B] border-b border-red-200 dark:border-[#FF3E3E]/40 text-red-700 dark:text-[#FF3E3E]">
         <AlertCircle className="w-4 h-4 flex-shrink-0" />
         <span className="flex-1"><strong>Payment failed.</strong> Please update your payment method to restore full access.</span>
         <Link href="/settings" className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors">Update payment</Link>

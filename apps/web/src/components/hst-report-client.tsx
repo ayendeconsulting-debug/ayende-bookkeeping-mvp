@@ -285,9 +285,9 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
       {report && (
         <div className="flex flex-col gap-5">
           {report.unposted_transaction_count > 0 && (
-            <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 px-4 py-3">
-              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-              <p className="text-xs text-amber-700 dark:text-amber-400">
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-[#494C4F] border border-amber-200 dark:border-[#FBFB47]/40 px-4 py-3">
+              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-[#FBFB47] mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-amber-700 dark:text-[#FBFB47]">
                 {report.unposted_transaction_count} unposted transaction{report.unposted_transaction_count > 1 ? 's' : ''} exist within this period.
                 This report may be incomplete — post all transactions before filing.
               </p>

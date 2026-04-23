@@ -236,11 +236,11 @@ export function YearEndClient({ availableYears }: YearEndClientProps) {
 
       {/* Error state */}
       {jobStatus === 'failed' && errorMsg && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-5 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+        <div className="bg-red-50 dark:bg-[#01060B] border border-red-200 dark:border-[#FF3E3E]/40 rounded-xl p-5 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 dark:text-[#FF3E3E] flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-medium text-red-700 dark:text-red-400">Report generation failed</p>
-            <p className="text-sm text-red-600 dark:text-red-400 mt-0.5">{errorMsg}</p>
+            <p className="text-sm font-medium text-red-700 dark:text-[#FF3E3E]">Report generation failed</p>
+            <p className="text-sm text-red-600 dark:text-[#FF3E3E]/80 mt-0.5">{errorMsg}</p>
           </div>
         </div>
       )}

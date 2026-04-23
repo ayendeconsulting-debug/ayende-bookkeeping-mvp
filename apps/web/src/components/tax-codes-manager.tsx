@@ -92,7 +92,7 @@ export function TaxCodesManager({ initialTaxCodes, taxAccounts }: TaxCodesManage
       </div>
 
       {taxCodes.length === 0 && (
-        <div className="mb-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg px-4 py-3 text-sm text-blue-700 dark:text-blue-400">
+        <div className="mb-4 bg-blue-50 dark:bg-[#494C4F] border border-blue-100 dark:border-[#60A5FA]/40 rounded-lg px-4 py-3 text-sm text-blue-700 dark:text-[#60A5FA]">
           Common Canadian tax codes: HST (13%), GST (5%), PST (varies by province).
         </div>
       )}

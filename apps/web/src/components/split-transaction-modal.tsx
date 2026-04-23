@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useTransition } from 'react';
 import { X, Plus, Trash2, AlertCircle, CheckCircle2, Building2, User, DollarSign, Percent } from 'lucide-react';
@@ -282,7 +282,7 @@ export function SplitTransactionModal({
               </label>
               <SourceTypeToggle value={sourceType} onChange={handleSourceTypeChange} />
               {sourceType === 'personal' && (
-                <div className="mt-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                <div className="mt-2 rounded-lg bg-amber-50 dark:bg-[#494C4F] border border-amber-200 dark:border-[#FBFB47]/40 px-3 py-2 text-xs text-amber-700 dark:text-[#FBFB47]">
                   Personal source: only Business-tagged lines post to the ledger as Owner Contributions. Personal-tagged lines are for your reference only.
                 </div>
               )}
