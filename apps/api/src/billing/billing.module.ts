@@ -17,6 +17,8 @@ import { EmailModule } from '../email/email.module';
 import { ReferralsModule } from '../referrals/referrals.module';
 import { BusinessesModule } from '../businesses/businesses.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { APP_GUARD } from '@nestjs/core';
+import { BillingGuard } from './billing.guard';
 
 @Module({
   imports: [
@@ -44,6 +46,11 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AccountantBillingJob,
     TrialMonitorProcessor,
     TrialMonitorJob,
+    // Phase 27.2 A-4: register BillingGuard globally via APP_GUARD
+    {
+      provide: APP_GUARD,
+      useClass: BillingGuard,
+    },
   ],
   exports: [BillingService, BillingAlertService],
 })
