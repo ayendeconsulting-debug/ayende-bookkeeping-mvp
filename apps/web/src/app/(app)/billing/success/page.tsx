@@ -56,7 +56,7 @@ export default async function BillingSuccessPage() {
 
         <h1 className="text-3xl font-bold text-foreground mb-3">You&apos;re all set!</h1>
         <p className="text-muted-foreground mb-8 leading-relaxed">
-          Your 60-day free trial has started.
+          Welcome to Tempo Books. Your account is ready.
           {planLabel && <> You&apos;re on the <strong className="text-foreground">{planLabel}</strong> plan.</>}
           {' '}No charge until your trial ends.
         </p>

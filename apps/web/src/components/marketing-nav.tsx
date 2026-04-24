@@ -43,7 +43,7 @@ export function MarketingNav() {
           ) : (
             <>
               <Link href="/sign-in" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Sign in</Link>
-              <Link href="/sign-up" className="text-sm font-medium bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">Start free — 60 days</Link>
+              <Link href="/pricing" className="text-sm font-medium bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">Get started</Link>
             </>
           )}
         </div>
@@ -52,7 +52,7 @@ export function MarketingNav() {
           {isSignedIn ? (
             <Link href="/dashboard" className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors">Dashboard</Link>
           ) : (
-            <Link href="/sign-up" className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors">Start free</Link>
+            <Link href="/pricing" className="text-xs font-medium bg-primary text-primary-foreground px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors">Get started</Link>
           )}
           <button onClick={() => setMobileOpen(!mobileOpen)}
             className="w-11 h-11 flex items-center justify-center rounded-xl hover:bg-accent transition-colors"

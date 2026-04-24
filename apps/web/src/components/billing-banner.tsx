@@ -14,8 +14,8 @@ export function BillingBanner({ subscription }: BillingBannerProps) {
       <div className="flex items-center gap-3 px-4 py-3 text-sm bg-primary-light border-b border-primary/30 text-primary">
         <Sparkles className="w-4 h-4 flex-shrink-0" />
         <span className="flex-1">
-          <strong>Start your free trial.</strong>{' '}
-          Get full access to Tempo Books — no credit card charged for 60 days.
+          <strong>Welcome to Tempo Books.</strong>{' '}
+          Choose a plan to get started.
         </span>
         <Link href="/pricing"
           className="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">

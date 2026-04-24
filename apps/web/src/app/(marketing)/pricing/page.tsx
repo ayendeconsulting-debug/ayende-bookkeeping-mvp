@@ -23,10 +23,10 @@ export default function PricingPage() {
       <div className="max-w-4xl mx-auto px-6 pt-14 pb-10 text-center">
         <div className="inline-flex items-center gap-2 bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 text-[#0F6E56] text-xs font-medium px-4 py-1.5 rounded-full mb-5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#0F6E56]" />
-          Free trial on all plans
+          Free trial on Starter and Pro — no credit card required
         </div>
         <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Simple, transparent pricing</h1>
-        <p className="text-lg text-muted-foreground max-w-xl mx-auto">No surprises. No hidden fees. All prices in CAD. Start free for 60 days — card required, no charge during trial.</p>
+        <p className="text-lg text-muted-foreground max-w-xl mx-auto">No surprises. No hidden fees. All prices in CAD.</p>
       </div>
       <div className="max-w-5xl mx-auto px-6 pb-16">
         <PricingCards />
