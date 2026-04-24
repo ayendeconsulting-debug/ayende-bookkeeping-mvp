@@ -11,6 +11,7 @@ import {
   Subscription,
   SubscriptionPlan,
   SubscriptionStatus,
+  TrialType,
 } from '../entities/subscription.entity';
 import { CreateCheckoutSessionDto } from './dto/billing.dto';
 import { EmailService } from '../email/email.service';
@@ -99,6 +100,29 @@ function computeMonthlyAmountCents(price: Stripe.Price | undefined): number {
   const unitAmount = price.unit_amount ?? 0;
   const interval   = price.recurring?.interval;
   return interval === 'year' ? Math.round(unitAmount / 12) : unitAmount;
+}
+
+/**
+ * Phase 27.2 A-6: Safely parse a trial_type string from Stripe metadata.
+ * Returns the parsed value if it matches the known enum set, otherwise null.
+ * Used in webhook handlers to harvest trial_type written by A-2 signup pipelines.
+ */
+function parseTrialTypeFromMetadata(raw: string | undefined): TrialType | null {
+  if (raw === 'none' || raw === 'no_card_14d' || raw === 'mbg_30d') {
+    return raw;
+  }
+  return null;
+}
+
+/**
+ * Phase 27.2 A-6: Safely parse an ISO-8601 timestamp string from Stripe metadata.
+ * Returns a Date if the input is parseable, otherwise null. Used to harvest
+ * mbg_ends_at written by buildAccountantCheckoutSession().
+ */
+function parseTimestampFromMetadata(raw: string | undefined): Date | null {
+  if (!raw) return null;
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
 // -- Service -----------------------------------------------------------------
@@ -218,7 +242,7 @@ export class BillingService {
    *   - monthly : trial_type='mbg_30d', mbg_starts_at, mbg_ends_at
    *   - annual  : trial_type='none',    is_annual_commitment='true'
    *
-   * A-6 webhook updates will harvest this metadata into the local row.
+   * A-6 webhook updates harvest this metadata into the local row.
    *
    * Launch coupon (STRIPE_LAUNCH_COUPON_ID) is Starter/Pro only per the
    * Pricing Amendment v1.0 - not applied to Accountant.
@@ -297,21 +321,6 @@ export class BillingService {
 
     return { url: session.url };
   }
-
-  // ==========================================================================
-  // Unchanged from pre-Phase-27.2 version below.
-  //
-  // The webhook handlers still hardcode status='trialing' when a subscription
-  // is created. That is correct for legacy 60-day trials but WRONG for the
-  // new Accountant direct-paid flow. A-6 (SRD v27.2 Workstream A) will fix
-  // handleCheckoutCompleted() and related handlers to honour trial_type
-  // metadata and set status='active' for Accountant signups.
-  //
-  // In the window between A-2 deploy and A-6 deploy, any real Accountant
-  // signup would produce a subscription row with status='trialing' and
-  // trial_ends_at=null. Since no real Accountant users are in production
-  // during this window (founder testing only), this is a known bounded gap.
-  // ==========================================================================
 
   async createPortalSession(
     businessId: string,
@@ -411,6 +420,31 @@ export class BillingService {
 
   // -- Webhook handlers -------------------------------------------------------
 
+  /**
+   * Phase 27.2 A-6: checkout.session.completed handler.
+   *
+   * Behaviour (changed from pre-A-6):
+   *   - status is now derived from Stripe subscription state via mapStripeStatus()
+   *     instead of hardcoded 'trialing'. This is correct for:
+   *       - Starter/Pro (late card collection via Portal): Stripe reports the
+   *         real subscription state (trialing or active); we mirror it.
+   *       - Accountant Monthly: Stripe reports 'active' immediately (no
+   *         trial_period_days); local status becomes 'active', not 'trialing'.
+   *       - Accountant Annual: same as monthly - straight to 'active'.
+   *   - card_collected_at is populated with the current timestamp, since a
+   *     successful checkout session means a payment method was attached.
+   *   - trial_type is harvested from Stripe subscription metadata if present.
+   *     D-4-A safety: metadata-absence does NOT overwrite an existing value
+   *     to null - TypeORM's update() skips undefined fields.
+   *   - mbg_ends_at is harvested from Stripe subscription metadata if present
+   *     (populated by A-2's buildAccountantCheckoutSession for monthly only).
+   *
+   * Event-ordering note (D-1-B): This handler is the authoritative source of
+   * A-1 column population. customer.subscription.updated is update-only and
+   * will NOT create a row, so handleSubscriptionUpdated silently no-ops if
+   * it arrives before this handler. Stripe guarantees checkout.session.completed
+   * as the terminal event of a checkout flow, so this ordering is safe in practice.
+   */
   private async handleCheckoutCompleted(
     session: Stripe.Checkout.Session,
   ): Promise<void> {
@@ -427,54 +461,103 @@ export class BillingService {
     // Phase 13: capture customer email for trial reminder CRON
     const customerEmail = session.customer_details?.email ?? null;
 
-    let trialEnd:  Date | null = null;
-    let periodEnd: Date | null = null;
+    // Defaults - overridden from Stripe subscription retrieve below.
+    let mappedStatus:       SubscriptionStatus = 'trialing';
+    let trialEnd:           Date | null = null;
+    let periodEnd:          Date | null = null;
     let monthlyAmountCents: number | null = null;
+
+    // Phase 27.2 A-6: safety-net signals harvested from Stripe subscription metadata.
+    // Set to undefined (not null) so TypeORM's update() skips them on absence,
+    // preserving any pre-existing local value (D-4-A safety).
+    let trialTypeFromMeta: TrialType | undefined;
+    let mbgEndsAtFromMeta: Date | null | undefined;
+
     if (stripeSubscriptionId) {
       try {
         const stripeSub = await this.stripe.subscriptions.retrieve(stripeSubscriptionId);
-        trialEnd  = stripeSub.trial_end          ? new Date(stripeSub.trial_end * 1000)          : null;
-        periodEnd = stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000) : null;
+        mappedStatus = this.mapStripeStatus(stripeSub.status);
+        trialEnd     = stripeSub.trial_end          ? new Date(stripeSub.trial_end * 1000)          : null;
+        periodEnd    = stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000) : null;
         // Phase 26: capture normalised monthly revenue for Insights dashboard
         monthlyAmountCents = computeMonthlyAmountCents(stripeSub.items.data[0]?.price);
+
+        // Phase 27.2 A-6: harvest metadata signals written by A-2 signup pipelines.
+        const metaTrialType = parseTrialTypeFromMetadata(stripeSub.metadata?.trial_type);
+        if (metaTrialType !== null) {
+          trialTypeFromMeta = metaTrialType;
+        }
+        const metaMbgEndsAt = parseTimestampFromMetadata(stripeSub.metadata?.mbg_ends_at);
+        if (metaMbgEndsAt !== null) {
+          mbgEndsAtFromMeta = metaMbgEndsAt;
+        }
       } catch (err) {
         this.logger.error('Failed to retrieve Stripe subscription', err);
       }
     }
+
+    const cardCollectedAt = new Date();
+
+    const basePatch = {
+      stripe_customer_id:     stripeCustomerId,
+      stripe_subscription_id: stripeSubscriptionId,
+      plan,
+      billing_cycle:          billingCycle,
+      status:                 mappedStatus,
+      trial_ends_at:          trialEnd,
+      current_period_end:     periodEnd,
+      currency:               'cad',
+      customer_email:         customerEmail,
+      monthly_amount_cents:   monthlyAmountCents,
+      card_collected_at:      cardCollectedAt,
+      // trial_type and mbg_ends_at applied conditionally below to avoid
+      // overwriting pre-existing values with null/undefined (D-4-A).
+    };
+
     const existing = await this.subscriptionRepo.findOne({ where: { business_id: businessId } });
     if (existing) {
-      await this.subscriptionRepo.update(existing.id, {
-        stripe_customer_id:     stripeCustomerId,
-        stripe_subscription_id: stripeSubscriptionId,
-        plan,
-        billing_cycle:          billingCycle,
-        status:                 'trialing',
-        trial_ends_at:          trialEnd,
-        current_period_end:     periodEnd,
-        currency:               'cad',
-        customer_email:         customerEmail,
-        monthly_amount_cents:   monthlyAmountCents,
-      });
+      const updatePatch: Record<string, unknown> = { ...basePatch };
+      if (trialTypeFromMeta !== undefined) {
+        updatePatch.trial_type = trialTypeFromMeta;
+      }
+      if (mbgEndsAtFromMeta !== undefined) {
+        updatePatch.mbg_ends_at = mbgEndsAtFromMeta;
+      }
+      await this.subscriptionRepo.update(existing.id, updatePatch);
     } else {
+      // Insert path: metadata-absence is OK to write as null explicitly
+      // since there is no prior value to preserve.
       await this.subscriptionRepo.save(
         this.subscriptionRepo.create({
           business_id:            businessId,
-          stripe_customer_id:     stripeCustomerId,
-          stripe_subscription_id: stripeSubscriptionId,
-          plan,
-          billing_cycle:          billingCycle,
-          status:                 'trialing',
-          trial_ends_at:          trialEnd,
-          current_period_end:     periodEnd,
-          currency:               'cad',
-          customer_email:         customerEmail,
-          monthly_amount_cents:   monthlyAmountCents,
+          ...basePatch,
+          trial_type:             trialTypeFromMeta ?? null,
+          mbg_ends_at:            mbgEndsAtFromMeta ?? null,
         }),
       );
     }
-    this.logger.log('Subscription created - business: ' + businessId + ' plan: ' + plan);
+
+    this.logger.log(
+      'Subscription created - business: ' + businessId +
+      ' plan: ' + plan +
+      ' status: ' + mappedStatus +
+      ' trial_type: ' + (trialTypeFromMeta ?? 'unset') +
+      ' card_collected: yes' +
+      ' mbg_ends_at: ' + (mbgEndsAtFromMeta ? mbgEndsAtFromMeta.toISOString() : 'none'),
+    );
   }
 
+  /**
+   * Phase 27.2 A-6: checkout.session.expired handler.
+   *
+   * Behaviour (changed from pre-A-6):
+   *   - Abandoned-cart recovery no longer injects trial_period_days: 60.
+   *     Under the new model there is no universal 60-day trial. The regenerated
+   *     checkout is now a straight paid subscription. In practice this path
+   *     is primarily triggered by abandoned Accountant flows (Starter/Pro do
+   *     not reach Stripe Checkout via A-2), so paid recovery is the correct
+   *     default.
+   */
   private async handleCheckoutExpired(
     session: Stripe.Checkout.Session,
   ): Promise<void> {
@@ -488,14 +571,14 @@ export class BillingService {
       return;
     }
     const originalPriceId = session.line_items?.data?.[0]?.price?.id
-      ?? process.env.STRIPE_STARTER_ANNUAL_PRICE_ID;
+      ?? process.env.STRIPE_ACCOUNTANT_MONTHLY_PRICE_ID;
     try {
       const frontendUrl = process.env.FRONTEND_URL || 'https://gettempo.ca';
       const newSession  = await this.stripe.checkout.sessions.create({
         mode: 'subscription',
         payment_method_collection: 'always',
         line_items: [{ price: originalPriceId, quantity: 1 }],
-        subscription_data: { trial_period_days: 60 },
+        // Phase 27.2 A-6: no trial_period_days under new model.
         success_url: frontendUrl + '/billing/success?session_id={CHECKOUT_SESSION_ID}',
         cancel_url:  frontendUrl + '/pricing',
         currency:    'cad',
@@ -510,6 +593,19 @@ export class BillingService {
     }
   }
 
+  /**
+   * Phase 27.2 A-6: customer.subscription.updated handler.
+   *
+   * Behaviour (changed from pre-A-6):
+   *   - If card_collected_at is NULL on the local row, populate it with the
+   *     current timestamp (D-2-A self-healing). Any successful Stripe
+   *     subscription update implies a payment method is attached.
+   *
+   * Deliberately NOT changed (D-1-B):
+   *   - This remains an update-only handler. No row is created here. If the
+   *     row does not yet exist (Accountant signup with out-of-order events),
+   *     the update silently no-ops. handleCheckoutCompleted is the insert path.
+   */
   private async handleSubscriptionUpdated(
     stripeSub: Stripe.Subscription,
   ): Promise<void> {
@@ -522,11 +618,32 @@ export class BillingService {
     const periodEnd = stripeSub.current_period_end ? new Date(stripeSub.current_period_end * 1000) : null;
     // Phase 26: keep monthly revenue in sync on plan changes
     const monthlyAmountCents = computeMonthlyAmountCents(stripeSub.items.data[0]?.price);
-    await this.subscriptionRepo.update(
-      { business_id: businessId },
-      { plan, status, trial_ends_at: trialEnd, current_period_end: periodEnd, monthly_amount_cents: monthlyAmountCents },
+
+    // Phase 27.2 A-6: self-healing card_collected_at population.
+    const existing = await this.subscriptionRepo.findOne({ where: { business_id: businessId } });
+    if (!existing) {
+      this.logger.log('customer.subscription.updated - no local row yet, skipping (will be created by checkout.session.completed)');
+      return;
+    }
+
+    const updatePatch: Record<string, unknown> = {
+      plan,
+      status,
+      trial_ends_at:        trialEnd,
+      current_period_end:   periodEnd,
+      monthly_amount_cents: monthlyAmountCents,
+    };
+    if (!existing.card_collected_at) {
+      updatePatch.card_collected_at = new Date();
+    }
+
+    await this.subscriptionRepo.update({ business_id: businessId }, updatePatch);
+    this.logger.log(
+      'Subscription updated - business: ' + businessId +
+      ' plan: ' + plan +
+      ' status: ' + status +
+      (updatePatch.card_collected_at ? ' (card_collected_at backfilled)' : ''),
     );
-    this.logger.log('Subscription updated - business: ' + businessId + ' plan: ' + plan + ' status: ' + status);
   }
 
   private async handleSubscriptionDeleted(
