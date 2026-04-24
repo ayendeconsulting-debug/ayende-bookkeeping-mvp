@@ -17,6 +17,7 @@ import { EmailModule } from '../email/email.module';
 import { ReferralsModule } from '../referrals/referrals.module';
 import { BusinessesModule } from '../businesses/businesses.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { PlaidModule } from '../plaid/plaid.module';
 import { APP_GUARD } from '@nestjs/core';
 import { BillingGuard } from './billing.guard';
 
@@ -37,6 +38,8 @@ import { BillingGuard } from './billing.guard';
     ReferralsModule,
     BusinessesModule,
     NotificationsModule,
+    // Phase 27.2 A-5: PlaidService.disconnectItem used on archive.
+    PlaidModule,
   ],
   controllers: [BillingController],
   providers: [

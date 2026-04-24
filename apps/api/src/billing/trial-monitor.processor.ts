@@ -1,15 +1,19 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { Job } from 'bullmq';
 import { Subscription } from '../entities/subscription.entity';
 import { EmailService } from '../email/email.service';
 import { BusinessesService } from '../businesses/businesses.service';
 import { ExpoPushService } from '../notifications/expo-push.service';
 import { BillingAlertService } from './billing-alert.service';
+import { PlaidService } from '../plaid/services/plaid.service';
 
 export const TRIAL_MONITOR_QUEUE = 'trial-monitor';
+
+// Phase 27.2 A-5: archive window after trial_expired_readonly.
+const READONLY_ARCHIVE_WINDOW_DAYS = 90;
 
 @Processor(TRIAL_MONITOR_QUEUE)
 export class TrialMonitorProcessor extends WorkerHost {
@@ -22,6 +26,8 @@ export class TrialMonitorProcessor extends WorkerHost {
     private readonly businessesService: BusinessesService,
     private readonly expoPushService: ExpoPushService,
     private readonly billingAlertService: BillingAlertService,
+    // Phase 27.2 A-5: Plaid disconnect on archive.
+    private readonly plaidService: PlaidService,
   ) {
     super();
   }
@@ -115,6 +121,20 @@ export class TrialMonitorProcessor extends WorkerHost {
     this.logger.log(
       `Payment failed pass complete: ${paymentPushSent} pushes sent`,
     );
+
+    // ---- Phase 27.2 A-5: Trial expirations pass -------------------------
+    // Transitions trialing -> trial_expired_readonly when the 14-day no-card
+    // trial has ended and no payment method was collected.
+    // Tight gate: only rows with trial_type = 'no_card_14d'. Legacy rows
+    // (trial_type IS NULL, pre-Phase 27.2) are immune until manually migrated.
+    await this.processTrialExpirations();
+
+    // ---- Phase 27.2 A-5: Archival pass ----------------------------------
+    // Transitions trial_expired_readonly -> archived after 90 days.
+    // On archive, best-effort disconnect of all linked Plaid items.
+    // Subscription is flipped to archived first; Plaid failures logged but
+    // do not block the state transition.
+    await this.processArchivals();
   }
 
   private async processSubscription(sub: Subscription): Promise<boolean> {
@@ -179,5 +199,145 @@ export class TrialMonitorProcessor extends WorkerHost {
       `Trial reminder (${threshold}d) sent -> ${sub.customer_email} | business: ${sub.business_id}`,
     );
     return true;
+  }
+
+  /**
+   * Phase 27.2 A-5: Trial expirations pass.
+   *
+   * Transitions: trialing -> trial_expired_readonly
+   *
+   * Gate:
+   *   - trial_type = 'no_card_14d'  (tight gate: legacy NULL rows immune)
+   *   - trial_ends_at < now()
+   *   - card_collected_at IS NULL   (Stripe checkout was never completed)
+   *
+   * Side-effect: sets readonly_started_at = now() so the archival pass
+   * can track the 90-day window.
+   */
+  private async processTrialExpirations(): Promise<void> {
+    const now = new Date();
+
+    const expiring = await this.subscriptionRepo.find({
+      where: {
+        status: 'trialing',
+        trial_type: 'no_card_14d',
+        trial_ends_at: LessThan(now),
+        card_collected_at: null,
+      },
+    });
+
+    this.logger.log(
+      `Trial expirations pass: found ${expiring.length} no_card_14d trials past expiry`,
+    );
+
+    let transitioned = 0;
+    for (const sub of expiring) {
+      try {
+        await this.subscriptionRepo.update(sub.id, {
+          status: 'trial_expired_readonly',
+          readonly_started_at: now,
+        });
+        transitioned++;
+        this.logger.log(
+          `Trial expired -> readonly | business: ${sub.business_id} | trial_ended_at: ${sub.trial_ends_at?.toISOString()}`,
+        );
+      } catch (err: any) {
+        this.logger.error(
+          `Trial expiration transition failed for ${sub.business_id}: ${err?.message ?? err}`,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Trial expirations pass complete: ${transitioned} subscriptions transitioned to readonly`,
+    );
+  }
+
+  /**
+   * Phase 27.2 A-5: Archival pass.
+   *
+   * Transitions: trial_expired_readonly -> archived
+   *
+   * Gate:
+   *   - readonly_started_at IS NOT NULL
+   *   - readonly_started_at < now() - 90 days
+   *
+   * Side-effects:
+   *   1. status = 'archived', archived_at = now()
+   *   2. Best-effort Plaid /item/remove for all linked plaid_items
+   *
+   * Ordering: subscription flip happens FIRST. Plaid disconnects are
+   * per-item try/catch and never block the archival state. A flaky Plaid
+   * call cannot leave a subscription stuck in readonly indefinitely.
+   * Residual Plaid items (if any) can be cleaned up by an admin tool later.
+   */
+  private async processArchivals(): Promise<void> {
+    const now = new Date();
+    const cutoff = new Date(
+      now.getTime() - READONLY_ARCHIVE_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+    );
+
+    const toArchive = await this.subscriptionRepo.find({
+      where: {
+        status: 'trial_expired_readonly',
+        readonly_started_at: LessThan(cutoff),
+      },
+    });
+
+    this.logger.log(
+      `Archival pass: found ${toArchive.length} readonly subscriptions past ${READONLY_ARCHIVE_WINDOW_DAYS}-day window`,
+    );
+
+    let archived = 0;
+    for (const sub of toArchive) {
+      try {
+        // Step 1: Flip subscription to archived. This happens first so a
+        // Plaid failure cannot block archival.
+        await this.subscriptionRepo.update(sub.id, {
+          status: 'archived',
+          archived_at: now,
+        });
+        archived++;
+        this.logger.log(
+          `Archived | business: ${sub.business_id} | readonly_started_at: ${sub.readonly_started_at?.toISOString()}`,
+        );
+
+        // Step 2: Best-effort Plaid disconnect per item.
+        try {
+          const items = await this.plaidService.getItemsForBusiness(sub.business_id);
+          let disconnected = 0;
+          let failed = 0;
+
+          for (const item of items) {
+            try {
+              await this.plaidService.disconnectItem(item.id, sub.business_id);
+              disconnected++;
+            } catch (itemErr: any) {
+              failed++;
+              this.logger.error(
+                `Plaid disconnect failed on archive | business: ${sub.business_id} | item: ${item.id} | ${itemErr?.message ?? itemErr}`,
+              );
+            }
+          }
+
+          this.logger.log(
+            `Plaid disconnect summary | business: ${sub.business_id} | disconnected: ${disconnected} | failed: ${failed}`,
+          );
+        } catch (listErr: any) {
+          // Failure to even list items is logged but does not revert archive.
+          this.logger.error(
+            `Plaid item list failed on archive | business: ${sub.business_id} | ${listErr?.message ?? listErr}`,
+          );
+        }
+      } catch (err: any) {
+        this.logger.error(
+          `Archival transition failed for ${sub.business_id}: ${err?.message ?? err}`,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Archival pass complete: ${archived} subscriptions archived`,
+    );
   }
 }
