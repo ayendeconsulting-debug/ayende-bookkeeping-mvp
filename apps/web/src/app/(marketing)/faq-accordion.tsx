@@ -6,7 +6,7 @@ import { ChevronDown } from 'lucide-react';
 const FAQS = [
   {
     q: 'Is Tempo really free to try?',
-    a: "Yes — 60 full days, no skipped features. You get access to everything on your chosen plan from day one. If you decide it's not for you before day 60, cancel and owe nothing. After your trial, Starter continues automatically at $10 CAD/mo — no action needed.",
+    a: "Yes — your trial includes full access to every feature on your chosen plan, no exclusions. If you decide it's not for you before your trial ends, cancel and owe nothing. After your trial, Starter continues automatically at $10 CAD/mo — no action needed.",
   },
   {
     q: 'What countries does Tempo support?',
@@ -38,7 +38,7 @@ const FAQS = [
   },
   {
     q: 'What happens when my trial ends?',
-    a: "If you're on Starter, your plan auto-continues at $10 CAD/mo — no action needed. For Pro or Accountant, you'll receive a reminder before your trial ends and can activate billing with one click. If you cancel before day 60, you pay nothing and your data remains accessible for 30 days.",
+    a: "If you're on Starter, your plan auto-continues at $10 CAD/mo — no action needed. For Pro or Accountant, you'll receive a reminder before your trial ends and can activate billing with one click. If you cancel before your trial ends, you pay nothing and your data remains accessible for 30 days.",
   },
   {
     q: 'Can I cancel at any time?',

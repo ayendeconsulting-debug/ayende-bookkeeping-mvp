@@ -1,16 +1,16 @@
-﻿import { Metadata } from 'next';
+import { Metadata } from 'next';
 import Link from 'next/link';
 import { PricingCards } from './pricing-cards';
 import { ChevronDown } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Pricing — Tempo Bookkeeping',
-  description: 'Simple, transparent pricing for Canadian and US small businesses. Start with a 60-day free trial.',
+  description: 'Simple, transparent pricing for Canadian and US small businesses. Start with a free trial.',
 };
 
 const BILLING_FAQS = [
   { q: 'Can I switch plans at any time?', a: 'Yes. You can upgrade or downgrade your plan at any time from the Settings page. Upgrades take effect immediately. Downgrades take effect at the start of your next billing period.' },
-  { q: 'What happens when my free trial ends?', a: 'At the end of your 60-day trial, if you take no action, you will automatically continue on the Starter plan using your saved payment method. You can cancel or switch plans at any time before the trial ends.' },
+  { q: 'What happens when my free trial ends?', a: 'At the end of your free trial, if you take no action, you will automatically continue on the Starter plan using your saved payment method. You can cancel or switch plans at any time before the trial ends.' },
   { q: 'Do you offer annual billing?', a: 'Yes. Annual billing gives you 2 months free — you pay for 10 months and get 12. You can switch between monthly and annual at any time from your billing settings.' },
   { q: 'Is there a setup fee?', a: 'No. There are no setup fees, onboarding fees, or hidden charges. You only pay the plan subscription fee.' },
   { q: 'What payment methods do you accept?', a: 'We accept all major credit and debit cards (Visa, Mastercard, American Express) via Stripe. All payments are processed securely — your card details are never stored on our servers.' },
@@ -23,7 +23,7 @@ export default function PricingPage() {
       <div className="max-w-4xl mx-auto px-6 pt-14 pb-10 text-center">
         <div className="inline-flex items-center gap-2 bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 text-[#0F6E56] text-xs font-medium px-4 py-1.5 rounded-full mb-5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#0F6E56]" />
-          60-day free trial on all plans
+          Free trial on all plans
         </div>
         <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">Simple, transparent pricing</h1>
         <p className="text-lg text-muted-foreground max-w-xl mx-auto">No surprises. No hidden fees. All prices in CAD. Start free for 60 days — card required, no charge during trial.</p>

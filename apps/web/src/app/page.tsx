@@ -74,7 +74,7 @@ const SEGMENT_DETAILS = [
       'AI anomaly detection flags unusual charges before they become problems',
       'Fiscal year locking prevents retroactive changes once you file',
     ],
-    cta: 'Start your free 60-day trial',
+    cta: 'Start your free trial',
     ctaHref: '/sign-up',
   },
   {
@@ -91,7 +91,7 @@ const SEGMENT_DETAILS = [
       'AI Transaction Explainer breaks down any charge in plain English',
       '$10/mo on Starter &mdash; less than one billable hour',
     ],
-    cta: 'Start free &mdash; 60 days',
+    cta: 'Start your free trial',
     ctaHref: '/sign-up',
   },
   {
@@ -230,7 +230,6 @@ const FEATURES = [
 type ComparisonValue = boolean | string;
 const COMPARISON_ROWS: { feature: string; tempo: ComparisonValue; qbo: ComparisonValue; wave: ComparisonValue }[] = [
   { feature: 'Starting price',          tempo: 'From $10 CAD/mo',   qbo: 'From $35 CAD/mo',   wave: 'Free (fees apply)' },
-  { feature: 'Free trial',              tempo: '60 days',           qbo: '30 days',            wave: 'Free forever' },
   { feature: 'Built for Canadian tax',  tempo: 'Native HST/GST',    qbo: 'Requires setup',     wave: 'Basic only' },
   { feature: 'CRA remittance report',   tempo: true,                qbo: false,                wave: false },
   { feature: 'AI classification',       tempo: 'Every plan',        qbo: 'Paid add-on',        wave: false },
@@ -381,14 +380,14 @@ export default function LandingPage() {
                 href="/sign-up"
                 className="inline-flex items-center gap-2 bg-[#0F6E56] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#085041] transition-colors shadow-sm"
               >
-                Start free &mdash; 60 days <ArrowRight className="w-4 h-4" />
+                Start your free trial <ArrowRight className="w-4 h-4" />
               </Link>
               <RequestDemoButton />
             </div>
 
             {/* Honest fine print */}
             <p className="text-xs text-white/60 mb-12">
-              60-day free trial &middot; No charge for 60 days &middot; Cancel anytime &middot; Card required to start
+              Free trial &middot; No charge during your trial &middot; Cancel anytime &middot; Card required to start
             </p>
 
             <DashboardCarousel />
@@ -849,11 +848,11 @@ export default function LandingPage() {
               Early Access
             </p>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              No fake reviews. Just 60 days free to see for yourself.
+              No fake reviews. Just an honest trial to see for yourself.
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
               Tempo Books is in early access. We&apos;re not going to show you testimonials we wrote
-              ourselves. Instead, here&apos;s exactly what you can expect in your first 60 days.
+              ourselves. Instead, here&apos;s exactly what you can expect in your first weeks.
             </p>
           </div>
 
@@ -993,7 +992,7 @@ export default function LandingPage() {
                 Pricing that makes sense from day one.
               </h2>
               <p className="text-muted-foreground max-w-xl mx-auto">
-                60 days free. Pick a plan, connect your bank, and your books are running before
+                Free to try. Pick a plan, connect your bank, and your books are running before
                 your trial ends.
               </p>
             </div>
@@ -1108,7 +1107,7 @@ export default function LandingPage() {
                 href="/sign-up"
                 className="inline-flex items-center gap-2 bg-white text-[#0F6E56] px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#EDF7F2] transition-colors"
               >
-                Start free &mdash; 60 days <ArrowRight className="w-4 h-4" />
+                Start your free trial <ArrowRight className="w-4 h-4" />
               </Link>
               <RequestDemoButton />
               <Link

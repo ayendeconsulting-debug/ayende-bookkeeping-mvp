@@ -345,7 +345,7 @@ export function PricingCards() {
                 'Client onboarding wizard',
                 'Staff seat management',
                 'Metered billing — pay for what you use',
-                '60-day free trial',
+                'Free trial included',
                 'Dedicated support',
               ].map((f) => (
                 <li key={f} className="flex items-start gap-2.5 text-sm text-foreground">
@@ -374,7 +374,7 @@ export function PricingCards() {
       {/* Trial note */}
       <div className="text-center space-y-1">
         <p className="text-sm text-muted-foreground">
-          All plans include a <strong className="text-foreground">60-day free trial</strong>. Card required — no charge during trial.
+          All plans include a <strong className="text-foreground">free trial</strong>. Card required — no charge during trial.
         </p>
         <p className="text-xs text-muted-foreground">No action needed after trial — you will automatically continue on Starter. Cancel anytime.</p>
       </div>
