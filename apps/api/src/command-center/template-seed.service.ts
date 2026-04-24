@@ -1048,6 +1048,121 @@ const TEMPLATES: SeedTemplate[] = [
   <tr><td style="padding:0 32px 32px 32px;">${partnerSig()}</td></tr>`),
   },
 
+  // 23 -- mbg_receipt --------------------------------------------------------
+  {
+    name:        'mbg_receipt',
+    description: 'Accountant Monthly signup - confirms subscription active + 30-day MBG',
+    subject:     'Welcome to Tempo Books \u2014 your 30-day money-back guarantee',
+    from_email:  'noreply@gettempo.ca',
+    from_name:   'Tempo Books',
+    variables:   ['first_name', 'plan_name', 'amount_charged', 'mbg_end_date', 'portal_url'],
+    html_body: wrap(`
+  ${hero('Welcome to Tempo Books.')}
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Hi {{first_name}},</p>
+    <p style="margin:0 0 20px;font-size:16px;color:#333333;line-height:1.7;">
+      Your <strong>{{plan_name}}</strong> subscription is now active. You\u2019ve been charged
+      <strong>{{amount_charged}}</strong> and full access is ready in your dashboard.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
+      <tr><td style="padding:20px 24px;">
+        <p style="margin:0 0 8px;font-size:15px;font-weight:bold;color:#065F46;">
+          30-day money-back guarantee
+        </p>
+        <p style="margin:0 0 12px;font-size:15px;color:#065F46;line-height:1.6;">
+          If Tempo Books isn\u2019t the right fit for your firm, we\u2019ll refund your
+          subscription in full \u2014 no questions, no friction. Your guarantee period
+          runs through <strong>{{mbg_end_date}}</strong>.
+        </p>
+        <p style="margin:0;font-size:14px;color:#065F46;">
+          To request a refund, email
+          <a href="mailto:billing@gettempo.ca" style="color:#0F6E56;">billing@gettempo.ca</a>
+          before that date.
+        </p>
+      </td></tr>
+    </table>
+    ${cta('Go to my dashboard \u2192', '{{portal_url}}')}
+    <p style="margin:0;font-size:15px;color:#555555;">
+      Adesanya Ehinmidu<br/>
+      <span style="color:#888888;">Founder \u2014 Tempo Books</span>
+    </p>
+  </td></tr>`),
+  },
+
+  // 24 -- refund_processed ---------------------------------------------------
+  {
+    name:        'refund_processed',
+    description: 'Manual admin send after refund processed - firm-tier copy',
+    subject:     'Your Tempo Books refund has been processed',
+    from_email:  'noreply@gettempo.ca',
+    from_name:   'Tempo Books',
+    variables:   ['first_name', 'refund_amount', 'original_charge_date', 'refund_reason'],
+    html_body: wrap(`
+  ${hero('Your refund has been processed.', '#f9fafb', '#111827', '#e5e7eb', '')}
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Hi {{first_name}},</p>
+    <p style="margin:0 0 20px;font-size:16px;color:#333333;line-height:1.7;">
+      We\u2019ve processed a refund of <strong>{{refund_amount}}</strong> for the charge on
+      <strong>{{original_charge_date}}</strong>. The refund should appear on your statement
+      within 5-10 business days, depending on your card issuer.
+    </p>
+    <p style="margin:0 0 20px;font-size:16px;color:#333333;line-height:1.7;">{{refund_reason}}</p>
+    <p style="margin:0 0 20px;font-size:16px;color:#333333;line-height:1.7;">
+      Your Tempo Books firm account has been closed. All firm and client data remains
+      available to you for 90 days so you can export records and complete any outstanding
+      client work in progress.
+    </p>
+    <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.7;">
+      If there\u2019s anything we can do differently in the future, we\u2019d love to hear
+      from you at
+      <a href="mailto:hello@gettempo.ca" style="color:#0F6E56;">hello@gettempo.ca</a>.
+    </p>
+    <p style="margin:0;font-size:15px;color:#555555;">
+      Adesanya Ehinmidu<br/>
+      <span style="color:#888888;">Founder \u2014 Tempo Books</span>
+    </p>
+  </td></tr>`),
+  },
+
+  // 25 -- trial_expired_readonly ---------------------------------------------
+  {
+    name:        'trial_expired_readonly',
+    description: 'A-5 cron send when no-card 14d trial ends without card collection',
+    subject:     'Your Tempo Books trial ended \u2014 your data is safe',
+    from_email:  'noreply@gettempo.ca',
+    from_name:   'Tempo Books',
+    variables:   ['first_name', 'archive_date', 'reactivation_url'],
+    html_body: wrap(`
+  ${hero('Your trial has ended.', '#f9fafb', '#111827', '#e5e7eb', '')}
+  <tr><td style="padding:36px 40px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Hi {{first_name}},</p>
+    <p style="margin:0 0 20px;font-size:16px;color:#333333;line-height:1.7;">
+      Your Tempo Books free trial has ended. Your account is now in <strong>read-only
+      mode</strong> \u2014 you can still log in, view your transactions, and export your
+      data, but you can\u2019t make changes until you subscribe.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0"
+           style="background:#EDF7F2;border-radius:6px;margin:0 0 28px;">
+      <tr><td style="padding:20px 24px;">
+        <p style="margin:0 0 8px;font-size:15px;font-weight:bold;color:#065F46;">
+          Your data is preserved until {{archive_date}}.
+        </p>
+        <p style="margin:0;font-size:15px;color:#065F46;line-height:1.6;">
+          After that date, your workspace will be archived and your Plaid connections
+          will be disconnected. Subscribe any time before <strong>{{archive_date}}</strong>
+          to restore full access without losing anything.
+        </p>
+      </td></tr>
+    </table>
+    ${cta('Subscribe now \u2192', '{{reactivation_url}}')}
+    <p style="margin:0;font-size:15px;color:#555555;line-height:1.6;">
+      Not sure if Tempo Books is right for you? Reply to this email and let us know
+      what would\u2019ve made the difference \u2014 we read every reply.
+    </p>
+  </td></tr>`),
+  },
+
 ];
 
 // -- Templates that must be force-updated on every deploy -------------------
@@ -1056,6 +1171,9 @@ const FORCE_UPDATE_NAMES = new Set<string>([
   'trial_ending',
   'payment_failed',
   'abandoned_cart',
+  'mbg_receipt',
+  'refund_processed',
+  'trial_expired_readonly',
   'cold_outreach',
   'lead_acknowledgement',
   'partnership_mission_fund',

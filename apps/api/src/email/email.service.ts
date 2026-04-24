@@ -1,4 +1,4 @@
-﻿import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Resend } from 'resend';
 import { welcomeTemplate, WelcomeTemplateVars } from './templates/welcome';
@@ -12,6 +12,21 @@ export interface StaffInviteTemplateVars {
   firstName: string;
   firmName: string;
   signUpUrl: string;
+}
+
+// Phase 27.2 A-8 template vars
+export interface MbgReceiptTemplateVars {
+  firstName: string;
+  planName: string;
+  amountCharged: string;
+  mbgEndDate: string;
+  portalUrl: string;
+}
+
+export interface TrialExpiredReadonlyTemplateVars {
+  firstName: string;
+  archiveDate: string;
+  reactivationUrl: string;
 }
 
 @Injectable()
@@ -329,6 +344,40 @@ export class EmailService {
     });
   }
 
+  // MBG receipt (Phase 27.2 A-8 -- Accountant Monthly signup)
+  async sendMbgReceipt(to: string, vars: MbgReceiptTemplateVars): Promise<void> {
+    const sent = await this.emailTemplatesService.sendFromTemplate('mbg_receipt', to, {
+      first_name:     vars.firstName,
+      plan_name:      vars.planName,
+      amount_charged: vars.amountCharged,
+      mbg_end_date:   vars.mbgEndDate,
+      portal_url:     vars.portalUrl,
+    });
+    if (!sent) {
+      await this.send(
+        to,
+        'Welcome to Tempo Books -- your 30-day money-back guarantee',
+        this.mbgReceiptFallback(vars),
+      );
+    }
+  }
+
+  // Trial expired readonly (Phase 27.2 A-8 -- cron-driven)
+  async sendTrialExpiredReadonly(to: string, vars: TrialExpiredReadonlyTemplateVars): Promise<void> {
+    const sent = await this.emailTemplatesService.sendFromTemplate('trial_expired_readonly', to, {
+      first_name:       vars.firstName,
+      archive_date:     vars.archiveDate,
+      reactivation_url: vars.reactivationUrl,
+    });
+    if (!sent) {
+      await this.send(
+        to,
+        'Your Tempo Books trial ended -- your data is safe',
+        this.trialExpiredReadonlyFallback(vars),
+      );
+    }
+  }
+
   // ── Minimal hardcoded fallbacks (used only if DB template missing) ─────────
   private staffInviteFallback(vars: StaffInviteTemplateVars): string {
     return `<p>Hi ${vars.firstName}, you've been invited to join ${vars.firmName} on Tempo Books. <a href="${vars.signUpUrl}">Accept invitation</a></p>`;
@@ -351,5 +400,11 @@ export class EmailService {
   }
   private cancellationFallback(vars: any): string {
     return `<p>Your ${vars.planName} subscription has been cancelled. Access ends ${vars.accessEndDate}. <a href="${vars.resubscribeUrl}">Resubscribe</a></p>`;
+  }
+  private mbgReceiptFallback(vars: MbgReceiptTemplateVars): string {
+    return `<p>Hi ${vars.firstName}, your ${vars.planName} subscription is active. You've been charged ${vars.amountCharged}. 30-day money-back guarantee runs through ${vars.mbgEndDate}. <a href="${vars.portalUrl}">Dashboard</a></p>`;
+  }
+  private trialExpiredReadonlyFallback(vars: TrialExpiredReadonlyTemplateVars): string {
+    return `<p>Hi ${vars.firstName}, your trial has ended and your account is in read-only mode. Data preserved until ${vars.archiveDate}. <a href="${vars.reactivationUrl}">Subscribe to restore access</a></p>`;
   }
 }

@@ -545,6 +545,33 @@ export class BillingService {
       ' card_collected: yes' +
       ' mbg_ends_at: ' + (mbgEndsAtFromMeta ? mbgEndsAtFromMeta.toISOString() : 'none'),
     );
+
+    // Phase 27.2 A-8: send MBG receipt email for Accountant Monthly signups.
+    // Fires only for trial_type='mbg_30d' (Accountant Monthly specifically).
+    // Accountant Annual (trial_type='none') does not receive this email.
+    if (
+      trialTypeFromMeta === 'mbg_30d' &&
+      customerEmail &&
+      mbgEndsAtFromMeta
+    ) {
+      try {
+        const frontendUrl = process.env.FRONTEND_URL || 'https://gettempo.ca';
+        const amountCharged = monthlyAmountCents !== null
+          ? formatAmount(monthlyAmountCents, 'cad')
+          : 'your subscription amount';
+        await this.emailService.sendMbgReceipt(customerEmail, {
+          firstName:     'there',
+          planName:      'Accountant Monthly',
+          amountCharged,
+          mbgEndDate:    formatDate(mbgEndsAtFromMeta),
+          portalUrl:     frontendUrl + '/settings/billing',
+        });
+      } catch (err: any) {
+        this.logger.warn(
+          `MBG receipt email failed for ${businessId}: ${err?.message ?? err}`,
+        );
+      }
+    }
   }
 
   /**

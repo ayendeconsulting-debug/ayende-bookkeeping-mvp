@@ -241,6 +241,33 @@ export class TrialMonitorProcessor extends WorkerHost {
         this.logger.log(
           `Trial expired -> readonly | business: ${sub.business_id} | trial_ended_at: ${sub.trial_ends_at?.toISOString()}`,
         );
+
+        // Phase 27.2 A-8: notify user of trial expiration if we have their email.
+        // customer_email is null for Starter/Pro no-card trials (never hit Stripe
+        // checkout). D-12-B: skip silently, the user still sees the readonly
+        // banner in-app.
+        if (sub.customer_email) {
+          try {
+            const archiveDate = new Date(
+              now.getTime() + READONLY_ARCHIVE_WINDOW_DAYS * 24 * 60 * 60 * 1000,
+            );
+            await this.emailService.sendTrialExpiredReadonly(sub.customer_email, {
+              firstName: 'there',
+              archiveDate: archiveDate.toLocaleDateString('en-CA', {
+                year: 'numeric', month: 'long', day: 'numeric',
+              }),
+              reactivationUrl: (process.env.FRONTEND_URL || 'https://gettempo.ca') + '/pricing',
+            });
+          } catch (emailErr: any) {
+            this.logger.warn(
+              `Trial expired readonly email failed for ${sub.business_id}: ${emailErr?.message ?? emailErr}`,
+            );
+          }
+        } else {
+          this.logger.log(
+            `Trial expired readonly email skipped - no customer_email on business ${sub.business_id} (Starter/Pro no-card trial)`,
+          );
+        }
       } catch (err: any) {
         this.logger.error(
           `Trial expiration transition failed for ${sub.business_id}: ${err?.message ?? err}`,
