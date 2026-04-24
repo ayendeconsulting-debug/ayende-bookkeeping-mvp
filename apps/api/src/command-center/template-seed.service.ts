@@ -315,8 +315,7 @@ const TEMPLATES: SeedTemplate[] = [
       You started setting up your Tempo subscription but didn\u2019t quite finish.
     </p>
     <p style="margin:0 0 28px;font-size:16px;color:#333333;line-height:1.6;">
-      Your books are waiting. Pick up where you left off \u2014 your free 60-day trial is still
-      available, with no charge until the trial ends.
+      Your books are waiting. Pick up where you left off in just a couple of clicks.
     </p>
     ${cta('Complete your setup \u2192', '{{checkout_url}}')}
     <p style="margin:0;font-size:13px;color:#aaaaaa;">This link expires in 24 hours.</p>
@@ -581,8 +580,8 @@ const TEMPLATES: SeedTemplate[] = [
       our team will be in touch within one business day to walk you through the platform personally.
     </p>
     <p style="margin:0 0 24px;font-size:16px;color:#333333;line-height:1.6;">
-      In the meantime, you\u2019re welcome to start your free 60-day trial immediately.
-      A card is required to start \u2014 you won\u2019t be charged until your 60-day trial ends.
+      In the meantime, you\u2019re welcome to get started \u2014 every plan has a free trial or
+      money-back guarantee, and Starter and Pro don\u2019t require a credit card.
     </p>
     ${cta('Start free trial \u2192', 'https://gettempo.ca/sign-up')}
     <p style="margin:0;font-size:15px;color:#555555;">
@@ -650,10 +649,10 @@ const TEMPLATES: SeedTemplate[] = [
       </td></tr>
     </table>
 
-    ${cta('Start your free 60-day trial \u2192', 'https://gettempo.ca/sign-up')}
+    ${cta('Start your free trial \u2192', 'https://gettempo.ca/sign-up')}
 
     <p style="margin:-16px 0 24px;font-size:13px;color:#888888;font-style:italic;">
-      A card is required to start \u2014 you won\u2019t be charged until your 60-day trial ends.
+      No credit card required for Starter and Pro. Accountant plans include a 30-day money-back guarantee.
     </p>
 
     <p style="margin:0;font-size:15px;color:#555555;">
@@ -1053,6 +1052,10 @@ const TEMPLATES: SeedTemplate[] = [
 
 // -- Templates that must be force-updated on every deploy -------------------
 const FORCE_UPDATE_NAMES = new Set<string>([
+  'signup_welcome',
+  'trial_ending',
+  'payment_failed',
+  'abandoned_cart',
   'cold_outreach',
   'lead_acknowledgement',
   'partnership_mission_fund',
