@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
-import { CheckCircle2, ArrowRight, Zap, Sparkles, Loader2, Calculator } from 'lucide-react';
+import { CheckCircle2, ArrowRight, Zap, Sparkles, Loader2, Calculator, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { createCheckoutSession } from './checkout-actions';
 
 const REGULAR_PRICES = { starter: 19, pro: 49 };
@@ -194,13 +194,9 @@ export function PricingCards() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const { isSignedIn }          = useAuth();
   const router                  = useRouter();
+  const [showAnnualConfirm, setShowAnnualConfirm] = useState(false);
 
-  async function handleCta(planKey: string) {
-    setErrorMsg(null);
-    if (!isSignedIn) {
-      router.push('/sign-up');
-      return;
-    }
+  async function proceedToCheckout(planKey: string) {
     setLoading(planKey);
     try {
       const result = await createCheckoutSession(planKey, annual ? 'annual' : 'monthly');
@@ -209,6 +205,19 @@ export function PricingCards() {
     } finally {
       setLoading(null);
     }
+  }
+
+  function handleCta(planKey: string) {
+    setErrorMsg(null);
+    if (!isSignedIn) {
+      router.push('/sign-up');
+      return;
+    }
+    if (planKey === 'accountant' && annual) {
+      setShowAnnualConfirm(true);
+      return;
+    }
+    void proceedToCheckout(planKey);
   }
 
   return (
@@ -294,7 +303,7 @@ export function PricingCards() {
                 disabled={loading !== null}
                 className={['inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed', plan.highlight ? 'bg-[#0F6E56] text-white hover:bg-[#085041]' : 'border-2 border-[#0F6E56] text-[#0F6E56] hover:bg-[#EDF7F2] dark:hover:bg-primary/10'].join(' ')}
               >
-                {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" />Setting up...</> : <>Start free trial <ArrowRight className="w-4 h-4" /></>}
+                {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" />Setting up...</> : <>Start free trial — no credit card <ArrowRight className="w-4 h-4" /></>}
               </button>
             </div>
           );
@@ -308,6 +317,19 @@ export function PricingCards() {
           <div className="flex flex-col">
             <p className="text-base font-bold text-foreground mb-1">Accountant</p>
             <p className="text-xs text-muted-foreground mb-4">For accounting firms managing multiple clients</p>
+
+            {/* Safety-net badge — switches with annual toggle */}
+            {annual ? (
+              <div className="inline-flex self-start items-center gap-1.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-300/60 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-medium px-3 py-1 rounded-full mb-3">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                12-month commitment · non-refundable
+              </div>
+            ) : (
+              <div className="inline-flex self-start items-center gap-1.5 bg-[#EDF7F2] dark:bg-primary/10 border border-[#C3E8D8] dark:border-primary/30 text-[#0F6E56] text-xs font-medium px-3 py-1 rounded-full mb-3">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                30-day money-back guarantee
+              </div>
+            )}
 
             {/* 3-part pricing */}
             <div className="space-y-2 mb-4">
@@ -345,7 +367,7 @@ export function PricingCards() {
                 'Client onboarding wizard',
                 'Staff seat management',
                 'Metered billing — pay for what you use',
-                'Free trial included',
+                '30-day money-back guarantee (monthly plan)',
                 'Dedicated support',
               ].map((f) => (
                 <li key={f} className="flex items-start gap-2.5 text-sm text-foreground">
@@ -360,7 +382,7 @@ export function PricingCards() {
               disabled={loading !== null}
               className="inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl border-2 border-[#0F6E56] text-[#0F6E56] hover:bg-[#EDF7F2] dark:hover:bg-primary/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {loading === 'accountant' ? <><Loader2 className="w-4 h-4 animate-spin" />Setting up...</> : <>Start free trial <ArrowRight className="w-4 h-4" /></>}
+              {loading === 'accountant' ? <><Loader2 className="w-4 h-4 animate-spin" />Setting up...</> : <>{annual ? 'Subscribe — 12-month commitment' : 'Subscribe — 30-day money-back guarantee'} <ArrowRight className="w-4 h-4" /></>}
             </button>
           </div>
 
@@ -371,12 +393,18 @@ export function PricingCards() {
         </div>
       </div>
 
-      {/* Trial note */}
+      {/* Trial / commitment note — plan-specific */}
       <div className="text-center space-y-1">
         <p className="text-sm text-muted-foreground">
-          All plans include a <strong className="text-foreground">free trial</strong>. Card required — no charge during trial.
+          <strong className="text-foreground">Starter &amp; Pro:</strong> 14-day free trial · no credit card required.
         </p>
-        <p className="text-xs text-muted-foreground">No action needed after trial — you will automatically continue on Starter. Cancel anytime.</p>
+        <p className="text-sm text-muted-foreground">
+          <strong className="text-foreground">Accountant Monthly:</strong> 30-day money-back guarantee · billed at signup.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <strong className="text-foreground">Accountant Annual:</strong> 12-month commitment · non-refundable.
+        </p>
+        <p className="text-xs text-muted-foreground mt-2">Cancel anytime from Billing settings.</p>
       </div>
 
       {/* AI value prop */}
@@ -424,6 +452,44 @@ export function PricingCards() {
           </table>
         </div>
       </div>
+
+      {/* Annual commitment confirmation modal */}
+      {showAnnualConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="bg-card rounded-2xl border border-border max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                <ShieldAlert className="w-5 h-5 text-amber-700 dark:text-amber-300" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Confirm annual commitment</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Please review before continuing</p>
+              </div>
+            </div>
+            <div className="space-y-3 text-sm text-muted-foreground mb-6">
+              <p>The annual Accountant plan is a <strong className="text-foreground">12-month commitment</strong> and is <strong className="text-foreground">non-refundable</strong>.</p>
+              <p>The 30-day money-back guarantee applies to the monthly plan only.</p>
+              <p>You will be charged <strong className="text-foreground">$1,490 CAD</strong> today and will not be billed again for 12 months.</p>
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowAnnualConfirm(false)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowAnnualConfirm(false); void proceedToCheckout('accountant'); }}
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#0F6E56] text-white hover:bg-[#085041] transition-colors"
+              >
+                Yes, subscribe for 12 months
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
