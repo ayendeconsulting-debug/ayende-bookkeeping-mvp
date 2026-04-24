@@ -659,7 +659,15 @@ export default function OnboardingPage() {
               <h2 className="text-base font-semibold text-foreground">Choose your plan</h2>
             </div>
             <p className="text-sm text-muted-foreground">
-              Start your <strong className="text-foreground">60-day free trial</strong> — no charge until your trial ends. Cancel anytime.
+              {selectedPlan === 'accountant' && billingCycle === 'monthly' && (
+                <>Subscribe now &mdash; <strong className="text-foreground">30-day money-back guarantee</strong>. Full refund within 30 days, no questions asked.</>
+              )}
+              {selectedPlan === 'accountant' && billingCycle === 'annual' && (
+                <>Annual commitment &mdash; <strong className="text-foreground">12-month non-refundable plan</strong>. Choose monthly for the 30-day money-back guarantee.</>
+              )}
+              {selectedPlan !== 'accountant' && (
+                <>Start your <strong className="text-foreground">14-day free trial</strong> &mdash; no credit card required. Cancel anytime.</>
+              )}
             </p>
 
             <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit">
@@ -725,11 +733,17 @@ export default function OnboardingPage() {
               <Button variant="outline" onClick={() => setStep(5)} disabled={isPending}>Back</Button>
               <Button onClick={handleStep6} disabled={isPending} className="flex items-center gap-2">
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Start Free Trial <ChevronRight className="w-4 h-4" />
+                {selectedPlan === 'accountant'
+                  ? <>Subscribe <ChevronRight className="w-4 h-4" /></>
+                  : <>Start Free Trial <ChevronRight className="w-4 h-4" /></>
+                }
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              You&apos;ll be redirected to Stripe to securely enter your payment details. No charge for 60 days.
+              {selectedPlan === 'accountant'
+                ? "You'll be redirected to Stripe to securely enter your payment details. Your card will be charged immediately."
+                : "No credit card required. We'll start your 14-day trial and take you to your dashboard."
+              }
             </p>
           </div>
         )}
