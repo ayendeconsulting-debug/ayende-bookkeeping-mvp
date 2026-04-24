@@ -257,18 +257,27 @@ export class EmailService {
   async sendTrialReminderCron(to: string, vars: {
     daysRemaining: number; trialEndDate: string; portalUrl: string;
   }): Promise<void> {
-    const urgency       = vars.daysRemaining <= 3;
-    const accentColour  = urgency ? '#dc2626' : '#E07B39';
-    const dayText       = vars.daysRemaining === 1 ? '1 day' : `${vars.daysRemaining} days`;
-    const reminderSubject = vars.daysRemaining === 1
-      ? 'Your Tempo Books trial ends tomorrow'
-      : `Your Tempo Books trial ends in ${dayText}`;
+    // Phase 27.2 A-9: day-0 case rewritten to read grammatically.
+    // body_text now pre-renders the full sentence with inline accent colour
+    // so the template body doesn't need conditional rendering logic.
+    const accent = '#dc2626'; // urgency red - all thresholds (3, 1, 0) are inside the urgency window
+    let reminderSubject: string;
+    let bodyText:        string;
+
+    if (vars.daysRemaining === 0) {
+      reminderSubject = 'Your Tempo Books trial ends today';
+      bodyText = `Your Tempo Books free trial ends <strong style="color:${accent};">today</strong>. To keep uninterrupted access to your books, reports, and bank sync, update your payment method now.`;
+    } else if (vars.daysRemaining === 1) {
+      reminderSubject = 'Your Tempo Books trial ends tomorrow';
+      bodyText = `Your Tempo Books free trial ends <strong style="color:${accent};">tomorrow</strong> on ${vars.trialEndDate}. To keep uninterrupted access to your books, reports, and bank sync, update your payment method before then.`;
+    } else {
+      reminderSubject = `Your Tempo Books trial ends in ${vars.daysRemaining} days`;
+      bodyText = `Your Tempo Books free trial ends in <strong style="color:${accent};">${vars.daysRemaining} days</strong> on ${vars.trialEndDate}. To keep uninterrupted access to your books, reports, and bank sync, update your payment method before then.`;
+    }
 
     const sent = await this.emailTemplatesService.sendFromTemplate('trial_reminder_cron', to, {
       reminder_subject: reminderSubject,
-      day_text:         dayText,
-      trial_end_date:   vars.trialEndDate,
-      accent_colour:    accentColour,
+      body_text:        bodyText,
       portal_url:       vars.portalUrl,
     });
     if (!sent) {

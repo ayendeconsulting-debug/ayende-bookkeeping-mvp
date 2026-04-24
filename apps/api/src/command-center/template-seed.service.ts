@@ -477,23 +477,16 @@ const TEMPLATES: SeedTemplate[] = [
   // 10 -- trial_reminder_cron ------------------------------------------------
   {
     name:        'trial_reminder_cron',
-    description: 'CRON-triggered trial reminder \u2014 reminder_subject, day_text, accent_colour pre-rendered',
+    description: 'Phase 27.2 A-9 - CRON trial reminder, body_text pre-rendered for day 0/1/N',
     subject:     '{{reminder_subject}}',
     from_email:  'noreply@gettempo.ca',
     from_name:   'Tempo Books',
-    variables:   ['reminder_subject', 'day_text', 'trial_end_date', 'accent_colour', 'portal_url'],
+    variables:   ['reminder_subject', 'body_text', 'portal_url'],
     html_body: wrap(`
   ${hero('Your Tempo Books free trial is ending soon.')}
   <tr><td style="padding:36px 40px;">
     <p style="margin:0 0 16px;font-size:16px;color:#111827;">Hi there,</p>
-    <p style="margin:0 0 16px;font-size:16px;color:#374151;">
-      Your Tempo Books free trial ends in <strong style="color:{{accent_colour}};">{{day_text}}</strong>
-      on {{trial_end_date}}.
-    </p>
-    <p style="margin:0 0 32px;font-size:16px;color:#374151;">
-      To keep uninterrupted access to your books, reports, and bank sync, make sure your payment method
-      is up to date before your trial ends.
-    </p>
+    <p style="margin:0 0 32px;font-size:16px;color:#374151;">{{body_text}}</p>
     ${cta('Manage Subscription \u2192', '{{portal_url}}')}
     <p style="margin:0;font-size:14px;color:#6b7280;">Questions? Reply to this email and we\u2019ll help you out.</p>
   </td></tr>`),
@@ -1174,6 +1167,7 @@ const FORCE_UPDATE_NAMES = new Set<string>([
   'mbg_receipt',
   'refund_processed',
   'trial_expired_readonly',
+  'trial_reminder_cron',
   'cold_outreach',
   'lead_acknowledgement',
   'partnership_mission_fund',

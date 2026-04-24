@@ -140,11 +140,16 @@ export class TrialMonitorProcessor extends WorkerHost {
   private async processSubscription(sub: Subscription): Promise<boolean> {
     if (!sub.trial_ends_at) return false;
     if (!sub.customer_email) return false;
+    // Phase 27.2 A-9: tight gate - only no-card 14-day trials get the new
+    // cadence. Legacy rows (trial_type IS NULL or other) are immune.
+    if (sub.trial_type !== 'no_card_14d') return false;
 
     const msRemaining   = sub.trial_ends_at.getTime() - Date.now();
     const daysRemaining = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
 
-    const thresholds = [14, 7, 3, 1];
+    // Phase 27.2 A-9: new cadence for 14-day no-card trials
+    // (old cadence was [14, 7, 3, 1] for 60-day trials with card).
+    const thresholds = [3, 1, 0];
     if (!thresholds.includes(daysRemaining)) return false;
 
     const threshold   = daysRemaining.toString();
@@ -173,11 +178,14 @@ export class TrialMonitorProcessor extends WorkerHost {
     try {
       const business = await this.businessesService.findById(sub.business_id);
       if (business.expo_push_token) {
-        const plural = daysRemaining === 1 ? '' : 's';
+        // Phase 27.2 A-9: day-0 gets a distinct message instead of "in 0 days".
+        const pushBody = daysRemaining === 0
+          ? 'Your Tempo Books trial ends today. Add a payment method to keep going.'
+          : `Your trial ends in ${daysRemaining} day${daysRemaining === 1 ? '' : 's'}. Add a payment method to keep going.`;
         void this.expoPushService.send([{
           to: business.expo_push_token,
           title: 'Tempo Books',
-          body: `Your trial ends in ${daysRemaining} day${plural}. Add a payment method to keep going.`,
+          body: pushBody,
           data: { type: 'trial_ending', daysLeft: daysRemaining },
           sound: 'default',
           _businessId: business.id,
