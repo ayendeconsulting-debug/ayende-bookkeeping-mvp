@@ -16,7 +16,7 @@ import { CreateCheckoutSessionDto } from './dto/billing.dto';
 import { EmailService } from '../email/email.service';
 import { ReferralsService } from '../referrals/referrals.service';
 
-// ── Price ID helpers ──────────────────────────────────────────────────────────
+// -- Price ID helpers --------------------------------------------------------
 function getPriceId(
   plan: 'starter' | 'pro' | 'accountant',
   cycle: 'monthly' | 'annual',
@@ -101,7 +101,7 @@ function computeMonthlyAmountCents(price: Stripe.Price | undefined): number {
   return interval === 'year' ? Math.round(unitAmount / 12) : unitAmount;
 }
 
-// ── Service ───────────────────────────────────────────────────────────────────
+// -- Service -----------------------------------------------------------------
 @Injectable()
 export class BillingService {
   private readonly logger = new Logger(BillingService.name);
@@ -115,21 +115,121 @@ export class BillingService {
   ) {
     const secretKey = process.env.STRIPE_SECRET_KEY;
     if (!secretKey) {
-      this.logger.warn('STRIPE_SECRET_KEY not set – billing features disabled');
+      this.logger.warn('STRIPE_SECRET_KEY not set - billing features disabled');
     }
     this.stripe = new Stripe(secretKey ?? 'sk_test_placeholder', {
       apiVersion: '2023-10-16',
     });
   }
 
+  // ==========================================================================
+  // Phase 27.2 A-2: createCheckoutSession is now a router by plan tier.
+  //
+  // Starter/Pro -> createTrialSubscriptionRecord() : no Stripe, local 14-day trial
+  // Accountant  -> buildAccountantCheckoutSession() : Stripe Checkout, immediate billing
+  //
+  // Both pipelines return { url } so the controller and frontend callers
+  // are unchanged. For the no-card trial pipeline the URL skips Stripe and
+  // points directly to the success page with ?trial=true.
+  // ==========================================================================
   async createCheckoutSession(
+    businessId: string,
+    userId: string,
+    dto: CreateCheckoutSessionDto,
+  ): Promise<{ url: string }> {
+    if (dto.plan === 'accountant') {
+      return this.buildAccountantCheckoutSession(businessId, userId, dto);
+    }
+    return this.createTrialSubscriptionRecord(businessId, userId, dto);
+  }
+
+  /**
+   * Phase 27.2 A-2 : No-card 14-day trial pipeline (Starter, Pro).
+   *
+   * Creates or updates a subscriptions row with trial_type='no_card_14d'.
+   * No Stripe customer, no Stripe subscription. Billing is deferred until
+   * the user explicitly subscribes via the in-app trial banner or settings.
+   *
+   * Idempotent behaviour: if a prior subscription row exists (legacy 60-day
+   * trial, cancelled, or partial state), we reset it to a fresh 14-day trial
+   * with all Phase 27.2 columns cleared. Stripe linkage is explicitly nulled.
+   */
+  private async createTrialSubscriptionRecord(
+    businessId: string,
+    userId: string,
+    dto: CreateCheckoutSessionDto,
+  ): Promise<{ url: string }> {
+    const frontendUrl = process.env.FRONTEND_URL || 'https://gettempo.ca';
+    const now         = new Date();
+    const trialEndsAt = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+    const existing = await this.subscriptionRepo.findOne({
+      where: { business_id: businessId },
+    });
+
+    if (existing) {
+      await this.subscriptionRepo.update(existing.id, {
+        plan:                   dto.plan,
+        billing_cycle:          dto.billing_cycle,
+        status:                 'trialing',
+        trial_type:             'no_card_14d',
+        trial_ends_at:          trialEndsAt,
+        trial_reminder_sent_at: null,
+        // Fresh trial: clear any prior Stripe linkage and Phase 27.2 state
+        stripe_customer_id:     null,
+        stripe_subscription_id: null,
+        card_collected_at:      null,
+        mbg_ends_at:            null,
+        readonly_started_at:    null,
+        archived_at:            null,
+        currency:               'cad',
+      });
+    } else {
+      await this.subscriptionRepo.save(
+        this.subscriptionRepo.create({
+          business_id:   businessId,
+          plan:          dto.plan,
+          billing_cycle: dto.billing_cycle,
+          status:        'trialing',
+          trial_type:    'no_card_14d',
+          trial_ends_at: trialEndsAt,
+          currency:      'cad',
+        }),
+      );
+    }
+
+    this.logger.log(
+      'No-card trial started - business: ' + businessId +
+      ' plan: ' + dto.plan + ' cycle: ' + dto.billing_cycle +
+      ' user: ' + userId +
+      ' ends: ' + trialEndsAt.toISOString(),
+    );
+
+    // The frontend redirects to this URL. The success page will be updated
+    // in A-11 to render trial-specific copy when ?trial=true is present.
+    return { url: frontendUrl + '/billing/success?trial=true' };
+  }
+
+  /**
+   * Phase 27.2 A-2 : Accountant paid pipeline (Accountant monthly, annual).
+   *
+   * Stripe Checkout with immediate billing - no trial_period_days.
+   * Subscription metadata carries Phase 27.2 safety-net signals:
+   *   - monthly : trial_type='mbg_30d', mbg_starts_at, mbg_ends_at
+   *   - annual  : trial_type='none',    is_annual_commitment='true'
+   *
+   * A-6 webhook updates will harvest this metadata into the local row.
+   *
+   * Launch coupon (STRIPE_LAUNCH_COUPON_ID) is Starter/Pro only per the
+   * Pricing Amendment v1.0 - not applied to Accountant.
+   */
+  private async buildAccountantCheckoutSession(
     businessId: string,
     userId: string,
     dto: CreateCheckoutSessionDto,
   ): Promise<{ url: string }> {
     const frontendUrl = process.env.FRONTEND_URL || 'https://gettempo.ca';
     const priceId     = getPriceId(dto.plan, dto.billing_cycle);
-    const couponId    = process.env.STRIPE_LAUNCH_COUPON_ID;
 
     let customerId: string | undefined;
     const existing = await this.subscriptionRepo.findOne({
@@ -144,19 +244,34 @@ export class BillingService {
       customerId = customer.id;
     }
 
+    const now       = new Date();
+    const mbgEndsAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    // Metadata written onto the Stripe Subscription object itself.
+    // A-6 webhook reads these and persists to the local subscriptions row.
+    const subMetadata: Record<string, string> = {
+      business_id:   businessId,
+      clerk_user_id: userId,
+      plan:          dto.plan,
+      billing_cycle: dto.billing_cycle,
+    };
+    if (dto.billing_cycle === 'monthly') {
+      subMetadata.trial_type    = 'mbg_30d';
+      subMetadata.mbg_starts_at = now.toISOString();
+      subMetadata.mbg_ends_at   = mbgEndsAt.toISOString();
+    } else {
+      // Annual Accountant: non-refundable 12-month commitment.
+      subMetadata.trial_type            = 'none';
+      subMetadata.is_annual_commitment  = 'true';
+    }
+
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      mode: 'subscription',
-      payment_method_collection: 'always',
+      mode:     'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
+      // No trial_period_days - card is charged immediately on checkout completion.
       subscription_data: {
-        trial_period_days: 60,
-        metadata: {
-          business_id:   businessId,
-          clerk_user_id: userId,
-          plan:          dto.plan,
-          billing_cycle: dto.billing_cycle,
-        },
+        metadata: subMetadata,
       },
       metadata: {
         business_id:   businessId,
@@ -166,19 +281,37 @@ export class BillingService {
       },
       success_url: frontendUrl + '/billing/success?session_id={CHECKOUT_SESSION_ID}',
       cancel_url:  frontendUrl + '/pricing',
-      currency: 'cad',
+      currency:    'cad',
     };
-
-    if (couponId) {
-      sessionParams.discounts = [{ coupon: couponId }];
-    }
 
     const session = await this.stripe.checkout.sessions.create(sessionParams);
     if (!session.url) {
       throw new InternalServerErrorException('Failed to create Stripe Checkout session');
     }
+
+    this.logger.log(
+      'Accountant checkout created - business: ' + businessId +
+      ' cycle: ' + dto.billing_cycle +
+      ' mbg: ' + (dto.billing_cycle === 'monthly' ? 'yes' : 'no'),
+    );
+
     return { url: session.url };
   }
+
+  // ==========================================================================
+  // Unchanged from pre-Phase-27.2 version below.
+  //
+  // The webhook handlers still hardcode status='trialing' when a subscription
+  // is created. That is correct for legacy 60-day trials but WRONG for the
+  // new Accountant direct-paid flow. A-6 (SRD v27.2 Workstream A) will fix
+  // handleCheckoutCompleted() and related handlers to honour trial_type
+  // metadata and set status='active' for Accountant signups.
+  //
+  // In the window between A-2 deploy and A-6 deploy, any real Accountant
+  // signup would produce a subscription row with status='trialing' and
+  // trial_ends_at=null. Since no real Accountant users are in production
+  // during this window (founder testing only), this is a known bounded gap.
+  // ==========================================================================
 
   async createPortalSession(
     businessId: string,
@@ -276,7 +409,7 @@ export class BillingService {
     }
   }
 
-  // ── Webhook handlers ──────────────────────────────────────────────────────
+  // -- Webhook handlers -------------------------------------------------------
 
   private async handleCheckoutCompleted(
     session: Stripe.Checkout.Session,
@@ -339,19 +472,19 @@ export class BillingService {
         }),
       );
     }
-    this.logger.log('Subscription created – business: ' + businessId + ' plan: ' + plan);
+    this.logger.log('Subscription created - business: ' + businessId + ' plan: ' + plan);
   }
 
   private async handleCheckoutExpired(
     session: Stripe.Checkout.Session,
   ): Promise<void> {
     if (process.env.NODE_ENV !== 'production') {
-      this.logger.log('checkout.session.expired – skipping abandoned cart email in non-production');
+      this.logger.log('checkout.session.expired - skipping abandoned cart email in non-production');
       return;
     }
     const customerEmail = session.customer_details?.email ?? session.customer_email;
     if (!customerEmail) {
-      this.logger.warn('checkout.session.expired – no customer email, skipping abandoned cart');
+      this.logger.warn('checkout.session.expired - no customer email, skipping abandoned cart');
       return;
     }
     const originalPriceId = session.line_items?.data?.[0]?.price?.id
@@ -370,7 +503,7 @@ export class BillingService {
       });
       if (newSession.url) {
         void this.emailService.sendAbandonedCart(customerEmail, { checkoutUrl: newSession.url });
-        this.logger.log('Abandoned cart email sent → ' + customerEmail);
+        this.logger.log('Abandoned cart email sent -> ' + customerEmail);
       }
     } catch (err) {
       this.logger.error('Failed to create abandoned cart checkout session', err);
@@ -393,7 +526,7 @@ export class BillingService {
       { business_id: businessId },
       { plan, status, trial_ends_at: trialEnd, current_period_end: periodEnd, monthly_amount_cents: monthlyAmountCents },
     );
-    this.logger.log('Subscription updated – business: ' + businessId + ' plan: ' + plan + ' status: ' + status);
+    this.logger.log('Subscription updated - business: ' + businessId + ' plan: ' + plan + ' status: ' + status);
   }
 
   private async handleSubscriptionDeleted(
@@ -402,7 +535,7 @@ export class BillingService {
     const businessId = stripeSub.metadata?.business_id;
     if (!businessId) return;
     await this.subscriptionRepo.update({ business_id: businessId }, { status: 'cancelled' });
-    this.logger.log('Subscription cancelled – business: ' + businessId);
+    this.logger.log('Subscription cancelled - business: ' + businessId);
 
     // Phase 13: send cancellation confirmation email
     try {
@@ -431,7 +564,7 @@ export class BillingService {
     const customerId = invoice.customer as string;
     if (!customerId) return;
     await this.subscriptionRepo.update({ stripe_customer_id: customerId }, { status: 'past_due' });
-    this.logger.log('Payment failed – Stripe customer: ' + customerId);
+    this.logger.log('Payment failed - Stripe customer: ' + customerId);
     try {
       const customer = await this.stripe.customers.retrieve(customerId);
       if (customer.deleted) return;
@@ -456,7 +589,7 @@ export class BillingService {
     }
   }
 
-  // ── Phase 26: invoice.payment_succeeded – referral commission accrual ──────
+  // Phase 26: invoice.payment_succeeded - referral commission accrual
   private async handlePaymentSucceeded(invoice: Stripe.Invoice): Promise<void> {
     const customerId = invoice.customer as string;
     if (!customerId) return;
@@ -485,7 +618,7 @@ export class BillingService {
     }
   }
 
-  // ── Phase 13: invoice.upcoming – send renewal reminder ───────────────────
+  // Phase 13: invoice.upcoming - send renewal reminder
   private async handleInvoiceUpcoming(invoice: Stripe.Invoice): Promise<void> {
     const customerId = invoice.customer as string;
     if (!customerId) return;
@@ -506,13 +639,13 @@ export class BillingService {
         planName:    planLabel(subscription?.plan ?? 'starter'),
         portalUrl:   frontendUrl + '/settings',
       });
-      this.logger.log('Upcoming payment email sent → ' + email);
+      this.logger.log('Upcoming payment email sent -> ' + email);
     } catch (err) {
       this.logger.error('Failed to send upcoming payment email', err);
     }
   }
 
-  // ── Phase 10: invoice.updated ─────────────────────────────────────────────
+  // Phase 10: invoice.updated
   private async handleInvoiceUpdated(invoice: Stripe.Invoice): Promise<void> {
     if (invoice.status !== 'open' && invoice.status !== 'paid') return;
     const customerId = invoice.customer as string;
@@ -521,7 +654,7 @@ export class BillingService {
     const meteredLines = lineItems.filter((l) => l.type === 'invoiceitem' || l.proration === false);
     if (meteredLines.length === 0) return;
     this.logger.log(
-      'invoice.updated – customer: ' + customerId +
+      'invoice.updated - customer: ' + customerId +
       ' status: ' + invoice.status +
       ' amount: ' + invoice.amount_due +
       ' lines: ' + meteredLines.length,
@@ -534,7 +667,7 @@ export class BillingService {
     const businessId = stripeSub.metadata?.business_id;
     const trialEnd   = stripeSub.trial_end ? new Date(stripeSub.trial_end * 1000) : null;
     this.logger.log(
-      'Trial ending soon – business: ' + (businessId ?? 'unknown') +
+      'Trial ending soon - business: ' + (businessId ?? 'unknown') +
       ' ends: ' + (trialEnd?.toISOString() ?? 'unknown'),
     );
     if (!trialEnd) return;
@@ -542,7 +675,7 @@ export class BillingService {
     const daysRemaining = Math.max(0, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)));
     const validThresholds = [14, 3, 0];
     if (!validThresholds.includes(daysRemaining)) {
-      this.logger.log('Trial ending in ' + daysRemaining + ' days – no email threshold matched, skipping');
+      this.logger.log('Trial ending in ' + daysRemaining + ' days - no email threshold matched, skipping');
       return;
     }
     try {
@@ -577,13 +710,13 @@ export class BillingService {
         billingCycle,
         portalUrl,
       });
-      this.logger.log('Trial ending email (' + daysRemaining + 'd) sent → ' + email);
+      this.logger.log('Trial ending email (' + daysRemaining + 'd) sent -> ' + email);
     } catch (err) {
       this.logger.error('Failed to send trial ending email', err);
     }
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
+  // -- Helpers ----------------------------------------------------------------
 
   private mapStripeStatus(
     stripeStatus: Stripe.Subscription.Status,
