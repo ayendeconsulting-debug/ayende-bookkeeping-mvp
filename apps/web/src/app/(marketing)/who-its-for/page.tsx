@@ -6,15 +6,15 @@ import { PersonaRail } from './persona-rail';
 import { ComparisonTable } from './comparison-table';
 
 export const metadata: Metadata = {
-  title: "Who it's for — Tempo Bookkeeping",
+  title: "Who it's for \u2014 Tempo Bookkeeping",
   description:
-    'One product. Built for how you actually work — whether you run a business, freelance, manage personal finances, or handle client books.',
+    'One product. Built for how you actually work \u2014 whether you run a business, freelance, manage personal finances, or handle client books.',
 };
 
 const SEGMENT_DETAILS = [
   {
     id: 'business',
-    emoji: '🏢',
+    emoji: '\uD83C\uDFE2',
     title: 'For Business Owners',
     tagline: 'Tax-ready books. Every single month.',
     pain: 'Most small business owners spend the last two weeks of March in a panic &mdash; hunting receipts, untangling transactions, and paying their accountant to fix what should have been right all year.',
@@ -31,41 +31,43 @@ const SEGMENT_DETAILS = [
   },
   {
     id: 'freelancer',
-    emoji: '💼',
-    title: 'For Freelancers & Sole Proprietors',
+    emoji: '\uD83D\uDCBC',
+    title: 'For Freelancers, Uber Drivers & Sole Proprietors',
     tagline: 'Bookkeeping that takes 10 minutes a month.',
-    pain: "You didn't start freelancing to spend your weekends categorizing expenses. Tempo Books handles the accounting so you can focus on the work that actually pays.",
+    pain: "You didn't start driving (or freelancing) to spend your weekends categorizing expenses. Tempo Books handles the accounting so you can focus on the work that actually pays.",
     bullets: [
       'Connect your bank and let Tempo classify every transaction automatically',
       'Split personal and business expenses on the same account &mdash; no separate bank required',
+      'Mileage tracking &mdash; log every km automatically when you connect your bank',
       'HST/GST tracked per transaction, remittance report ready when you need it',
       'Income Statement shows exactly what you earned and what it cost you',
       'AI Transaction Explainer breaks down any charge in plain English',
-      '$10/mo on Starter &mdash; less than one billable hour',
+      '$25/mo on Pro &mdash; less than two billable hours',
     ],
     cta: 'Start your free trial',
     ctaHref: '/sign-up',
   },
   {
     id: 'personal',
-    emoji: '🏠',
+    emoji: '\uD83C\uDFE0',
     title: 'For Personal Finance',
     tagline: 'Finally know where every dollar went.',
-    pain: 'Budgeting apps give you charts. Tempo gives you a real ledger &mdash; the same system accountants use, built for people who want to actually understand their money.',
+    pain: 'Budgeting apps give you charts. Tempo gives you the full picture &mdash; every dollar in, every dollar out, your real net worth, and where you can adjust. Built for people who want to actually understand their money.',
     bullets: [
       'Connect your personal accounts and import all transactions automatically',
-      'Categorize spending by account type &mdash; housing, food, transport, subscriptions',
-      'See a real Income vs Expense view by month, quarter, or year',
-      'Track net worth with a live Balance Sheet of your assets and liabilities',
-      'AI assistant answers plain-language questions about your spending',
-      'Included on the Starter plan &mdash; $10/mo',
+      'Budget tracking &mdash; see where your hard-earned income goes each month',
+      'Savings goal tracking to keep you on plan',
+      'Net worth visibility across your assets and accounts',
+      'Lifestyle adjustment insights &mdash; spot what is worth keeping and what is worth cutting',
+      'Mobile app access so you can check in anywhere',
+      'Included on the Personal plan &mdash; $10/mo',
     ],
     cta: 'Start free &mdash; see your full financial picture in minutes',
     ctaHref: '/sign-up',
   },
   {
     id: 'accountants',
-    emoji: '📊',
+    emoji: '\uD83D\uDCCA',
     title: 'For Accountants & Bookkeeping Firms',
     tagline: 'Your client portal. Your brand. Your workflow.',
     pain: "Switching between client logins, chasing down bank statements, and explaining the same transaction twice &mdash; that's time your firm can't bill for. Tempo Books' Accountant Portal was built to eliminate all of it.",
@@ -195,7 +197,7 @@ export default function WhoItsForPage() {
             Whichever describes you &mdash; start free.
           </h2>
           <p className="text-[#C3E8D8] mb-7 max-w-md mx-auto">
-            14 days free on Starter and Pro. 30-day money-back guarantee on Accountant Monthly.
+            14 days free on Personal and Pro. 30-day money-back guarantee on Accountant Monthly.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link
