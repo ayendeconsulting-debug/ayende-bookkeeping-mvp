@@ -25,6 +25,7 @@ const businessNavItems = [
   { href: '/dashboard',            label: 'Dashboard',     icon: LayoutDashboard },
   { href: '/transactions',         label: 'Transactions',  icon: ArrowLeftRight },
   { href: '/transactions/import',  label: 'Import',        icon: Upload, sub: true },
+  { href: '/transactions/journal-entries', label: 'Journal Entries', icon: BookOpen, sub: true },
   { href: '/invoices',             label: 'Invoices',      icon: FileText },
   { href: '/ar-ap',                label: 'AR / AP',       icon: ArrowRightLeft },
   { href: '/recurring',            label: 'Recurring',     icon: RefreshCw },
@@ -61,6 +62,7 @@ const freelancerItems = [
 const freelancerMainItems = [
   { href: '/transactions',        label: 'Transactions',         icon: ArrowLeftRight },
   { href: '/transactions/import', label: 'Import',               icon: Upload, sub: true },
+  { href: '/transactions/journal-entries', label: 'Journal Entries', icon: BookOpen, sub: true },
   { href: '/rules',               label: 'Classification Rules', icon: Filter },
   { href: '/invoices',            label: 'Invoices',             icon: FileText },
   { href: '/ar-ap',               label: 'AR / AP',              icon: ArrowRightLeft },
@@ -95,6 +97,7 @@ const personalItems = [
   { href: '/personal/reminders',       label: 'Upcoming Payments',   icon: Bell },
   { href: '/transactions',             label: 'Transactions',        icon: ArrowLeftRight },
   { href: '/transactions/import',      label: 'Import',              icon: Upload, sub: true },
+  { href: '/transactions/journal-entries', label: 'Journal Entries',  icon: BookOpen, sub: true },
   { href: '/personal/rules',           label: 'Personal Rules',      icon: Filter },
 ];
 const personalMainItems     = [{ href: '/banks', label: 'Bank Accounts', icon: Building2 }];

@@ -12,6 +12,7 @@ import { TransferModal } from '@/components/transfer-modal';
 import { PersonalCategoryPanel } from '@/components/personal-category-panel';
 import { SimilarTransactionsModal } from '@/components/similar-transactions-modal';
 import { AdminOnly } from '@/components/admin-only';
+import { NewJEButton } from '@/components/manual-je-panel';
 import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
