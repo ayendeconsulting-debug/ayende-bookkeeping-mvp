@@ -107,7 +107,8 @@ export default async function AppLayout({
   // ── Platform admin bypass ──────────────────────────────────────────────────
   // Users with platform_role: 'admin' in Clerk publicMetadata skip all gates.
   // Set via Clerk Dashboard → Users → Public Metadata → { "platform_role": "admin" }
-  const isPlatformAdmin = (sessionClaims as any)?.platform_role === 'admin';
+  const platformRole = (sessionClaims as any)?.platform_role;
+  const isPlatformAdmin = platformRole === 'admin' || platformRole === 'demo';
 
   await provisionBusiness(orgId, orgSlug ?? 'My Business');
 
