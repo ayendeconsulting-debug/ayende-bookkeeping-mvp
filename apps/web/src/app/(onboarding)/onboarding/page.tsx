@@ -18,7 +18,7 @@ import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, ChevronRight, Loader2, Building2, ShieldCheck, Receipt, CreditCard } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Loader2, Building2, ShieldCheck, ShieldAlert, Sparkles, Receipt, CreditCard } from 'lucide-react';
 import { useClerk } from '@clerk/nextjs';
 import { LEGAL_VERSIONS } from '@/lib/legal-versions';
 
@@ -727,6 +727,35 @@ export default function OnboardingPage() {
                 );
               })}
             </div>
+
+            {/* A-11.1: plan-aware safety-net badge above CTA */}
+            {selectedPlan === 'accountant' && billingCycle === 'monthly' && (
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-950/20">
+                <ShieldCheck className="w-5 h-5 text-green-700 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 text-sm">
+                  <p className="font-semibold text-green-700 dark:text-green-400">30-day money-back guarantee</p>
+                  <p className="text-green-700/80 dark:text-green-400/80 mt-0.5">Full refund within 30 days, no questions asked.</p>
+                </div>
+              </div>
+            )}
+            {selectedPlan === 'accountant' && billingCycle === 'annual' && (
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20">
+                <ShieldAlert className="w-5 h-5 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 text-sm">
+                  <p className="font-semibold text-amber-700 dark:text-amber-400">12-month non-refundable commitment</p>
+                  <p className="text-amber-700/80 dark:text-amber-400/80 mt-0.5">Choose monthly to keep the 30-day money-back guarantee.</p>
+                </div>
+              </div>
+            )}
+            {selectedPlan !== 'accountant' && (
+              <div className="flex items-start gap-3 p-4 rounded-xl border border-primary/30 bg-primary-light dark:bg-primary/10">
+                <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                <div className="flex-1 text-sm">
+                  <p className="font-semibold text-primary">14-day free trial</p>
+                  <p className="text-primary/80 mt-0.5">No credit card required. Cancel anytime.</p>
+                </div>
+              </div>
+            )}
 
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="flex items-center gap-2">
