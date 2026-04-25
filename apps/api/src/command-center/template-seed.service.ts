@@ -574,7 +574,7 @@ const TEMPLATES: SeedTemplate[] = [
     </p>
     <p style="margin:0 0 24px;font-size:16px;color:#333333;line-height:1.6;">
       In the meantime, you\u2019re welcome to get started \u2014 every plan has a free trial or
-      money-back guarantee, and Starter and Pro don\u2019t require a credit card.
+      money-back guarantee, and Personal and Pro don\u2019t require a credit card.
     </p>
     ${cta('Start free trial \u2192', 'https://gettempo.ca/sign-up')}
     <p style="margin:0;font-size:15px;color:#555555;">
@@ -645,7 +645,7 @@ const TEMPLATES: SeedTemplate[] = [
     ${cta('Start your free trial \u2192', 'https://gettempo.ca/sign-up')}
 
     <p style="margin:-16px 0 24px;font-size:13px;color:#888888;font-style:italic;">
-      No credit card required for Starter and Pro. Accountant plans include a 30-day money-back guarantee.
+      No credit card required for Personal and Pro. Accountant plans include a 30-day money-back guarantee.
     </p>
 
     <p style="margin:0;font-size:15px;color:#555555;">

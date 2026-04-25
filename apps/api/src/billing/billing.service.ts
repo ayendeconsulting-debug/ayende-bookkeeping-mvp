@@ -84,11 +84,11 @@ function formatDate(date: Date): string {
 
 function planLabel(plan: SubscriptionPlan): string {
   const labels: Record<SubscriptionPlan, string> = {
-    starter:    'Starter',
+    starter:    'Personal',
     pro:        'Pro',
     accountant: 'Accountant',
   };
-  return labels[plan] ?? 'Starter';
+  return labels[plan] ?? 'Personal';
 }
 
 /**

@@ -25,7 +25,7 @@ const SEGMENT_META: Omit<SegmentInfo, 'count'>[] = [
   { key: 'trial_active',       label: 'Active Trials',            description: 'Users currently in trial' },
   { key: 'trial_expiring_7d',  label: 'Trial Expiring (7 days)',  description: 'Trials ending within 7 days' },
   { key: 'trial_expiring_3d',  label: 'Trial Expiring (3 days)',  description: 'Trials ending within 3 days' },
-  { key: 'plan_starter',       label: 'Starter Plan',             description: 'All Starter subscribers' },
+  { key: 'plan_starter',       label: 'Personal Plan',            description: 'All Personal subscribers' },
   { key: 'plan_pro',           label: 'Pro Plan',                 description: 'All Pro subscribers' },
   { key: 'plan_accountant',    label: 'Accountant Plan',          description: 'All Accountant subscribers' },
   { key: 'no_bank_connected',  label: 'No Bank Connected',        description: 'Signed up but no Plaid connection' },
