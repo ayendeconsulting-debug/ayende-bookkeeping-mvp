@@ -41,7 +41,7 @@ import { InsightsService } from './insights.service';
     ]),
     BusinessesModule,
   ],
-  controllers: [AdminController, InsightsController],
-  providers: [AdminService, AdminGuard, InsightsService],
+  controllers: [AdminController, InsightsController, DemoController],
+  providers: [AdminService, AdminGuard, InsightsService, DemoGuard],
 })
 export class AdminModule {}
