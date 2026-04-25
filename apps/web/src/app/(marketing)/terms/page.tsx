@@ -12,8 +12,8 @@ export default function TermsOfServicePage() {
     <LegalPage
       title="Terms of Service"
       version={LEGAL_VERSIONS.terms_of_service}
-      effectiveDate="April 3, 2026"
-      lastUpdated="April 3, 2026"
+      effectiveDate="April 24, 2026"
+      lastUpdated="April 24, 2026"
       intro="These Terms of Service ('Terms') govern your access to and use of Tempo Bookkeeping ('Tempo', 'the Service'), operated by Tempo Bookkeeping Inc. By creating an account or using the Service, you agree to be bound by these Terms. If you do not agree, do not use the Service."
       sections={[
         {
@@ -38,13 +38,37 @@ Each account is for a single user. You may not share your account credentials wi
         },
         {
           heading: 'Subscription and Payment',
-          body: `Access to the full Service requires a paid subscription. Subscription fees are billed monthly or annually, depending on your chosen plan. All fees are in Canadian dollars unless otherwise stated.
+          body: `Access to the Service requires a subscription. Subscription fees are billed monthly or annually, depending on your chosen plan. All fees are in Canadian dollars unless otherwise stated.
 
-We offer a 60-day free trial for new accounts. No credit card is required during the trial period. At the end of the trial, you must subscribe to continue using the Service.
+Starter and Pro plans include a 14-day free trial. No payment method is required to start the trial. To continue using the Service after the trial, you must subscribe before the trial ends. See our Refund Policy and our Trial and Account Lifecycle policy below for details on what happens at the end of an unused trial.
 
-Payments are processed by Stripe. By providing payment information, you authorise Tempo to charge your payment method for the applicable subscription fees. All fees are non-refundable except as required by law or as described in Section 12.
+The Accountant plan does not include a trial. A valid payment method is required at signup, and the first billing period begins immediately. Monthly subscriptions are protected by the 30-day money-back guarantee described in our Refund Policy. Annual subscriptions are a 12-month commitment and are not refundable.
 
-We reserve the right to change subscription prices with 30 days' notice. Continued use of the Service after a price change constitutes acceptance of the new price.`,
+Payments are processed by Stripe. By providing payment information, you authorise Tempo Bookkeeping Inc. to charge your payment method for the applicable subscription fees, including any recurring renewals, until you cancel.
+
+We reserve the right to change subscription prices with 30 days' notice to existing subscribers. Continued use of the Service after a price change constitutes acceptance of the new price.`,
+        },
+        {
+          heading: 'Refund Policy',
+          body: `This section governs your eligibility for refunds. Different rules apply to each plan.
+
+Starter and Pro plans: no charge is incurred during the 14-day trial, so no refund applies during that window. If you subscribe and request a refund within 7 days of your first charge by emailing billing@gettempo.ca, we will issue a full refund. Refund requests after 7 days are at our discretion and are generally declined.
+
+Accountant Monthly: a 30-day money-back guarantee applies, beginning on the date you sign up. If you request a refund within 30 days of signup by emailing billing@gettempo.ca, we will issue a full refund of the most recent monthly charge and cancel your subscription. Subsequent monthly charges are not refundable.
+
+Accountant Annual: annual subscriptions are non-refundable. The annual plan is a 12-month commitment and you confirm this commitment at the time of checkout. We do not offer pro-rata refunds for unused months. Cancellation stops the renewal at the end of the current 12-month term but does not entitle you to a refund of fees already paid.
+
+Cancellation outside of the windows described above is always available and stops your subscription from renewing, but does not entitle you to a refund of fees already paid. Refunds, when issued, are returned to the original payment method and may take up to 10 business days to appear on your statement.`,
+        },
+        {
+          heading: 'Trial and Account Lifecycle',
+          body: `Starter and Pro trials run for 14 days from signup. No payment method is collected during the trial period.
+
+If you do not subscribe before the end of the trial, your account will move to read-only mode for 90 days. In read-only mode, you may continue to view your data, run reports, and export records, but you cannot create transactions, classify entries, modify accounts, sync banks, or perform any other write actions. Subscribing at any time during this 90-day window restores full access immediately.
+
+If you do not subscribe within the 90-day read-only window, your account will be archived. On archive, your bank connections (Plaid) are disconnected and access is suspended. We retain your data for the period described in our Privacy Policy. To restore an archived account, contact support@gettempo.ca.
+
+Accountant accounts are not subject to read-only mode or archival, as they are paid subscriptions from day one. If an Accountant subscription lapses for non-payment, the standard past-due and termination provisions in these Terms apply.`,
         },
         {
           heading: 'Acceptable Use',
@@ -98,7 +122,7 @@ Some jurisdictions do not allow the exclusion of certain warranties or limitatio
         },
         {
           heading: 'Termination',
-          body: `You may cancel your subscription and close your account at any time through the Settings page or by contacting us at legal@gettempo.ca. Upon cancellation, your access to the Service will continue until the end of the current billing period.
+          body: `You may cancel your subscription and close your account at any time through the Settings page or by contacting us at legal@gettempo.ca. Upon cancellation, your access to the Service will continue until the end of the current billing period. Cancellation does not entitle you to a refund of fees already paid except as described in our Refund Policy.
 
 We reserve the right to suspend or terminate your account immediately if you violate these Terms, engage in fraudulent activity, or if we are required to do so by law.
 
