@@ -356,6 +356,7 @@ export class BillingService {
         days_remaining:     null,
         mbg_ends_at: null,
         readonly_started_at: null,
+        stripe_customer_id: null,
       };
     }
     let daysRemaining: number | null = null;
@@ -372,6 +373,7 @@ export class BillingService {
       days_remaining:     daysRemaining,
       mbg_ends_at: subscription.mbg_ends_at,
       readonly_started_at: subscription.readonly_started_at,
+      stripe_customer_id: subscription.stripe_customer_id,
     };
   }
 

@@ -1,12 +1,15 @@
 'use client';
 import { AccountantAccessSection } from '@/components/accountant-access-section';
 
+import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { UserProfile } from '@clerk/nextjs';
+import type { SubscriptionStatusUI } from '@/lib/subscription-types';
 import {
   Settings, Building2, User, ShieldCheck,
   CheckCircle2, AlertCircle, Loader2, Save, RefreshCw, DollarSign,
   Sun, Moon, CreditCard, ExternalLink, Receipt,
+  XCircle, Download,
 } from 'lucide-react';
 import { AdminOnly } from '@/components/admin-only';
 import { toastSuccess, toastError } from '@/lib/toast';
@@ -22,7 +25,7 @@ import {
 
 interface Province { id: string; province_code: string; province_name: string; hst_rate: number | null; gst_rate: number; is_hst_province: boolean; }
 interface Business { id: string; name: string; legal_name?: string; tax_id?: string; currency_code: string; fiscal_year_end: string; created_at: string; province_code?: string | null; hst_registration_number?: string | null; hst_reporting_frequency?: 'monthly' | 'quarterly' | 'annual' | null; }
-interface Subscription { status: 'trialing' | 'active' | 'past_due' | 'cancelled' | 'none'; plan: 'starter' | 'pro' | 'accountant' | null; billing_cycle: 'monthly' | 'annual' | null; trial_ends_at: string | null; current_period_end: string | null; days_remaining: number | null; }
+interface Subscription { status: SubscriptionStatusUI; plan: 'starter' | 'pro' | 'accountant' | null; billing_cycle: 'monthly' | 'annual' | null; trial_ends_at: string | null; current_period_end: string | null; days_remaining: number | null; mbg_ends_at?: string | null; readonly_started_at?: string | null; stripe_customer_id?: string | null; }
 interface SettingsClientProps { business: Business | null; subscription: Subscription | null; provinces: Province[]; }
 
 const selectCls = 'text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-accent-teal bg-background text-foreground';
@@ -34,6 +37,8 @@ function StatusBadge({ status }: { status: Subscription['status'] }) {
     past_due:  { label: 'Past Due',  className: 'bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border-amber-200 dark:border-amber-800' },
     cancelled: { label: 'Cancelled', className: 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400 border-red-200 dark:border-red-800' },
     none:      { label: 'No plan',   className: 'bg-muted text-muted-foreground border-border' },
+    trial_expired_readonly: { label: 'Read-only', className: 'bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-400 border-red-200 dark:border-red-800' },
+    archived:  { label: 'Archived',  className: 'bg-muted text-muted-foreground border-border' },
   };
   const { label, className } = config[status] ?? config.none;
   return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${className}`}>{label}</span>;
@@ -57,6 +62,24 @@ function BillingSection({ subscription }: { subscription: Subscription | null })
   const status = subscription?.status ?? 'none'; const plan = subscription?.plan ?? null;
   const billingCycle = subscription?.billing_cycle ?? null; const trialEndsAt = subscription?.trial_ends_at ?? null;
   const periodEnd = subscription?.current_period_end ?? null; const daysLeft = subscription?.days_remaining ?? null;
+  const readonlyStartedAt = subscription?.readonly_started_at ?? null;
+  const stripeCustomerId  = subscription?.stripe_customer_id ?? null;
+
+  // Phase 27.2 S4 A-12.3 + A-12.4 derived flags
+  const hasStripeCustomer = Boolean(stripeCustomerId);
+  const isAccountant      = plan === 'accountant';
+  const isPreCardTrial    = status === 'trialing' && !hasStripeCustomer;
+  const isReadonly        = status === 'trial_expired_readonly';
+  const isArchived        = status === 'archived';
+
+  // 90-day archive countdown for readonly state
+  const archiveDaysLeft = (() => {
+    if (!isReadonly || !readonlyStartedAt) return null;
+    const start = new Date(readonlyStartedAt);
+    if (Number.isNaN(start.getTime())) return null;
+    const archiveAt = start.getTime() + 90 * 24 * 60 * 60 * 1000;
+    return Math.max(0, Math.ceil((archiveAt - Date.now()) / (24 * 60 * 60 * 1000)));
+  })();
 
   return (
     <Card>
@@ -98,15 +121,87 @@ function BillingSection({ subscription }: { subscription: Subscription | null })
               <p className="text-xs text-red-700 dark:text-[#FF3E3E] font-medium">Your subscription has been cancelled. Reactivate below to restore access.</p>
             </div>
           )}
+          {/* Phase 27.2 S4 A-12.3: trial_expired_readonly callout */}
+          {isReadonly && (
+            <div className="bg-red-50 dark:bg-[#01060B] border border-red-200 dark:border-[#FF3E3E]/40 rounded-lg px-4 py-3 col-span-2">
+              <p className="text-xs text-red-700 dark:text-[#FF3E3E] font-medium">
+                Your trial ended.{' '}
+                {archiveDaysLeft !== null && archiveDaysLeft > 0
+                  ? `Read-only access for ${archiveDaysLeft} more day${archiveDaysLeft === 1 ? '' : 's'} before archive.`
+                  : archiveDaysLeft === 0
+                    ? 'Your account will be archived today.'
+                    : 'Read-only access window active.'}
+                {' '}Upgrade to restore full access, or export your data before archive.
+              </p>
+            </div>
+          )}
+          {/* Phase 27.2 S4 A-12.3: archived callout */}
+          {isArchived && (
+            <div className="bg-muted border border-border rounded-lg px-4 py-3 col-span-2">
+              <p className="text-xs text-muted-foreground font-medium flex items-start gap-2">
+                <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>Your account is archived. Bank connections have been disconnected. Contact support to restore access.</span>
+              </p>
+            </div>
+          )}
         </div>
         {error && <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />{error}</div>}
-        <div className="flex justify-end">
-          <Button variant="outline" onClick={handleManage} disabled={loading} className="flex items-center gap-2">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
-            {loading ? 'Opening…' : 'Manage Subscription'}
-          </Button>
+        {/* Phase 27.2 S4 A-12.3: action buttons — conditional by status */}
+        <div className="flex flex-wrap justify-end gap-2">
+          {/* Read-only: Upgrade primary + Export Data */}
+          {isReadonly && (
+            <Link href="/pricing"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors">
+              Upgrade to restore access
+            </Link>
+          )}
+          {isReadonly && (
+            <Link href="/reports"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-border text-foreground hover:border-primary hover:text-primary transition-colors">
+              <Download className="w-4 h-4" />
+              Export your data
+            </Link>
+          )}
+          {/* Pre-card trial (Starter/Pro): Upgrade primary */}
+          {isPreCardTrial && !isAccountant && (
+            <Link href="/pricing"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+              Upgrade plan
+            </Link>
+          )}
+          {/* Manage Subscription — disabled in pre-card, hidden in archived */}
+          {!isArchived && (
+            <Button
+              variant="outline"
+              onClick={handleManage}
+              disabled={loading || isPreCardTrial}
+              className="flex items-center gap-2"
+              title={isPreCardTrial ? 'Upgrade your plan to set up billing.' : undefined}
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ExternalLink className="w-4 h-4" />}
+              {loading ? 'Opening…' : 'Manage Subscription'}
+            </Button>
+          )}
+          {/* Archived — contact support */}
+          {isArchived && (
+            <a
+              href="mailto:hello@gettempo.ca"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border border-border text-foreground hover:border-primary hover:text-primary transition-colors"
+            >
+              Contact support
+            </a>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground">Manage your plan, update payment methods, and download invoices via the Stripe billing portal.</p>
+        {/* Phase 27.2 S4 A-12.4: plan-specific footer copy */}
+        {isPreCardTrial && !isAccountant ? (
+          <p className="text-xs text-muted-foreground">You&apos;re on a free trial. Upgrade your plan to set up billing and access invoices.</p>
+        ) : isArchived ? (
+          <p className="text-xs text-muted-foreground">Your account has been archived. Contact support to restore access or recover data.</p>
+        ) : isReadonly ? (
+          <p className="text-xs text-muted-foreground">Your trial has ended. Upgrade to restore full access. Bank syncs are paused; data remains read-only until you upgrade.</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Manage your plan, update payment methods, and download invoices via the Stripe billing portal.</p>
+        )}
       </CardContent>
     </Card>
   );
