@@ -12,7 +12,7 @@ import {
   LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
   ClipboardList, Receipt, Filter, Sparkles, Settings, FileText,
   ArrowRightLeft, RefreshCw, Users, Car, Calculator, Tag, PieChart, Target,
-  Landmark, Bell, X, Wand2, Lock, Sun, Moon,
+  Landmark, Bell, X, Wand2, Lock, Sun, Moon, Upload,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -22,13 +22,14 @@ interface SidebarProps {
 }
 
 const businessNavItems = [
-  { href: '/dashboard',    label: 'Dashboard',     icon: LayoutDashboard },
-  { href: '/transactions', label: 'Transactions',  icon: ArrowLeftRight },
-  { href: '/invoices',     label: 'Invoices',      icon: FileText },
-  { href: '/ar-ap',        label: 'AR / AP',       icon: ArrowRightLeft },
-  { href: '/recurring',    label: 'Recurring',     icon: RefreshCw },
-  { href: '/payroll',      label: 'Payroll',       icon: Users },
-  { href: '/banks',        label: 'Bank Accounts', icon: Building2 },
+  { href: '/dashboard',            label: 'Dashboard',     icon: LayoutDashboard },
+  { href: '/transactions',         label: 'Transactions',  icon: ArrowLeftRight },
+  { href: '/transactions/import',  label: 'Import',        icon: Upload, sub: true },
+  { href: '/invoices',             label: 'Invoices',      icon: FileText },
+  { href: '/ar-ap',                label: 'AR / AP',       icon: ArrowRightLeft },
+  { href: '/recurring',            label: 'Recurring',     icon: RefreshCw },
+  { href: '/payroll',              label: 'Payroll',       icon: Users },
+  { href: '/banks',                label: 'Bank Accounts', icon: Building2 },
 ];
 const reportItems = [
   { href: '/reports/income-statement', label: 'Income Statement', icon: TrendingUp },
@@ -58,13 +59,14 @@ const freelancerItems = [
   { href: '/personal/rules',        label: 'Personal Rules',  icon: Filter },
 ];
 const freelancerMainItems = [
-  { href: '/transactions', label: 'Transactions',         icon: ArrowLeftRight },
-  { href: '/rules',        label: 'Classification Rules', icon: Filter },
-  { href: '/invoices',     label: 'Invoices',             icon: FileText },
-  { href: '/ar-ap',        label: 'AR / AP',              icon: ArrowRightLeft },
-  { href: '/recurring',    label: 'Recurring',            icon: RefreshCw },
-  { href: '/payroll',      label: 'Payroll',              icon: Users },
-  { href: '/banks',        label: 'Bank Accounts',        icon: Building2 },
+  { href: '/transactions',        label: 'Transactions',         icon: ArrowLeftRight },
+  { href: '/transactions/import', label: 'Import',               icon: Upload, sub: true },
+  { href: '/rules',               label: 'Classification Rules', icon: Filter },
+  { href: '/invoices',            label: 'Invoices',             icon: FileText },
+  { href: '/ar-ap',               label: 'AR / AP',              icon: ArrowRightLeft },
+  { href: '/recurring',           label: 'Recurring',            icon: RefreshCw },
+  { href: '/payroll',             label: 'Payroll',              icon: Users },
+  { href: '/banks',               label: 'Bank Accounts',        icon: Building2 },
 ];
 const freelancerReportItems = [
   { href: '/reports/income-statement', label: 'Income Statement', icon: TrendingUp },
@@ -84,15 +86,16 @@ const freelancerSettingsItems = [
   { href: '/settings',                  label: 'Settings',             icon: Settings },
 ];
 const personalItems = [
-  { href: '/personal/dashboard',  label: 'My Dashboard',        icon: LayoutDashboard },
-  { href: '/personal/budget',     label: 'Budget',              icon: PieChart },
-  { href: '/personal/goals',      label: 'Savings Goals',       icon: Target },
-  { href: '/personal/vehicles',   label: 'Vehicles',            icon: Car },
-  { href: '/personal/networth',   label: 'Net Worth',           icon: Landmark },
-  { href: '/personal/recurring',  label: 'Recurring Payments',  icon: RefreshCw },
-  { href: '/personal/reminders',  label: 'Upcoming Payments',   icon: Bell },
-  { href: '/transactions',        label: 'Transactions',        icon: ArrowLeftRight },
-  { href: '/personal/rules',      label: 'Personal Rules',      icon: Filter },
+  { href: '/personal/dashboard',       label: 'My Dashboard',        icon: LayoutDashboard },
+  { href: '/personal/budget',          label: 'Budget',              icon: PieChart },
+  { href: '/personal/goals',           label: 'Savings Goals',       icon: Target },
+  { href: '/personal/vehicles',        label: 'Vehicles',            icon: Car },
+  { href: '/personal/networth',        label: 'Net Worth',           icon: Landmark },
+  { href: '/personal/recurring',       label: 'Recurring Payments',  icon: RefreshCw },
+  { href: '/personal/reminders',       label: 'Upcoming Payments',   icon: Bell },
+  { href: '/transactions',             label: 'Transactions',        icon: ArrowLeftRight },
+  { href: '/transactions/import',      label: 'Import',              icon: Upload, sub: true },
+  { href: '/personal/rules',           label: 'Personal Rules',      icon: Filter },
 ];
 const personalMainItems     = [{ href: '/banks', label: 'Bank Accounts', icon: Building2 }];
 const personalSettingsItems = [
@@ -205,18 +208,21 @@ function NavSection({ label }: { label: string }) {
   );
 }
 
-function NavItem({ href, label, icon: Icon, active, onClose }: {
-  href: string; label: string; icon: React.ElementType; active: boolean; onClose?: () => void;
+function NavItem({ href, label, icon: Icon, active, sub, onClose }: {
+  href: string; label: string; icon: React.ElementType; active: boolean; sub?: boolean; onClose?: () => void;
 }) {
   return (
     <Link href={href} onClick={onClose}
       className={cn(
-        'flex items-center gap-2.5 px-2.5 py-2 min-h-[44px] rounded-md text-sm transition-colors duration-150',
+        'flex items-center gap-2.5 py-2 min-h-[44px] rounded-md text-sm transition-colors duration-150',
+        sub ? 'px-3 pl-6' : 'px-2.5',
         active
           ? 'border-l-2 border-accent-teal bg-accent-teal-muted text-accent-teal font-semibold'
+          : sub
+          ? 'text-muted-foreground hover:bg-muted hover:text-foreground'
           : 'text-foreground hover:bg-muted hover:text-foreground',
       )}>
-      <Icon className="w-4 h-4 flex-shrink-0" />
+      <Icon className={cn('flex-shrink-0', sub ? 'w-3.5 h-3.5' : 'w-4 h-4')} />
       <span className="truncate">{label}</span>
     </Link>
   );

@@ -53,6 +53,9 @@ export class ImportBatch {
   processed_rows: number;
 
   @Column({ type: 'integer', default: 0 })
+  duplicate_rows: number;
+
+  @Column({ type: 'integer', default: 0 })
   error_rows: number;
 
   @Column({ type: 'uuid' })

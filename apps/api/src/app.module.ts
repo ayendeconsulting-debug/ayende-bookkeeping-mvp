@@ -29,6 +29,7 @@ import { CommandCenterModule } from './command-center/command-center.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { ReferralsModule } from './referrals/referrals.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ImportModule } from './import/import.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { LegalAcceptanceGuard } from './legal/legal-acceptance.guard';
@@ -82,6 +83,7 @@ function getRedisBullMQConnection() {
     WebhooksModule,
     ReferralsModule,
     NotificationsModule,
+    ImportModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
