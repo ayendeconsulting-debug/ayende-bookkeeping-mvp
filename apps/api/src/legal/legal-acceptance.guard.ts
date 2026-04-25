@@ -56,6 +56,10 @@ export class LegalAcceptanceGuard implements CanActivate {
     // If no user at this point, let JwtAuthGuard handle it — don't double-block
     if (!userId) return true;
 
+    // Bypass legal check for platform admins and demo users
+    const platformRole: string | undefined = request.user?.platform_role;
+    if (platformRole === 'admin' || platformRole === 'demo') return true;
+
     // Check legal acceptance status — in-memory version comparison
     const status = await this.legalService.getAcceptanceStatus(userId);
 

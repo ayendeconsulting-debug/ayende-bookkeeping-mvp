@@ -15,6 +15,8 @@ import { JournalLine } from '../entities/journal-line.entity';
 import { ClassifiedTransaction } from '../entities/classified-transaction.entity';
 import { BusinessesModule } from '../businesses/businesses.module';
 import { AdminController } from './admin.controller';
+import { DemoController } from './demo.controller';
+import { DemoGuard } from './demo.guard';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
 import { InsightsController } from './insights.controller';

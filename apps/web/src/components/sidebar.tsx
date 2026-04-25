@@ -7,6 +7,7 @@ import { BusinessMode } from '@/types';
 import { BusinessSwitcher } from '@/components/business-switcher';
 import { FirmPortalLink } from '@/components/firm-portal-link';
 import { AdminPortalLink } from '@/components/admin-portal-link';
+import { DemoPortalLink } from '@/components/demo-portal-link';
 import { useTheme } from '@/components/theme-provider';
 import {
   LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
@@ -182,6 +183,7 @@ export function Sidebar({ mode = 'business', isMobileOpen = false, onClose }: Si
 
         <FirmPortalLink onClose={onClose} />
         <AdminPortalLink onClose={onClose} />
+        <DemoPortalLink />
 
         {/* Theme toggle footer */}
         <div className="px-3 py-3 border-t border-border flex-shrink-0">
