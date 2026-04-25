@@ -16,7 +16,7 @@ interface SubscriptionStatus {
   readonly_started_at: string | null;
 }
 
-const PLAN_LABELS: Record<string, string> = { starter: 'Starter', pro: 'Pro', accountant: 'Accountant' };
+const PLAN_LABELS: Record<string, string> = { starter: 'Personal', pro: 'Pro', accountant: 'Accountant' };
 const API_URL = process.env.API_URL || 'http://localhost:3005';
 
 function formatLongDate(iso: string | null): string | null {

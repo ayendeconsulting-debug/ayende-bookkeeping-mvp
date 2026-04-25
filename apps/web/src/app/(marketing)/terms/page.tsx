@@ -40,7 +40,7 @@ Each account is for a single user. You may not share your account credentials wi
           heading: 'Subscription and Payment',
           body: `Access to the Service requires a subscription. Subscription fees are billed monthly or annually, depending on your chosen plan. All fees are in Canadian dollars unless otherwise stated.
 
-Starter and Pro plans include a 14-day free trial. No payment method is required to start the trial. To continue using the Service after the trial, you must subscribe before the trial ends. See our Refund Policy and our Trial and Account Lifecycle policy below for details on what happens at the end of an unused trial.
+Personal and Pro plans include a 14-day free trial. No payment method is required to start the trial. To continue using the Service after the trial, you must subscribe before the trial ends. See our Refund Policy and our Trial and Account Lifecycle policy below for details on what happens at the end of an unused trial.
 
 The Accountant plan does not include a trial. A valid payment method is required at signup, and the first billing period begins immediately. Monthly subscriptions are protected by the 30-day money-back guarantee described in our Refund Policy. Annual subscriptions are a 12-month commitment and are not refundable.
 
@@ -52,7 +52,7 @@ We reserve the right to change subscription prices with 30 days' notice to exist
           heading: 'Refund Policy',
           body: `This section governs your eligibility for refunds. Different rules apply to each plan.
 
-Starter and Pro plans: no charge is incurred during the 14-day trial, so no refund applies during that window. If you subscribe and request a refund within 7 days of your first charge by emailing billing@gettempo.ca, we will issue a full refund. Refund requests after 7 days are at our discretion and are generally declined.
+Personal and Pro plans: no charge is incurred during the 14-day trial, so no refund applies during that window. If you subscribe and request a refund within 7 days of your first charge by emailing billing@gettempo.ca, we will issue a full refund. Refund requests after 7 days are at our discretion and are generally declined.
 
 Accountant Monthly: a 30-day money-back guarantee applies, beginning on the date you sign up. If you request a refund within 30 days of signup by emailing billing@gettempo.ca, we will issue a full refund of the most recent monthly charge and cancel your subscription. Subsequent monthly charges are not refundable.
 
@@ -62,7 +62,7 @@ Cancellation outside of the windows described above is always available and stop
         },
         {
           heading: 'Trial and Account Lifecycle',
-          body: `Starter and Pro trials run for 14 days from signup. No payment method is collected during the trial period.
+          body: `Personal and Pro trials run for 14 days from signup. No payment method is collected during the trial period.
 
 If you do not subscribe before the end of the trial, your account will move to read-only mode for 90 days. In read-only mode, you may continue to view your data, run reports, and export records, but you cannot create transactions, classify entries, modify accounts, sync banks, or perform any other write actions. Subscribing at any time during this 90-day window restores full access immediately.
 

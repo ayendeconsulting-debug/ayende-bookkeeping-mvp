@@ -57,7 +57,7 @@ function BillingSection({ subscription }: { subscription: Subscription | null })
     });
   }
 
-  const planLabel: Record<string, string> = { starter: 'Starter', pro: 'Pro', accountant: 'Accountant' };
+  const planLabel: Record<string, string> = { starter: 'Personal', pro: 'Pro', accountant: 'Accountant' };
   const formatDate = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' }) : '–';
   const status = subscription?.status ?? 'none'; const plan = subscription?.plan ?? null;
   const billingCycle = subscription?.billing_cycle ?? null; const trialEndsAt = subscription?.trial_ends_at ?? null;

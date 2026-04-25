@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -366,11 +366,11 @@ export function AdminClient() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
                 <div className="flex items-center gap-2">
-                  <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['starter'])}>Starter</span>
+                  <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', PLAN_BADGE['starter'])}>Personal</span>
                   <ChevronRight className="w-3 h-3 text-muted-foreground" />
                   <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full capitalize', MODE_BADGE['personal'])}>Personal</span>
                 </div>
-                <SlotField label="Starter Slot" orgIdKey="starterOrgId" nameKey="starterBusinessName" orgIdPlaceholder="org_starter…" namePlaceholder="Business name" form={suiteForm} setForm={setSuiteForm} />
+                <SlotField label="Personal Slot" orgIdKey="starterOrgId" nameKey="starterBusinessName" orgIdPlaceholder="org_starter…" namePlaceholder="Business name" form={suiteForm} setForm={setSuiteForm} />
                 <p className="text-[10px] text-muted-foreground">Seeds: personal_enriched (88 tx · budget · goals · recurring)</p>
               </div>
               <div className="rounded-xl border border-border p-4 space-y-3 bg-muted/20">
@@ -408,7 +408,7 @@ export function AdminClient() {
             {suiteResult && (
               <div className="rounded-xl bg-primary-light dark:bg-primary/10 border border-primary/20 px-4 py-4 space-y-2">
                 <p className="text-sm font-semibold text-primary mb-3">All 3 slots provisioned ✓</p>
-                <ResultRow label="Starter"  businessId={suiteResult.starter.businessId}    created={suiteResult.starter.created} />
+                <ResultRow label="Personal"  businessId={suiteResult.starter.businessId}    created={suiteResult.starter.created} />
                 <ResultRow label="Pro"      businessId={suiteResult.pro.businessId}         created={suiteResult.pro.created} />
                 <ResultRow label="Acct Biz" businessId={suiteResult.accountant.businessId} created={suiteResult.accountant.created} />
                 <ResultRow label="Client 1" businessId={suiteResult.client1.businessId}    created={suiteResult.client1.created} />

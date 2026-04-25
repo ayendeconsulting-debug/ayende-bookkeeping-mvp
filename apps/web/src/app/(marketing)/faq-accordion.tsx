@@ -18,7 +18,7 @@ interface FaqEntry {
 export const FAQS: FaqEntry[] = [
   {
     q: 'Is Tempo really free to try?',
-    a: "Starter and Pro plans include a 14-day free trial — no credit card required at signup. You get full access to every feature on your chosen plan, no exclusions. The Accountant Monthly plan charges $149 CAD on day one and includes a 30-day money-back guarantee. The Accountant Annual plan is a 12-month commitment and is non-refundable.",
+    a: "Personal and Pro plans include a 14-day free trial — no credit card required at signup. You get full access to every feature on your chosen plan, no exclusions. The Accountant Monthly plan charges $149 CAD on day one and includes a 30-day money-back guarantee. The Accountant Annual plan is a 12-month commitment and is non-refundable.",
     topic: 'Trial',
   },
   {

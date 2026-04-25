@@ -10,7 +10,7 @@ import { ArrowRight, CheckCircle2, Globe, Lock, Shield, Zap } from 'lucide-react
 
 const STATS = [
   { value: '12,000+', label: 'Banks supported via Plaid', sub: 'Canada & United States' },
-  { value: '14',      label: 'Day free trial',            sub: 'No credit card · Starter & Pro' },
+  { value: '14',      label: 'Day free trial',            sub: 'No credit card · Personal & Pro' },
   { value: '100%',    label: 'Tax-ready documentation',   sub: 'Every transaction balanced' },
   { value: '6 years', label: 'CRA receipt retention',     sub: 'Pro & Accountant plans' },
 ];
@@ -49,7 +49,7 @@ export default function HomePage() {
             </div>
 
             <div className="inline-flex items-center gap-2 bg-[#0F6E56] text-white text-xs font-semibold px-4 py-1.5 rounded-full mb-6 ml-2">
-              <Zap className="w-3 h-3" /> Launch offer: 50% off Starter &amp; Pro
+              <Zap className="w-3 h-3" /> Launch offer: 50% off Personal &amp; Pro
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-white leading-tight tracking-tight mb-6 max-w-4xl mx-auto">
@@ -74,7 +74,7 @@ export default function HomePage() {
             </div>
 
             <p className="text-xs text-white/60 mb-12">
-              Free trial on Starter &amp; Pro &middot; No credit card required &middot; See full plan terms
+              Free trial on Personal &amp; Pro &middot; No credit card required &middot; See full plan terms
             </p>
 
             <DashboardCarousel />

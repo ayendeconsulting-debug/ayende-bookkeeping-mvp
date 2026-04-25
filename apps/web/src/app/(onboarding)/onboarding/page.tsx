@@ -110,7 +110,7 @@ const PLAN_CARDS: {
 }[] = [
   {
     id: 'starter',
-    name: 'Starter',
+    name: 'Personal',
     price: 19,
     annualPrice: 15,
     description: 'Perfect for small businesses and freelancers',
@@ -122,7 +122,7 @@ const PLAN_CARDS: {
     price: 49,
     annualPrice: 39,
     description: 'For growing businesses that need more power',
-    features: ['Everything in Starter', 'AI features (200/mo)', 'HST / GST engine', 'Year-End Assistant', 'Priority support'],
+    features: ['Everything in Personal', 'AI features (200/mo)', 'HST / GST engine', 'Year-End Assistant', 'Priority support'],
     highlighted: true,
   },
   {
