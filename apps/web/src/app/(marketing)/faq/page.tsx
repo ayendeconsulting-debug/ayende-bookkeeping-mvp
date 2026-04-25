@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Calendar, BookOpen } from 'lucide-react';
 import { FaqAccordion, FAQ_TOPICS, getTopicCounts, type FaqTopic } from '../faq-accordion';
@@ -9,7 +10,14 @@ import { RequestDemoButton } from '@/components/request-demo-button';
 type Selected = FaqTopic | 'All';
 
 export default function FaqPage() {
+  const searchParams = useSearchParams();
   const [selected, setSelected] = useState<Selected>('All');
+  useEffect(() => {
+    const param = searchParams.get('topic');
+    if (!param) { return; }
+    const match = FAQ_TOPICS.find(t => t.toLowerCase() === param.toLowerCase());
+    if (match) { setSelected(match); }
+  }, [searchParams]);
   const counts = getTopicCounts();
   const totalCount = FAQ_TOPICS.reduce((sum, t) => sum + (counts[t] ?? 0), 0);
 

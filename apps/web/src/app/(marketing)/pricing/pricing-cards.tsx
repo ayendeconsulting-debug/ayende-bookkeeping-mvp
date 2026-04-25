@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { CheckCircle2, ArrowRight, Zap, Sparkles, Loader2, Calculator, ShieldCheck, ShieldAlert, ChevronDown } from 'lucide-react';
@@ -69,24 +69,61 @@ const PERSONAL_AND_PRO: CardPlan[] = [
   },
 ];
 
-// Comparison table - preserved as-is for B-9.1; B-9.2 will restructure into
-// grouped sections with the asymmetric cascade per FR-B9.3.
-// Mojibake fixed in this commit using \u escapes (FR-B9.7-02).
-const COMPARISON_ROWS = [
-  { label: 'Transactions/month',                starter: '500',     pro: '2,500',   accountant: 'Unlimited' },
-  { label: 'Financial reports',                 starter: '\u2713',  pro: '\u2713',  accountant: '\u2713'    },
-  { label: 'Bank connectivity (Plaid)',         starter: '\u2713',  pro: '\u2713',  accountant: '\u2713'    },
-  { label: 'CSV & PDF import',                  starter: '\u2713',  pro: '\u2713',  accountant: '\u2713'    },
-  { label: 'Tax code engine (HST/GST/US)',      starter: '\u2713',  pro: '\u2713',  accountant: '\u2713'    },
-  { label: 'AI bookkeeping assistant',          starter: '\u2713',  pro: '\u2713',  accountant: '\u2713'    },
-  { label: 'Multi-user access',                 starter: '\u2014',  pro: '\u2713',  accountant: '\u2713'    },
-  { label: 'Owner draws & contributions',       starter: '\u2014',  pro: '\u2713',  accountant: '\u2713'    },
-  { label: 'Invoicing & AP/AR',                 starter: '\u2014',  pro: '\u2713',  accountant: '\u2713'    },
-  { label: 'Multiple client businesses',        starter: '\u2014',  pro: '\u2014',  accountant: '\u2713'    },
-  { label: 'Accountant firm portal',            starter: '\u2014',  pro: '\u2014',  accountant: '\u2713'    },
-  { label: 'White-label subdomain',             starter: '\u2014',  pro: '\u2014',  accountant: '\u2713'    },
-  { label: 'Staff seat management',             starter: '\u2014',  pro: '\u2014',  accountant: '\u2713'    },
-  { label: 'Dedicated support',                 starter: '\u2014',  pro: '\u2014',  accountant: '\u2713'    },
+// Comparison table - B-9.2: 5 grouped sections, 21 data rows, asymmetric
+// cascade per FR-B9.3. Personal Finance shows Personal+Pro only (Accountant
+// excluded - firms manage businesses, not personal finances). Mojibake
+// fixed via \u escapes per FR-B9.7-02.
+type CompCell = '\u2713' | '\u2014' | string;
+type CompRow = { label: string; starter: CompCell; pro: CompCell; accountant: CompCell };
+type CompSection = { title: string; rows: CompRow[] };
+
+const COMPARISON_SECTIONS: CompSection[] = [
+  {
+    title: 'Personal Finance',
+    rows: [
+      { label: 'Budget tracking',                   starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
+      { label: 'Savings goal tracking',             starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
+      { label: 'Net worth visibility',              starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
+      { label: 'Lifestyle adjustment insights',     starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
+    ],
+  },
+  {
+    title: 'Bank & Document Import',
+    rows: [
+      { label: 'Bank connectivity (Plaid)',         starter: '\u2713', pro: '\u2713', accountant: '\u2713' },
+      { label: 'CSV import',                        starter: '\u2713', pro: '\u2713', accountant: '\u2713' },
+      { label: 'PDF statement import',              starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+    ],
+  },
+  {
+    title: 'Bookkeeping Core',
+    rows: [
+      { label: 'Financial reports (IS, BS, TB, GL)', starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Double-entry accounting engine',     starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Chart of accounts',                  starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Tax engine (HST / GST / US)',        starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'AI bookkeeping assistant',           starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+    ],
+  },
+  {
+    title: 'Business Workflow',
+    rows: [
+      { label: 'Multi-user access',                 starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Owner draws & contributions',       starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Invoicing & AP / AR',               starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Recurring transaction detection',   starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+    ],
+  },
+  {
+    title: 'Firm Features',
+    rows: [
+      { label: 'Multiple client businesses',        starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
+      { label: 'Accountant firm portal',            starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
+      { label: 'White-label subdomain',             starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
+      { label: 'Staff seat management',             starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
+      { label: 'Dedicated support',                 starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
+    ],
+  },
 ];
 
 // Accountant lead bullet (FR-B9.2-09) and feature list (FR-B9.2-10).
@@ -210,6 +247,17 @@ function AccountantCalculator() {
       </div>
     </div>
   );
+}
+
+// Render a single comparison cell
+function CompCellRender({ value, isPro }: { value: CompCell; isPro?: boolean }) {
+  if (value === '\u2713') {
+    return <CheckCircle2 className="w-4 h-4 text-[#0F6E56] mx-auto" />;
+  }
+  if (value === '\u2014') {
+    return <span className="text-border">&#x2014;</span>;
+  }
+  return isPro ? <span className="font-medium text-foreground">{value}</span> : <>{value}</>;
 }
 
 // Main component
@@ -475,7 +523,7 @@ export function PricingCards() {
         </div>
       </div>
 
-      {/* Comparison table - preserved as-is for B-9.1; B-9.2 will restructure into grouped sections */}
+      {/* Comparison table - B-9.2: 5 grouped sections, 21 data rows, asymmetric cascade per FR-B9.3 */}
       <div>
         <h2 className="text-xl font-bold text-foreground text-center mb-8">Full feature comparison</h2>
         <div className="overflow-x-auto">
@@ -483,25 +531,28 @@ export function PricingCards() {
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 pr-4 font-medium text-muted-foreground w-1/2">Feature</th>
-                <th className="text-center py-3 px-4 font-semibold text-foreground">Starter</th>
+                <th className="text-center py-3 px-4 font-semibold text-foreground">Personal</th>
                 <th className="text-center py-3 px-4 font-semibold text-[#0F6E56]">Pro</th>
                 <th className="text-center py-3 px-4 font-semibold text-foreground">Accountant</th>
               </tr>
             </thead>
             <tbody>
-              {COMPARISON_ROWS.map((row, i) => (
-                <tr key={row.label} className={`border-b border-border/50 ${i % 2 === 0 ? 'bg-card/50' : ''}`}>
-                  <td className="py-3 pr-4 text-muted-foreground">{row.label}</td>
-                  <td className="py-3 px-4 text-center">
-                    {row.starter === '\u2713' ? <CheckCircle2 className="w-4 h-4 text-[#0F6E56] mx-auto" /> : row.starter === '\u2014' ? <span className="text-border">&#x2014;</span> : row.starter}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    {row.pro === '\u2713' ? <CheckCircle2 className="w-4 h-4 text-[#0F6E56] mx-auto" /> : row.pro === '\u2014' ? <span className="text-border">&#x2014;</span> : <span className="font-medium text-foreground">{row.pro}</span>}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    {row.accountant === '\u2713' ? <CheckCircle2 className="w-4 h-4 text-[#0F6E56] mx-auto" /> : row.accountant === '\u2014' ? <span className="text-border">&#x2014;</span> : row.accountant}
-                  </td>
-                </tr>
+              {COMPARISON_SECTIONS.map((section, sIdx) => (
+                <Fragment key={`section-${sIdx}`}>
+                  <tr className="bg-muted/40">
+                    <td colSpan={4} className="py-2.5 pl-4 pr-4 text-xs font-bold uppercase tracking-wider text-[#0F6E56]">
+                      {section.title}
+                    </td>
+                  </tr>
+                  {section.rows.map((row, rIdx) => (
+                    <tr key={`s-${sIdx}-r-${rIdx}`} className={`border-b border-border/50 ${rIdx % 2 === 0 ? 'bg-card/50' : ''}`}>
+                      <td className="py-3 pr-4 pl-4 text-muted-foreground">{row.label}</td>
+                      <td className="py-3 px-4 text-center"><CompCellRender value={row.starter} /></td>
+                      <td className="py-3 px-4 text-center"><CompCellRender value={row.pro} isPro /></td>
+                      <td className="py-3 px-4 text-center"><CompCellRender value={row.accountant} /></td>
+                    </tr>
+                  ))}
+                </Fragment>
               ))}
             </tbody>
           </table>

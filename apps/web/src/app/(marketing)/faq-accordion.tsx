@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-export type FaqTopic = 'Trial' | 'Security' | 'Banking' | 'Tax' | 'Reports' | 'Accountants' | 'Account';
+export type FaqTopic = 'Billing' | 'Trial' | 'Security' | 'Banking' | 'Tax' | 'Reports' | 'Accountants' | 'Account';
 
 export const FAQ_TOPICS: readonly FaqTopic[] = [
-  'Trial', 'Security', 'Banking', 'Tax', 'Reports', 'Accountants', 'Account',
+  'Billing', 'Trial', 'Security', 'Banking', 'Tax', 'Reports', 'Accountants', 'Account',
 ] as const;
 
 interface FaqEntry {
@@ -60,6 +60,26 @@ export const FAQS: FaqEntry[] = [
     q: 'What countries does Tempo support?',
     a: 'Tempo is built primarily for Canadian businesses — with a full HST/GST tax engine, CRA remittance reporting (GST34 lines 101–113), and Canadian bank connectivity via Plaid. US businesses are fully supported as well, with IRS-compatible reports and USD currency handling.',
     topic: 'Account',
+  },
+  {
+    q: 'Can I get a refund?',
+    a: 'Personal and Pro: there is no charge during the 14-day trial, so refunds rarely apply. If you subscribe and contact billing@gettempo.ca within 7 days of your first charge, we will issue a full refund. Accountant Monthly: 30-day money-back guarantee from signup. Accountant Annual: non-refundable. Cancellations always stop the next renewal.',
+    topic: 'Billing',
+  },
+  {
+    q: 'What payment methods do you accept?',
+    a: 'All major credit and debit cards (Visa, Mastercard, American Express) via Stripe. All payments are processed securely - your card details are never stored on our servers.',
+    topic: 'Billing',
+  },
+  {
+    q: 'Can I switch plans at any time?',
+    a: 'Yes. Upgrade or downgrade from the Settings page at any time. Upgrades take effect immediately; downgrades take effect at the start of your next billing period.',
+    topic: 'Billing',
+  },
+  {
+    q: 'Do you offer annual billing?',
+    a: 'Yes. Annual billing gives you 2 months free - you pay for 10 months and get 12. Switch between monthly and annual at any time from your billing settings.',
+    topic: 'Billing',
   },
   {
     q: 'Can I cancel at any time?',
