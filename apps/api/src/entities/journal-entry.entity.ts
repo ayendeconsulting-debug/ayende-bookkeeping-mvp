@@ -66,6 +66,15 @@ export class JournalEntry {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
+  @Column({ type: 'boolean', default: false })
+  manual_entry: boolean;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  je_type: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  reference_number: string;
+
   // Relationships
   @ManyToOne(() => Business, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'business_id' })

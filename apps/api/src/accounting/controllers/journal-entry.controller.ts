@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Delete,
   Body,
   Param,
@@ -74,7 +75,27 @@ export class JournalEntryController {
   }
 
   /**
-   * Delete a draft journal entry — admin only
+   * Update a draft journal entry -- admin only
+   * PATCH /journal-entries/:id
+   */
+  @Roles('admin')
+  @Patch(':id')
+  async updateJournalEntry(
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Body() dto: CreateJournalEntryDto,
+  ) {
+    dto.business_id = req.user!.businessId;
+    return this.journalEntryService.updateJournalEntry(
+      id,
+      req.user!.businessId,
+      dto,
+      req.user!.userId,
+    );
+  }
+
+  /**
+   * Delete a draft journal entry -- admin only
    * DELETE /journal-entries/:id
    */
   @Roles('admin')

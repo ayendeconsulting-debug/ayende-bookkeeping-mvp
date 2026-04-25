@@ -47,6 +47,17 @@ export class CreateJournalEntryDto {
   @IsString()
   notes?: string;
 
+  @IsOptional()
+  @IsString()
+  reference_number?: string;
+
+  @IsOptional()
+  @IsString()
+  je_type?: string;
+
+  @IsOptional()
+  manual_entry?: boolean;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateJournalLineDto)

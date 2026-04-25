@@ -232,6 +232,81 @@ export class JournalEntryService {
   }
 
   /**
+   * Update a draft manual journal entry (replace all lines).
+   * Posted entries cannot be edited.
+   */
+  async updateJournalEntry(
+    id: string,
+    businessId: string,
+    dto: CreateJournalEntryDto,
+    userId: string,
+  ): Promise<JournalEntry> {
+    const entry = await this.journalEntryRepository.findOne({
+      where: { id, business_id: businessId },
+      relations: ['lines'],
+    });
+
+    if (!entry) throw new NotFoundException('Journal entry not found');
+
+    if (entry.status !== JournalEntryStatus.DRAFT) {
+      throw new BadRequestException('Only draft journal entries can be edited');
+    }
+
+    await this.assertNotLocked(businessId, entry.entry_date);
+
+    if (dto.lines.length < 2) {
+      throw new BadRequestException('Journal entry must have at least 2 lines');
+    }
+
+    const totalDebits = dto.lines.reduce((sum, l) => sum + l.debit_amount, 0);
+    const totalCredits = dto.lines.reduce((sum, l) => sum + l.credit_amount, 0);
+    if (Math.abs(totalDebits - totalCredits) > 0.01) {
+      throw new BadRequestException(
+        `Journal entry is not balanced. Debits: ${totalDebits}, Credits: ${totalCredits}`,
+      );
+    }
+
+    const accountIds = dto.lines.map((l) => l.account_id);
+    const accounts = await this.accountRepository.find({
+      where: accountIds.map((aid) => ({ id: aid, business_id: businessId })),
+    });
+    if (accounts.length !== accountIds.length) {
+      throw new BadRequestException('One or more accounts not found');
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      await manager.delete(JournalLine, { journal_entry_id: id });
+
+      entry.description = dto.description;
+      entry.entry_date = typeof dto.entry_date === 'string' ? new Date(dto.entry_date) : dto.entry_date;
+      if (dto.notes !== undefined) entry.notes = dto.notes;
+      if ((dto as any).reference_number !== undefined) (entry as any).reference_number = (dto as any).reference_number;
+      if ((dto as any).je_type !== undefined) (entry as any).je_type = (dto as any).je_type;
+      await manager.save(JournalEntry, entry);
+
+      const newLines = dto.lines.map((lineDto) =>
+        manager.create(JournalLine, {
+          business_id: businessId,
+          journal_entry_id: id,
+          line_number: lineDto.line_number,
+          account_id: lineDto.account_id,
+          debit_amount: lineDto.debit_amount,
+          credit_amount: lineDto.credit_amount,
+          description: lineDto.description || dto.description,
+        }),
+      );
+      await manager.save(JournalLine, newLines);
+
+      const result = await manager.findOne(JournalEntry, {
+        where: { id },
+        relations: ['lines', 'lines.account'],
+      });
+      if (!result) throw new Error('Failed to retrieve updated journal entry');
+      return result;
+    });
+  }
+
+  /**
    * Generate unique entry number: JE-YYYY-00001
    */
   private async generateEntryNumber(businessId: string, entryDate: Date): Promise<string> {
