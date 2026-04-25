@@ -3,15 +3,18 @@
 import Link from 'next/link';
 import { useCurrentFirm } from '@/hooks/use-current-firm';
 import { useSubscription } from '@/hooks/use-subscription';
+import { useDemoAccess } from '@/hooks/use-demo-access';
 import { Building2, Plus } from 'lucide-react';
 
 export function FirmPortalLink({ onClose }: { onClose?: () => void }) {
   const { hasFirm, loading: firmLoading } = useCurrentFirm();
   const { plan, loading: planLoading } = useSubscription();
+  const { hasDemoAccess, loading: demoLoading } = useDemoAccess();
 
-  // Hide while loading or if not on Accountant plan
-  if (firmLoading || planLoading) return null;
-  if (plan !== 'accountant') return null;
+  // Hide while loading
+  if (firmLoading || planLoading || demoLoading) return null;
+  // Show for accountant plan or demo users
+  if (plan !== 'accountant' && !hasDemoAccess) return null;
 
   if (!hasFirm) {
     return (
