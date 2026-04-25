@@ -6,11 +6,11 @@ import { useAuth } from '@clerk/nextjs';
 import { Menu, X } from 'lucide-react';
 
 const NAV_LINKS = [
-  { label: 'Pricing',         href: '/pricing'      },
-  { label: 'Features',        href: '/#features'    },
-  { label: 'For Accountants', href: '/#accountants' },
-  { label: 'About',           href: '/about'        },
-  { label: 'FAQ',             href: '/#faq'         },
+  { label: 'Pricing',      href: '/pricing'      },
+  { label: 'Features',     href: '/features'     },
+  { label: "Who it's for", href: '/who-its-for'  },
+  { label: 'About',        href: '/about'        },
+  { label: 'FAQ',          href: '/faq'          },
 ];
 
 export function MarketingNav() {
@@ -31,9 +31,9 @@ export function MarketingNav() {
           <span className="text-base font-semibold text-foreground">Tempo</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6">
+        <nav className="hidden md:flex items-center gap-1">
           {NAV_LINKS.map((l) => (
-            <Link key={l.href} href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{l.label}</Link>
+            <Link key={l.href} href={l.href} className="text-sm font-medium text-foreground px-3 py-1.5 rounded-lg hover:bg-accent transition-colors">{l.label}</Link>
           ))}
         </nav>
 

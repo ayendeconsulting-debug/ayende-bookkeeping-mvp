@@ -30,6 +30,24 @@ const VALUES = [
   },
 ];
 
+const COMMITMENTS = [
+  {
+    timeline: 'Day 1',
+    title: 'Your first bank connection',
+    desc: 'Connect your bank, import your transaction history, and see your first classified entries &mdash; all within your first session. No setup fees, no consultant required.',
+  },
+  {
+    timeline: 'Week 1',
+    title: 'Your books are running',
+    desc: 'Chart of accounts configured, HST/GST tracked on every transaction, first batch posted. Your Income Statement is live. Your accountant will notice the difference.',
+  },
+  {
+    timeline: 'Month 1',
+    title: 'Never manually reconcile again',
+    desc: 'Auto-classification rules are learning your patterns. Every subsequent month closes in minutes. Tax season stops being a crisis.',
+  },
+];
+
 export default function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-16">
@@ -115,6 +133,58 @@ export default function AboutPage() {
               <span className="text-sm text-foreground">{item}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── Early Access (relocated from landing per FR-B20) ────────────── */}
+      <div className="mb-16">
+        <div className="text-center mb-12">
+          <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">
+            Early Access
+          </p>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            No fake reviews. Just an honest trial to see for yourself.
+          </h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Tempo Books is in early access. We&apos;re not going to show you testimonials we wrote
+            ourselves. Instead, here&apos;s exactly what you can expect in your first weeks.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {COMMITMENTS.map((c, idx) => (
+            <div
+              key={idx}
+              className="rounded-2xl border border-border bg-card p-7 flex flex-col"
+            >
+              <div className="inline-flex items-center gap-2 bg-[#EDF7F2] text-[#0F6E56] text-xs font-semibold px-3 py-1 rounded-full mb-4 self-start border border-[#C3E8D8]">
+                {c.timeline}
+              </div>
+              <h3 className="text-base font-semibold text-foreground mb-2">{c.title}</h3>
+              <p
+                className="text-sm text-muted-foreground leading-relaxed flex-1"
+                dangerouslySetInnerHTML={{ __html: c.desc }}
+              />
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 rounded-2xl bg-[#EDF7F2] border border-[#C3E8D8] p-7 flex flex-col md:flex-row items-center gap-6">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Be among our first users &mdash; your feedback shapes the product.
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Early access members get direct access to the founding team, priority feature
+              requests, and launch pricing locked in permanently.
+            </p>
+          </div>
+          <Link
+            href="/sign-up"
+            className="inline-flex items-center gap-2 bg-[#0F6E56] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#085041] transition-colors flex-shrink-0"
+          >
+            Join early access <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
       </div>
 

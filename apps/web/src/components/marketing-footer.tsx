@@ -24,7 +24,12 @@ export function MarketingFooter() {
           <div>
             <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Product</p>
             <ul className="space-y-2">
-              {[{ label: 'Features', href: '/#features' }, { label: 'Pricing', href: '/pricing' }, { label: 'Sign up', href: '/sign-up' }, { label: 'Sign in', href: '/sign-in' }].map((l) => (
+              {[
+                { label: 'Features', href: '/features' },
+                { label: 'Pricing',  href: '/pricing'  },
+                { label: 'Sign up',  href: '/sign-up'  },
+                { label: 'Sign in',  href: '/sign-in'  },
+              ].map((l) => (
                 <li key={l.href}><Link href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{l.label}</Link></li>
               ))}
             </ul>
@@ -33,7 +38,11 @@ export function MarketingFooter() {
           <div>
             <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">For Accountants</p>
             <ul className="space-y-2">
-              {[{ label: 'Accountant Portal', href: '/#accountants' }, { label: 'Portal Pricing', href: '/pricing' }, { label: 'Contact us', href: 'mailto:hello@gettempo.ca' }].map((l) => (
+              {[
+                { label: 'Accountant Portal', href: '/who-its-for#accountants' },
+                { label: 'Portal Pricing',    href: '/pricing'                  },
+                { label: 'Contact us',        href: 'mailto:hello@gettempo.ca'  },
+              ].map((l) => (
                 <li key={l.href}><Link href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{l.label}</Link></li>
               ))}
             </ul>
@@ -42,7 +51,12 @@ export function MarketingFooter() {
           <div>
             <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Company</p>
             <ul className="space-y-2">
-              {[{ label: 'FAQ', href: '/#faq' }, { label: 'Contact', href: 'mailto:hello@gettempo.ca' }].map((l) => (
+              {[
+                { label: "Who it's for", href: '/who-its-for'             },
+                { label: 'About',        href: '/about'                   },
+                { label: 'FAQ',          href: '/faq'                     },
+                { label: 'Contact',      href: 'mailto:hello@gettempo.ca' },
+              ].map((l) => (
                 <li key={l.href}><Link href={l.href} className="text-sm text-muted-foreground hover:text-foreground transition-colors">{l.label}</Link></li>
               ))}
             </ul>
