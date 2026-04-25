@@ -404,7 +404,7 @@ export function PricingCards() {
         <p className="text-sm text-muted-foreground">
           <strong className="text-foreground">Accountant Annual:</strong> 12-month commitment · non-refundable.
         </p>
-        <p className="text-xs text-muted-foreground mt-2">Cancel anytime from Billing settings.</p>
+        <p className="text-xs text-muted-foreground mt-2">Stop renewal anytime in Billing settings. Refund eligibility follows the plan terms above.</p>
       </div>
 
       {/* AI value prop */}

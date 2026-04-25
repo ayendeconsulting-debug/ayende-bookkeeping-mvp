@@ -124,7 +124,7 @@ export default function AboutPage() {
           Ready to get your books in order?
         </h2>
         <p className="text-[#C3E8D8] mb-7 max-w-md mx-auto">
-          Start your free trial today. No charge during the trial — cancel anytime.
+          Start your free trial today. 14 days free on Starter and Pro — no credit card required.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Link

@@ -15,7 +15,7 @@ import {
 // -- Stats (corrected: "supported" not "connected") -------------------------
 const STATS = [
   { value: '12,000+', label: 'Banks supported via Plaid',   sub: 'Canada & United States' },
-  { value: '60',      label: 'Day free trial',              sub: 'No charge &middot; Cancel anytime' },
+  { value: '14',      label: 'Day free trial',              sub: 'No credit card &middot; Starter &amp; Pro' },
   { value: '100%',    label: 'Tax-ready documentation',     sub: 'Every transaction balanced' },
   { value: '6 years', label: 'CRA receipt retention',       sub: 'Pro &amp; Accountant plans' },
 ];
@@ -125,8 +125,8 @@ const SEGMENT_DETAILS = [
       'Onboard a new client in under 5 minutes &mdash; invite by email, they connect their bank',
       'Metered billing: $149/mo base includes 5 clients, +$15/mo per additional',
     ],
-    cta: 'Start your firm free',
-    ctaHref: '/sign-up',
+    cta: 'See Accountant pricing',
+    ctaHref: '/pricing',
   },
 ];
 
@@ -296,8 +296,8 @@ const PLANS = [
       '+$15/mo per additional client',
     ],
     highlight: false,
-    cta: 'Start your firm free',
-    ctaHref: '/sign-up',
+    cta: 'View full pricing',
+    ctaHref: '/pricing',
   },
 ];
 
@@ -387,7 +387,7 @@ export default function LandingPage() {
 
             {/* Honest fine print */}
             <p className="text-xs text-white/60 mb-12">
-              Free trial &middot; No charge during your trial &middot; Cancel anytime &middot; Card required to start
+              Free trial on Starter &amp; Pro &middot; No credit card required &middot; See full plan terms
             </p>
 
             <DashboardCarousel />
