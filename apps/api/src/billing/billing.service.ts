@@ -354,6 +354,8 @@ export class BillingService {
         trial_ends_at:      null,
         current_period_end: null,
         days_remaining:     null,
+        mbg_ends_at: null,
+        readonly_started_at: null,
       };
     }
     let daysRemaining: number | null = null;
@@ -368,6 +370,8 @@ export class BillingService {
       trial_ends_at:      subscription.trial_ends_at,
       current_period_end: subscription.current_period_end,
       days_remaining:     daysRemaining,
+      mbg_ends_at: subscription.mbg_ends_at,
+      readonly_started_at: subscription.readonly_started_at,
     };
   }
 
