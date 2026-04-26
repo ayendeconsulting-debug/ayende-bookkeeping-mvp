@@ -72,6 +72,34 @@ export class AdminController {
     return this.adminService.clearTransactions(businessId);
   }
 
+  /** POST /admin/provision-demo/starter */
+  @Post('provision-demo/starter')
+  @HttpCode(HttpStatus.CREATED)
+  provisionDemoStarter(@Body() body: { orgId: string; businessName: string; trialEndsAt?: string }) {
+    return this.adminService.provisionDemoStarter(body);
+  }
+
+  /** POST /admin/provision-demo/pro */
+  @Post('provision-demo/pro')
+  @HttpCode(HttpStatus.CREATED)
+  provisionDemoPro(@Body() body: { orgId: string; businessName: string; trialEndsAt?: string }) {
+    return this.adminService.provisionDemoPro(body);
+  }
+
+  /** POST /admin/provision-demo/accountant */
+  @Post('provision-demo/accountant')
+  @HttpCode(HttpStatus.CREATED)
+  provisionDemoAccountant(@Body() body: { ownerClerkUserId: string; orgId: string; firmName: string; firmSubdomain: string; trialEndsAt?: string }) {
+    return this.adminService.provisionDemoAccountant(body);
+  }
+
+  /** POST /admin/provision-demo/client */
+  @Post('provision-demo/client')
+  @HttpCode(HttpStatus.CREATED)
+  provisionDemoClient(@Body() body: { orgId: string; businessName: string; mode: string; firmId: string; trialEndsAt?: string }) {
+    return this.adminService.provisionDemoClient(body);
+  }
+
   /** POST /admin/provision-demo-suite */
   @Post('provision-demo-suite')
   @HttpCode(HttpStatus.CREATED)

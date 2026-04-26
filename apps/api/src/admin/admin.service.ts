@@ -694,6 +694,78 @@ export class AdminService {
     };
   }
 
+  /** Provision individual demo slot: Starter (Personal mode) */
+  async provisionDemoStarter(dto: {
+    orgId: string; businessName: string; trialEndsAt?: string;
+  }): Promise<{ businessId: string; created: boolean }> {
+    const trialEndsAt = dto.trialEndsAt ?? ONE_YEAR_FROM_NOW();
+    const result = await this.seedAccount({
+      businessName: dto.businessName, clerkOrgId: dto.orgId,
+      mode: BusinessMode.PERSONAL, plan: 'starter' as SubscriptionPlan, trialEndsAt,
+    });
+    await this.seedTransactions(result.businessId, 'personal_6mo');
+    return result;
+  }
+
+  /** Provision individual demo slot: Pro (Freelancer mode) */
+  async provisionDemoPro(dto: {
+    orgId: string; businessName: string; trialEndsAt?: string;
+  }): Promise<{ businessId: string; created: boolean }> {
+    const trialEndsAt = dto.trialEndsAt ?? ONE_YEAR_FROM_NOW();
+    const result = await this.seedAccount({
+      businessName: dto.businessName, clerkOrgId: dto.orgId,
+      mode: BusinessMode.FREELANCER, plan: 'pro' as SubscriptionPlan, trialEndsAt,
+    });
+    await this.seedTransactions(result.businessId, 'freelancer_enriched');
+    return result;
+  }
+
+  /** Provision individual demo slot: Accountant + Firm */
+  async provisionDemoAccountant(dto: {
+    ownerClerkUserId: string; orgId: string; firmName: string;
+    firmSubdomain: string; trialEndsAt?: string;
+  }): Promise<{ businessId: string; created: boolean; firmId: string }> {
+    const trialEndsAt = dto.trialEndsAt ?? ONE_YEAR_FROM_NOW();
+    const accountantBiz = await this.seedAccount({
+      businessName: dto.firmName, clerkOrgId: dto.orgId,
+      mode: BusinessMode.BUSINESS, plan: 'accountant' as SubscriptionPlan, trialEndsAt,
+    });
+    const subdomainClean = dto.firmSubdomain.toLowerCase().replace(/[^a-z0-9-]/g, '');
+    let firm = await this.firmRepo.findOne({ where: { owner_clerk_id: dto.ownerClerkUserId } });
+    if (!firm) {
+      firm = await this.firmRepo.save(this.firmRepo.create({
+        name: dto.firmName, subdomain: subdomainClean,
+        owner_clerk_id: dto.ownerClerkUserId,
+        logo_url: null, brand_colour: null, stripe_customer_id: null,
+      }));
+    }
+    const existingStaff = await this.staffRepo.findOne({
+      where: { firm_id: firm.id, clerk_user_id: dto.ownerClerkUserId },
+    });
+    if (!existingStaff) {
+      await this.staffRepo.save(this.staffRepo.create({
+        firm_id: firm.id, clerk_user_id: dto.ownerClerkUserId,
+        role: FirmStaffRole.FIRM_OWNER, invited_email: null, accepted_at: new Date(),
+      }));
+    }
+    return { ...accountantBiz, firmId: firm.id };
+  }
+
+  /** Provision individual demo client slot — links to an existing firm by firmId */
+  async provisionDemoClient(dto: {
+    orgId: string; businessName: string; mode: string; firmId: string; trialEndsAt?: string;
+  }): Promise<{ businessId: string; created: boolean }> {
+    const trialEndsAt = dto.trialEndsAt ?? ONE_YEAR_FROM_NOW();
+    const mode = dto.mode === 'freelancer' ? BusinessMode.FREELANCER : BusinessMode.BUSINESS;
+    const result = await this._provisionClientBusiness({
+      clerkOrgId: dto.orgId, businessName: dto.businessName,
+      mode, firmId: dto.firmId, trialEndsAt,
+    });
+    const scenario = dto.mode === 'freelancer' ? 'freelancer_enriched' : 'business_enriched';
+    await this.seedTransactions(result.businessId, scenario);
+    return result;
+  }
+
   /** Creates a client business linked to a firm via firm_clients. Idempotent. */
   private async _provisionClientBusiness(opts: {
     clerkOrgId: string;

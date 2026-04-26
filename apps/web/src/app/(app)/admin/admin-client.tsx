@@ -211,7 +211,50 @@ export function AdminClient() {
     finally { setProvisioning(false); }
   }
 
-  // ── Card 2: Seed Transactions ─────────────────────────────────────────
+  // Individual Slot Provisioner state
+  const ONE_YEAR_STR = ONE_YEAR.toISOString().split('T')[0];
+  const [slotForms, setSlotForms] = useState({
+    starter:    { orgId: '', businessName: 'Maple Leaf Construction', trialEndsAt: ONE_YEAR_STR },
+    pro:        { orgId: '', businessName: 'Jordan Rivera Design',    trialEndsAt: ONE_YEAR_STR },
+    accountant: { orgId: '', firmName: 'Clearview Accounting', firmSubdomain: 'clearview', trialEndsAt: ONE_YEAR_STR },
+    client:     { orgId: '', businessName: 'Northgate Cafe', mode: 'business', firmId: '', trialEndsAt: ONE_YEAR_STR },
+  });
+  const [slotLoading, setSlotLoading] = useState<Record<string, boolean>>({});
+  const [slotResult, setSlotResult]   = useState<Record<string, string>>({});
+  const [slotError,  setSlotError]    = useState<Record<string, string>>({});
+
+  function updateSlot(slot: string, field: string, value: string) {
+    setSlotForms((f: any) => ({ ...f, [slot]: { ...f[slot], [field]: value } }));
+  }
+
+  async function handleSlotProvision(slot: string) {
+    setSlotLoading((l) => ({ ...l, [slot]: true }));
+    setSlotResult((r) => ({ ...r, [slot]: '' }));
+    setSlotError((e)  => ({ ...e, [slot]: '' }));
+    try {
+      const form = (slotForms as any)[slot];
+      const body: any = { ...form };
+      if (slot === 'accountant') body.ownerClerkUserId = user?.id;
+      const res = await fetch(`/api/proxy/admin/provision-demo/${slot}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? 'Provision failed');
+      const msg = slot === 'accountant'
+        ? `Done — businessId: ${data.businessId} | firmId: ${data.firmId}`
+        : `Done — businessId: ${data.businessId} (${data.created ? 'created' : 'existing'})`;
+      setSlotResult((r) => ({ ...r, [slot]: msg }));
+      if (slot === 'accountant' && data.firmId) updateSlot('client', 'firmId', data.firmId);
+      await loadAccounts();
+    } catch (e: any) {
+      setSlotError((err) => ({ ...err, [slot]: e.message }));
+    } finally {
+      setSlotLoading((l) => ({ ...l, [slot]: false }));
+    }
+  }
+
+// ── Card 2: Seed Transactions ─────────────────────────────────────────
   const [seedBizId, setSeedBizId] = useState('');
   const [scenario, setScenario] = useState('personal_enriched');
   const [seeding, setSeeding] = useState(false);
@@ -426,6 +469,75 @@ export function AdminClient() {
                 ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Provisioning all 3…</>
                 : 'Provision All 3 & Seed Data'}
             </Button>
+          </div>
+
+          {/* Individual Slot Provisioner */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">Individual Slot Provisioner</h2>
+            </div>
+            <p className="text-xs text-muted-foreground -mt-2">Provision any single demo slot independently. Use this to re-provision a specific slot without touching the others.</p>
+            <div className="space-y-4">
+              {/* Starter */}
+              <div className="rounded-xl border border-border p-4 space-y-2 bg-muted/20">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Starter — Personal Mode</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input value={slotForms.starter.orgId} onChange={(e) => updateSlot('starter','orgId',e.target.value)} placeholder="org_starter..." className="font-mono text-xs h-8" />
+                  <Input value={slotForms.starter.businessName} onChange={(e) => updateSlot('starter','businessName',e.target.value)} placeholder="Business name" className="text-xs h-8" />
+                </div>
+                <Button size="sm" disabled={slotLoading['starter'] || !slotForms.starter.orgId} onClick={() => handleSlotProvision('starter')} className="h-7 text-xs">
+                  {slotLoading['starter'] ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}Provision Starter
+                </Button>
+                {slotResult['starter'] && <p className="text-xs text-green-600 dark:text-green-400 font-mono">{slotResult['starter']}</p>}
+                {slotError['starter']  && <p className="text-xs text-destructive">{slotError['starter']}</p>}
+              </div>
+              {/* Pro */}
+              <div className="rounded-xl border border-border p-4 space-y-2 bg-muted/20">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pro — Freelancer Mode</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input value={slotForms.pro.orgId} onChange={(e) => updateSlot('pro','orgId',e.target.value)} placeholder="org_pro..." className="font-mono text-xs h-8" />
+                  <Input value={slotForms.pro.businessName} onChange={(e) => updateSlot('pro','businessName',e.target.value)} placeholder="Business name" className="text-xs h-8" />
+                </div>
+                <Button size="sm" disabled={slotLoading['pro'] || !slotForms.pro.orgId} onClick={() => handleSlotProvision('pro')} className="h-7 text-xs">
+                  {slotLoading['pro'] ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}Provision Pro
+                </Button>
+                {slotResult['pro'] && <p className="text-xs text-green-600 dark:text-green-400 font-mono">{slotResult['pro']}</p>}
+                {slotError['pro']  && <p className="text-xs text-destructive">{slotError['pro']}</p>}
+              </div>
+              {/* Accountant */}
+              <div className="rounded-xl border border-border p-4 space-y-2 bg-muted/20">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Accountant + Firm</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input value={slotForms.accountant.orgId} onChange={(e) => updateSlot('accountant','orgId',e.target.value)} placeholder="org_accountant..." className="font-mono text-xs h-8" />
+                  <Input value={slotForms.accountant.firmName} onChange={(e) => updateSlot('accountant','firmName',e.target.value)} placeholder="Firm name" className="text-xs h-8" />
+                  <Input value={slotForms.accountant.firmSubdomain} onChange={(e) => updateSlot('accountant','firmSubdomain',e.target.value)} placeholder="subdomain" className="font-mono text-xs h-8" />
+                </div>
+                <Button size="sm" disabled={slotLoading['accountant'] || !slotForms.accountant.orgId || !slotForms.accountant.firmSubdomain} onClick={() => handleSlotProvision('accountant')} className="h-7 text-xs">
+                  {slotLoading['accountant'] ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}Provision Accountant
+                </Button>
+                {slotResult['accountant'] && <p className="text-xs text-green-600 dark:text-green-400 font-mono">{slotResult['accountant']}</p>}
+                {slotError['accountant']  && <p className="text-xs text-destructive">{slotError['accountant']}</p>}
+              </div>
+              {/* Client */}
+              <div className="rounded-xl border border-border p-4 space-y-2 bg-muted/20">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Client — links to existing firm</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input value={slotForms.client.orgId} onChange={(e) => updateSlot('client','orgId',e.target.value)} placeholder="org_client..." className="font-mono text-xs h-8" />
+                  <Input value={slotForms.client.businessName} onChange={(e) => updateSlot('client','businessName',e.target.value)} placeholder="Client business name" className="text-xs h-8" />
+                  <Input value={slotForms.client.firmId} onChange={(e) => updateSlot('client','firmId',e.target.value)} placeholder="Firm ID (UUID)..." className="font-mono text-xs h-8" />
+                  <select value={slotForms.client.mode} onChange={(e) => updateSlot('client','mode',e.target.value)} className="rounded-lg border border-border bg-input text-foreground text-xs px-2 h-8">
+                    <option value="business">Business</option>
+                    <option value="freelancer">Freelancer</option>
+                  </select>
+                </div>
+                <Button size="sm" disabled={slotLoading['client'] || !slotForms.client.orgId || !slotForms.client.firmId} onClick={() => handleSlotProvision('client')} className="h-7 text-xs">
+                  {slotLoading['client'] ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}Provision Client
+                </Button>
+                {slotResult['client'] && <p className="text-xs text-green-600 dark:text-green-400 font-mono">{slotResult['client']}</p>}
+                {slotError['client']  && <p className="text-xs text-destructive">{slotError['client']}</p>}
+              </div>
+            </div>
           </div>
 
           {/* Seed Transactions */}
