@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { api } from '@/lib/api';
+import type { TransactionDetail } from '@/types';
 
 /* ── Bulk classify ──────────────────────────────────────────────────────────────── */
 export async function bulkClassifyTransactions(data: {
@@ -338,6 +339,18 @@ export async function createClassificationRule(data: {
     });
     revalidatePath('/transactions');
     return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/* -- Phase 29b.2 - Transaction Detail for slide-over panel ----------------------------------- */
+export async function getTransactionDetail(rawTransactionId: string) {
+  try {
+    const result = await api<TransactionDetail>(
+      `/classification/raw/${rawTransactionId}/detail`,
+    );
+    return { success: true, data: result };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

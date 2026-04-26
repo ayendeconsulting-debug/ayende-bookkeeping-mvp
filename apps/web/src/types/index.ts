@@ -517,3 +517,38 @@ export interface PersonalRule {
   created_at: string;
   updated_at: string;
 }
+
+/* -- Phase 29b.2 - Transaction Detail (slide-over panel) ------------------------------------- */
+
+export interface ClassifiedTransaction {
+  id: string;
+  raw_transaction_id: string;
+  account_id: string;
+  tax_code_id: string | null;
+  source_account_id: string | null;
+  destination_account_id: string | null;
+  classification_method: 'auto' | 'manual' | 'split';
+  is_posted: boolean;
+  posted_journal_entry_id: string | null;
+  is_split: boolean;
+  split_count: number;
+  is_transfer: boolean;
+  override_amount: number | null;
+}
+
+export interface TransactionDocument {
+  id: string;
+  file_name: string;
+  file_type: string;
+  file_size_bytes: number;
+  created_at: string;
+}
+
+export interface TransactionDetail {
+  raw: RawTransaction;
+  classified: ClassifiedTransaction | null;
+  journalEntry: JournalEntry | null;
+  journalLines: JournalLine[];
+  accountMap: Record<string, { account_name: string; account_code: string }>;
+  documents: TransactionDocument[];
+}
