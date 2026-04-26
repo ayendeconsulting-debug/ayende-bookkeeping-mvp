@@ -32,7 +32,7 @@ const PLAN_BADGE: Record<string, string> = {
 };
 
 const SCENARIOS = [
-  { value: 'personal_enriched',   label: 'Personal – Enriched (88 tx + budget + goals + recurring)' },
+  { value: 'personal_6mo',   label: 'Personal – Enriched (88 tx + budget + goals + recurring)' },
   { value: 'freelancer_enriched', label: 'Freelancer – Enriched (107 tx + mileage + invoices)' },
   { value: 'business_enriched',   label: 'Business – Enriched (99 tx + HST)' },
   { value: 'freelancer_6mo',      label: 'Freelancer – 6 months (legacy)' },
@@ -256,7 +256,7 @@ export function AdminClient() {
 
 // ── Card 2: Seed Transactions ─────────────────────────────────────────
   const [seedBizId, setSeedBizId] = useState('');
-  const [scenario, setScenario] = useState('personal_enriched');
+  const [scenario, setScenario] = useState('personal_6mo');
   const [seeding, setSeeding] = useState(false);
   const [seedResult, setSeedResult] = useState<{ inserted: number } | null>(null);
   const [seedError, setSeedError] = useState('');
