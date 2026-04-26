@@ -16,7 +16,9 @@ export function BusinessSwitcher() {
   const [switching, startSwitch] = useTransition();
   const containerRef             = useRef<HTMLDivElement>(null);
 
-  const orgs        = userMemberships?.data ?? [];
+  const allOrgs     = userMemberships?.data ?? [];
+  // Firm client orgs are accessed via the Accountant portal only -- hide from switcher
+  const orgs        = allOrgs.filter(m => !m.organization.slug?.startsWith('firm-client'));
   const hasMultiple = orgs.length > 1;
 
   const isPlatformAdmin = (user?.publicMetadata as any)?.platform_role === 'admin';
