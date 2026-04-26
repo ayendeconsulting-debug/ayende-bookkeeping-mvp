@@ -191,7 +191,8 @@ export async function markAsTransfer(
 
 /* ── Document actions ─────────────────────────────────────────────────────────── */
 export async function getDocumentUploadUrl(data: {
-  rawTransactionId: string;
+  rawTransactionId?: string;
+  journalEntryId?: string;
   fileName: string;
   fileType: string;
   fileSizeBytes: number;
@@ -203,6 +204,7 @@ export async function getDocumentUploadUrl(data: {
         method: 'POST',
         body: JSON.stringify({
           raw_transaction_id: data.rawTransactionId,
+          journal_entry_id: data.journalEntryId,
           file_name: data.fileName,
           file_type: data.fileType,
           file_size_bytes: data.fileSizeBytes,
@@ -216,7 +218,8 @@ export async function getDocumentUploadUrl(data: {
 }
 
 export async function saveDocumentRecord(data: {
-  rawTransactionId: string;
+  rawTransactionId?: string;
+  journalEntryId?: string;
   s3Key: string;
   s3Bucket: string;
   fileName: string;
@@ -228,6 +231,7 @@ export async function saveDocumentRecord(data: {
       method: 'POST',
       body: JSON.stringify({
         raw_transaction_id: data.rawTransactionId,
+        journal_entry_id: data.journalEntryId,
         s3_key: data.s3Key,
         s3_bucket: data.s3Bucket,
         file_name: data.fileName,

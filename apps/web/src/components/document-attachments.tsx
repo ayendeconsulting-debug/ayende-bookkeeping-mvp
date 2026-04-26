@@ -14,7 +14,8 @@ interface StoredDocument {
 }
 
 interface DocumentAttachmentsProps {
-  rawTransactionId: string;
+  rawTransactionId?: string;
+  journalEntryId?: string;
   initialDocuments?: StoredDocument[];
 }
 
@@ -34,7 +35,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function DocumentAttachments({ rawTransactionId, initialDocuments = [] }: DocumentAttachmentsProps) {
+export function DocumentAttachments({ rawTransactionId, journalEntryId, initialDocuments = [] }: DocumentAttachmentsProps) {
   const [documents, setDocuments] = useState<StoredDocument[]>(initialDocuments);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -53,14 +54,14 @@ export function DocumentAttachments({ rawTransactionId, initialDocuments = [] }:
     setUploadError(null); setUploading(true);
 
     try {
-      const urlResult = await getDocumentUploadUrl({ rawTransactionId, fileName: file.name, fileType: ext, fileSizeBytes: file.size });
+      const urlResult = await getDocumentUploadUrl({ rawTransactionId, journalEntryId, fileName: file.name, fileType: ext, fileSizeBytes: file.size });
       if (!urlResult.success || !urlResult.data) throw new Error(urlResult.error ?? 'Failed to get upload URL');
 
       const { upload_url, s3_key, s3_bucket } = urlResult.data;
       const s3Response = await fetch(upload_url, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } });
       if (!s3Response.ok) throw new Error('S3 upload failed. Please try again.');
 
-      const saveResult = await saveDocumentRecord({ rawTransactionId, s3Key: s3_key, s3Bucket: s3_bucket, fileName: file.name, fileType: ext, fileSizeBytes: file.size });
+      const saveResult = await saveDocumentRecord({ rawTransactionId, journalEntryId, s3Key: s3_key, s3Bucket: s3_bucket, fileName: file.name, fileType: ext, fileSizeBytes: file.size });
       if (!saveResult.success || !saveResult.data) throw new Error(saveResult.error ?? 'Failed to save document record');
 
       setDocuments((prev) => [saveResult.data as StoredDocument, ...prev]);
