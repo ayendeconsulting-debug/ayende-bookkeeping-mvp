@@ -150,17 +150,23 @@ export class DocumentsService {
   async deleteDocument(businessId: string, id: string): Promise<void> {
     const doc = await this.findOne(businessId, id);
 
-    // Delete from S3
+    // Phase 29 - Atomic delete: S3 first. If S3 fails, throw and leave DB row intact.
+    // If S3 succeeds but DB delete fails, log the orphan row and rethrow.
     try {
       await this.s3.send(
         new DeleteObjectCommand({ Bucket: doc.s3_bucket, Key: doc.s3_key }),
       );
-    } catch (err) {
-      this.logger.warn(`S3 delete failed for key ${doc.s3_key}: ${err.message}`);
-      // Continue to delete DB record even if S3 fails
+    } catch (err: any) {
+      this.logger.error(`S3 delete failed for key ${doc.s3_key}: ${err.message}. DB row preserved.`);
+      throw new BadRequestException(`Failed to delete file from storage: ${err.message}`);
     }
 
-    await this.documentRepo.delete(id);
+    try {
+      await this.documentRepo.delete(id);
+    } catch (err: any) {
+      this.logger.error(`DB delete failed after S3 success for doc ${id}: ${err.message}. Orphan DB row.`);
+      throw err;
+    }
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

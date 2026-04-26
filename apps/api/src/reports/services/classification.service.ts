@@ -15,6 +15,7 @@ import { TaxTransaction } from '../../entities/tax-transaction.entity';
 import { JournalEntry, JournalEntryStatus } from '../../entities/journal-entry.entity';
 import { JournalLine } from '../../entities/journal-line.entity';
 import { FiscalYear } from '../../entities/fiscal-year.entity';
+import { Document } from '../../entities/document.entity';
 import {
   ClassifyTransactionDto,
   OwnerContributionDto,
@@ -46,6 +47,8 @@ export class ClassificationService {
     private readonly journalLineRepo: Repository<JournalLine>,
     @InjectRepository(FiscalYear)
     private readonly fiscalYearRepo: Repository<FiscalYear>,
+    @InjectRepository(Document)
+    private readonly documentRepo: Repository<Document>,
     private readonly dataSource: DataSource,
     private readonly hstPeriodService: HstPeriodService,
     private readonly generalAuditService: GeneralAuditService,
@@ -176,6 +179,23 @@ export class ClassificationService {
           (tx as any).classified_source_account_id = (ct as any).source_account_id ?? null;
           (tx as any).classified_account_id = (ct as any).account_id ?? null;
         }
+      }
+
+      // Phase 29 - enrich with document_count for paperclip indicator
+      const docs = await this.documentRepo
+        .createQueryBuilder('doc')
+        .select(['doc.raw_transaction_id'])
+        .where('doc.raw_transaction_id IN (:...ids)', { ids })
+        .andWhere('doc.business_id = :businessId', { businessId })
+        .getMany();
+      const docCountMap = new Map<string, number>();
+      for (const doc of docs) {
+        if (doc.raw_transaction_id) {
+          docCountMap.set(doc.raw_transaction_id, (docCountMap.get(doc.raw_transaction_id) ?? 0) + 1);
+        }
+      }
+      for (const tx of data) {
+        (tx as any).document_count = docCountMap.get(tx.id) ?? 0;
       }
     }
 

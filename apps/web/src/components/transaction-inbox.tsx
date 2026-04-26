@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight, AlertTriangle, Tag, X, ArrowDownToLine } from 'lucide-react';
+import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight, AlertTriangle, Tag, X, ArrowDownToLine, Paperclip } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, BusinessMode, BudgetCategoryWithSpending } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
@@ -516,6 +516,9 @@ export function TransactionInbox({
                                 </div>
                               </div>
                             )}
+                            {tx.document_count !== undefined && tx.document_count > 0 && (
+                              <Paperclip className="w-3.5 h-3.5 text-muted-foreground inline-block mr-1.5 -mt-0.5 flex-shrink-0" />
+                            )}
                             <span className="block truncate text-foreground">{tx.description}</span>
                           </div>
                           {isPersonal && assignedCat ? (
@@ -651,6 +654,9 @@ export function TransactionInbox({
                     <div className="flex items-start gap-1.5 mb-1">
                       {tx.anomaly_flags && tx.anomaly_flags.length > 0 && (
                         <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      )}
+                      {tx.document_count !== undefined && tx.document_count > 0 && (
+                        <Paperclip className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
                       )}
                       <span className="text-sm font-medium text-foreground leading-snug">{tx.description}</span>
                     </div>

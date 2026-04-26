@@ -17,6 +17,8 @@ import { JournalLine } from '../entities/journal-line.entity';
 import { RawTransaction } from '../entities/raw-transaction.entity';
 import { ArApRecord } from '../entities/ar-ap-record.entity';
 import { Business } from '../entities/business.entity';
+// Phase 29 - for document_count enrichment in classification.service
+import { Document } from '../entities/document.entity';
 // Phase 9
 import { ProvincialTaxConfig } from '../entities/provincial-tax-config.entity';
 import { HstPeriod } from '../entities/hst-period.entity';
@@ -73,6 +75,7 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
       RawTransaction,
       ArApRecord,
       Business,
+      Document, // Phase 29
       // Phase 9
       ProvincialTaxConfig,
       HstPeriod,

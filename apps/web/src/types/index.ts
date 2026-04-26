@@ -64,6 +64,7 @@ export interface RawTransaction {
   plaid_category?: string;
   anomaly_flags?: string[] | null; // Phase 15 â€“ persisted from AI explain job
   personal_category_id?: string | null; // Phase 17 â€“ manual budget category assignment
+  document_count?: number; // Phase 29 - paperclip indicator on inbox rows
   classified_id?: string | null;
   classified_account_id?: string | null;
   classified_source_account_id?: string | null;
