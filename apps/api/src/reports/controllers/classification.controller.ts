@@ -75,6 +75,12 @@ export class ClassificationController {
     });
   }
 
+  // Phase 29b.2 - Transaction detail (any status) for slide-over panel
+  @Get('raw/:id/detail')
+  getTransactionDetail(@Req() req: Request, @Param('id') id: string) {
+    return this.classificationService.getTransactionDetail(req.user!.businessId, id);
+  }
+
   @Roles('admin')
   @Patch('raw/:id/tag')
   tagTransaction(

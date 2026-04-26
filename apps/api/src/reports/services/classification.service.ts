@@ -5,7 +5,7 @@
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, ILike, Between } from 'typeorm';
+import { Repository, DataSource, ILike, Between, In } from 'typeorm';
 import { ClassifiedTransaction, ClassificationMethod } from '../../entities/classified-transaction.entity';
 import { ClassificationRule } from '../../entities/classification-rule.entity';
 import { RawTransaction, RawTransactionStatus } from '../../entities/raw-transaction.entity';
@@ -200,6 +200,75 @@ export class ClassificationService {
     }
 
     return { data, total };
+  }
+
+  // Phase 29b.2 - Transaction detail for slide-over panel (any status)
+  async getTransactionDetail(
+    businessId: string,
+    rawTransactionId: string,
+  ): Promise<{
+    raw: RawTransaction;
+    classified: ClassifiedTransaction | null;
+    journalEntry: JournalEntry | null;
+    journalLines: JournalLine[];
+    accountMap: Record<string, { account_name: string; account_code: string }>;
+    documents: Document[];
+  }> {
+    const raw = await this.rawTxRepo.findOne({
+      where: { id: rawTransactionId, business_id: businessId },
+    });
+    if (!raw) {
+      throw new NotFoundException(`Transaction ${rawTransactionId} not found`);
+    }
+
+    const classified = await this.classifiedRepo.findOne({
+      where: { raw_transaction_id: rawTransactionId, business_id: businessId },
+    });
+
+    let journalEntry: JournalEntry | null = null;
+    let journalLines: JournalLine[] = [];
+    let accountMap: Record<string, { account_name: string; account_code: string }> = {};
+
+    if (classified?.posted_journal_entry_id) {
+      journalEntry = await this.journalEntryRepo.findOne({
+        where: { id: classified.posted_journal_entry_id, business_id: businessId },
+      });
+
+      if (journalEntry) {
+        journalLines = await this.journalLineRepo.find({
+          where: { journal_entry_id: journalEntry.id, business_id: businessId },
+          order: { line_number: 'ASC' },
+        });
+
+        const accountIds = Array.from(new Set(journalLines.map((l) => l.account_id)));
+        if (accountIds.length > 0) {
+          const accounts = await this.accountRepo.find({
+            where: { id: In(accountIds), business_id: businessId },
+            select: ['id', 'account_name', 'account_code'],
+          });
+          accountMap = accounts.reduce(
+            (acc, a) => {
+              acc[a.id] = { account_name: a.account_name, account_code: a.account_code };
+              return acc;
+            },
+            {} as Record<string, { account_name: string; account_code: string }>,
+          );
+        }
+      }
+    }
+
+    // Documents - link by JE if posted, otherwise by raw transaction
+    const documents = journalEntry
+      ? await this.documentRepo.find({
+          where: { journal_entry_id: journalEntry.id, business_id: businessId },
+          order: { created_at: 'DESC' },
+        })
+      : await this.documentRepo.find({
+          where: { raw_transaction_id: rawTransactionId, business_id: businessId },
+          order: { created_at: 'DESC' },
+        });
+
+    return { raw, classified, journalEntry, journalLines, accountMap, documents };
   }
 
   // â”€â”€ Source Account Names (for filter dropdown) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
