@@ -11,7 +11,7 @@ import { Subscription } from '../../entities/subscription.entity';
 import {
   RECEIPT_EXPORT_QUEUE,
   ReceiptExportJobData,
-} from '../receipt-export.processor';
+} from '../receipt-export.constants';
 import { ReceiptExportSubmitDto } from '../dto/receipt-export.dto';
 
 export interface PreflightResult {

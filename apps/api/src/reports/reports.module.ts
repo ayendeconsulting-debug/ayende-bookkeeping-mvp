@@ -22,7 +22,8 @@ import { Document } from '../entities/document.entity';
 // Phase 31 - Bulk Receipt Export
 import { ReceiptExportJob } from '../entities/receipt-export-job.entity';
 import { Subscription } from '../entities/subscription.entity';
-import { ReceiptExportProcessor, RECEIPT_EXPORT_QUEUE } from './receipt-export.processor';
+import { ReceiptExportProcessor } from './receipt-export.processor';
+import { RECEIPT_EXPORT_QUEUE } from './receipt-export.constants';
 import { ReceiptExportService } from './services/receipt-export.service';
 // Phase 9
 import { ProvincialTaxConfig } from '../entities/provincial-tax-config.entity';
