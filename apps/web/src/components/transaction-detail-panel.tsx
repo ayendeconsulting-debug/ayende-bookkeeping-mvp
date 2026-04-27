@@ -175,11 +175,15 @@ export function TransactionDetailPanel({
                   <DocumentAttachments
                     journalEntryId={detail.journalEntry.id}
                     initialDocuments={detail.documents as any}
+                    transactionAmount={Number(detail.raw.amount)}
+                    transactionDate={detail.raw.transaction_date}
                   />
                 ) : (
                   <DocumentAttachments
                     rawTransactionId={detail.raw.id}
                     initialDocuments={detail.documents as any}
+                    transactionAmount={Number(detail.raw.amount)}
+                    transactionDate={detail.raw.transaction_date}
                   />
                 )}
               </div>

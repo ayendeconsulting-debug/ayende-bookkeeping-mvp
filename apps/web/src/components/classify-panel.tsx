@@ -280,7 +280,11 @@ export function ClassifyPanel({
                 )}
 
                 <Separator />
-                <DocumentAttachments rawTransactionId={transaction?.id ?? ''} />
+                <DocumentAttachments
+                  rawTransactionId={transaction?.id ?? ''}
+                  transactionAmount={transaction ? Number(transaction.amount) : undefined}
+                  transactionDate={transaction?.transaction_date}
+                />
               </div>
             )}
 
