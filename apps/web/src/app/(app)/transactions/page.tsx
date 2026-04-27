@@ -90,7 +90,11 @@ async function getBucketCounts(
 
 export default async function TransactionsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const { status, search, page, sourceAccountName, month } = params;
+  const { search, page, sourceAccountName, month } = params;
+  // Phase 30b.1: hoist default so getTransactions() and the UI prop see the
+  // same value. Without this, cold-load /transactions sends no status filter
+  // (list shows all rows) but the tab strip highlights "Needs Review".
+  const status = params.status ?? 'needs_review';
 
   const [txResult, accounts, taxCodes, business, sourceAccounts, transactionMonths, bucketCounts] = await Promise.all([
     getTransactions(status, search, page, sourceAccountName, month),
@@ -115,7 +119,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
         totalCount={txResult.total}
         accounts={accounts}
         taxCodes={taxCodes}
-        currentStatus={status ?? 'needs_review'}
+        currentStatus={status}
         currentSearch={search ?? ''}
         currentPage={parseInt(page ?? '1')}
         mode={mode}
