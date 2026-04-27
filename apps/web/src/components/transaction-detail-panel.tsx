@@ -5,10 +5,8 @@ import {
   X,
   Paperclip,
   AlertTriangle,
-  ExternalLink,
   ChevronRight,
 } from 'lucide-react';
-import Link from 'next/link';
 import type { RawTransaction, TransactionDetail } from '@/types';
 import { Button } from '@/components/ui/button';
 import { getTransactionDetail } from '@/app/(app)/transactions/actions';
@@ -190,17 +188,7 @@ export function TransactionDetailPanel({
         </div>
 
         {/* Footer */}
-        <div className="bg-card border-t border-border px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-          {detail?.journalEntry ? (
-            <Link
-              href={`/transactions/journal-entries?id=${detail.journalEntry.id}`}
-              className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-            >
-              Open journal entry <ExternalLink className="h-3.5 w-3.5" />
-            </Link>
-          ) : (
-            <span />
-          )}
+        <div className="bg-card border-t border-border px-4 sm:px-6 py-3 flex items-center justify-end gap-3">
           <Button onClick={onClose} variant="outline" className="min-h-[44px]">
             Close
           </Button>
