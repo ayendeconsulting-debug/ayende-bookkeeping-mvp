@@ -22,6 +22,7 @@ import { Document } from '../entities/document.entity';
 // Phase 31 - Bulk Receipt Export
 import { ReceiptExportJob } from '../entities/receipt-export-job.entity';
 import { Subscription } from '../entities/subscription.entity';
+import { AiUsageLog } from '../entities/ai-usage-log.entity';
 import { ReceiptExportProcessor } from './receipt-export.processor';
 import { RECEIPT_EXPORT_QUEUE } from './receipt-export.constants';
 import { ReceiptExportService } from './services/receipt-export.service';
@@ -84,6 +85,7 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
       Document, // Phase 29
       ReceiptExportJob, // Phase 31
       Subscription, // Phase 31 - plan gating in ReceiptExportService
+      AiUsageLog, // Phase 31b.3 - AI cap preflight check
       // Phase 9
       ProvincialTaxConfig,
       HstPeriod,
