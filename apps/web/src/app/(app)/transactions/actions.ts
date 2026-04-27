@@ -344,6 +344,19 @@ export async function createClassificationRule(data: {
   }
 }
 
+/* -- Phase 29d.1 - Trigger AI receipt extraction ----------------------------------- */
+export async function extractReceipt(documentId: string) {
+  try {
+    const result = await api<{ job_id: string }>(
+      `/ai/receipt-extract/${documentId}`,
+      { method: 'POST' },
+    );
+    return { success: true, data: result };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 /* -- Phase 29b.2 - Transaction Detail for slide-over panel ----------------------------------- */
 export async function getTransactionDetail(rawTransactionId: string) {
   try {
