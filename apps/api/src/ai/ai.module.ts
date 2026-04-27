@@ -11,6 +11,7 @@ import { JournalEntry } from '../entities/journal-entry.entity';
 import { Business } from '../entities/business.entity';
 import { AiUsageLog } from '../entities/ai-usage-log.entity';
 import { Subscription } from '../entities/subscription.entity';
+import { Document } from '../entities/document.entity';
 // Controller
 import { AiController } from './controllers/ai.controller';
 // Services
@@ -21,6 +22,7 @@ import { NarrativeService } from './services/narrative.service';
 import { ChatService } from './services/chat.service';
 import { ExplainerService } from './services/explainer.service';
 import { YearEndService } from './services/year-end.service';
+import { ExtractorService } from './services/extractor.service';
 import { AiUsageService } from './services/ai-usage.service';
 // Async jobs
 import { AiJobsProcessor, AI_JOBS_QUEUE } from './ai-jobs.processor';
@@ -29,6 +31,7 @@ import { AiJobsService } from './ai-jobs.service';
 import { AiUsageGuard } from './ai-usage.guard';
 // ReportsModule provides PdfJobsService + YearEndExportService – no circular dep
 import { ReportsModule } from '../reports/reports.module';
+import { DocumentsModule } from '../documents/documents.module';
 
 @Module({
   imports: [
@@ -42,9 +45,11 @@ import { ReportsModule } from '../reports/reports.module';
       Business,
       AiUsageLog,
       Subscription,
+      Document,
     ]),
     BullModule.registerQueue({ name: AI_JOBS_QUEUE }),
     ReportsModule,
+    DocumentsModule,
   ],
   controllers: [AiController],
   providers: [
@@ -55,6 +60,7 @@ import { ReportsModule } from '../reports/reports.module';
     ChatService,
     ExplainerService,
     YearEndService,
+    ExtractorService,
     AiUsageService,  // Phase 15
     AiJobsProcessor,
     AiJobsService,

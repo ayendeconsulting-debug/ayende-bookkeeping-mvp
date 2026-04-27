@@ -68,6 +68,19 @@ export class AiJobsService {
     return { job_id: job.id! };
   }
 
+  async enqueueReceiptExtract(
+    businessId: string,
+    documentId: string,
+    userId: string,
+  ): Promise<{ job_id: string }> {
+    const job = await this.aiQueue.add(
+      'receipt_extract',
+      { type: 'receipt_extract', businessId, documentId, userId },
+      { removeOnComplete: 50, removeOnFail: 20 },
+    );
+    return { job_id: job.id! };
+  }
+
   // ── Poll ──────────────────────────────────────────────────────────────────
 
   async getJobStatus(jobId: string): Promise<JobStatusResponse> {

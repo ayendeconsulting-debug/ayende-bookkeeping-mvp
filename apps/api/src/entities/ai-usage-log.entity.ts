@@ -11,6 +11,7 @@ export enum AiFeature {
   ANOMALY = 'anomaly',
   CLASSIFY = 'classify',
   YEAR_END = 'year_end',
+  RECEIPT_EXTRACT = 'receipt_extract',
 }
 
 @Entity('ai_usage_log')

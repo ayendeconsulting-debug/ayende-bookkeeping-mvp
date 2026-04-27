@@ -119,6 +119,26 @@ export class AiController {
   }
 
   /**
+   * POST /ai/receipt-extract/:documentId
+   * Phase 29c: enqueues a vision job to extract vendor/amount/date/currency from a receipt image.
+   * Returns 202 Accepted with { job_id }. Poll GET /ai/jobs/:id for the result.
+   */
+  @Post('receipt-extract/:documentId')
+  @HttpCode(HttpStatus.ACCEPTED)
+  @UseGuards(AiUsageGuard)
+  @AiFeatureType(AiFeature.RECEIPT_EXTRACT)
+  async receiptExtract(
+    @Param('documentId') documentId: string,
+    @Req() req: Request,
+  ) {
+    return this.aiJobsService.enqueueReceiptExtract(
+      req.user!.businessId,
+      documentId,
+      req.user!.userId,
+    );
+  }
+
+  /**
    * POST /ai/year-end
    */
   @Post('year-end')

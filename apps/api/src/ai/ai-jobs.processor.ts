@@ -5,10 +5,11 @@ import { ClassificationAiService } from './services/classification-ai.service';
 import { AnomalyService } from './services/anomaly.service';
 import { ExplainerService } from './services/explainer.service';
 import { YearEndService } from './services/year-end.service';
+import { ExtractorService } from './services/extractor.service';
 
 export const AI_JOBS_QUEUE = 'ai-jobs';
 
-export type AiJobType = 'classify' | 'anomalies' | 'explain' | 'year_end';
+export type AiJobType = 'classify' | 'anomalies' | 'explain' | 'year_end' | 'receipt_extract';
 
 export interface ClassifyJobData {
   type: 'classify';
@@ -35,11 +36,19 @@ export interface YearEndJobData {
   fiscalYearEnd: string;
 }
 
+export interface ReceiptExtractJobData {
+  type: 'receipt_extract';
+  businessId: string;
+  documentId: string;
+  userId: string;
+}
+
 export type AiJobData =
   | ClassifyJobData
   | AnomaliesJobData
   | ExplainJobData
-  | YearEndJobData;
+  | YearEndJobData
+  | ReceiptExtractJobData;
 
 @Processor(AI_JOBS_QUEUE)
 export class AiJobsProcessor extends WorkerHost {
@@ -50,6 +59,7 @@ export class AiJobsProcessor extends WorkerHost {
     private readonly anomalyService: AnomalyService,
     private readonly explainerService: ExplainerService,
     private readonly yearEndService: YearEndService,
+    private readonly extractorService: ExtractorService,
   ) {
     super();
   }
@@ -96,6 +106,18 @@ export class AiJobsProcessor extends WorkerHost {
           fiscalYearEnd,
         );
         this.logger.log(`AI year-end job ${job.id} complete`);
+        return result;
+      }
+
+      case 'receipt_extract': {
+        const { businessId, documentId, userId } = job.data;
+        const result = await this.extractorService.extract(
+          documentId,
+          businessId,
+          userId,
+          job.id,
+        );
+        this.logger.log(`AI receipt-extract job ${job.id} complete`);
         return result;
       }
 
