@@ -1,4 +1,4 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 
@@ -19,6 +19,8 @@ import { ArApRecord } from '../entities/ar-ap-record.entity';
 import { Business } from '../entities/business.entity';
 // Phase 29 - for document_count enrichment in classification.service
 import { Document } from '../entities/document.entity';
+// Phase 31 - Bulk Receipt Export
+import { ReceiptExportJob } from '../entities/receipt-export-job.entity';
 // Phase 9
 import { ProvincialTaxConfig } from '../entities/provincial-tax-config.entity';
 import { HstPeriod } from '../entities/hst-period.entity';
@@ -76,6 +78,7 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
       ArApRecord,
       Business,
       Document, // Phase 29
+      ReceiptExportJob, // Phase 31
       // Phase 9
       ProvincialTaxConfig,
       HstPeriod,
