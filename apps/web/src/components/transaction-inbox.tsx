@@ -3,7 +3,7 @@
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight, AlertTriangle, Tag, X, ArrowDownToLine, Paperclip } from 'lucide-react';
-import { Account, TaxCode, RawTransaction, BusinessMode, BudgetCategoryWithSpending } from '@/types';
+import { Account, TaxCode, RawTransaction, BusinessMode, BudgetCategoryWithSpending, BucketCounts } from '@/types';
 import { formatCurrency, cn } from '@/lib/utils';
 import { ClassifyPanel } from '@/components/classify-panel';
 import { TransactionExplainerPanel } from '@/components/transaction-explainer-panel';
@@ -45,15 +45,55 @@ interface TransactionInboxProps {
   transactionMonths?: { value: string; label: string }[];
   currentSourceAccount?: string;
   currentMonth?: string;
+  bucketCounts?: BucketCounts;
 }
 
-function getStatusTabs(isPersonal: boolean) {
+// Phase 30: mode-aware bucket model. See SRD v30.0 section 5.
+// Bucket keys map to virtual status values accepted by GET /classification/raw.
+function getBuckets(mode: BusinessMode): { key: string; label: string }[] {
+  if (mode === 'personal') {
+    return [
+      { key: 'all',          label: 'All' },
+      { key: 'needs_review', label: 'Needs Review' },
+      { key: 'categorized',  label: 'Categorized' },
+    ];
+  }
+  if (mode === 'freelancer') {
+    return [
+      { key: 'all',          label: 'All' },
+      { key: 'needs_review', label: 'Needs Review' },
+      { key: 'business',     label: 'Business' },
+      { key: 'personal',     label: 'Personal' },
+      { key: 'posted',       label: 'Posted' },
+    ];
+  }
+  // Default: business mode.
   return [
-    { key: 'all',        label: 'All' },
-    { key: 'pending',    label: 'Pending' },
-    { key: 'classified', label: 'Classified' },
-    { key: isPersonal ? 'categorized' : 'posted', label: isPersonal ? 'Categorized' : 'Posted' },
+    { key: 'all',          label: 'All' },
+    { key: 'needs_review', label: 'Needs Review' },
+    { key: 'classified',   label: 'Classified' },
+    { key: 'posted',       label: 'Posted' },
   ];
+}
+
+// Phase 30: bucket-specific empty-state copy. See SRD v30.0 section 7.5.
+function getEmptyStateCopy(bucket: string): string {
+  switch (bucket) {
+    case 'needs_review':
+      return 'Inbox zero. Nothing waiting for a decision right now.';
+    case 'business':
+      return 'No business transactions waiting to be posted. Classify a row from Needs Review to land it here.';
+    case 'personal':
+      return 'No personal transactions categorized yet. Tag a row Personal from Needs Review and pick a budget category.';
+    case 'classified':
+      return 'No transactions waiting to be posted. Classify a row from Needs Review to land it here.';
+    case 'categorized':
+      return 'No transactions categorized yet. Pick a budget category from Needs Review.';
+    case 'posted':
+      return 'No posted transactions yet. Post a classified row to land it here.';
+    default:
+      return 'Connect a bank account to start importing transactions.';
+  }
 }
 
 function generateMonthOptions(): { value: string; label: string }[] {
@@ -87,6 +127,7 @@ export function TransactionInbox({
   transactionMonths = [],
   currentSourceAccount = '',
   currentMonth = '',
+  bucketCounts,
 }: TransactionInboxProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -132,7 +173,9 @@ export function TransactionInbox({
 
   const isFreelancer = mode === 'freelancer';
   const isPersonal   = mode === 'personal';
-  const STATUS_TABS  = getStatusTabs(isPersonal);
+  // Phase 30: mode-aware buckets + per-bucket counts from /classification/raw/counts.
+  const BUCKETS      = getBuckets(mode);
+  const counts       = bucketCounts ?? { all: totalCount, needs_review: 0, business: 0, personal: 0, posted: 0, ignored: 0 };
   const LIMIT = 20;
   const totalPages = Math.ceil(totalCount / LIMIT);
 
@@ -347,7 +390,7 @@ export function TransactionInbox({
     });
   }
 
-  const pendingCount = initialTransactions.filter((t) => t.status === 'pending').length;
+  // Phase 30: pendingCount derivation removed; header now uses counts.needs_review.
 
   return (
     <div className="flex flex-col h-full">
@@ -357,7 +400,7 @@ export function TransactionInbox({
           <div>
             <h1 className="text-2xl font-extrabold text-foreground">Transactions</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {totalCount} total Â· {pendingCount} pending review
+              {totalCount} total · {counts.needs_review} needs review
               {isFreelancer && (
                 <span className="ml-2 text-purple-500 text-xs font-medium">
                   Â· Tag each transaction as Business or Personal
@@ -425,19 +468,33 @@ export function TransactionInbox({
           )}
         </div>
 
-        {/* Status tabs */}
+        {/* Phase 30: bucket tabs with count badges */}
         <div className="flex gap-0 -mb-px">
-          {STATUS_TABS.map((tab) => (
-            <button key={tab.key} onClick={() => handleStatusTab(tab.key)}
-              className={cn(
-                'px-4 py-2 text-sm border-b-2 transition-colors',
-                currentStatus === tab.key || (tab.key === 'all' && !currentStatus)
-                  ? 'border-accent-teal text-accent-teal font-medium'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
-              )}>
-              {tab.label}
-            </button>
-          ))}
+          {BUCKETS.map((tab) => {
+            const isActive = currentStatus === tab.key;
+            const tabCount = counts[tab.key as keyof typeof counts] ?? 0;
+            return (
+              <button key={tab.key} onClick={() => handleStatusTab(tab.key)}
+                className={cn(
+                  'px-4 py-2 text-sm border-b-2 transition-colors inline-flex items-center gap-2',
+                  isActive
+                    ? 'border-accent-teal text-accent-teal font-medium'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
+                )}>
+                <span>{tab.label}</span>
+                {tabCount > 0 && (
+                  <span className={cn(
+                    'text-xs font-medium rounded-full px-1.5 py-0.5 min-w-[20px] text-center',
+                    isActive
+                      ? 'bg-accent-teal-muted text-accent-teal'
+                      : 'bg-muted text-muted-foreground',
+                  )}>
+                    {tabCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -453,8 +510,7 @@ export function TransactionInbox({
               {currentSearch ? `No results for "${currentSearch}"`
                 : currentSourceAccount ? `No transactions for "${currentSourceAccount}"`
                 : currentMonth ? 'No transactions for this month'
-                : currentStatus !== 'all' ? `No ${currentStatus} transactions`
-                : 'Connect a bank account to start importing transactions'}
+                : getEmptyStateCopy(currentStatus)}
             </p>
           </div>
         ) : (

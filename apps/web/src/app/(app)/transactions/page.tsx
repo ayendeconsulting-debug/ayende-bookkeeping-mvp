@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { apiGet } from '@/lib/api';
-import { Account, TaxCode, RawTransaction, Business, BusinessMode, BudgetCategoryWithSpending } from '@/types';
+import { Account, TaxCode, RawTransaction, Business, BusinessMode, BudgetCategoryWithSpending, BucketCounts } from '@/types';
 import { TransactionInbox } from '@/components/transaction-inbox';
 
 interface PageProps {
@@ -68,17 +68,38 @@ async function getTransactionMonths() {
   catch { return []; }
 }
 
+// Phase 30: per-bucket counts for tab badges + header. See SRD v30.0 section 6.2.
+async function getBucketCounts(
+  search?: string,
+  sourceAccountName?: string,
+  month?: string,
+): Promise<BucketCounts> {
+  try {
+    const params = new URLSearchParams();
+    if (search) params.set('search', search);
+    if (sourceAccountName) params.set('sourceAccountName', sourceAccountName);
+    if (month) params.set('month', month);
+    const qs = params.toString();
+    return await apiGet<BucketCounts>(
+      `/classification/raw/counts${qs ? `?${qs}` : ''}`,
+    );
+  } catch {
+    return { all: 0, needs_review: 0, business: 0, personal: 0, posted: 0, ignored: 0 };
+  }
+}
+
 export default async function TransactionsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const { status, search, page, sourceAccountName, month } = params;
 
-  const [txResult, accounts, taxCodes, business, sourceAccounts, transactionMonths] = await Promise.all([
+  const [txResult, accounts, taxCodes, business, sourceAccounts, transactionMonths, bucketCounts] = await Promise.all([
     getTransactions(status, search, page, sourceAccountName, month),
     getAccounts(),
     getTaxCodes(),
     getMyBusiness(),
     getSourceAccounts(),
     getTransactionMonths(),
+    getBucketCounts(search, sourceAccountName, month),
   ]);
 
   const mode = (business?.mode ?? 'business') as BusinessMode;
@@ -94,7 +115,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
         totalCount={txResult.total}
         accounts={accounts}
         taxCodes={taxCodes}
-        currentStatus={status ?? 'all'}
+        currentStatus={status ?? 'needs_review'}
         currentSearch={search ?? ''}
         currentPage={parseInt(page ?? '1')}
         mode={mode}
@@ -103,6 +124,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
         transactionMonths={transactionMonths}
         currentSourceAccount={sourceAccountName ?? ''}
         currentMonth={month ?? ''}
+        bucketCounts={bucketCounts}
       />
     </Suspense>
   );
