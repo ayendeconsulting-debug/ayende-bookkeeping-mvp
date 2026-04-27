@@ -75,6 +75,26 @@ export class ClassificationController {
     });
   }
 
+  // Phase 30: bucket counts for the redesigned inbox tab strip.
+  // See SRD v30.0 section 6.2.
+  @Get('raw/counts')
+  getRawTransactionCounts(
+    @Req() req: Request,
+    @Query('search') search?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('sourceAccountName') sourceAccountName?: string,
+    @Query('month') month?: string,
+  ) {
+    return this.classificationService.getRawTransactionCounts(req.user!.businessId, {
+      search,
+      startDate,
+      endDate,
+      sourceAccountName,
+      month,
+    });
+  }
+
   // Phase 29b.2 - Transaction detail (any status) for slide-over panel
   @Get('raw/:id/detail')
   getTransactionDetail(@Req() req: Request, @Param('id') id: string) {

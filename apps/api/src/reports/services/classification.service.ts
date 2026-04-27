@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -95,6 +95,79 @@ export class ClassificationService {
 
   // â”€â”€ Raw Transactions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+  // Phase 30: per-bucket counts for the redesigned inbox tab strip.
+  // Honours search/sourceAccountName/month/startDate/endDate filters,
+  // identical to getRawTransactions list semantics. See SRD v30.0 section 6.2.
+  async getRawTransactionCounts(
+    businessId: string,
+    filters: {
+      search?: string;
+      startDate?: string;
+      endDate?: string;
+      sourceAccountName?: string;
+      month?: string;
+    },
+  ): Promise<{
+    all: number;
+    needs_review: number;
+    business: number;
+    personal: number;
+    posted: number;
+    ignored: number;
+  }> {
+    const { search, startDate, endDate, sourceAccountName, month } = filters;
+
+    const conditions: string[] = ['rt.business_id = $1'];
+    const params: any[] = [businessId];
+
+    if (search) {
+      params.push(`%${search}%`);
+      conditions.push(`rt.description ILIKE $${params.length}`);
+    }
+
+    if (month) {
+      const [year, mon] = month.split('-').map(Number);
+      const firstDay = `${year}-${String(mon).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, mon, 0).getDate();
+      const lastDayStr = `${year}-${String(mon).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      params.push(firstDay);
+      params.push(lastDayStr);
+      conditions.push(`rt.transaction_date BETWEEN $${params.length - 1} AND $${params.length}`);
+    } else if (startDate && endDate) {
+      params.push(startDate);
+      params.push(endDate);
+      conditions.push(`rt.transaction_date BETWEEN $${params.length - 1} AND $${params.length}`);
+    }
+
+    if (sourceAccountName) {
+      params.push(sourceAccountName);
+      conditions.push(`rt.source_account_name = $${params.length}`);
+    }
+
+    const sql = `
+      SELECT
+        COUNT(*)::int AS "all",
+        COUNT(*) FILTER (WHERE rt.status = 'pending' AND (rt.is_personal = false OR rt.personal_category_id IS NULL))::int AS "needs_review",
+        COUNT(*) FILTER (WHERE rt.is_personal = false AND rt.status = 'classified')::int AS "business",
+        COUNT(*) FILTER (WHERE rt.personal_category_id IS NOT NULL)::int AS "personal",
+        COUNT(*) FILTER (WHERE rt.status = 'posted')::int AS "posted",
+        COUNT(*) FILTER (WHERE rt.status = 'ignored')::int AS "ignored"
+      FROM raw_transactions rt
+      WHERE ${conditions.join(' AND ')}
+    `;
+
+    const rows = await this.dataSource.query(sql, params);
+    const r = rows[0] || {};
+    return {
+      all: Number(r.all) || 0,
+      needs_review: Number(r.needs_review) || 0,
+      business: Number(r.business) || 0,
+      personal: Number(r.personal) || 0,
+      posted: Number(r.posted) || 0,
+      ignored: Number(r.ignored) || 0,
+    };
+  }
+
   async getRawTransactions(
     businessId: string,
     filters: {
@@ -121,10 +194,27 @@ export class ClassificationService {
     // â”€â”€ Status filter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // 'categorized' = personal_category_id IS NOT NULL (personal mode)
     if (status && status !== 'all') {
-      if (status === 'categorized') {
-        qb.andWhere('rt.personal_category_id IS NOT NULL');
-      } else {
-        qb.andWhere('rt.status = :status', { status });
+      // Phase 30: virtual status values (needs_review, business, personal,
+      // categorized) compose with raw status for compound buckets.
+      // See SRD v30.0 section 4.1.
+      switch (status) {
+        case 'needs_review':
+          qb.andWhere(
+            "rt.status = 'pending' AND (rt.is_personal = false OR rt.personal_category_id IS NULL)",
+          );
+          break;
+        case 'business':
+          qb.andWhere(
+            "rt.is_personal = false AND rt.status = 'classified'",
+          );
+          break;
+        case 'personal':
+        case 'categorized':
+          qb.andWhere('rt.personal_category_id IS NOT NULL');
+          break;
+        default:
+          // Exact status match: pending, classified, posted, ignored.
+          qb.andWhere('rt.status = :status', { status });
       }
     }
 
