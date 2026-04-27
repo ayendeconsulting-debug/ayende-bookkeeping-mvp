@@ -175,7 +175,7 @@ export function TransactionInbox({
   const isPersonal   = mode === 'personal';
   // Phase 30: mode-aware buckets + per-bucket counts from /classification/raw/counts.
   const BUCKETS      = getBuckets(mode);
-  const counts       = bucketCounts ?? { all: totalCount, needs_review: 0, business: 0, personal: 0, posted: 0, ignored: 0 };
+  const counts       = bucketCounts ?? { all: totalCount, needs_review: 0, business: 0, personal: 0, categorized: 0, posted: 0, ignored: 0 };
   const LIMIT = 20;
   const totalPages = Math.ceil(totalCount / LIMIT);
 

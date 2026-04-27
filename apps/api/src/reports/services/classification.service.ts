@@ -112,6 +112,7 @@ export class ClassificationService {
     needs_review: number;
     business: number;
     personal: number;
+    categorized: number;
     posted: number;
     ignored: number;
   }> {
@@ -149,7 +150,8 @@ export class ClassificationService {
         COUNT(*)::int AS "all",
         COUNT(*) FILTER (WHERE rt.status = 'pending' AND (rt.is_personal = false OR rt.personal_category_id IS NULL))::int AS "needs_review",
         COUNT(*) FILTER (WHERE rt.is_personal = false AND rt.status = 'classified')::int AS "business",
-        COUNT(*) FILTER (WHERE rt.personal_category_id IS NOT NULL)::int AS "personal",
+        COUNT(*) FILTER (WHERE rt.is_personal = true AND rt.personal_category_id IS NOT NULL)::int AS "personal",
+        COUNT(*) FILTER (WHERE rt.personal_category_id IS NOT NULL)::int AS "categorized",
         COUNT(*) FILTER (WHERE rt.status = 'posted')::int AS "posted",
         COUNT(*) FILTER (WHERE rt.status = 'ignored')::int AS "ignored"
       FROM raw_transactions rt
@@ -163,6 +165,7 @@ export class ClassificationService {
       needs_review: Number(r.needs_review) || 0,
       business: Number(r.business) || 0,
       personal: Number(r.personal) || 0,
+      categorized: Number(r.categorized) || 0,
       posted: Number(r.posted) || 0,
       ignored: Number(r.ignored) || 0,
     };
@@ -209,7 +212,17 @@ export class ClassificationService {
           );
           break;
         case 'personal':
+          // Phase 30a.1: strict for Freelancer "Personal" tab - excludes
+          // Business-toggled rows with stale personal_category_id.
+          qb.andWhere(
+            "rt.is_personal = true AND rt.personal_category_id IS NOT NULL",
+          );
+          break;
         case 'categorized':
+          // Phase 30a.1: loose for Personal-mode "Categorized" tab.
+          // Personal-mode rows currently do not set is_personal=true in the
+          // existing data; tightening would empty the bucket. Accepts any
+          // row with a category assignment regardless of the is_personal flag.
           qb.andWhere('rt.personal_category_id IS NOT NULL');
           break;
         default:

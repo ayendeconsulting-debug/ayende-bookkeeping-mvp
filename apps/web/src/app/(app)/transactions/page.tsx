@@ -84,7 +84,7 @@ async function getBucketCounts(
       `/classification/raw/counts${qs ? `?${qs}` : ''}`,
     );
   } catch {
-    return { all: 0, needs_review: 0, business: 0, personal: 0, posted: 0, ignored: 0 };
+    return { all: 0, needs_review: 0, business: 0, personal: 0, categorized: 0, posted: 0, ignored: 0 };
   }
 }
 

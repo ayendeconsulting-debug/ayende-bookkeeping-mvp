@@ -9,6 +9,7 @@ export interface BucketCounts {
   needs_review: number;
   business: number;
   personal: number;
+  categorized: number;
   posted: number;
   ignored: number;
 }
