@@ -21,6 +21,9 @@ import { Business } from '../entities/business.entity';
 import { Document } from '../entities/document.entity';
 // Phase 31 - Bulk Receipt Export
 import { ReceiptExportJob } from '../entities/receipt-export-job.entity';
+import { Subscription } from '../entities/subscription.entity';
+import { ReceiptExportProcessor, RECEIPT_EXPORT_QUEUE } from './receipt-export.processor';
+import { ReceiptExportService } from './services/receipt-export.service';
 // Phase 9
 import { ProvincialTaxConfig } from '../entities/provincial-tax-config.entity';
 import { HstPeriod } from '../entities/hst-period.entity';
@@ -79,11 +82,13 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
       Business,
       Document, // Phase 29
       ReceiptExportJob, // Phase 31
+      Subscription, // Phase 31 - plan gating in ReceiptExportService
       // Phase 9
       ProvincialTaxConfig,
       HstPeriod,
     ]),
     BullModule.registerQueue({ name: PDF_JOBS_QUEUE }),
+    BullModule.registerQueue({ name: RECEIPT_EXPORT_QUEUE }), // Phase 31
   ],
   controllers: [
     TaxController,
@@ -116,6 +121,9 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
     // Phase 11
     YearEndExportService,
     GeneralAuditService,
+    // Phase 31
+    ReceiptExportProcessor,
+    ReceiptExportService,
   ],
   exports: [
     // Phase 12: exported so PlaidModule can inject ClassificationService
@@ -137,6 +145,8 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
     // Phase 11
     YearEndExportService,
     GeneralAuditService,
+    // Phase 31
+    ReceiptExportService,
   ],
 })
 export class ReportsModule {}
