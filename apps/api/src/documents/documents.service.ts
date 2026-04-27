@@ -145,6 +145,57 @@ export class DocumentsService {
     return { url, expires_in: DOWNLOAD_EXPIRY_SECONDS };
   }
 
+  // ── Phase 31: Upload arbitrary buffer to S3 ────────────────────────────
+  // Used by ReceiptExportService to upload assembled zip files to the
+  // exports/{businessId}/{jobId}.zip key prefix. Reuses this.s3 and this.bucket
+  // so a second S3Client is never instantiated.
+
+  async uploadBuffer(
+    key: string,
+    buffer: Buffer,
+    contentType: string,
+  ): Promise<{ s3_key: string; s3_bucket: string }> {
+    if (!this.bucket) {
+      throw new BadRequestException('S3 bucket not configured. Set AWS_S3_BUCKET env var.');
+    }
+
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: contentType,
+        ContentLength: buffer.length,
+      }),
+    );
+
+    return { s3_key: key, s3_bucket: this.bucket };
+  }
+
+  // ── Phase 31: Presigned download for arbitrary key (no documents row) ──
+  // Used by the receipt-export download endpoint to issue a presigned GET URL
+  // for a zip key recorded in receipt_export_jobs.download_key. The bucket is
+  // parameterized so callers pass whatever bucket was recorded at upload time.
+
+  async getPresignedDownloadByKey(
+    bucket: string,
+    key: string,
+    fileName: string,
+    expiresIn: number = DOWNLOAD_EXPIRY_SECONDS,
+  ): Promise<{ url: string; expires_in: number }> {
+    const command = new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      ResponseContentDisposition: `attachment; filename="${fileName}"`,
+    });
+
+    const url = await getSignedUrl(this.s3, command, {
+      expiresIn,
+    });
+
+    return { url, expires_in: expiresIn };
+  }
+
   // ── Delete document ───────────────────────────────────────────────────────
 
   async deleteDocument(businessId: string, id: string): Promise<void> {
