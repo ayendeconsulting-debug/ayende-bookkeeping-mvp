@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -13,6 +13,7 @@ import { PersonalCategoryPanel } from '@/components/personal-category-panel';
 import { SimilarTransactionsModal } from '@/components/similar-transactions-modal';
 import { AdminOnly } from '@/components/admin-only';
 import { NewJEButton } from '@/components/manual-je-panel';
+import { TransactionDetailPanel, type PanelAction } from '@/components/transaction-detail-panel';
 import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -118,6 +119,8 @@ export function TransactionInbox({
   const [similarResult, setSimilarResult]   = useState<any | null>(null);
   const [similarOpen, setSimilarOpen]       = useState(false);
   const [lastClassifiedTxId, setLastClassifiedTxId] = useState<string | null>(null);
+
+  const [detailRawTransactionId, setDetailRawTransactionId] = useState<string | null>(null);
 
   const [selectedIds, setSelectedIds]               = useState<Set<string>>(new Set());
   const [bulkAccountId, setBulkAccountId]           = useState('');
@@ -240,6 +243,21 @@ export function TransactionInbox({
   function openTransfer(tx: RawTransaction) { setTransferTx(tx); setTransferOpen(true); }
   function handleTransferClose() { setTransferOpen(false); setTransferTx(null); }
   function handleTransferSuccess() { setTransferOpen(false); setTransferTx(null); startTransition(() => router.refresh()); }
+
+  function handleDetailAction(action: PanelAction, txId: string) {
+    const tx = initialTransactions.find((t) => t.id === txId);
+    if (!tx) return;
+    setDetailRawTransactionId(null);
+    switch (action) {
+      case 'classify':   openClassify(tx); break;
+      case 'post':       openPost(tx); break;
+      case 'unclassify': handleUnclassify(tx); break;
+      case 'split':      openSplit(tx); break;
+      case 'transfer':   openTransfer(tx); break;
+      case 'explain':    setExplainerTx(tx); setExplainerOpen(true); break;
+      case 'restore':    startTransition(() => router.refresh()); break;
+    }
+  }
 
   function handlePersonalCatClose() { setPersonalCatOpen(false); setPersonalCatTx(null); }
   function handlePersonalCatSuccess() {
@@ -480,19 +498,23 @@ export function TransactionInbox({
                     const assignedCat = tx.personal_category_id ? categoryMap[tx.personal_category_id] : null;
 
                     return (
-                      <TableRow key={tx.id} className={cn(
+                      <TableRow
+                        key={tx.id}
+                        onClick={() => setDetailRawTransactionId(tx.id)}
+                        className={cn(
+                        'cursor-pointer hover:bg-muted/40 transition-colors',
                         tx.is_personal && isFreelancer ? 'opacity-60' : '',
                         isSelected || isPersonalSelected ? 'bg-accent-teal-muted/30' : '',
                       )}>
                         {isPersonal && (
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             <input type="checkbox" checked={isPersonalSelected}
                               onChange={() => handlePersonalToggleOne(tx.id)}
                               className="rounded border-border cursor-pointer" />
                           </TableCell>
                         )}
                         {!isPersonal && selectableTxs.length > 0 && (
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             {isSelectable ? (
                               <input type="checkbox" checked={isSelected}
                                 onChange={() => handleToggleOne(tx.id)}
@@ -538,7 +560,7 @@ export function TransactionInbox({
                           </span>
                         </TableCell>
                         {isFreelancer && (
-                          <TableCell>
+                          <TableCell onClick={(e) => e.stopPropagation()}>
                             {tx.status === 'pending' ? (
                               <TransactionTagToggle transactionId={tx.id} isPersonal={tx.is_personal} onToggle={handleTagToggle} />
                             ) : (
@@ -555,7 +577,7 @@ export function TransactionInbox({
                             : <Badge variant={statusVariant(tx.status)}>{tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}</Badge>
                           }
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {isPersonal && (
                               <AdminOnly>
@@ -634,11 +656,15 @@ export function TransactionInbox({
                 const isPersonalSelected = personalSelectedIds.has(tx.id);
 
                 return (
-                  <div key={tx.id} className={cn('px-4 py-3 bg-background', isPersonalSelected && 'bg-accent-teal-muted/20')}>
+                  <div
+                    key={tx.id}
+                    onClick={() => setDetailRawTransactionId(tx.id)}
+                    className={cn('px-4 py-3 bg-background cursor-pointer hover:bg-muted/40 transition-colors', isPersonalSelected && 'bg-accent-teal-muted/20')}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         {isPersonal && (
                           <input type="checkbox" checked={isPersonalSelected}
+                            onClick={(e) => e.stopPropagation()}
                             onChange={() => handlePersonalToggleOne(tx.id)}
                             className="rounded border-border cursor-pointer" />
                         )}
@@ -672,7 +698,7 @@ export function TransactionInbox({
                         {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap min-h-[44px]">
+                    <div className="flex items-center gap-2 flex-wrap min-h-[44px]" onClick={(e) => e.stopPropagation()}>
                       {isPersonal && (
                         <AdminOnly>
                           <Button size="sm" variant="outline"
@@ -820,6 +846,11 @@ export function TransactionInbox({
       />
 
       <TransactionExplainerPanel transaction={explainerTx} open={explainerOpen} onClose={handleExplainerClose} />
+      <TransactionDetailPanel
+        rawTransactionId={detailRawTransactionId}
+        onClose={() => setDetailRawTransactionId(null)}
+        onAction={handleDetailAction}
+      />
       <SplitTransactionModal transaction={splitTx} accounts={accounts}
         open={splitOpen} onClose={handleSplitClose} onSuccess={handleSplitSuccess}
           isFreelancerMode={mode==='freelancer'} />
