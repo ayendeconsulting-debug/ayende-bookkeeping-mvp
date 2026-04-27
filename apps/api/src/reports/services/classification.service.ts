@@ -5,7 +5,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, ILike, Between, In } from 'typeorm';
+import { Repository, DataSource, ILike, Between, In, Brackets } from 'typeorm';
 import { ClassifiedTransaction, ClassificationMethod } from '../../entities/classified-transaction.entity';
 import { ClassificationRule } from '../../entities/classification-rule.entity';
 import { RawTransaction, RawTransactionStatus } from '../../entities/raw-transaction.entity';
@@ -360,16 +360,23 @@ export class ClassificationService {
       }
     }
 
-    // Documents - link by JE if posted, otherwise by raw transaction
-    const documents = journalEntry
-      ? await this.documentRepo.find({
-          where: { journal_entry_id: journalEntry.id, business_id: businessId },
-          order: { created_at: 'DESC' },
-        })
-      : await this.documentRepo.find({
-          where: { raw_transaction_id: rawTransactionId, business_id: businessId },
-          order: { created_at: 'DESC' },
-        });
+    // Phase 29d.1.b - Documents reachable by either link, regardless of status.
+    // Receipts uploaded against a pending raw_transaction keep their raw_transaction_id
+    // even after the transaction is posted (the post flow does not migrate the link).
+    // Querying both columns ensures the document surfaces in the detail panel in all states.
+    const documents = await this.documentRepo
+      .createQueryBuilder('doc')
+      .where('doc.business_id = :businessId', { businessId })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('doc.raw_transaction_id = :rawId', { rawId: rawTransactionId });
+          if (journalEntry) {
+            qb.orWhere('doc.journal_entry_id = :jeId', { jeId: journalEntry.id });
+          }
+        }),
+      )
+      .orderBy('doc.created_at', 'DESC')
+      .getMany();
 
     return { raw, classified, journalEntry, journalLines, accountMap, documents };
   }
