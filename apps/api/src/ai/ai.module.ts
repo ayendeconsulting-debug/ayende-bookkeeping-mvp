@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 // Entities
@@ -48,7 +48,7 @@ import { DocumentsModule } from '../documents/documents.module';
       Document,
     ]),
     BullModule.registerQueue({ name: AI_JOBS_QUEUE }),
-    ReportsModule,
+    forwardRef(() => ReportsModule), // Phase 31b.4 - cycle: ReportsModule injects ExtractorService
     DocumentsModule,
   ],
   controllers: [AiController],
@@ -66,6 +66,6 @@ import { DocumentsModule } from '../documents/documents.module';
     AiJobsService,
     AiUsageGuard,
   ],
-  exports: [AiJobsService, AiUsageGuard, AiUsageService],
+  exports: [AiJobsService, AiUsageGuard, AiUsageService, ExtractorService], // Phase 31b.4
 })
 export class AiModule {}

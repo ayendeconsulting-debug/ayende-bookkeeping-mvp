@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 
@@ -64,6 +64,9 @@ import { PdfJobsService } from '../reports/pdf-jobs.service';
 import { GeneralAuditService } from './services/general-audit.service';
 // Phase 11: Year-End PDF export (lives here to avoid circular dep with AiModule)
 import { YearEndExportService } from '../ai/services/year-end-export.service';
+// Phase 31b.4: AI + Documents modules (forwardRef breaks ReportsModule <-> AiModule cycle)
+import { AiModule } from '../ai/ai.module';
+import { DocumentsModule } from '../documents/documents.module';
 
 @Module({
   imports: [
@@ -92,6 +95,8 @@ import { YearEndExportService } from '../ai/services/year-end-export.service';
     ]),
     BullModule.registerQueue({ name: PDF_JOBS_QUEUE }),
     BullModule.registerQueue({ name: RECEIPT_EXPORT_QUEUE }), // Phase 31
+    forwardRef(() => AiModule), // Phase 31b.4 - ExtractorService for run() fan-out
+    DocumentsModule, // Phase 31b.4 - DocumentsService for receipt fetch + zip upload
   ],
   controllers: [
     TaxController,
