@@ -13,7 +13,7 @@ import {
   LayoutDashboard, ArrowLeftRight, Building2, BookOpen, TrendingUp, Scale,
   ClipboardList, Receipt, Filter, Sparkles, Settings, FileText,
   ArrowRightLeft, RefreshCw, Users, Car, Calculator, Tag, PieChart, Target,
-  Landmark, Bell, X, Wand2, Lock, Sun, Moon, Upload,
+  Landmark, Bell, X, Wand2, Lock, Sun, Moon, Upload, FileArchive,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -40,6 +40,7 @@ const reportItems = [
   { href: '/reports/general-ledger',   label: 'General Ledger',   icon: BookOpen },
   { href: '/reports/hst',              label: 'HST / GST Report', icon: Receipt },
   { href: '/year-end',                 label: 'Year-End Report',  icon: Wand2 },
+  { href: '/reports/receipt-export',   label: 'Receipt Export',   icon: FileArchive },
 ];
 const businessSettingsItems = [
   { href: '/accounts',                  label: 'Chart of Accounts',   icon: BookOpen },
@@ -78,6 +79,7 @@ const freelancerReportItems = [
   { href: '/reports/general-ledger',   label: 'General Ledger',   icon: BookOpen },
   { href: '/reports/hst',              label: 'HST / GST Report', icon: Receipt },
   { href: '/year-end',                 label: 'Year-End Report',  icon: Wand2 },
+  { href: '/reports/receipt-export',   label: 'Receipt Export',   icon: FileArchive },
 ];
 const freelancerSettingsItems = [
   { href: '/accounts',                  label: 'Chart of Accounts',   icon: BookOpen },
