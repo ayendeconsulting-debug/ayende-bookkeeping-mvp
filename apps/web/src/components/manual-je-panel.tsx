@@ -50,6 +50,12 @@ export function ManualJEPanel({ accounts, open, onClose, editEntry, onSaved }: M
   const [posting, setPosting] = useState(false);
   const [nextKey, setNextKey] = useState(3);
 
+  // Active accounts only, sorted by account_code
+  const activeAccounts = accounts
+    .filter(a => a.is_active)
+    .slice()
+    .sort((a, b) => (a.account_code ?? '').localeCompare(b.account_code ?? ''));
+
   // Pre-fill when editing
   useEffect(() => {
     if (editEntry) {
@@ -90,7 +96,7 @@ export function ManualJEPanel({ accounts, open, onClose, editEntry, onSaved }: M
   const difference = Math.abs(totalDebits - totalCredits);
   const isBalanced = difference < 0.01;
   const allLinesHaveAccount = lines.every(l => !!l.account_id);
-  const hasAccounts = accounts.length > 0;
+  const hasAccounts = activeAccounts.length > 0;
   const canSaveDraft = hasAccounts && !!description.trim() && !!date && allLinesHaveAccount;
   const isValid = canSaveDraft && isBalanced;
 
@@ -259,7 +265,7 @@ export function ManualJEPanel({ accounts, open, onClose, editEntry, onSaved }: M
                 type="text"
                 value={description}
                 onChange={e => setDescription(e.target.value)}
-                placeholder="e.g. Year 1 CCA deduction - Tempo Books Class 12"
+                placeholder="e.g. Year 1 CCA deduction - Class 12 asset"
                 className="w-full rounded-lg border border-border bg-input text-foreground text-sm px-3 py-2 focus:outline-none focus:ring-2"
               />
             </div>
@@ -315,9 +321,9 @@ export function ManualJEPanel({ accounts, open, onClose, editEntry, onSaved }: M
                       className="w-full rounded-lg border border-border bg-input text-foreground text-xs px-2 py-2 focus:outline-none focus:ring-1 disabled:opacity-50"
                     >
                       <option value="">Select account...</option>
-                      {(accounts as any[]).map((a: any) => {
-                        const code = a.code ? `${a.code} - ` : '';
-                        const name = a.name ?? '(unnamed account)';
+                      {activeAccounts.map(a => {
+                        const code = a.account_code ? `${a.account_code} - ` : '';
+                        const name = a.account_name ?? '(unnamed account)';
                         return (
                           <option key={a.id} value={a.id}>
                             {`${code}${name}`}
