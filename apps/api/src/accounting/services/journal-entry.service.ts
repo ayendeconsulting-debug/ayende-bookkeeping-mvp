@@ -280,6 +280,7 @@ export class JournalEntryService {
 
     return this.dataSource.transaction(async (manager) => {
       await manager.delete(JournalLine, { journal_entry_id: id });
+      entry.lines = []; // clear loaded lines to prevent TypeORM cascade re-insert
 
       entry.description = dto.description;
       entry.entry_date = typeof dto.entry_date === 'string' ? new Date(dto.entry_date) : dto.entry_date;
