@@ -36,6 +36,7 @@ import { ClassificationController } from './controllers/classification.controlle
 import { ReportsController } from './controllers/reports.controller';
 import { ArApController } from './controllers/ar-ap.controller';
 import { HstController } from './controllers/hst.controller';
+import { ReceiptExportController } from './controllers/receipt-export.controller'; // Phase 31b.6
 
 // Services
 import { TaxService } from './services/tax.service';
@@ -104,6 +105,7 @@ import { DocumentsModule } from '../documents/documents.module';
     ReportsController,
     ArApController,
     HstController,
+    ReceiptExportController, // Phase 31b.6
   ],
   providers: [
     TaxService,

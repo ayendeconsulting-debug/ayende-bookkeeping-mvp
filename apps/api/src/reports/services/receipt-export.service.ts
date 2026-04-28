@@ -6,6 +6,8 @@ import {
   HttpStatus,
   Inject,
   forwardRef,
+  NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -27,6 +29,7 @@ import {
   ReceiptExportJobData,
 } from '../receipt-export.constants';
 import { ReceiptExportSubmitDto } from '../dto/receipt-export.dto';
+import { ReceiptExportStatusResponseDto } from '../dto/receipt-export-status.dto';
 import {
   ExtractorService,
   ReceiptExtractResult,
@@ -317,6 +320,7 @@ export class ReceiptExportService {
   async submit(
     businessId: string,
     userId: string,
+    userEmail: string | null,
     dto: ReceiptExportSubmitDto,
   ): Promise<SubmitResult> {
     const start = new Date(dto.startDate);
@@ -385,6 +389,7 @@ export class ReceiptExportService {
       this.jobRepo.create({
         business_id: businessId,
         user_id: userId,
+        user_email: userEmail,
         status: ReceiptExportStatus.QUEUED,
         start_date: start,
         end_date: end,
@@ -417,6 +422,97 @@ export class ReceiptExportService {
       extracts_required: row.extracts_required,
       cap_partial: pf.ai_cap_exceeded_by > 0,
     };
+  }
+
+  // ======================================================================
+  // Public: getStatus (Phase 31b.6 - controller surface)
+  // ======================================================================
+  /**
+   * Phase 31b.6 - Look up a job by id within the authed business and return
+   * the whitelisted status shape (FR-31-6-10). 404 if not found / not owned.
+   */
+  async getStatus(
+    businessId: string,
+    jobId: string,
+  ): Promise<ReceiptExportStatusResponseDto> {
+    const job = await this.jobRepo.findOne({
+      where: { id: jobId, business_id: businessId },
+    });
+    if (!job) {
+      throw new NotFoundException(`Receipt export job ${jobId} not found`);
+    }
+
+    return {
+      job_id: job.id,
+      status: job.status,
+      receipts_total: job.receipts_total,
+      extracts_required: job.extracts_required,
+      extracts_completed: job.extracts_completed,
+      extracts_failed: job.extracts_failed,
+      extracts_cap_exceeded: job.extracts_cap_exceeded,
+      start_date: this.formatDateOnly(job.start_date),
+      end_date: this.formatDateOnly(job.end_date),
+      created_at: job.created_at.toISOString(),
+      completed_at: job.completed_at ? job.completed_at.toISOString() : null,
+      expires_at: job.expires_at ? job.expires_at.toISOString() : null,
+      error_message: job.error_message,
+    };
+  }
+
+  // ======================================================================
+  // Public: getDownloadUrl (Phase 31b.6 - controller surface)
+  // ======================================================================
+  /**
+   * Phase 31b.6 - Issue a 15-minute presigned S3 URL for the zip. The download
+   * filename is derived from the job's date range
+   * (tempo-receipts-YYYY-MM-DD-to-YYYY-MM-DD.zip).
+   *
+   * Errors:
+   *   404 NotFound  - jobId not owned by business
+   *   409 Conflict  - status !== complete (still running, queued, or failed)
+   *   410 Gone      - past expires_at OR download_key missing
+   */
+  async getDownloadUrl(
+    businessId: string,
+    jobId: string,
+  ): Promise<{ url: string; expires_in: number }> {
+    const job = await this.jobRepo.findOne({
+      where: { id: jobId, business_id: businessId },
+    });
+    if (!job) {
+      throw new NotFoundException(`Receipt export job ${jobId} not found`);
+    }
+
+    if (job.status !== ReceiptExportStatus.COMPLETE) {
+      throw new ConflictException(
+        `Receipt export job is not ready for download (status: ${job.status})`,
+      );
+    }
+
+    if (!job.download_key) {
+      throw new HttpException(
+        'Receipt export download is not available',
+        HttpStatus.GONE,
+      );
+    }
+
+    if (job.expires_at && job.expires_at.getTime() < Date.now()) {
+      throw new HttpException(
+        'Receipt export download has expired (zip retention is 7 days)',
+        HttpStatus.GONE,
+      );
+    }
+
+    const startDate = this.formatDateOnly(job.start_date);
+    const endDate = this.formatDateOnly(job.end_date);
+    const filename = `tempo-receipts-${startDate}-to-${endDate}.zip`;
+
+    const bucket = process.env.AWS_S3_BUCKET ?? '';
+    return this.documentsService.getPresignedDownloadByKey(
+      bucket,
+      job.download_key,
+      filename,
+    );
   }
 
   // ======================================================================
