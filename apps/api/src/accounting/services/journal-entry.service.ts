@@ -173,11 +173,15 @@ export class JournalEntryService {
       throw new BadRequestException('Cannot post unbalanced journal entry.');
     }
 
-    entry.status = JournalEntryStatus.POSTED;
-    entry.posted_by = dto.posted_by;
-    entry.posted_at = new Date();
-
-    return this.journalEntryRepository.save(entry);
+        await this.journalEntryRepository.update(entry.id, {
+      status: JournalEntryStatus.POSTED,
+      posted_by: dto.posted_by,
+      posted_at: new Date(),
+    });
+    return this.journalEntryRepository.findOne({
+      where: { id: entry.id },
+      relations: ['lines', 'lines.account'],
+    }) as Promise<JournalEntry>;
   }
 
   /**
