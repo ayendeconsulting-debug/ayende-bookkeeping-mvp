@@ -22,7 +22,7 @@ export class JournalEntryController {
   constructor(private readonly journalEntryService: JournalEntryService) {}
 
   /**
-   * Create a new journal entry in DRAFT status — admin only
+   * Create a new journal entry in DRAFT status -- admin only
    * POST /journal-entries
    */
   @Roles('admin')
@@ -31,11 +31,12 @@ export class JournalEntryController {
     @Req() req: Request,
     @Body() dto: CreateJournalEntryDto,
   ) {
+    dto.business_id = req.user!.businessId;
     return this.journalEntryService.createJournalEntry(dto, req.user!.userId);
   }
 
   /**
-   * Post a journal entry (make it permanent) — admin only
+   * Post a journal entry (make it permanent) -- admin only
    * POST /journal-entries/:id/post
    */
   @Roles('admin')
@@ -51,7 +52,7 @@ export class JournalEntryController {
   }
 
   /**
-   * Get all journal entries for a business — all roles
+   * Get all journal entries for a business -- all roles
    * GET /journal-entries?status=draft
    */
   @Get()
@@ -63,7 +64,7 @@ export class JournalEntryController {
   }
 
   /**
-   * Get a specific journal entry — all roles
+   * Get a specific journal entry -- all roles
    * GET /journal-entries/:id
    */
   @Get(':id')

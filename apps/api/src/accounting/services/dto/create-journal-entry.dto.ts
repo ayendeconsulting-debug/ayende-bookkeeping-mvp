@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID, IsDate, IsArray, ValidateNested, IsNumber, Min, IsOptional, IsEnum } from 'class-validator';
+import { IsNotEmpty, IsString, IsDate, IsArray, ValidateNested, IsNumber, Min, IsOptional, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateJournalLineDto {
@@ -6,7 +6,8 @@ export class CreateJournalLineDto {
   @Min(1)
   line_number: number;
 
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   account_id: string;
 
   @IsNumber()
@@ -23,7 +24,8 @@ export class CreateJournalLineDto {
 }
 
 export class CreateJournalEntryDto {
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   business_id: string;
 
   @IsNotEmpty()
@@ -40,7 +42,7 @@ export class CreateJournalEntryDto {
   reference_type?: string;
 
   @IsOptional()
-  @IsUUID()
+  @IsString()
   reference_id?: string;
 
   @IsOptional()
@@ -65,9 +67,11 @@ export class CreateJournalEntryDto {
 }
 
 export class PostJournalEntryDto {
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   journal_entry_id: string;
 
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   posted_by: string;
 }

@@ -89,7 +89,10 @@ export function ManualJEPanel({ accounts, open, onClose, editEntry, onSaved }: M
   const totalCredits = lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0);
   const difference = Math.abs(totalDebits - totalCredits);
   const isBalanced = difference < 0.01;
-  const isValid = isBalanced && description.trim() && date && lines.every(l => l.account_id);
+  const allLinesHaveAccount = lines.every(l => !!l.account_id);
+  const hasAccounts = accounts.length > 0;
+  const canSaveDraft = hasAccounts && !!description.trim() && !!date && allLinesHaveAccount;
+  const isValid = canSaveDraft && isBalanced;
 
   const updateLine = (key: number, field: keyof LineRow, value: string) => {
     setLines(prev => prev.map(l => l.key === key ? { ...l, [field]: value } : l));
@@ -122,7 +125,7 @@ export function ManualJEPanel({ accounts, open, onClose, editEntry, onSaved }: M
   });
 
   const handleSaveDraft = async () => {
-    if (!description.trim() || !date) return;
+    if (!canSaveDraft) return;
     setSaving(true);
     try {
       const payload = buildPayload();
@@ -203,6 +206,26 @@ export function ManualJEPanel({ accounts, open, onClose, editEntry, onSaved }: M
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+          {/* Empty accounts warning */}
+          {!hasAccounts && (
+            <div
+              className="rounded-xl border p-4 text-sm"
+              style={{
+                backgroundColor: 'rgba(245,158,11,0.08)',
+                borderColor: 'rgba(245,158,11,0.35)',
+                color: 'var(--foreground)',
+              }}
+            >
+              <p className="font-medium mb-1">No accounts available</p>
+              <p className="text-xs text-muted-foreground">
+                Set up your Chart of Accounts before posting a journal entry.{' '}
+                <a href="/accounts" className="underline" style={{ color: 'var(--accent-teal)' }}>
+                  Go to Chart of Accounts
+                </a>
+              </p>
+            </div>
+          )}
 
           {/* Header fields */}
           <div className="grid grid-cols-2 gap-4">
@@ -288,14 +311,19 @@ export function ManualJEPanel({ accounts, open, onClose, editEntry, onSaved }: M
                     <select
                       value={line.account_id}
                       onChange={e => updateLine(line.key, 'account_id', e.target.value)}
-                      className="w-full rounded-lg border border-border bg-input text-foreground text-xs px-2 py-2 focus:outline-none focus:ring-1"
+                      disabled={!hasAccounts}
+                      className="w-full rounded-lg border border-border bg-input text-foreground text-xs px-2 py-2 focus:outline-none focus:ring-1 disabled:opacity-50"
                     >
                       <option value="">Select account...</option>
-                      {(accounts as any[]).map((a: any) => (
-                        <option key={a.id} value={a.id}>
-                          {a.code ? `${a.code} - ` : ''}{a.name}
-                        </option>
-                      ))}
+                      {(accounts as any[]).map((a: any) => {
+                        const code = a.code ? `${a.code} - ` : '';
+                        const name = a.name ?? '(unnamed account)';
+                        return (
+                          <option key={a.id} value={a.id}>
+                            {`${code}${name}`}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                   <div className="col-span-2">
@@ -379,7 +407,8 @@ export function ManualJEPanel({ accounts, open, onClose, editEntry, onSaved }: M
           <div className="flex gap-2">
             <button
               onClick={handleSaveDraft}
-              disabled={saving || !description.trim() || !date}
+              disabled={saving || !canSaveDraft}
+              title={!canSaveDraft ? 'Fill in date, description, and an account on every line.' : ''}
               className="px-4 py-2 rounded-lg text-sm font-medium border border-border text-foreground hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {saving ? 'Saving...' : 'Save Draft'}
@@ -400,7 +429,7 @@ export function ManualJEPanel({ accounts, open, onClose, editEntry, onSaved }: M
   );
 }
 
-// ── Draft list component (used on journal-entries page) ─────────────────────
+// -- Draft list component (used on journal-entries page) ---------------------
 
 interface DraftListProps {
   drafts: JournalEntry[];
@@ -555,7 +584,7 @@ export function JournalEntriesDraftList({ drafts, accounts }: DraftListProps) {
   );
 }
 
-// ── Inline trigger button (used in TransactionInbox header) ─────────────────
+// -- Inline trigger button (used in TransactionInbox header) ------------------
 
 interface NewJEButtonProps {
   accounts: Account[];
