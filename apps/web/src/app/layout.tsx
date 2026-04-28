@@ -16,7 +16,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Tempo Books - AI-Assisted Bookkeeping for Canadian and US Small Businesses',
+  title: 'Tempo Books - Bookkeeping for Canadian and US Small Businesses',
   description: 'Double-entry accounting, bank sync, AI transaction classification, HST/GST filing, and a dedicated Accountant Portal. Free trial available.',
   manifest: '/manifest.json',
   appleWebApp: {

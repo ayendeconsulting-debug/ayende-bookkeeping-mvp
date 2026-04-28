@@ -205,7 +205,7 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
             <div className="flex flex-col gap-1.5">
               <Label>Asset Name *</Label>
               <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="e.g. Tempo Books Platform, Toyota Camry 2023" />
+                placeholder="e.g. Office laptop, Toyota Camry 2023" />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>CCA Class *</Label>
