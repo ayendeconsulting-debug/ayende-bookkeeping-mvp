@@ -24,8 +24,8 @@ export class CreateJournalLineDto {
 }
 
 export class CreateJournalEntryDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   business_id: string;
 
   @IsNotEmpty()
