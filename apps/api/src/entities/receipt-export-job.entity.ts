@@ -67,6 +67,13 @@ export class ReceiptExportJob {
   @Column({ type: 'text', nullable: true })
   error_message: string | null;
 
+  // Phase 31b.6 - User email captured at submit time. Used by 31b.5 receipt
+  // export emails. Currently always null pending email-source decision
+  // (JWT enrichment vs Clerk SDK lookup vs subscription.customer_email
+  // fallback). 31b.5 will finalize the source.
+  @Column({ type: 'varchar', length: 255, nullable: true, default: null })
+  user_email: string | null;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
 
