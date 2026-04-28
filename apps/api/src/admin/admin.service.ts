@@ -13,7 +13,7 @@ import { RawTransaction, RawTransactionStatus, RawTransactionSource } from '../e
 import { AccountantFirm } from '../entities/accountant-firm.entity';
 import { FirmStaff, FirmStaffRole } from '../entities/firm-staff.entity';
 import { FirmClient, FirmClientStatus } from '../entities/firm-client.entity';
-import { Account } from '../entities/account.entity';
+import { Account, AccountType, AccountSubtype } from '../entities/account.entity';
 import { JournalEntry, JournalEntryStatus } from '../entities/journal-entry.entity';
 import { JournalLine } from '../entities/journal-line.entity';
 import { ClassifiedTransaction, ClassificationMethod } from '../entities/classified-transaction.entity';
@@ -806,5 +806,55 @@ export class AdminService {
 
   async checkAdmin(): Promise<{ ok: boolean }> {
     return { ok: true };
+  }
+
+  // -- Backfill CCA Accounts --
+  // Adds Fixed Assets (1500), Accumulated CCA (1700), CCA Expense (6200)
+  // to every existing business that does not already have them. Idempotent.
+  async backfillCcaAccounts(): Promise<{
+    businessesProcessed: number;
+    accountsAdded: number;
+    accountsSkipped: number;
+  }> {
+    const businesses = await this.businessRepo.find();
+
+    const newAccounts = [
+      { code: '1500', name: 'Fixed Assets',    type: AccountType.ASSET,   subtype: AccountSubtype.FIXED_ASSET },
+      { code: '1700', name: 'Accumulated CCA', type: AccountType.ASSET,   subtype: AccountSubtype.ACCUMULATED_DEPRECIATION },
+      { code: '6200', name: 'CCA Expense',     type: AccountType.EXPENSE, subtype: AccountSubtype.OPERATING_EXPENSE },
+    ];
+
+    let accountsAdded = 0;
+    let accountsSkipped = 0;
+
+    for (const business of businesses) {
+      for (const acct of newAccounts) {
+        const existing = await this.accountRepo.findOne({
+          where: { business_id: business.id, account_code: acct.code },
+        });
+        if (existing) {
+          accountsSkipped++;
+          continue;
+        }
+        await this.accountRepo.save(
+          this.accountRepo.create({
+            business_id:     business.id,
+            account_code:    acct.code,
+            account_name:    acct.name,
+            account_type:    acct.type,
+            account_subtype: acct.subtype,
+            is_active:       true,
+            is_system:       false,
+          }),
+        );
+        accountsAdded++;
+      }
+    }
+
+    return {
+      businessesProcessed: businesses.length,
+      accountsAdded,
+      accountsSkipped,
+    };
   }
 }

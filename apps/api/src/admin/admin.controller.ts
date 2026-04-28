@@ -123,4 +123,11 @@ export class AdminController {
   ) {
     return this.adminService.provisionDemoSuite(body);
   }
+
+  /** POST /admin/backfill-cca-accounts -- one-time backfill of CCA + Fixed Assets accounts */
+  @Post('backfill-cca-accounts')
+  @HttpCode(HttpStatus.OK)
+  backfillCcaAccounts() {
+    return this.adminService.backfillCcaAccounts();
+  }
 }

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 const ACCOUNT_TYPES: AccountType[] = ['asset', 'liability', 'equity', 'revenue', 'expense'];
 
 const SUBTYPES_BY_TYPE: Record<string, { value: string; label: string }[]> = {
-  asset:     [{ value: '', label: 'None' }, { value: 'bank', label: 'Bank' }, { value: 'accounts_receivable', label: 'Accounts Receivable' }, { value: 'fixed_asset', label: 'Fixed Asset' }, { value: 'general', label: 'General' }],
+  asset:     [{ value: '', label: 'None' }, { value: 'bank', label: 'Bank' }, { value: 'accounts_receivable', label: 'Accounts Receivable' }, { value: 'fixed_asset', label: 'Fixed Asset' }, { value: 'accumulated_depreciation', label: 'Accumulated Depreciation' }, { value: 'general', label: 'General' }],
   liability: [{ value: '', label: 'None' }, { value: 'credit_card', label: 'Credit Card' }, { value: 'accounts_payable', label: 'Accounts Payable' }, { value: 'tax_payable', label: 'Tax Payable' }, { value: 'general', label: 'General' }],
   equity:    [{ value: '', label: 'None' }, { value: 'owner_contribution', label: 'Owner Contribution' }, { value: 'owner_draw', label: 'Owner Draw' }, { value: 'retained_earnings', label: 'Retained Earnings' }, { value: 'general', label: 'General' }],
   revenue:   [{ value: '', label: 'None' }, { value: 'other_income', label: 'Other Income' }, { value: 'general', label: 'General' }],

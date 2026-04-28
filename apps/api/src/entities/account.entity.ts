@@ -26,6 +26,7 @@ export enum AccountSubtype {
   ACCOUNTS_RECEIVABLE = 'accounts_receivable',
   ACCOUNTS_PAYABLE = 'accounts_payable',
   FIXED_ASSET = 'fixed_asset',
+  ACCUMULATED_DEPRECIATION = 'accumulated_depreciation',
   OWNER_CONTRIBUTION = 'owner_contribution',
   OWNER_DRAW = 'owner_draw',
   RETAINED_EARNINGS = 'retained_earnings',

@@ -110,6 +110,8 @@ export class AccountService {
       { account_code: '1000', account_name: 'Cash and Bank',            account_type: AccountType.ASSET,     account_subtype: AccountSubtype.BANK },
       { account_code: '1100', account_name: 'Accounts Receivable',      account_type: AccountType.ASSET,     account_subtype: AccountSubtype.ACCOUNTS_RECEIVABLE },
       { account_code: '1200', account_name: 'Other Current Assets',     account_type: AccountType.ASSET,     account_subtype: AccountSubtype.GENERAL },
+      { account_code: '1500', account_name: 'Fixed Assets',             account_type: AccountType.ASSET,     account_subtype: AccountSubtype.FIXED_ASSET },
+      { account_code: '1700', account_name: 'Accumulated CCA',          account_type: AccountType.ASSET,     account_subtype: AccountSubtype.ACCUMULATED_DEPRECIATION },
       // ── Liabilities ───────────────────────────────────────────────────────
       { account_code: '2000', account_name: 'Accounts Payable',         account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.ACCOUNTS_PAYABLE },
       { account_code: '2100', account_name: 'Credit Card Payable',      account_type: AccountType.LIABILITY, account_subtype: AccountSubtype.CREDIT_CARD },
@@ -136,6 +138,7 @@ export class AccountService {
       { account_code: '5900', account_name: 'Travel',                   account_type: AccountType.EXPENSE,   account_subtype: AccountSubtype.OPERATING_EXPENSE },
       { account_code: '6000', account_name: 'Payroll & Wages',          account_type: AccountType.EXPENSE,   account_subtype: AccountSubtype.OPERATING_EXPENSE },
       { account_code: '6100', account_name: 'Utilities',                account_type: AccountType.EXPENSE,   account_subtype: AccountSubtype.OPERATING_EXPENSE },
+      { account_code: '6200', account_name: 'CCA Expense',              account_type: AccountType.EXPENSE,   account_subtype: AccountSubtype.OPERATING_EXPENSE },
       { account_code: '6200', account_name: 'Depreciation',             account_type: AccountType.EXPENSE,   account_subtype: AccountSubtype.OPERATING_EXPENSE },
       { account_code: '6900', account_name: 'Other Expenses',           account_type: AccountType.EXPENSE,   account_subtype: AccountSubtype.OPERATING_EXPENSE },
     ];

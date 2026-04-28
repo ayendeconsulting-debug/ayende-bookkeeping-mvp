@@ -39,6 +39,7 @@ export type AccountSubtype =
   | 'tax_payable'
   | 'accounts_receivable'
   | 'accounts_payable'
+  | 'accumulated_depreciation'
   | null;
 
 export interface Account {
