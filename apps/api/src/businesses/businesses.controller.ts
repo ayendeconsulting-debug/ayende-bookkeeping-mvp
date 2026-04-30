@@ -93,7 +93,11 @@ export class BusinessesController {
   @Roles('admin')
   @Patch('me')
   async updateMe(@Req() req: Request, @Body() dto: UpdateBusinessDto) {
-    const business = await this.businessesService.update(req.user!.businessId, dto);
+    const business = await this.businessesService.update(
+      req.user!.businessId,
+      dto,
+      req.user!.userId,
+    );
     return {
       id: business.id,
       name: business.name,

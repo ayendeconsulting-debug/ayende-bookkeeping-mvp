@@ -1187,7 +1187,7 @@ interface SeedRule {
 }
 
 const RULE_SEEDS: SeedRule[] = [
-  { name: 'Welcome on signup',            trigger_event: 'user.created',           template_name: 'signup_welcome',            delay_minutes: 0  },
+  { name: 'Welcome on signup',            trigger_event: 'onboarding.completed',   template_name: 'signup_welcome',            delay_minutes: 0  },
   { name: 'Trial ending \u2014 7 days',   trigger_event: 'trial.ending_7d',        template_name: 'trial_ending',              delay_minutes: 0  },
   { name: 'Trial ending \u2014 3 days',   trigger_event: 'trial.ending_3d',        template_name: 'trial_ending',              delay_minutes: 0  },
   { name: 'Trial ending \u2014 today',    trigger_event: 'trial.ending_0d',        template_name: 'trial_ending',              delay_minutes: 0  },
@@ -1255,15 +1255,34 @@ export class TemplateSeedService implements OnModuleInit {
       this.logger.log(`Email template seed: all ${TEMPLATES.length} templates already present`);
     }
 
-    // -- 2. Seed automation rules -------------------------------------------
+    // -- 2. Seed automation rules (idempotent: also force-updates existing) -
     let rulesSeeded = 0;
+    let rulesUpdated = 0;
     for (const r of RULE_SEEDS) {
       const existingRule = await this.ruleRepo.findOne({ where: { name: r.name } });
-      if (existingRule) continue;
 
       const template = await this.repo.findOne({ where: { name: r.template_name } });
       if (!template) {
         this.logger.warn(`Rule seed: template "${r.template_name}" not found -- skipping rule "${r.name}"`);
+        continue;
+      }
+
+      if (existingRule) {
+        // Phase 32b: idempotently update trigger_event/template_id/delay_minutes
+        // so seed changes propagate on deploy. Preserves admin toggles to is_active.
+        const needsUpdate =
+          existingRule.trigger_event !== r.trigger_event ||
+          existingRule.template_id   !== template.id ||
+          existingRule.delay_minutes !== r.delay_minutes;
+
+        if (needsUpdate) {
+          existingRule.trigger_event = r.trigger_event;
+          existingRule.template_id   = template.id;
+          existingRule.delay_minutes = r.delay_minutes;
+          await this.ruleRepo.save(existingRule);
+          rulesUpdated++;
+          this.logger.log(`Automation rule updated: "${r.name}" -> ${r.trigger_event}`);
+        }
         continue;
       }
 
@@ -1279,9 +1298,9 @@ export class TemplateSeedService implements OnModuleInit {
       rulesSeeded++;
     }
 
-    if (rulesSeeded > 0) {
-      this.logger.log(`Automation rule seed: ${rulesSeeded} new rule(s) created`);
-    } else {
+    if (rulesSeeded > 0)  this.logger.log(`Automation rule seed: ${rulesSeeded} new rule(s) created`);
+    if (rulesUpdated > 0) this.logger.log(`Automation rule seed: ${rulesUpdated} rule(s) force-updated`);
+    if (rulesSeeded === 0 && rulesUpdated === 0) {
       this.logger.log(`Automation rule seed: all ${RULE_SEEDS.length} rules already present`);
     }
   }

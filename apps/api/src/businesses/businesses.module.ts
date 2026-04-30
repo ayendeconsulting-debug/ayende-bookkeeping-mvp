@@ -7,9 +7,9 @@ import { FirmClientAccessRequest } from '../entities/firm-client-access-request.
 import { AccountantAuditLog } from '../entities/accountant-audit-log.entity';
 import { BusinessesController } from './businesses.controller';
 import { BusinessesService } from './businesses.service';
-import { EmailModule } from '../email/email.module';
 import { ReportsModule } from '../reports/reports.module';
 import { TaxSeedService } from '../reports/services/tax-seed.service';
+import { CommandCenterModule } from '../command-center/command-center.module';
 
 @Module({
   imports: [
@@ -20,8 +20,8 @@ import { TaxSeedService } from '../reports/services/tax-seed.service';
       FirmClientAccessRequest,
       AccountantAuditLog,
     ]),
-    EmailModule,
     ReportsModule,
+    CommandCenterModule,
   ],
   controllers: [BusinessesController],
   providers: [BusinessesService, TaxSeedService],

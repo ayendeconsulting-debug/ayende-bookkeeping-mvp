@@ -419,17 +419,23 @@ export default function OnboardingPage() {
             <div>
               <h2 className="text-base font-semibold text-foreground mb-3">Where are you based?</h2>
               <div className="grid grid-cols-2 gap-3 max-w-xs">
-                {(['CA', 'US'] as Country[]).map((c) => (
-                  <button key={c} onClick={() => setSelectedCountry(c)}
-                    className={['flex items-center gap-3 p-3 rounded-xl border-2 transition-all bg-card hover:border-primary',
-                      selectedCountry === c ? 'border-primary ring-2 ring-primary/10' : 'border-border'].join(' ')}>
-                    <span className="text-xl">{c === 'CA' ? '🇨🇦' : '🇺🇸'}</span>
-                    <div className="text-left">
-                      <div className="font-semibold text-sm text-foreground">{c === 'CA' ? 'Canada' : 'United States'}</div>
-                      <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD · CRA' : 'USD · IRS'}</div>
-                    </div>
-                  </button>
-                ))}
+                {(['CA', 'US'] as Country[]).map((c) => {
+                  const isSelected = selectedCountry === c;
+                  return (
+                    <button key={c} onClick={() => setSelectedCountry(c)}
+                      className={['relative flex items-center gap-3 p-3 rounded-xl border-2 transition-all bg-card hover:border-primary',
+                        isSelected ? 'border-primary ring-2 ring-primary/20 bg-primary-light/30 dark:bg-primary/5' : 'border-border'].join(' ')}>
+                      <span className="text-xl">{c === 'CA' ? '🇨🇦' : '🇺🇸'}</span>
+                      <div className="text-left flex-1">
+                        <div className="font-semibold text-sm text-foreground">{c === 'CA' ? 'Canada' : 'United States'}</div>
+                        <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD · CRA' : 'USD · IRS'}</div>
+                      </div>
+                      {isSelected && (
+                        <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

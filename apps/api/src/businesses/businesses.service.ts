@@ -1,13 +1,13 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { Business, BusinessMode } from '../entities/business.entity';
 import { Account, AccountType, AccountSubtype } from '../entities/account.entity';
-import { EmailService } from '../email/email.service';
-import { ConfigService } from '@nestjs/config';
 import { UpdateTaxSettingsDto } from '../reports/dto/update-tax-settings.dto';
 import { TaxSeedService } from '../reports/services/tax-seed.service';
 import { ProvinceConfigService } from '../reports/services/province-config.service';
+import { AutomationsService } from '../command-center/automations.service';
 
 type AccountTypeStr = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -64,15 +64,17 @@ const DEFAULT_ACCOUNTS: DefaultAccountSeed[] = [
 
 @Injectable()
 export class BusinessesService {
+  private readonly logger = new Logger(BusinessesService.name);
+
   constructor(
     @InjectRepository(Business)
     private readonly businessRepo: Repository<Business>,
     @InjectRepository(Account)
     private readonly accountRepo: Repository<Account>,
-    private readonly emailService: EmailService,
     private readonly config: ConfigService,
     private readonly taxSeedService: TaxSeedService,
     private readonly provinceConfigService: ProvinceConfigService,
+    private readonly automationsService: AutomationsService,
   ) {}
 
   async findByClerkOrgId(clerkOrgId: string): Promise<Business | null> {
@@ -95,8 +97,12 @@ export class BusinessesService {
       country?: string;
       settings?: Record<string, any>;
     },
+    clerkUserId?: string,
   ): Promise<Business> {
     const business = await this.findById(id);
+
+    // Phase 32b: capture pre-state for onboarding-completion detection
+    const wasOnboarded = business.settings?.mode_selected === true;
 
     if (updates.name !== undefined) business.name = updates.name;
     if (updates.fiscal_year_end !== undefined) business.fiscal_year_end = updates.fiscal_year_end as any;
@@ -111,7 +117,44 @@ export class BusinessesService {
       };
     }
 
-    return this.businessRepo.save(business);
+    const saved = await this.businessRepo.save(business);
+
+    // Phase 32b: fire onboarding.completed exactly once, on first true completion.
+    // Cancel-onboarding currently fails validation at the DTO layer (pre-existing
+    // bug to be addressed in Phase 33), so cancel calls never reach this point.
+    const isNowOnboarded = saved.settings?.mode_selected === true;
+    if (!wasOnboarded && isNowOnboarded && clerkUserId) {
+      void this.fireOnboardingCompleted(clerkUserId);
+    }
+
+    return saved;
+  }
+
+  // Phase 32b: fetch verified user details from Clerk and fire automation rules.
+  // Fire-and-forget; swallow errors so onboarding write never fails on email issues.
+  private async fireOnboardingCompleted(clerkUserId: string): Promise<void> {
+    try {
+      const { createClerkClient } = await import('@clerk/backend');
+      const clerk = createClerkClient({
+        secretKey: this.config.get<string>('CLERK_SECRET_KEY') ?? '',
+      });
+      const user = await clerk.users.getUser(clerkUserId);
+      const email =
+        user.primaryEmailAddress?.emailAddress ??
+        user.emailAddresses?.[0]?.emailAddress;
+      if (!email) {
+        this.logger.warn(`fireOnboardingCompleted: no email for user ${clerkUserId}`);
+        return;
+      }
+
+      await this.automationsService.fireRules('onboarding.completed', {
+        email,
+        first_name: user.firstName ?? '',
+        last_name:  user.lastName  ?? '',
+      });
+    } catch (err: any) {
+      this.logger.warn(`fireOnboardingCompleted ${clerkUserId}: ${err.message}`);
+    }
   }
 
   // -- Phase 20: Upsert Expo push token ------------------------------------
@@ -169,8 +212,6 @@ export class BusinessesService {
   async provision(
     clerkOrgId: string,
     name: string,
-    ownerEmail?: string,
-    ownerFirstName?: string,
   ): Promise<Business> {
     const existing = await this.findByClerkOrgId(clerkOrgId);
     if (existing) return existing;
@@ -189,24 +230,8 @@ export class BusinessesService {
       console.warn(`seedDefaultAccounts failed for business ${saved.id}: ${err.message}`);
     }
 
-    // Send welcome email -- fire-and-forget
-    if (ownerEmail) {
-      const appUrl = this.config.get<string>('APP_URL') ?? 'https://gettempo.ca';
-      const trialEndDate = new Date();
-      trialEndDate.setDate(trialEndDate.getDate() + 60);
-      const formattedDate = trialEndDate.toLocaleDateString('en-CA', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-
-      void this.emailService.sendWelcome(ownerEmail, {
-        firstName: ownerFirstName ?? 'there',
-        trialEndDate: formattedDate,
-        dashboardUrl: `${appUrl}/dashboard`,
-      });
-    }
-
+    // Phase 32b: welcome email moved to onboarding-completion event,
+    // fired from update() when settings.mode_selected flips false -> true.
     return saved;
   }
 
