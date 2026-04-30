@@ -1,11 +1,47 @@
-﻿'use client';
+'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SignUp } from '@clerk/nextjs';
+
+// Phase 32c: persist consent across Clerk's internal sub-routes.
+// Without this, /sign-up/continue and /sign-up/sso-callback remount the
+// page component, agreed resets to false, and the user sees the consent
+// checkbox a second time after clicking the OAuth button.
+// sessionStorage clears at tab close, which matches the lifecycle we want.
+const STORAGE_KEY = 'tempo_signup_agreed';
 
 export default function SignUpPage() {
   const [agreed, setAgreed] = useState(false);
   const [touched, setTouched] = useState(false);
+
+  // Hydrate from sessionStorage after mount (avoids SSR/CSR mismatch).
+  // If sessionStorage is blocked (incognito strict mode, third-party cookies
+  // disabled), this silently falls through to in-memory state -- duplicate
+  // consent will reappear in that degraded mode, which is acceptable.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (sessionStorage.getItem(STORAGE_KEY) === 'true') {
+        setAgreed(true);
+      }
+    } catch {
+      // sessionStorage blocked -- fall through to in-memory state
+    }
+  }, []);
+
+  function handleAgreedChange(checked: boolean) {
+    setAgreed(checked);
+    setTouched(true);
+    try {
+      if (checked) {
+        sessionStorage.setItem(STORAGE_KEY, 'true');
+      } else {
+        sessionStorage.removeItem(STORAGE_KEY);
+      }
+    } catch {
+      // sessionStorage blocked -- in-memory state still works for this tab
+    }
+  }
 
   return (
     <div className="flex flex-col items-center gap-4 w-full">
@@ -27,10 +63,7 @@ export default function SignUpPage() {
             <input
               type="checkbox"
               checked={agreed}
-              onChange={(e) => {
-                setAgreed(e.target.checked);
-                setTouched(true);
-              }}
+              onChange={(e) => handleAgreedChange(e.target.checked)}
               className="sr-only"
             />
             <div
