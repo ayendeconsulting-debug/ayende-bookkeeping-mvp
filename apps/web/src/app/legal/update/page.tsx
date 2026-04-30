@@ -32,7 +32,11 @@ export default async function LegalUpdatePage() {
         <div className="bg-card border border-border rounded-2xl p-8">
           {/* Title */}
           <div className="mb-6">
-            <div className="inline-flex items-center gap-2 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-xs font-medium px-3 py-1 rounded-full mb-4">
+            <div className="inline-flex items-center gap-2 bg-red-50 text-red-700 dark:bg-red-950/30 dark:text-red-300 ring-1 ring-inset ring-red-200 dark:ring-red-800/50 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600"></span>
+              </span>
               Action required
             </div>
             <h1 className="text-xl font-semibold text-foreground mb-2">

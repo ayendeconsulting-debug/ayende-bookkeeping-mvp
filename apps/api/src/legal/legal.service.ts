@@ -100,10 +100,14 @@ export class LegalService {
     });
 
     const allAccepted = documents.every((d) => d.is_current);
+    const hasAnyRecord = agreements.length > 0;
 
     return {
       all_accepted: allAccepted,
-      requires_reacceptance: !allAccepted,
+      // Only force re-acceptance when the user has prior records but they're stale.
+      // Brand-new users (zero records) flow through onboarding step 5 instead,
+      // where first-time consent is captured with the correct framing.
+      requires_reacceptance: hasAnyRecord && !allAccepted,
       documents,
     };
   }
