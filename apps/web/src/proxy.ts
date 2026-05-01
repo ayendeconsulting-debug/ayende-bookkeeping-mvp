@@ -22,6 +22,7 @@ const isPublicRoute = createRouteMatcher([
   '/legal/update',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/select-org',
   '/unsubscribe(.*)',
   '/partner-dashboard(.*)',
   '/api/public/leads',
