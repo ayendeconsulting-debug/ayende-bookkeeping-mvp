@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+﻿import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
@@ -134,26 +134,43 @@ export class BusinessesService {
   // Fire-and-forget; swallow errors so onboarding write never fails on email issues.
   private async fireOnboardingCompleted(clerkUserId: string): Promise<void> {
     try {
+      // DEBUG: Log what we're getting for the secret key
+      const secretKey = this.config.get<string>('CLERK_SECRET_KEY') ?? '';
+      this.logger.log(`fireOnboardingCompleted ${clerkUserId}: secretKey exists=${!!secretKey}, length=${secretKey.length}`);
+      
+      if (!secretKey) {
+        this.logger.warn(`fireOnboardingCompleted ${clerkUserId}: CLERK_SECRET_KEY is empty or undefined`);
+        return;
+      }
+
       const { createClerkClient } = await import('@clerk/backend');
-      const clerk = createClerkClient({
-        secretKey: this.config.get<string>('CLERK_SECRET_KEY') ?? '',
-      });
+      const clerk = createClerkClient({ secretKey });
+
+      this.logger.log(`fireOnboardingCompleted ${clerkUserId}: Clerk client created, fetching user...`);
+      
       const user = await clerk.users.getUser(clerkUserId);
+      
       const email =
         user.primaryEmailAddress?.emailAddress ??
         user.emailAddresses?.[0]?.emailAddress;
+
       if (!email) {
-        this.logger.warn(`fireOnboardingCompleted: no email for user ${clerkUserId}`);
+        this.logger.warn(`fireOnboardingCompleted ${clerkUserId}: no email found`);
         return;
       }
+
+      this.logger.log(`fireOnboardingCompleted ${clerkUserId}: user found, email=${email}, firing rules...`);
 
       await this.automationsService.fireRules('onboarding.completed', {
         email,
         first_name: user.firstName ?? '',
         last_name:  user.lastName  ?? '',
       });
+
+      this.logger.log(`fireOnboardingCompleted ${clerkUserId}: automation rules fired successfully`);
+      
     } catch (err: any) {
-      this.logger.warn(`fireOnboardingCompleted ${clerkUserId}: ${err.message}`);
+      this.logger.error(`fireOnboardingCompleted ${clerkUserId}: ERROR - ${err.message}`, err.stack);
     }
   }
 
@@ -381,3 +398,4 @@ export class BusinessesService {
     return [...standard, ...extras];
   }
 }
+
