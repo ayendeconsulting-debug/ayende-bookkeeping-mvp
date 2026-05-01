@@ -135,7 +135,7 @@ export class BusinessesService {
   private async fireOnboardingCompleted(clerkUserId: string): Promise<void> {
     try {
       // DEBUG: Log what we're getting for the secret key
-      const secretKey = this.config.get<string>('CLERK_SECRET_KEY_TEST') ?? '';
+      const secretKey = this.config.get<string>('CLERK_SECRET_FOR_AUTOMATION') ?? '';
       this.logger.log(`fireOnboardingCompleted ${clerkUserId}: secretKey exists=${!!secretKey}, length=${secretKey.length}`);
       
       if (!secretKey) {
@@ -398,5 +398,6 @@ export class BusinessesService {
     return [...standard, ...extras];
   }
 }
+
 
 
