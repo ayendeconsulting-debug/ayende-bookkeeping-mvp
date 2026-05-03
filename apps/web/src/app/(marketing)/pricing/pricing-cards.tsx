@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, Fragment } from 'react';
+import { useState, useRef, Fragment, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { CheckCircle2, ArrowRight, Zap, Sparkles, Loader2, Calculator, ShieldCheck, ShieldAlert, ChevronDown } from 'lucide-react';
@@ -127,7 +127,7 @@ const ACCOUNTANT_FEATURES = [
   'Dedicated support',
 ];
 
-function AccountantCalculator({ onAiAddonChange, onAnnualChange, initialAnnual, onCheckout, isLoading }: { onAiAddonChange?: (v: boolean) => void; onAnnualChange?: (v: boolean) => void; initialAnnual?: boolean; onCheckout?: () => void; isLoading?: boolean }) {
+function AccountantCalculator({ onAiAddonChange, onAnnualChange, initialAnnual, onCheckout, isLoading, onTotalChange }: { onAiAddonChange?: (v: boolean) => void; onAnnualChange?: (v: boolean) => void; initialAnnual?: boolean; onCheckout?: () => void; isLoading?: boolean; onTotalChange?: (monthly: number, annual: number) => void }) {
   const [clients, setClients] = useState(5);
   const [seats, setSeats]     = useState(1);
   const [aiAddon, setAiAddon] = useState(false);
@@ -143,6 +143,7 @@ function AccountantCalculator({ onAiAddonChange, onAnnualChange, initialAnnual, 
 
   const monthlyTotal = BASE + billableClients * PER_CLIENT + billableSeats * PER_SEAT + (aiAddon ? AI_ADDON : 0);
   const annualTotal  = Math.round(monthlyTotal * 10);
+  useEffect(() => { onTotalChange?.(monthlyTotal, annualTotal); }, [monthlyTotal, annualTotal, onTotalChange]);
 
   return (
     <div className="space-y-4">
@@ -227,6 +228,8 @@ export function PricingCards() {
   const [calcOpen, setCalcOpen]                   = useState(false);
   const [calcAiAddon, setCalcAiAddon]               = useState(false);
   const [calcAnnual, setCalcAnnual]                 = useState(false);
+  const [calcMonthlyTotal, setCalcMonthlyTotal]     = useState(149);
+  const [calcAnnualTotal, setCalcAnnualTotal]       = useState(1490);
   const calcDetailsRef                            = useRef<HTMLDetailsElement>(null);
   const { isSignedIn }                            = useAuth();
   const router                                    = useRouter();
@@ -389,7 +392,7 @@ export function PricingCards() {
               </div>
             )}
             <div className="flex items-baseline gap-1 mb-1">
-              <span className="text-4xl font-bold text-foreground">${annual ? '1,490' : '149'}</span>
+              <span className="text-4xl font-bold text-foreground">${calcAnnual ? calcAnnualTotal.toLocaleString() : calcMonthlyTotal.toLocaleString()}</span>
               <span className="text-sm text-muted-foreground"> CAD/{annual ? 'yr' : 'mo'} base</span>
             </div>
             <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">5 clients + 3 seats included &#x00b7; scale up from there</p>
@@ -458,7 +461,7 @@ export function PricingCards() {
           <ChevronDown className={'w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform ' + (calcOpen ? 'rotate-180' : '')} />
         </summary>
         <div className="px-5 pb-5 pt-2 border-t border-[#0F6E56]/20">
-          <AccountantCalculator onAiAddonChange={setCalcAiAddon} onAnnualChange={setCalcAnnual} initialAnnual={calcAnnual} onCheckout={() => handleCalcCheckout()} isLoading={loading === 'accountant'} />
+          <AccountantCalculator onAiAddonChange={setCalcAiAddon} onAnnualChange={setCalcAnnual} initialAnnual={calcAnnual} onCheckout={() => handleCalcCheckout()} isLoading={loading === 'accountant'} onTotalChange={(m, a) => { setCalcMonthlyTotal(m); setCalcAnnualTotal(a); }} />
         </div>
       </details>
 
@@ -524,7 +527,7 @@ export function PricingCards() {
             <div className="space-y-3 text-sm text-muted-foreground mb-6">
               <p>The annual Accountant plan is a <strong className="text-foreground">12-month commitment</strong> and is <strong className="text-foreground">non-refundable</strong>.</p>
               <p>The 30-day money-back guarantee applies to the monthly plan only.</p>
-              <p>You will be charged <strong className="text-foreground">$1,490 CAD</strong> today and will not be billed again for 12 months.</p>
+              <p>You will be charged <strong className="text-foreground">${calcAnnualTotal.toLocaleString()} CAD</strong> today and will not be billed again for 12 months.</p>
             </div>
             <div className="flex gap-3 justify-end">
               <button type="button" onClick={() => setShowAnnualConfirm(false)}
