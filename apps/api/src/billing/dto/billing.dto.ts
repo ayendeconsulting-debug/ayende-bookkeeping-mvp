@@ -1,4 +1,4 @@
-import { IsEnum, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CreateCheckoutSessionDto {
   @IsEnum(['starter', 'pro', 'accountant'])
@@ -6,6 +6,10 @@ export class CreateCheckoutSessionDto {
 
   @IsEnum(['monthly', 'annual'])
   billing_cycle: 'monthly' | 'annual';
+
+  @IsOptional()
+  @IsBoolean()
+  ai_addon?: boolean;
 }
 
 export class CreatePortalSessionDto {

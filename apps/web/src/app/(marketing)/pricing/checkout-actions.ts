@@ -7,6 +7,7 @@ const API_URL = process.env.API_URL || 'http://localhost:3005';
 export async function createCheckoutSession(
   plan: string,
   billingCycle: string,
+  aiAddon?: boolean,
 ): Promise<{ url?: string; error?: string }> {
   try {
     const { getToken } = await auth();
@@ -22,7 +23,11 @@ export async function createCheckoutSession(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ plan, billing_cycle: billingCycle }),
+      body: JSON.stringify({
+        plan,
+        billing_cycle: billingCycle,
+        ai_addon: aiAddon ?? false,
+      }),
     });
 
     if (!res.ok) {

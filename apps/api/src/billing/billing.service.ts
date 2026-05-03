@@ -292,7 +292,24 @@ export class BillingService {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       mode:     'subscription',
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: (() => {
+        const items: import('stripe').Stripe.Checkout.SessionCreateParams.LineItem[] = [
+          { price: priceId, quantity: 1 },
+        ];
+        const perClientId = dto.billing_cycle === 'annual'
+          ? process.env.STRIPE_PER_CLIENT_ANNUAL_PRICE_ID
+          : process.env.STRIPE_PER_CLIENT_MONTHLY_PRICE_ID;
+        if (perClientId) items.push({ price: perClientId });
+        const seatId = process.env.STRIPE_STAFF_SEAT_MONTHLY_PRICE_ID;
+        if (seatId) items.push({ price: seatId });
+        if (dto.ai_addon) {
+          const aiId = dto.billing_cycle === 'annual'
+            ? process.env.STRIPE_ACCOUNTANT_AI_ADDON_ANNUAL_PRICE_ID
+            : process.env.STRIPE_ACCOUNTANT_AI_ADDON_MONTHLY_PRICE_ID;
+          if (aiId) items.push({ price: aiId, quantity: 1 });
+        }
+        return items;
+      })(),
       // No trial_period_days - card is charged immediately on checkout completion.
       subscription_data: {
         metadata: subMetadata,

@@ -6,10 +6,6 @@ import { useAuth } from '@clerk/nextjs';
 import { CheckCircle2, ArrowRight, Zap, Sparkles, Loader2, Calculator, ShieldCheck, ShieldAlert, ChevronDown } from 'lucide-react';
 import { createCheckoutSession } from './checkout-actions';
 
-// Plan data - FR-B9.1, FR-B9.2 (B-9.1).
-// NOTE: Internal `key` values ('starter', 'pro', 'accountant') are NOT renamed
-// per FR-B9.6-03. Display names live in the `name` field below.
-
 type CardPlan = {
   name: string;
   key: 'starter' | 'pro';
@@ -69,10 +65,6 @@ const PERSONAL_AND_PRO: CardPlan[] = [
   },
 ];
 
-// Comparison table - B-9.2: 5 grouped sections, 21 data rows, asymmetric
-// cascade per FR-B9.3. Personal Finance shows Personal+Pro only (Accountant
-// excluded - firms manage businesses, not personal finances). Mojibake
-// fixed via \u escapes per FR-B9.7-02.
 type CompCell = '\u2713' | '\u2014' | string;
 type CompRow = { label: string; starter: CompCell; pro: CompCell; accountant: CompCell };
 type CompSection = { title: string; rows: CompRow[] };
@@ -81,18 +73,18 @@ const COMPARISON_SECTIONS: CompSection[] = [
   {
     title: 'Personal Finance',
     rows: [
-      { label: 'Budget tracking',                   starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
-      { label: 'Savings goal tracking',             starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
-      { label: 'Net worth visibility',              starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
-      { label: 'Lifestyle adjustment insights',     starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
+      { label: 'Budget tracking',               starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
+      { label: 'Savings goal tracking',         starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
+      { label: 'Net worth visibility',          starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
+      { label: 'Lifestyle adjustment insights', starter: '\u2713', pro: '\u2713', accountant: '\u2014' },
     ],
   },
   {
     title: 'Bank & Document Import',
     rows: [
-      { label: 'Bank connectivity (Plaid)',         starter: '\u2713', pro: '\u2713', accountant: '\u2713' },
-      { label: 'CSV import',                        starter: '\u2713', pro: '\u2713', accountant: '\u2713' },
-      { label: 'PDF statement import',              starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Bank connectivity (Plaid)', starter: '\u2713', pro: '\u2713', accountant: '\u2713' },
+      { label: 'CSV import',               starter: '\u2713', pro: '\u2713', accountant: '\u2713' },
+      { label: 'PDF statement import',     starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
     ],
   },
   {
@@ -108,26 +100,24 @@ const COMPARISON_SECTIONS: CompSection[] = [
   {
     title: 'Business Workflow',
     rows: [
-      { label: 'Multi-user access',                 starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
-      { label: 'Owner draws & contributions',       starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
-      { label: 'Invoicing & AP / AR',               starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
-      { label: 'Recurring transaction detection',   starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Multi-user access',               starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Owner draws & contributions',     starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Invoicing & AP / AR',             starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
+      { label: 'Recurring transaction detection', starter: '\u2014', pro: '\u2713', accountant: '\u2713' },
     ],
   },
   {
     title: 'Firm Features',
     rows: [
-      { label: 'Multiple client businesses',        starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
-      { label: 'Accountant firm portal',            starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
-      { label: 'White-label subdomain',             starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
-      { label: 'Staff seat management',             starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
-      { label: 'Dedicated support',                 starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
+      { label: 'Multiple client businesses', starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
+      { label: 'Accountant firm portal',     starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
+      { label: 'White-label subdomain',      starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
+      { label: 'Staff seat management',      starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
+      { label: 'Dedicated support',          starter: '\u2014', pro: '\u2014', accountant: '\u2713' },
     ],
   },
 ];
 
-// Accountant lead bullet (FR-B9.2-09) and feature list (FR-B9.2-10).
-// MUST NOT include "Everything in Pro" or any cascade phrasing per FR-B9.2-08.
 const ACCOUNTANT_LEAD_FEATURE = 'Tax-ready bookkeeping for every client';
 const ACCOUNTANT_FEATURES = [
   'Accountant firm portal',
@@ -137,12 +127,11 @@ const ACCOUNTANT_FEATURES = [
   'Dedicated support',
 ];
 
-// Accountant scenario calculator (extracted into collapsible block per FR-B9.1-02)
-function AccountantCalculator() {
-  const [clients, setClients]     = useState(5);
-  const [seats, setSeats]         = useState(1);
-  const [aiAddon, setAiAddon]     = useState(false);
-  const [annual, setAnnual]       = useState(false);
+function AccountantCalculator({ onAiAddonChange }: { onAiAddonChange?: (v: boolean) => void }) {
+  const [clients, setClients] = useState(5);
+  const [seats, setSeats]     = useState(1);
+  const [aiAddon, setAiAddon] = useState(false);
+  const [annual, setAnnual]   = useState(false);
 
   const BASE       = 149;
   const PER_CLIENT = 15;
@@ -157,78 +146,47 @@ function AccountantCalculator() {
 
   return (
     <div className="space-y-4">
-      {/* Client count slider */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-foreground">Active clients</label>
           <span className="text-xs font-bold text-[#0F6E56]">{clients}</span>
         </div>
-        <input
-          type="range" min={1} max={40} value={clients}
+        <input type="range" min={1} max={40} value={clients}
           onChange={(e) => setClients(Number(e.target.value))}
-          className="w-full accent-[#0F6E56]"
-        />
+          className="w-full accent-[#0F6E56]" />
         <p className="text-xs text-muted-foreground">
-          First 5 included &#x00b7; {billableClients > 0 ? `${billableClients} \u00d7 $${PER_CLIENT} = $${billableClients * PER_CLIENT}` : 'No extra charge'}
+          First 5 included &#x00b7; {billableClients > 0 ? billableClients + ' \u00d7 $' + PER_CLIENT + ' = $' + (billableClients * PER_CLIENT) : 'No extra charge'}
         </p>
       </div>
-
-      {/* Staff seat slider */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
           <label className="text-xs font-medium text-foreground">Staff seats</label>
           <span className="text-xs font-bold text-[#0F6E56]">{seats}</span>
         </div>
-        <input
-          type="range" min={1} max={15} value={seats}
+        <input type="range" min={1} max={15} value={seats}
           onChange={(e) => setSeats(Number(e.target.value))}
-          className="w-full accent-[#0F6E56]"
-        />
+          className="w-full accent-[#0F6E56]" />
         <p className="text-xs text-muted-foreground">
-          First 3 included &#x00b7; {billableSeats > 0 ? `${billableSeats} \u00d7 $${PER_SEAT} = $${billableSeats * PER_SEAT}` : 'No extra charge'}
+          First 3 included &#x00b7; {billableSeats > 0 ? billableSeats + ' \u00d7 $' + PER_SEAT + ' = $' + (billableSeats * PER_SEAT) : 'No extra charge'}
         </p>
       </div>
-
-      {/* AI add-on toggle */}
       <div className="flex items-center justify-between py-2 border-t border-[#0F6E56]/20">
         <div>
           <p className="text-xs font-medium text-foreground">AI add-on &#x2014; unlimited AI calls</p>
           <p className="text-xs text-muted-foreground">Without add-on: 500 AI calls/month firm-wide</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setAiAddon(!aiAddon)}
-          className={[
-            'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
-            aiAddon ? 'bg-[#0F6E56]' : 'bg-muted',
-          ].join(' ')}
-        >
-          <span className={[
-            'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform',
-            aiAddon ? 'translate-x-4' : 'translate-x-0.5',
-          ].join(' ')} />
+        <button type="button" onClick={() => { setAiAddon(!aiAddon); onAiAddonChange?.(!aiAddon); }}
+          className={'relative inline-flex h-5 w-9 items-center rounded-full transition-colors ' + (aiAddon ? 'bg-[#0F6E56]' : 'bg-muted')}>
+          <span className={'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ' + (aiAddon ? 'translate-x-4' : 'translate-x-0.5')} />
         </button>
       </div>
-
-      {/* Annual toggle */}
       <div className="flex items-center justify-between py-2 border-t border-[#0F6E56]/20">
         <p className="text-xs font-medium text-foreground">Annual billing (2 months free)</p>
-        <button
-          type="button"
-          onClick={() => setAnnual(!annual)}
-          className={[
-            'relative inline-flex h-5 w-9 items-center rounded-full transition-colors',
-            annual ? 'bg-[#0F6E56]' : 'bg-muted',
-          ].join(' ')}
-        >
-          <span className={[
-            'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform',
-            annual ? 'translate-x-4' : 'translate-x-0.5',
-          ].join(' ')} />
+        <button type="button" onClick={() => setAnnual(!annual)}
+          className={'relative inline-flex h-5 w-9 items-center rounded-full transition-colors ' + (annual ? 'bg-[#0F6E56]' : 'bg-muted')}>
+          <span className={'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ' + (annual ? 'translate-x-4' : 'translate-x-0.5')} />
         </button>
       </div>
-
-      {/* Estimated total */}
       <div className="rounded-lg bg-white dark:bg-card border border-[#0F6E56]/20 px-4 py-3 flex items-center justify-between">
         <span className="text-sm font-semibold text-foreground">
           {annual ? 'Annual total' : 'Monthly total'}
@@ -249,24 +207,19 @@ function AccountantCalculator() {
   );
 }
 
-// Render a single comparison cell
 function CompCellRender({ value, isPro }: { value: CompCell; isPro?: boolean }) {
-  if (value === '\u2713') {
-    return <CheckCircle2 className="w-4 h-4 text-[#0F6E56] mx-auto" />;
-  }
-  if (value === '\u2014') {
-    return <span className="text-border">&#x2014;</span>;
-  }
+  if (value === '\u2713') return <CheckCircle2 className="w-4 h-4 text-[#0F6E56] mx-auto" />;
+  if (value === '\u2014') return <span className="text-border">&#x2014;</span>;
   return isPro ? <span className="font-medium text-foreground">{value}</span> : <>{value}</>;
 }
 
-// Main component
 export function PricingCards() {
   const [annual, setAnnual]                       = useState(false);
   const [loading, setLoading]                     = useState<string | null>(null);
   const [errorMsg, setErrorMsg]                   = useState<string | null>(null);
   const [showAnnualConfirm, setShowAnnualConfirm] = useState(false);
   const [calcOpen, setCalcOpen]                   = useState(false);
+  const [calcAiAddon, setCalcAiAddon]               = useState(false);
   const calcDetailsRef                            = useRef<HTMLDetailsElement>(null);
   const { isSignedIn }                            = useAuth();
   const router                                    = useRouter();
@@ -274,7 +227,7 @@ export function PricingCards() {
   async function proceedToCheckout(planKey: string) {
     setLoading(planKey);
     try {
-      const result = await createCheckoutSession(planKey, annual ? 'annual' : 'monthly');
+      const result = await createCheckoutSession(planKey, annual ? 'annual' : 'monthly', planKey === 'accountant' ? calcAiAddon : undefined);
       if (result.error) { setErrorMsg(result.error); return; }
       if (result.url)   { window.location.href = result.url; }
     } finally {
@@ -285,6 +238,11 @@ export function PricingCards() {
   function handleCta(planKey: string) {
     setErrorMsg(null);
     if (!isSignedIn) {
+      // Persist plan selection into sign-up and onboarding wizard.
+      // httpOnly=false is intentional -- the wizard reads this client-side.
+      // Cookie expires in 1 hour, sufficient to complete sign-up and onboarding.
+      const cookieValue = JSON.stringify({ plan: planKey, cycle: annual ? 'annual' : 'monthly' });
+      document.cookie = 'tempo_plan=' + encodeURIComponent(cookieValue) + '; max-age=3600; path=/; samesite=lax';
       router.push('/sign-up');
       return;
     }
@@ -305,23 +263,19 @@ export function PricingCards() {
   return (
     <div>
 
-      {/* Launch discount banner */}
       <div className="flex items-center justify-center gap-2 bg-red-600 text-white text-sm font-medium px-5 py-3 rounded-xl mb-8">
         <Zap className="w-4 h-4 flex-shrink-0" />
         <span>Launch sale: <strong>50% off Personal &amp; Pro</strong> &#x2014; limited time only.</span>
       </div>
 
-      {/* Billing period selector */}
       <div className="flex items-center justify-center mb-10">
         <div className="inline-flex items-center bg-muted rounded-xl p-1 gap-1">
-          <button
-            onClick={() => setAnnual(false)}
-            className={['px-5 py-2 rounded-lg text-sm font-semibold transition-all', !annual ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'].join(' ')}
-          >Monthly</button>
-          <button
-            onClick={() => setAnnual(true)}
-            className={['px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2', annual ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'].join(' ')}
-          >
+          <button onClick={() => setAnnual(false)}
+            className={'px-5 py-2 rounded-lg text-sm font-semibold transition-all ' + (!annual ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+            Monthly
+          </button>
+          <button onClick={() => setAnnual(true)}
+            className={'px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ' + (annual ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
             Annual
             <span className="bg-[#EDF7F2] text-[#0F6E56] text-xs font-semibold px-2 py-0.5 rounded-full">2 months free</span>
           </button>
@@ -332,18 +286,14 @@ export function PricingCards() {
         <div className="mb-6 text-center text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-xl px-4 py-3">{errorMsg}</div>
       )}
 
-      {/* 3-up plan cards: Personal | Pro | Accountant - FR-B9.1-01 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
 
-        {/* Personal + Pro cards */}
         {PERSONAL_AND_PRO.map((plan) => {
           const regularAnnual = plan.regularMonthly * 12;
           const isLoading     = loading === plan.key;
           return (
-            <div
-              key={plan.key}
-              className={['rounded-2xl p-7 flex flex-col border-2 relative transition-all', plan.highlight ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-primary/10 shadow-xl' : 'border-border bg-card hover:border-[#0F6E56]/40 hover:shadow-md'].join(' ')}
-            >
+            <div key={plan.key}
+              className={'rounded-2xl p-7 flex flex-col border-2 relative transition-all ' + (plan.highlight ? 'border-[#0F6E56] bg-[#EDF7F2] dark:bg-primary/10 shadow-xl' : 'border-border bg-card hover:border-[#0F6E56]/40 hover:shadow-md')}>
               {plan.highlight && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                   <span className="bg-[#0F6E56] text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-sm">Most Popular</span>
@@ -390,24 +340,18 @@ export function PricingCards() {
                   </li>
                 ))}
               </ul>
-              <button
-                onClick={() => handleCta(plan.key)}
-                disabled={loading !== null}
-                className={['inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed', plan.highlight ? 'bg-[#0F6E56] text-white hover:bg-[#085041]' : 'border-2 border-[#0F6E56] text-[#0F6E56] hover:bg-[#EDF7F2] dark:hover:bg-primary/10'].join(' ')}
-              >
+              <button onClick={() => handleCta(plan.key)} disabled={loading !== null}
+                className={'inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed ' + (plan.highlight ? 'bg-[#0F6E56] text-white hover:bg-[#085041]' : 'border-2 border-[#0F6E56] text-[#0F6E56] hover:bg-[#EDF7F2] dark:hover:bg-primary/10')}>
                 {isLoading ? <><Loader2 className="w-4 h-4 animate-spin" />Setting up...</> : <>Start free trial &#x2014; no credit card <ArrowRight className="w-4 h-4" /></>}
               </button>
             </div>
           );
         })}
 
-        {/* Accountant card - single column, condensed, dual CTA per FR-B9.1-04, FR-B9.2-08/09/10 */}
         <div className="rounded-2xl p-7 flex flex-col border-2 border-border bg-card hover:border-[#0F6E56]/40 hover:shadow-md transition-all">
           <div className="mb-5">
             <p className="text-base font-bold text-foreground mb-1">Accountant</p>
             <p className="text-xs text-muted-foreground mb-4">For accounting firms managing multiple clients</p>
-
-            {/* Safety-net badge - switches with annual toggle */}
             {annual ? (
               <div className="inline-flex self-start items-center gap-1.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-300/60 dark:border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs font-medium px-3 py-1 rounded-full mb-3">
                 <ShieldAlert className="w-3.5 h-3.5" />
@@ -419,14 +363,12 @@ export function PricingCards() {
                 30-day money-back guarantee
               </div>
             )}
-
             <div className="flex items-baseline gap-1 mb-1">
               <span className="text-4xl font-bold text-foreground">${annual ? '1,490' : '149'}</span>
               <span className="text-sm text-muted-foreground"> CAD/{annual ? 'yr' : 'mo'} base</span>
             </div>
             <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">5 clients + 3 seats included &#x00b7; scale up from there</p>
           </div>
-
           <ul className="space-y-2.5 mb-6 flex-1">
             <li className="flex items-start gap-2.5 text-sm text-foreground">
               <CheckCircle2 className="w-4 h-4 text-[#0F6E56] flex-shrink-0 mt-0.5" />
@@ -439,28 +381,17 @@ export function PricingCards() {
               </li>
             ))}
           </ul>
-
-          {/* Customize button - opens collapsible calculator below */}
-          <button
-            type="button"
-            onClick={openCalculator}
-            className="inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border-2 border-dashed border-[#0F6E56]/60 text-[#0F6E56] hover:bg-[#EDF7F2] dark:hover:bg-primary/10 transition-colors mb-2"
-          >
+          <button type="button" onClick={openCalculator}
+            className="inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border-2 border-dashed border-[#0F6E56]/60 text-[#0F6E56] hover:bg-[#EDF7F2] dark:hover:bg-primary/10 transition-colors mb-2">
             Customize <ChevronDown className="w-4 h-4" />
           </button>
-
-          {/* Subscribe CTA */}
-          <button
-            onClick={() => handleCta('accountant')}
-            disabled={loading !== null}
-            className="inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl border-2 border-[#0F6E56] text-[#0F6E56] hover:bg-[#EDF7F2] dark:hover:bg-primary/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-          >
+          <button onClick={() => handleCta('accountant')} disabled={loading !== null}
+            className="inline-flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl border-2 border-[#0F6E56] text-[#0F6E56] hover:bg-[#EDF7F2] dark:hover:bg-primary/10 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
             {loading === 'accountant' ? <><Loader2 className="w-4 h-4 animate-spin" />Setting up...</> : <>{annual ? 'Subscribe \u2014 12-month commitment' : 'Subscribe \u2014 30-day money-back guarantee'} <ArrowRight className="w-4 h-4" /></>}
           </button>
         </div>
       </div>
 
-      {/* Trial / commitment chips trio - FR-B9.1-05 */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
         <div className="rounded-xl border border-[#C3E8D8] dark:border-primary/30 bg-[#EDF7F2] dark:bg-primary/10 p-4">
           <div className="flex items-center gap-2 mb-1">
@@ -487,14 +418,10 @@ export function PricingCards() {
 
       <p className="text-center text-xs text-muted-foreground mb-10">Stop renewal anytime in Billing settings. Refund eligibility follows the plan terms above.</p>
 
-      {/* Collapsible Accountant calculator - FR-B9.1-02 */}
-      <details
-        ref={calcDetailsRef}
-        open={calcOpen}
+      <details ref={calcDetailsRef} open={calcOpen}
         onToggle={(e) => setCalcOpen((e.currentTarget as HTMLDetailsElement).open)}
         id="accountant-calculator"
-        className="group rounded-2xl border-2 border-[#0F6E56]/30 bg-[#EDF7F2] dark:bg-primary/10 mb-10 scroll-mt-24"
-      >
+        className="group rounded-2xl border-2 border-[#0F6E56]/30 bg-[#EDF7F2] dark:bg-primary/10 mb-10 scroll-mt-24">
         <summary className="cursor-pointer list-none p-5 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Calculator className="w-5 h-5 text-[#0F6E56] flex-shrink-0" />
@@ -503,14 +430,13 @@ export function PricingCards() {
               <p className="text-xs text-muted-foreground">Slide to model client count, staff seats, and AI add-on</p>
             </div>
           </div>
-          <ChevronDown className={['w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform', calcOpen ? 'rotate-180' : ''].join(' ')} />
+          <ChevronDown className={'w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform ' + (calcOpen ? 'rotate-180' : '')} />
         </summary>
         <div className="px-5 pb-5 pt-2 border-t border-[#0F6E56]/20">
-          <AccountantCalculator />
+          <AccountantCalculator onAiAddonChange={setCalcAiAddon} />
         </div>
       </details>
 
-      {/* AI value prop callout */}
       <div className="rounded-2xl border-2 border-[#0F6E56]/30 bg-[#EDF7F2] dark:bg-primary/10 p-6 mb-16">
         <div className="flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-[#0F6E56] flex items-center justify-center flex-shrink-0">
@@ -523,7 +449,6 @@ export function PricingCards() {
         </div>
       </div>
 
-      {/* Comparison table - B-9.2: 5 grouped sections, 21 data rows, asymmetric cascade per FR-B9.3 */}
       <div>
         <h2 className="text-xl font-bold text-foreground text-center mb-8">Full feature comparison</h2>
         <div className="overflow-x-auto">
@@ -538,14 +463,14 @@ export function PricingCards() {
             </thead>
             <tbody>
               {COMPARISON_SECTIONS.map((section, sIdx) => (
-                <Fragment key={`section-${sIdx}`}>
+                <Fragment key={'section-' + sIdx}>
                   <tr className="bg-muted/40">
                     <td colSpan={4} className="py-2.5 pl-4 pr-4 text-xs font-bold uppercase tracking-wider text-[#0F6E56]">
                       {section.title}
                     </td>
                   </tr>
                   {section.rows.map((row, rIdx) => (
-                    <tr key={`s-${sIdx}-r-${rIdx}`} className={`border-b border-border/50 ${rIdx % 2 === 0 ? 'bg-card/50' : ''}`}>
+                    <tr key={'s-' + sIdx + '-r-' + rIdx} className={'border-b border-border/50 ' + (rIdx % 2 === 0 ? 'bg-card/50' : '')}>
                       <td className="py-3 pr-4 pl-4 text-muted-foreground">{row.label}</td>
                       <td className="py-3 px-4 text-center"><CompCellRender value={row.starter} /></td>
                       <td className="py-3 px-4 text-center"><CompCellRender value={row.pro} isPro /></td>
@@ -559,7 +484,6 @@ export function PricingCards() {
         </div>
       </div>
 
-      {/* Annual commitment confirmation modal */}
       {showAnnualConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="bg-card rounded-2xl border border-border max-w-md w-full p-6 shadow-2xl">
@@ -578,18 +502,12 @@ export function PricingCards() {
               <p>You will be charged <strong className="text-foreground">$1,490 CAD</strong> today and will not be billed again for 12 months.</p>
             </div>
             <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={() => setShowAnnualConfirm(false)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors"
-              >
+              <button type="button" onClick={() => setShowAnnualConfirm(false)}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={() => { setShowAnnualConfirm(false); void proceedToCheckout('accountant'); }}
-                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#0F6E56] text-white hover:bg-[#085041] transition-colors"
-              >
+              <button type="button" onClick={() => { setShowAnnualConfirm(false); void proceedToCheckout('accountant'); }}
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#0F6E56] text-white hover:bg-[#085041] transition-colors">
                 Yes, subscribe for 12 months
               </button>
             </div>
