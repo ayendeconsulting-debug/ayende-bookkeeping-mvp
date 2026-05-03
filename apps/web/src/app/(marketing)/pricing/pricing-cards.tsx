@@ -127,11 +127,11 @@ const ACCOUNTANT_FEATURES = [
   'Dedicated support',
 ];
 
-function AccountantCalculator({ onAiAddonChange }: { onAiAddonChange?: (v: boolean) => void }) {
+function AccountantCalculator({ onAiAddonChange, onAnnualChange, initialAnnual, onCheckout, isLoading }: { onAiAddonChange?: (v: boolean) => void; onAnnualChange?: (v: boolean) => void; initialAnnual?: boolean; onCheckout?: () => void; isLoading?: boolean }) {
   const [clients, setClients] = useState(5);
   const [seats, setSeats]     = useState(1);
   const [aiAddon, setAiAddon] = useState(false);
-  const [annual, setAnnual]   = useState(false);
+  const [annual, setAnnual]   = useState(initialAnnual ?? false);
 
   const BASE       = 149;
   const PER_CLIENT = 15;
@@ -176,14 +176,14 @@ function AccountantCalculator({ onAiAddonChange }: { onAiAddonChange?: (v: boole
           <p className="text-xs text-muted-foreground">Without add-on: 500 AI calls/month firm-wide</p>
         </div>
         <button type="button" onClick={() => { setAiAddon(!aiAddon); onAiAddonChange?.(!aiAddon); }}
-          className={'relative inline-flex h-5 w-9 items-center rounded-full transition-colors ' + (aiAddon ? 'bg-[#0F6E56]' : 'bg-muted')}>
+          className={'relative inline-flex h-5 w-9 items-center rounded-full transition-colors ' + (aiAddon ? 'bg-[#0F6E56]' : 'bg-gray-300 dark:bg-gray-600')}>
           <span className={'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ' + (aiAddon ? 'translate-x-4' : 'translate-x-0.5')} />
         </button>
       </div>
       <div className="flex items-center justify-between py-2 border-t border-[#0F6E56]/20">
         <p className="text-xs font-medium text-foreground">Annual billing (2 months free)</p>
-        <button type="button" onClick={() => setAnnual(!annual)}
-          className={'relative inline-flex h-5 w-9 items-center rounded-full transition-colors ' + (annual ? 'bg-[#0F6E56]' : 'bg-muted')}>
+        <button type="button" onClick={() => { setAnnual(!annual); onAnnualChange?.(!annual); }}
+          className={'relative inline-flex h-5 w-9 items-center rounded-full transition-colors ' + (annual ? 'bg-[#0F6E56]' : 'bg-gray-300 dark:bg-gray-600')}>
           <span className={'inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ' + (annual ? 'translate-x-4' : 'translate-x-0.5')} />
         </button>
       </div>
@@ -203,6 +203,12 @@ function AccountantCalculator({ onAiAddonChange }: { onAiAddonChange?: (v: boole
           )}
         </div>
       </div>
+      <button type="button" onClick={onCheckout} disabled={isLoading}
+        className="inline-flex items-center justify-center gap-2 w-full text-sm font-semibold px-4 py-3 rounded-xl bg-[#0F6E56] text-white hover:bg-[#085041] transition-colors disabled:opacity-60 disabled:cursor-not-allowed mt-2">
+        {isLoading
+          ? <><Loader2 className="w-4 h-4 animate-spin" />Setting up...</>
+          : <>Subscribe {annual ? annualTotal.toLocaleString() + ' CAD/yr' : monthlyTotal.toLocaleString() + ' CAD/mo'} <ArrowRight className="w-4 h-4" /></>}
+      </button>
     </div>
   );
 }
@@ -220,6 +226,7 @@ export function PricingCards() {
   const [showAnnualConfirm, setShowAnnualConfirm] = useState(false);
   const [calcOpen, setCalcOpen]                   = useState(false);
   const [calcAiAddon, setCalcAiAddon]               = useState(false);
+  const [calcAnnual, setCalcAnnual]                 = useState(false);
   const calcDetailsRef                            = useRef<HTMLDetailsElement>(null);
   const { isSignedIn }                            = useAuth();
   const router                                    = useRouter();
@@ -228,6 +235,24 @@ export function PricingCards() {
     setLoading(planKey);
     try {
       const result = await createCheckoutSession(planKey, annual ? 'annual' : 'monthly', planKey === 'accountant' ? calcAiAddon : undefined);
+      if (result.error) { setErrorMsg(result.error); return; }
+      if (result.url)   { window.location.href = result.url; }
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handleCalcCheckout() {
+    if (!isSignedIn) {
+      const cookieValue = JSON.stringify({ plan: 'accountant', cycle: calcAnnual ? 'annual' : 'monthly' });
+      document.cookie = 'tempo_plan=' + encodeURIComponent(cookieValue) + '; max-age=3600; path=/; samesite=lax';
+      router.push('/sign-up');
+      return;
+    }
+    if (calcAnnual) { setShowAnnualConfirm(true); return; }
+    setLoading('accountant');
+    try {
+      const result = await createCheckoutSession('accountant', 'monthly', calcAiAddon);
       if (result.error) { setErrorMsg(result.error); return; }
       if (result.url)   { window.location.href = result.url; }
     } finally {
@@ -270,11 +295,11 @@ export function PricingCards() {
 
       <div className="flex items-center justify-center mb-10">
         <div className="inline-flex items-center bg-muted rounded-xl p-1 gap-1">
-          <button onClick={() => setAnnual(false)}
+          <button onClick={() => { setAnnual(false); setCalcAnnual(false); }}
             className={'px-5 py-2 rounded-lg text-sm font-semibold transition-all ' + (!annual ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
             Monthly
           </button>
-          <button onClick={() => setAnnual(true)}
+          <button onClick={() => { setAnnual(true); setCalcAnnual(true); }}
             className={'px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2 ' + (annual ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
             Annual
             <span className="bg-[#EDF7F2] text-[#0F6E56] text-xs font-semibold px-2 py-0.5 rounded-full">2 months free</span>
@@ -433,7 +458,7 @@ export function PricingCards() {
           <ChevronDown className={'w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform ' + (calcOpen ? 'rotate-180' : '')} />
         </summary>
         <div className="px-5 pb-5 pt-2 border-t border-[#0F6E56]/20">
-          <AccountantCalculator onAiAddonChange={setCalcAiAddon} />
+          <AccountantCalculator onAiAddonChange={setCalcAiAddon} onAnnualChange={setCalcAnnual} initialAnnual={calcAnnual} onCheckout={() => handleCalcCheckout()} isLoading={loading === 'accountant'} />
         </div>
       </details>
 
