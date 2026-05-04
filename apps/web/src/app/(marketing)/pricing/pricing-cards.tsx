@@ -246,6 +246,20 @@ export function PricingCards() {
     }
   }
 
+  async function handleConfirmedAnnualCheckout() {
+    setErrorMsg(null);
+    setLoading('accountant');
+    try {
+      const cycle = annualConfirmSource === 'calc' ? (calcAnnual ? 'annual' : 'monthly') : (annual ? 'annual' : 'monthly');
+      const ai    = annualConfirmSource === 'calc' ? calcAiAddon : false;
+      const r = await createCheckoutSession('accountant', cycle, ai);
+      if (r.error) { setErrorMsg(r.error); return; }
+      if (r.url)   { window.location.href = r.url; }
+    } finally {
+      setLoading(null);
+    }
+  }
+
   async function handleCalcCheckout() {
     if (!isSignedIn) {
       router.push('/sign-up');
@@ -531,7 +545,7 @@ export function PricingCards() {
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">
                 Cancel
               </button>
-              <button type="button" onClick={async () => { setShowAnnualConfirm(false); setLoading('accountant'); try { const r = await createCheckoutSession('accountant', annualConfirmSource === 'calc' ? (calcAnnual ? 'annual' : 'monthly') : (annual ? 'annual' : 'monthly'), annualConfirmSource === 'calc' ? calcAiAddon : false); if (r.error) { setErrorMsg(r.error); } else if (r.url) { window.location.href = r.url; } } finally { setLoading(null); } }}
+              <button type="button" onClick={() => { setShowAnnualConfirm(false); void handleConfirmedAnnualCheckout(); }}
                 className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#0F6E56] text-white hover:bg-[#085041] transition-colors">
                 Yes, subscribe for 12 months
               </button>
