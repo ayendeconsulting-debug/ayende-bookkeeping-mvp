@@ -247,8 +247,6 @@ export function PricingCards() {
 
   async function handleCalcCheckout() {
     if (!isSignedIn) {
-      const cookieValue = JSON.stringify({ plan: 'accountant', cycle: calcAnnual ? 'annual' : 'monthly' });
-      document.cookie = 'tempo_plan=' + encodeURIComponent(cookieValue) + '; max-age=3600; path=/; samesite=lax';
       router.push('/sign-up');
       return;
     }
@@ -269,8 +267,6 @@ export function PricingCards() {
       // Persist plan selection into sign-up and onboarding wizard.
       // httpOnly=false is intentional -- the wizard reads this client-side.
       // Cookie expires in 1 hour, sufficient to complete sign-up and onboarding.
-      const cookieValue = JSON.stringify({ plan: planKey, cycle: annual ? 'annual' : 'monthly' });
-      document.cookie = 'tempo_plan=' + encodeURIComponent(cookieValue) + '; max-age=3600; path=/; samesite=lax';
       router.push('/sign-up');
       return;
     }

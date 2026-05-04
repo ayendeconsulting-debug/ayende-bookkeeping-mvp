@@ -7,37 +7,18 @@ import {
   saveTaxSettings,
   getProvincesForOnboarding,
   seedAccounts,
-  createFirstTaxCode,
-  completeOnboarding,
-  acceptLegalDocuments,
-  fetchLegalAcceptanceStatus,
-  createCheckoutSessionFromOnboarding,
   cancelOnboarding,
 } from './actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CheckCircle2, ChevronRight, Loader2, Building2, ShieldCheck, ShieldAlert, Sparkles, Receipt, CreditCard } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Loader2, Building2, Receipt } from 'lucide-react';
 import { useClerk } from '@clerk/nextjs';
-import { LEGAL_VERSIONS } from '@/lib/legal-versions';
 
 type Mode    = 'business' | 'freelancer' | 'personal';
 type Country = 'CA' | 'US';
 type PlanId  = 'starter' | 'pro' | 'accountant';
-
-type LegalDocType =
-  | 'terms_of_service'
-  | 'terms_of_use'
-  | 'privacy_policy'
-  | 'cookie_policy';
-
-interface LegalDoc {
-  key: LegalDocType;
-  label: string;
-  linkLabel: string;
-  href: string;
-}
 
 interface Province {
   province_code: string;
@@ -47,14 +28,32 @@ interface Province {
   is_hst_province: boolean;
 }
 
-const LEGAL_DOCS: LegalDoc[] = [
-  { key: 'terms_of_service', label: 'I have read and agree to the',  linkLabel: 'Terms of Service', href: '/terms'        },
-  { key: 'terms_of_use',     label: 'I have read and agree to the',  linkLabel: 'Terms of Use',     href: '/terms-of-use' },
-  { key: 'privacy_policy',   label: 'I have read and reviewed the',  linkLabel: 'Privacy Policy',   href: '/privacy'      },
-  { key: 'cookie_policy',    label: 'I acknowledge the',             linkLabel: 'Cookie Policy',    href: '/cookies'      },
-];
+interface TempoPlan {
+  plan: PlanId;
+  cycle: 'monthly' | 'annual';
+}
 
-const TOTAL_STEPS = 7;
+const PLAN_DISPLAY: Record<PlanId, string> = {
+  starter:    'Personal',
+  pro:        'Pro',
+  accountant: 'Accountant',
+};
+
+// Read the tempo_plan cookie written by pricing-cards.tsx when user clicked a CTA.
+// httpOnly=false is intentional -- this must be readable client-side.
+function readTempoPlanCookie(): TempoPlan | null {
+  if (typeof document === 'undefined') return null;
+  try {
+    const match = document.cookie.split('; ').find((row) => row.startsWith('tempo_plan='));
+    if (!match) return null;
+    const raw    = decodeURIComponent(match.split('=')[1]);
+    const parsed = JSON.parse(raw) as TempoPlan;
+    if (!parsed.plan || !parsed.cycle) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
 
 const MODE_CARDS = [
   {
@@ -89,56 +88,12 @@ const INDUSTRIES = [
   { id: 'freelancer',   label: 'Freelancer',             icon: '🧑‍💻', description: 'Home office, tools, mileage, consulting revenue' },
 ];
 
-const TAX_PRESETS: Record<Country, { code: string; name: string; rate: number }[]> = {
-  CA: [
-    { code: 'HST', name: 'Harmonized Sales Tax (HST)', rate: 0.13 },
-    { code: 'GST', name: 'Goods & Services Tax (GST)', rate: 0.05 },
-  ],
-  US: [
-    { code: 'SALES', name: 'Sales Tax', rate: 0.0875 },
-  ],
-};
-
-const PLAN_CARDS: {
-  id: PlanId;
-  name: string;
-  price: number;
-  annualPrice: number;
-  description: string;
-  features: string[];
-  highlighted?: boolean;
-}[] = [
-  {
-    id: 'starter',
-    name: 'Personal',
-    price: 19,
-    annualPrice: 15,
-    description: 'Perfect for small businesses and freelancers',
-    features: ['Bank sync (Plaid)', 'Double-entry accounting', 'Financial reports', 'AI classification (50/mo)', 'Email support'],
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: 49,
-    annualPrice: 39,
-    description: 'For growing businesses that need more power',
-    features: ['Everything in Personal', 'AI features (200/mo)', 'HST / GST engine', 'Year-End Assistant', 'Priority support'],
-    highlighted: true,
-  },
-  {
-    id: 'accountant',
-    name: 'Accountant',
-    price: 149,
-    annualPrice: 119,
-    description: 'For bookkeeping firms managing multiple clients',
-    features: ['Everything in Pro', 'AI features (500/mo)', 'Accountant portal', 'Client management', 'White-label subdomain'],
-  },
-];
-
-function ProgressBar({ step }: { step: number }) {
+// ProgressBar now accepts totalSteps so it reflects mode-aware step count.
+// Business/Freelancer: 4 steps. Personal: 3 steps.
+function ProgressBar({ step, totalSteps }: { step: number; totalSteps: number }) {
   return (
     <div className="flex items-center gap-2 mb-8">
-      {Array.from({ length: TOTAL_STEPS }, (_, i) => i + 1).map((s) => (
+      {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
         <div key={s} className="flex items-center gap-2">
           <div className={[
             'w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all',
@@ -148,65 +103,20 @@ function ProgressBar({ step }: { step: number }) {
           ].join(' ')}>
             {s < step ? <CheckCircle2 className="w-4 h-4" /> : s}
           </div>
-          {s < TOTAL_STEPS && (
-            <div className={`h-0.5 w-6 rounded transition-all ${s < step ? 'bg-primary' : 'bg-muted'}`} />
+          {s < totalSteps && (
+            <div className={'h-0.5 w-6 rounded transition-all ' + (s < step ? 'bg-primary' : 'bg-muted')} />
           )}
         </div>
       ))}
-      <span className="ml-2 text-xs text-muted-foreground">Step {step} of {TOTAL_STEPS}</span>
+      <span className="ml-2 text-xs text-muted-foreground">Step {step} of {totalSteps}</span>
     </div>
-  );
-}
-
-function LegalCheckbox({
-  doc, checked, preChecked, onChange,
-}: {
-  doc: LegalDoc;
-  checked: boolean;
-  preChecked: boolean;
-  onChange: (val: boolean) => void;
-}) {
-  return (
-    <label className={[
-      'flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all select-none',
-      checked
-        ? 'border-primary bg-primary-light dark:bg-primary/10'
-        : 'border-border bg-card hover:border-primary/50',
-    ].join(' ')}>
-      <div className="relative flex-shrink-0 mt-0.5">
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only" />
-        <div className={[
-          'w-5 h-5 rounded flex items-center justify-center border-2 transition-all',
-          checked ? 'bg-primary border-primary' : 'bg-background border-border',
-        ].join(' ')}>
-          {checked && (
-            <svg viewBox="0 0 12 12" className="w-3 h-3 text-white" fill="none"
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="2,6 5,9 10,3" />
-            </svg>
-          )}
-        </div>
-      </div>
-      <div className="text-sm text-foreground leading-relaxed">
-        <span>{doc.label} </span>
-        <a href={doc.href} target="_blank" rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="text-primary underline underline-offset-2 hover:text-primary-hover font-medium">
-          {doc.linkLabel}
-        </a>
-        {preChecked && (
-          <span className="ml-2 inline-flex items-center gap-1 text-xs text-primary font-medium">
-            <CheckCircle2 className="w-3 h-3" />Previously accepted
-          </span>
-        )}
-      </div>
-    </label>
   );
 }
 
 export default function OnboardingPage() {
   const { signOut } = useClerk();
   const [step, setStep]              = useState(1);
+  const [totalSteps, setTotalSteps]  = useState(4); // refined after step 1
   const [isPending, startTransition] = useTransition();
 
   const [selectedMode,    setSelectedMode]    = useState<Mode | null>(null);
@@ -215,9 +125,6 @@ export default function OnboardingPage() {
   const [currency,        setCurrency]        = useState('');
   const [fiscalYearEnd,   setFiscalYearEnd]   = useState('');
   const [industry,        setIndustry]        = useState('');
-  const [accountsSeeded,  setAccountsSeeded]  = useState(false);
-  const [taxPreset,       setTaxPreset]       = useState('');
-  const [taxAccountId]                        = useState('');
   const [error,           setError]           = useState<string | null>(null);
 
   const [provinces,       setProvinces]       = useState<Province[]>([]);
@@ -226,18 +133,12 @@ export default function OnboardingPage() {
   const [hstFrequency,    setHstFrequency]    = useState<'monthly' | 'quarterly' | 'annual'>('quarterly');
   const [provincesLoaded, setProvincesLoaded] = useState(false);
 
-  const [legalChecks, setLegalChecks] = useState<Record<LegalDocType, boolean>>({
-    terms_of_service: false, terms_of_use: false, privacy_policy: false, cookie_policy: false,
-  });
-  const [preChecked, setPreChecked] = useState<Record<LegalDocType, boolean>>({
-    terms_of_service: false, terms_of_use: false, privacy_policy: false, cookie_policy: false,
-  });
-  const [legalLoading, setLegalLoading] = useState(false);
+  // Plan sourced from cookie set on /pricing -- no plan step in wizard.
+  const [planCookie, setPlanCookie] = useState<TempoPlan | null>(null);
 
-  const [selectedPlan, setSelectedPlan] = useState<PlanId>('pro');
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-
-  const allLegalChecked = LEGAL_DOCS.every((d) => legalChecks[d.key]);
+  useEffect(() => {
+    setPlanCookie(readTempoPlanCookie());
+  }, []);
 
   useEffect(() => {
     if (step !== 2 || selectedCountry !== 'CA' || provincesLoaded) return;
@@ -247,24 +148,7 @@ export default function OnboardingPage() {
     });
   }, [step, selectedCountry, provincesLoaded]);
 
-  useEffect(() => {
-    if (step !== 5) return;
-    setLegalLoading(true);
-    fetchLegalAcceptanceStatus().then((status) => {
-      if (!status.error && status.documents.length > 0) {
-        const newChecks = { ...legalChecks };
-        const newPreChecked = { ...preChecked };
-        status.documents.forEach((doc) => {
-          const key = doc.document_type as LegalDocType;
-          if (doc.is_current) { newChecks[key] = true; newPreChecked[key] = true; }
-        });
-        setLegalChecks(newChecks);
-        setPreChecked(newPreChecked);
-      }
-      setLegalLoading(false);
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  // ── Step handlers ──────────────────────────────────────────────────────────
 
   function handleStep1() {
     if (!selectedMode || !selectedCountry) { setError('Please select a mode and country.'); return; }
@@ -273,7 +157,9 @@ export default function OnboardingPage() {
       const result = await saveModeAndCountry(selectedMode, selectedCountry);
       if (result.error) { setError(result.error); toastError('Could not save', result.error); return; }
       if (!currency) setCurrency(selectedCountry === 'CA' ? 'CAD' : 'USD');
-      toastSuccess('Mode selected', `${selectedMode} mode · ${selectedCountry}`);
+      // Set mode-aware step count before advancing
+      setTotalSteps(selectedMode === 'personal' ? 3 : 4);
+      toastSuccess('Mode selected', selectedMode + ' mode \u00b7 ' + selectedCountry);
       setStep(2);
     });
   }
@@ -283,25 +169,42 @@ export default function OnboardingPage() {
     setError(null);
     startTransition(async () => {
       const result = await saveBusinessDetails({
-        name: businessName.trim(),
+        name:            businessName.trim(),
         currency_code:   currency || (selectedCountry === 'CA' ? 'CAD' : 'USD'),
         fiscal_year_end: fiscalYearEnd || undefined,
       });
       if (result.error) { setError(result.error); toastError('Could not save', result.error); return; }
-      if (selectedCountry === 'CA' && provinceCode) {
+
+      // Save Canadian tax settings for Business/Freelancer with a province selected
+      if (selectedCountry === 'CA' && provinceCode && selectedMode !== 'personal') {
         const taxResult = await saveTaxSettings({
-          province_code: provinceCode,
-          hst_registration_number: hstNumber.trim() || undefined,
-          hst_reporting_frequency: hstFrequency,
+          province_code:            provinceCode,
+          hst_registration_number:  hstNumber.trim() || undefined,
+          hst_reporting_frequency:  hstFrequency,
         });
         if (taxResult.error) {
-          toastError('Tax settings not saved', taxResult.error + 'you can update these in Settings.');
+          toastError('Tax settings not saved', taxResult.error + ' You can update these in Settings.');
         } else {
-          toastSuccess('Tax settings saved', `Province: ${provinceCode} default tax codes created`);
+          toastSuccess('Tax settings saved', 'Province: ' + provinceCode + ' default tax codes created');
         }
       }
-      toastSuccess('Business details saved');
-      setStep(3);
+
+      toastSuccess('Details saved');
+
+      if (selectedMode === 'personal') {
+        // Personal: auto-seed default accounts and go directly to Connect Bank.
+        // Uses 'general' industry which produces a sensible default account set.
+        const seedResult = await seedAccounts('general');
+        if (seedResult.error) {
+          toastError('Could not seed accounts', seedResult.error);
+          // Non-fatal -- continue to Connect Bank; accounts can be added later.
+        } else {
+          toastSuccess('Accounts ready', 'Default accounts created for Personal mode');
+        }
+        setStep(3); // Connect Bank (step 3 of 3 for Personal)
+      } else {
+        setStep(3); // Industry / COA (step 3 of 4 for Business/Freelancer)
+      }
     });
   }
 
@@ -310,60 +213,31 @@ export default function OnboardingPage() {
     startTransition(async () => {
       const result = await seedAccounts(chosenIndustry);
       if (result.error) { setError(result.error); toastError('Could not seed accounts', result.error); return; }
-      setAccountsSeeded(true);
-      const msg = result.skipped ? 'Accounts already set up' : `${result.seeded} accounts created`;
+      const msg = result.skipped ? 'Accounts already set up' : result.seeded + ' accounts created';
       toastSuccess('Chart of accounts ready', msg);
-      setStep(selectedMode === 'personal' ? 5 : 4);
+      setStep(4); // Connect Bank (step 4 of 4 for Business/Freelancer)
     });
   }
 
-  function skipStep4() {
-    toastSuccess('Tax code skipped', 'You can add tax codes later in Settings.');
-    setStep(5);
-  }
-
-  function handleStep5() {
-    if (!allLegalChecked) { setError('Please accept all agreements to continue.'); return; }
-    setError(null);
-    startTransition(async () => {
-      const documents = LEGAL_DOCS.map((doc) => ({
-        document_type:     doc.key,
-        document_version:  LEGAL_VERSIONS[doc.key],
-        acceptance_source: 'onboarding',
-      }));
-      const result = await acceptLegalDocuments(documents);
-      if (result.error) { setError(result.error); toastError('Could not record agreements', result.error); return; }
-      toastSuccess('Agreements accepted');
-      setStep(6);
-    });
-  }
-
-  function handleStep6() {
-    setError(null);
-    startTransition(async () => {
-      const result = await createCheckoutSessionFromOnboarding(selectedPlan, billingCycle);
-      if (result.error || !result.url) {
-        setError(result.error ?? 'Failed to start checkout. Please try again.');
-        toastError('Checkout failed', result.error ?? 'Please try again.');
-        return;
-      }
-      window.location.href = result.url;
-    });
-  }
-
-  function handleComplete(destination: '/dashboard' | '/banks') {
-    setError(null);
-    startTransition(async () => { await completeOnboarding(destination); });
+  // Onboarding complete -- send user to /pricing to select plan and subscribe.
+  function handleCheckout() {
+    window.location.href = '/pricing';
   }
 
   const selectedProvince = provinces.find((p) => p.province_code === provinceCode);
   const taxLabel = selectedProvince
     ? selectedProvince.is_hst_province
-      ? `HST ${Math.round((selectedProvince.hst_rate ?? 0) * 100)}%`
-      : `GST ${Math.round(selectedProvince.gst_rate * 100)}%`
+      ? 'HST ' + Math.round((selectedProvince.hst_rate ?? 0) * 100) + '%'
+      : 'GST ' + Math.round(selectedProvince.gst_rate * 100) + '%'
     : null;
 
+  const planLabel    = planCookie ? (PLAN_DISPLAY[planCookie.plan] ?? planCookie.plan) : null;
+  const isAccountant = planCookie?.plan === 'accountant';
+
   const selectClass = 'text-sm border border-border rounded-lg px-3 py-2 outline-none focus:border-primary bg-background text-foreground';
+
+  // Connect Bank renders at the last step for both modes
+  const isConnectBankStep = step === totalSteps;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6">
@@ -381,7 +255,7 @@ export default function OnboardingPage() {
           <p className="text-muted-foreground mt-1 text-sm">Let&apos;s set up your account in a few steps.</p>
         </div>
 
-        <ProgressBar step={step} />
+        <ProgressBar step={step} totalSteps={totalSteps} />
 
         {/* Step 1: Mode + Country */}
         {step === 1 && (
@@ -401,7 +275,7 @@ export default function OnboardingPage() {
                       <ul className="space-y-0.5">
                         {card.features.map((f) => (
                           <li key={f} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <span className={isSelected ? 'text-primary' : 'text-muted-foreground/30'}>✓</span>{f}
+                            <span className={isSelected ? 'text-primary' : 'text-muted-foreground/30'}>&#x2713;</span>{f}
                           </li>
                         ))}
                       </ul>
@@ -428,11 +302,9 @@ export default function OnboardingPage() {
                       <span className="text-xl">{c === 'CA' ? '🇨🇦' : '🇺🇸'}</span>
                       <div className="text-left flex-1">
                         <div className="font-semibold text-sm text-foreground">{c === 'CA' ? 'Canada' : 'United States'}</div>
-                        <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD · CRA' : 'USD · IRS'}</div>
+                        <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD \u00b7 CRA' : 'USD \u00b7 IRS'}</div>
                       </div>
-                      {isSelected && (
-                        <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
-                      )}
+                      {isSelected && <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />}
                     </button>
                   );
                 })}
@@ -445,34 +317,39 @@ export default function OnboardingPage() {
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                 Continue <ChevronRight className="w-4 h-4" />
               </Button>
-              <button type="button" onClick={async () => { await cancelOnboarding(); signOut({ redirectUrl: 'https://gettempo.ca' }); }}
+              <button type="button"
+                onClick={async () => { await cancelOnboarding(); signOut({ redirectUrl: 'https://gettempo.ca' }); }}
                 className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors w-fit text-left">
-                Cancel — return to website
+                Cancel &mdash; return to website
               </button>
             </div>
           </div>
         )}
 
-        {/* Step 2: Business Details */}
+        {/* Step 2: Business Details (Business/Freelancer) or Personal Details (Personal) */}
         {step === 2 && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div className="flex items-center gap-2">
               <Building2 className="w-5 h-5 text-primary" />
-              <h2 className="text-base font-semibold text-foreground">Tell us about your business</h2>
+              <h2 className="text-base font-semibold text-foreground">
+                {selectedMode === 'personal' ? 'Tell us about yourself' : 'Tell us about your business'}
+              </h2>
             </div>
+
             <div className="flex flex-col gap-1.5">
-              <Label>Business Name *</Label>
+              <Label>{selectedMode === 'personal' ? 'Your Name *' : 'Business Name *'}</Label>
               <Input value={businessName} onChange={(e) => setBusinessName(e.target.value)}
-                placeholder={selectedMode === 'personal' ? 'Your name' : 'e.g. Acme Consulting Inc.'} />
+                placeholder={selectedMode === 'personal' ? 'e.g. Alex Johnson' : 'e.g. Acme Consulting Inc.'} />
             </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <Label>Base Currency</Label>
                 <select value={currency} onChange={(e) => setCurrency(e.target.value)} className={selectClass}>
-                  <option value="CAD">CAD – Canadian Dollar</option>
-                  <option value="USD">USD – US Dollar</option>
-                  <option value="EUR">EUR – Euro</option>
-                  <option value="GBP">GBP – British Pound</option>
+                  <option value="CAD">CAD &ndash; Canadian Dollar</option>
+                  <option value="USD">USD &ndash; US Dollar</option>
+                  <option value="EUR">EUR &ndash; Euro</option>
+                  <option value="GBP">GBP &ndash; British Pound</option>
                 </select>
               </div>
               {selectedMode !== 'personal' && (
@@ -483,7 +360,8 @@ export default function OnboardingPage() {
               )}
             </div>
 
-            {selectedCountry === 'CA' && (
+            {/* Canadian Tax Settings -- Business/Freelancer only */}
+            {selectedCountry === 'CA' && selectedMode !== 'personal' && (
               <div className="flex flex-col gap-4 pt-2 border-t border-border">
                 <div className="flex items-center gap-2">
                   <Receipt className="w-4 h-4 text-primary" />
@@ -492,7 +370,7 @@ export default function OnboardingPage() {
                 <div className="flex flex-col gap-1.5">
                   <Label>Province / Territory <span className="text-muted-foreground font-normal">(recommended)</span></Label>
                   <select value={provinceCode} onChange={(e) => setProvinceCode(e.target.value)} className={selectClass}>
-                    <option value="">— Select province —</option>
+                    <option value="">&#x2014; Select province &#x2014;</option>
                     {provinces.map((p) => (
                       <option key={p.province_code} value={p.province_code}>
                         {p.province_name} ({p.province_code})
@@ -501,7 +379,7 @@ export default function OnboardingPage() {
                   </select>
                   {taxLabel && (
                     <p className="text-xs text-primary font-medium">
-                      ✓ Default tax rate: {taxLabel} - tax codes will be created automatically
+                      &#x2713; Default tax rate: {taxLabel} &mdash; tax codes will be created automatically
                     </p>
                   )}
                 </div>
@@ -513,7 +391,9 @@ export default function OnboardingPage() {
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <Label>HST / GST Filing Frequency</Label>
-                    <select value={hstFrequency} onChange={(e) => setHstFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')} className={selectClass}>
+                    <select value={hstFrequency}
+                      onChange={(e) => setHstFrequency(e.target.value as 'monthly' | 'quarterly' | 'annual')}
+                      className={selectClass}>
                       <option value="monthly">Monthly</option>
                       <option value="quarterly">Quarterly (most common)</option>
                       <option value="annual">Annual</option>
@@ -534,8 +414,8 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 3: Seed Accounts */}
-        {step === 3 && (
+        {/* Step 3: Industry / COA -- Business/Freelancer only */}
+        {step === 3 && selectedMode !== 'personal' && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
               <h2 className="text-base font-semibold text-foreground mb-1">Set up your chart of accounts</h2>
@@ -567,249 +447,42 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Step 4: First Tax Code */}
-        {step === 4 && (
-          <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
-            <div>
-              <h2 className="text-base font-semibold text-foreground mb-1">Add your first tax code</h2>
-              <p className="text-sm text-muted-foreground">
-                {selectedCountry === 'CA'
-                  ? 'Set up HST or GST to track sales tax on transactions.'
-                  : 'Set up sales tax to track tax on transactions.'}
-                {' '}You can add more tax codes later.
-              </p>
-            </div>
-            {selectedCountry === 'CA' && provinceCode ? (
-              <div className="rounded-lg bg-primary-light dark:bg-primary/10 border border-primary/30 px-4 py-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle2 className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium text-primary">Tax codes already created</span>
-                </div>
-                <p className="text-xs text-primary/80">
-                  Default HST/GST tax codes for {provinceCode} were set up in the previous step.
-                  You can manage them in Settings → Tax Codes.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="rounded-lg bg-primary-light dark:bg-primary/10 border border-primary/30 px-4 py-3 text-sm text-primary">
-                  Tax codes are applied during transaction classification. They split the net amount and tax into separate journal lines automatically.
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                  {(TAX_PRESETS[selectedCountry ?? 'CA'] ?? []).map((preset) => (
-                    <button key={preset.code} onClick={() => setTaxPreset(preset.code)}
-                      className={['flex items-center justify-between p-3.5 rounded-xl border-2 transition-all text-left bg-card hover:border-primary',
-                        taxPreset === preset.code ? 'border-primary ring-2 ring-primary/10' : 'border-border'].join(' ')}>
-                      <div>
-                        <div className="text-sm font-medium text-foreground">{preset.name}</div>
-                        <div className="text-xs text-muted-foreground">{preset.code} · {(preset.rate * 100).toFixed(2)}%</div>
-                      </div>
-                      {taxPreset === preset.code && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={skipStep4} disabled={isPending}>Skip for now</Button>
-              <Button onClick={skipStep4} disabled={isPending} className="flex items-center gap-2">
-                Continue <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 5: Legal Agreements */}
-        {step === 5 && (
-          <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-primary" />
-              <h2 className="text-base font-semibold text-foreground">Review and accept our agreements</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Please read and accept the following agreements before accessing Tempo. Links open in a new tab.
-            </p>
-            {legalLoading ? (
-              <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Checking previous agreements…</span>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {LEGAL_DOCS.map((doc) => (
-                  <LegalCheckbox key={doc.key} doc={doc}
-                    checked={legalChecks[doc.key]} preChecked={preChecked[doc.key]}
-                    onChange={(val) => setLegalChecks((prev) => ({ ...prev, [doc.key]: val }))} />
-                ))}
-              </div>
-            )}
-            {!allLegalChecked && !legalLoading && (
-              <p className="text-xs text-muted-foreground">All four agreements must be accepted to continue.</p>
-            )}
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setStep(selectedMode === 'personal' ? 3 : 4)} disabled={isPending}>Back</Button>
-              <Button onClick={handleStep5} disabled={isPending || !allLegalChecked || legalLoading} className="flex items-center gap-2">
-                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Accept & Continue <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 6: Choose Your Plan */}
-        {step === 6 && (
-          <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5 text-primary" />
-              <h2 className="text-base font-semibold text-foreground">Choose your plan</h2>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {selectedPlan === 'accountant' && billingCycle === 'monthly' && (
-                <>Subscribe now &mdash; <strong className="text-foreground">30-day money-back guarantee</strong>. Full refund within 30 days, no questions asked.</>
-              )}
-              {selectedPlan === 'accountant' && billingCycle === 'annual' && (
-                <>Annual commitment &mdash; <strong className="text-foreground">12-month non-refundable plan</strong>. Choose monthly for the 30-day money-back guarantee.</>
-              )}
-              {selectedPlan !== 'accountant' && (
-                <>Start your <strong className="text-foreground">14-day free trial</strong> &mdash; no credit card required. Cancel anytime.</>
-              )}
-            </p>
-
-            <div className="flex items-center gap-1 bg-muted rounded-lg p-1 w-fit">
-              <button onClick={() => setBillingCycle('monthly')}
-                className={['px-4 py-1.5 rounded-md text-sm font-medium transition-all',
-                  billingCycle === 'monthly' ? 'bg-card shadow text-foreground' : 'text-muted-foreground hover:text-foreground'].join(' ')}>
-                Monthly
-              </button>
-              <button onClick={() => setBillingCycle('annual')}
-                className={['px-4 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5',
-                  billingCycle === 'annual' ? 'bg-card shadow text-foreground' : 'text-muted-foreground hover:text-foreground'].join(' ')}>
-                Annual
-                <span className="text-[10px] font-semibold text-primary bg-primary-light px-1.5 py-0.5 rounded-full">
-                  Save ~20%
-                </span>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-              {PLAN_CARDS.map((plan) => {
-                const isSelected = selectedPlan === plan.id;
-                const price = billingCycle === 'annual' ? plan.annualPrice : plan.price;
-                return (
-                  <button key={plan.id} onClick={() => setSelectedPlan(plan.id)}
-                    className={['text-left p-4 rounded-xl border-2 transition-all relative',
-                      isSelected
-                        ? 'border-primary ring-2 ring-primary/10 bg-primary-light/40 dark:bg-primary/5'
-                        : 'border-border bg-card hover:border-primary/50'].join(' ')}>
-                    {plan.highlighted && (
-                      <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold text-primary-foreground bg-primary px-2.5 py-0.5 rounded-full whitespace-nowrap">
-                        Most Popular
-                      </span>
-                    )}
-                    <div className="font-semibold text-sm text-foreground mb-0.5">{plan.name}</div>
-                    <div className="text-xs text-muted-foreground mb-3">{plan.description}</div>
-                    <div className="mb-3">
-                      <span className="text-2xl font-bold text-foreground">${price}</span>
-                      <span className="text-xs text-muted-foreground"> CAD/mo</span>
-                      {billingCycle === 'annual' && (
-                        <div className="text-[10px] text-muted-foreground">billed annually</div>
-                      )}
-                    </div>
-                    <ul className="space-y-1">
-                      {plan.features.map((f) => (
-                        <li key={f} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                          <span className={isSelected ? 'text-primary mt-0.5' : 'text-muted-foreground/30 mt-0.5'}>✓</span>
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                    {isSelected && (
-                      <div className="mt-3 flex items-center gap-1 text-xs font-medium text-primary">
-                        <CheckCircle2 className="w-3.5 h-3.5" />Selected
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* A-11.1: plan-aware safety-net badge above CTA */}
-            {selectedPlan === 'accountant' && billingCycle === 'monthly' && (
-              <div className="flex items-start gap-3 p-4 rounded-xl border border-green-200 dark:border-green-900/40 bg-green-50 dark:bg-green-950/20">
-                <ShieldCheck className="w-5 h-5 text-green-700 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 text-sm">
-                  <p className="font-semibold text-green-700 dark:text-green-400">30-day money-back guarantee</p>
-                  <p className="text-green-700/80 dark:text-green-400/80 mt-0.5">Full refund within 30 days, no questions asked.</p>
-                </div>
-              </div>
-            )}
-            {selectedPlan === 'accountant' && billingCycle === 'annual' && (
-              <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20">
-                <ShieldAlert className="w-5 h-5 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 text-sm">
-                  <p className="font-semibold text-amber-700 dark:text-amber-400">12-month non-refundable commitment</p>
-                  <p className="text-amber-700/80 dark:text-amber-400/80 mt-0.5">Choose monthly to keep the 30-day money-back guarantee.</p>
-                </div>
-              </div>
-            )}
-            {selectedPlan !== 'accountant' && (
-              <div className="flex items-start gap-3 p-4 rounded-xl border border-primary/30 bg-primary-light dark:bg-primary/10">
-                <Sparkles className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div className="flex-1 text-sm">
-                  <p className="font-semibold text-primary">14-day free trial</p>
-                  <p className="text-primary/80 mt-0.5">No credit card required. Cancel anytime.</p>
-                </div>
-              </div>
-            )}
-
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => setStep(5)} disabled={isPending}>Back</Button>
-              <Button onClick={handleStep6} disabled={isPending} className="flex items-center gap-2">
-                {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {selectedPlan === 'accountant'
-                  ? <>Subscribe <ChevronRight className="w-4 h-4" /></>
-                  : <>Start Free Trial <ChevronRight className="w-4 h-4" /></>
-                }
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {selectedPlan === 'accountant'
-                ? "You'll be redirected to Stripe to securely enter your payment details. Your card will be charged immediately."
-                : "No credit card required. We'll start your 14-day trial and take you to your dashboard."
-              }
-            </p>
-          </div>
-        )}
-
-        {/* Step 7: Connect Bank */}
-        {step === 7 && (
+        {/* Connect Bank -- last step for all modes (step 3 Personal, step 4 Business/Freelancer) */}
+        {isConnectBankStep && (
           <div className="flex flex-col gap-5 bg-card rounded-2xl border border-border p-6">
             <div>
               <h2 className="text-base font-semibold text-foreground mb-1">Connect your bank account</h2>
               <p className="text-sm text-muted-foreground">
-                Link your bank to auto-import transactions. Powered by Plaid — secure and read-only.
+                Link your bank to auto-import transactions. Powered by Plaid &mdash; secure and read-only.
               </p>
             </div>
+
+
+
             <div className="rounded-xl border border-border bg-muted p-5 flex flex-col items-center gap-3 text-center">
               <div className="text-3xl">🏦</div>
               <div>
                 <p className="text-sm font-medium text-foreground">Secure bank connection via Plaid</p>
                 <p className="text-xs text-muted-foreground mt-1">Works with 12,000+ financial institutions in Canada and the US.</p>
               </div>
-              <Button onClick={() => handleComplete('/banks')} disabled={isPending} className="flex items-center gap-2 w-full justify-center">
+              <Button onClick={handleCheckout} disabled={isPending} className="flex items-center gap-2 w-full justify-center">
                 {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Connect Bank →
+                Continue to Pricing &#x2192;
               </Button>
             </div>
+
             <div className="text-center">
-              <button onClick={() => handleComplete('/dashboard')} disabled={isPending}
+              <button onClick={handleCheckout} disabled={isPending}
                 className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors disabled:opacity-50">
-                Skip for now — go to Dashboard
+                Skip bank connection &mdash; go to pricing
               </button>
             </div>
+
             {error && <p className="text-sm text-destructive text-center">{error}</p>}
+
+            <div className="flex justify-start">
+              <Button variant="outline" onClick={() => setStep(step - 1)} disabled={isPending}>Back</Button>
+            </div>
           </div>
         )}
 
