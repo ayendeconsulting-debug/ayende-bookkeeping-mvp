@@ -225,6 +225,7 @@ export function PricingCards() {
   const [loading, setLoading]                     = useState<string | null>(null);
   const [errorMsg, setErrorMsg]                   = useState<string | null>(null);
   const [showAnnualConfirm, setShowAnnualConfirm] = useState(false);
+  const [annualConfirmSource, setAnnualConfirmSource] = useState<'card' | 'calc'>('card');
   const [calcOpen, setCalcOpen]                   = useState(false);
   const [calcAiAddon, setCalcAiAddon]               = useState(false);
   const [calcAnnual, setCalcAnnual]                 = useState(false);
@@ -250,7 +251,7 @@ export function PricingCards() {
       router.push('/sign-up');
       return;
     }
-    if (calcAnnual) { setShowAnnualConfirm(true); return; }
+    if (calcAnnual) { setAnnualConfirmSource('calc'); setShowAnnualConfirm(true); return; }
     setLoading('accountant');
     try {
       const result = await createCheckoutSession('accountant', 'monthly', calcAiAddon);
@@ -271,7 +272,7 @@ export function PricingCards() {
       return;
     }
     if (planKey === 'accountant' && annual) {
-      setShowAnnualConfirm(true);
+      setAnnualConfirmSource('card'); setShowAnnualConfirm(true);
       return;
     }
     void proceedToCheckout(planKey);
@@ -530,7 +531,7 @@ export function PricingCards() {
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors">
                 Cancel
               </button>
-              <button type="button" onClick={() => { setShowAnnualConfirm(false); void proceedToCheckout('accountant'); }}
+              <button type="button" onClick={async () => { setShowAnnualConfirm(false); setLoading('accountant'); try { const r = await createCheckoutSession('accountant', annualConfirmSource === 'calc' ? (calcAnnual ? 'annual' : 'monthly') : (annual ? 'annual' : 'monthly'), annualConfirmSource === 'calc' ? calcAiAddon : false); if (r.error) { setErrorMsg(r.error); } else if (r.url) { window.location.href = r.url; } } finally { setLoading(null); } }}
                 className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#0F6E56] text-white hover:bg-[#085041] transition-colors">
                 Yes, subscribe for 12 months
               </button>
