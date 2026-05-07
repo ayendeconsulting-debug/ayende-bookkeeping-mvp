@@ -25,6 +25,7 @@ const isPublicRoute = createRouteMatcher([
   '/select-org',
   '/unsubscribe(.*)',
   '/partner-dashboard(.*)',
+  '/campaign',
   '/api/public/leads',
   '/api/public/unsubscribe',
 ]);
