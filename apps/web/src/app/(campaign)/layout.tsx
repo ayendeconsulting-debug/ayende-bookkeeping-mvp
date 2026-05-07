@@ -39,7 +39,7 @@ export default function CampaignLayout({ children }: { children: React.ReactNode
         {/* Minimal footer — legal only */}
         <footer className="border-t border-gray-200 py-6 bg-[#f5f3ef]">
           <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-gray-400">© 2026 Ayende CX Inc. All rights reserved.</p>
+            <p className="text-xs text-gray-400">© 2026 Tempo Bookkeeping Inc. All rights reserved.</p>
             <div className="flex items-center gap-5 text-xs text-gray-400">
               <Link href="/privacy" className="hover:text-[#0F6E56] transition-colors">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-[#0F6E56] transition-colors">Terms of Service</Link>
