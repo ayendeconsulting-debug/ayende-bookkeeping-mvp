@@ -145,7 +145,7 @@ export default function CampaignPage() {
             {/* Pricing header */}
             <div className="bg-[#0F6E56] px-8 py-8 text-white">
               <div className="flex items-end gap-1 mb-1">
-                <span className="text-5xl font-black">$99</span>
+                <span className="text-5xl font-black">$149</span>
                 <span className="text-lg font-medium mb-2 opacity-80">/mo CAD</span>
               </div>
               <p className="text-sm text-white/70">
