@@ -1,8 +1,8 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
-import { Job } from 'bullmq';
+import { Job, Queue } from 'bullmq';
 import { PlaidService } from '../services/plaid.service';
 import { PlaidWebhookLog, WebhookProcessingStatus } from '../../entities/plaid-webhook-log.entity';
 import { PlaidItem } from '../../entities/plaid-item.entity';
@@ -33,6 +33,9 @@ export class PlaidSyncProcessor extends WorkerHost {
     private readonly dataSource: DataSource,
     private readonly businessesService: BusinessesService,
     private readonly expoPushService: ExpoPushService,
+    // Phase 34e: producer only — enqueues smart-match-batch after sync
+    @InjectQueue('smart-match-batch')
+    private readonly smartMatchQueue: Queue,
   ) {
     super();
   }
@@ -72,7 +75,6 @@ export class PlaidSyncProcessor extends WorkerHost {
           // Step 4: Auto-classify newly added transactions
           if (result.added > 0) {
             try {
-              // Look up business mode
               const bizRows = await this.dataSource.query(
                 `SELECT mode FROM businesses WHERE id = $1 LIMIT 1`,
                 [businessId],
@@ -80,7 +82,6 @@ export class PlaidSyncProcessor extends WorkerHost {
               const mode: string = bizRows[0]?.mode ?? 'business';
 
               if (mode === 'personal') {
-                // Personal mode -- run budget category rules
                 const personalResult = await this.personalService.runPersonalRules(businessId);
                 if (personalResult.matched > 0) {
                   this.logger.log(
@@ -88,7 +89,6 @@ export class PlaidSyncProcessor extends WorkerHost {
                   );
                 }
               } else {
-                // Business or freelancer mode -- run chart-of-accounts classification rules
                 const batchResult = await this.classificationService.runBatchRules(businessId);
                 if (batchResult.classified > 0) {
                   this.logger.log(
@@ -97,15 +97,12 @@ export class PlaidSyncProcessor extends WorkerHost {
                 }
               }
             } catch (classifyErr: any) {
-              // Non-fatal -- log and continue
               this.logger.warn(
                 `Auto-classification skipped for job ${job.id}: ${classifyErr.message}`,
               );
             }
 
             // Step 5: Send push notification to the business owner
-            // Gated on result.added > 0 -- modifications don't count as "new
-            // work to classify" (usually just pending-to-posted transitions).
             try {
               const business = await this.businessesService.findById(businessId);
               if (business.expo_push_token) {
@@ -124,11 +121,30 @@ export class PlaidSyncProcessor extends WorkerHost {
                 `Push for sync job ${job.id} skipped: ${pushErr?.message ?? pushErr}`,
               );
             }
+
+            // Step 6 (Phase 34e): Trigger Smart Match for newly synced transactions.
+            // Enqueues a full pending-sweep for this business — BatchProcessor's
+            // idempotency guard (smart_match_status IS NULL) skips already-processed rows.
+            // Non-fatal: Smart Match failure must never fail the sync job.
+            try {
+              await this.smartMatchQueue.add(
+                'smart-match-batch',
+                { businessId },
+                { attempts: 3, backoff: { type: 'exponential', delay: 3000 } },
+              );
+              this.logger.log(
+                `Smart Match queued for business ${businessId} (${result.added} new tx)`,
+              );
+            } catch (smErr: any) {
+              this.logger.warn(
+                `Smart Match enqueue skipped for ${businessId}: ${smErr?.message ?? smErr}`,
+              );
+            }
           }
         }
       }
 
-      // Step 6: Update webhook log to processed
+      // Step 7: Update webhook log to processed
       if (webhookLogId) {
         await this.webhookLogRepo.update(webhookLogId, {
           status: WebhookProcessingStatus.PROCESSED,
@@ -145,7 +161,7 @@ export class PlaidSyncProcessor extends WorkerHost {
         });
       }
 
-      throw error; // Re-throw so BullMQ retries
+      throw error;
     }
   }
 }

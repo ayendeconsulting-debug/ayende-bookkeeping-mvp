@@ -1,5 +1,5 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
+import { Job, Queue } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Logger } from '@nestjs/common';
@@ -28,6 +28,9 @@ export class ImportJobsProcessor extends WorkerHost {
     private readonly batchRepo: Repository<ImportBatch>,
     @InjectRepository(RawTransaction)
     private readonly txRepo: Repository<RawTransaction>,
+    // Phase 34e: producer only — enqueues smart-match-batch after successful import
+    @InjectQueue('smart-match-batch')
+    private readonly smartMatchQueue: Queue,
   ) {
     super();
     this.s3 = new S3Client({
@@ -132,6 +135,23 @@ export class ImportJobsProcessor extends WorkerHost {
       this.logger.log(
         `Batch ${batch_id} complete: ${processed} created, ${duplicates} duplicates, ${errors} errors`,
       );
+
+      // Phase 34e: Trigger Smart Match for newly imported transactions.
+      // Non-fatal — a queue failure must never fail the import job itself.
+      if (processed > 0) {
+        try {
+          await this.smartMatchQueue.add(
+            'smart-match-batch',
+            { businessId: business_id, importBatchId: batch_id },
+            { attempts: 3, backoff: { type: 'exponential', delay: 3000 } },
+          );
+          this.logger.log(`Smart Match queued for batch ${batch_id} (${processed} new tx)`);
+        } catch (smErr) {
+          this.logger.warn(
+            `Smart Match enqueue skipped for batch ${batch_id}: ${(smErr as Error).message}`,
+          );
+        }
+      }
     } catch (err) {
       this.logger.error(`Batch ${batch_id} failed: ${(err as Error).message}`);
       await this.batchRepo.update(batch_id, {
@@ -143,17 +163,15 @@ export class ImportJobsProcessor extends WorkerHost {
     }
   }
 
-  // ── CSV Parser ─────────────────────────────────────────────────────────────
+  // ── CSV Parser ────────────────────────────────────────────────────────────
   // Supports: date/description/amount, date/description/debit/credit formats.
   // Auto-detects column positions from header row.
 
   private parseCsv(content: string): ParsedRow[] {
-    // Normalize line endings
     const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
     const nonEmpty = lines.filter(l => l.trim().length > 0);
     if (nonEmpty.length < 2) return [];
 
-    // Parse simple CSV (handles quoted fields)
     const parseRow = (line: string): string[] => {
       const result: string[] = [];
       let current = '';
@@ -175,7 +193,6 @@ export class ImportJobsProcessor extends WorkerHost {
 
     const headers = parseRow(nonEmpty[0]).map(h => h.toLowerCase().replace(/[^a-z0-9]/g, ''));
 
-    // Detect column indices
     const dateIdx = this.findColIdx(headers, ['date', 'transactiondate', 'posteddate', 'valuedate', 'settledate']);
     const descIdx = this.findColIdx(headers, ['description', 'merchant', 'name', 'details', 'memo', 'narrative', 'particulars']);
     const amtIdx  = this.findColIdx(headers, ['amount', 'amt', 'value', 'transactionamount']);
@@ -183,7 +200,7 @@ export class ImportJobsProcessor extends WorkerHost {
     const credIdx = this.findColIdx(headers, ['credit', 'deposit', 'cr', 'creditamount', 'depositamount']);
 
     if (dateIdx === -1 || descIdx === -1) {
-      this.logger.warn('CSV header detection failed — cannot identify date or description columns');
+      this.logger.warn('CSV header detection failed - cannot identify date or description columns');
       return [];
     }
 
@@ -205,7 +222,6 @@ export class ImportJobsProcessor extends WorkerHost {
       } else if (debIdx !== -1 || credIdx !== -1) {
         const debit  = debIdx  !== -1 ? this.parseAmount(cols[debIdx]  ?? '0') : 0;
         const credit = credIdx !== -1 ? this.parseAmount(cols[credIdx] ?? '0') : 0;
-        // Debit = money out (positive), Credit = money in (negative)
         amount = debit > 0 ? debit : -Math.abs(credit);
       } else {
         continue;
@@ -216,9 +232,7 @@ export class ImportJobsProcessor extends WorkerHost {
     return rows;
   }
 
-  // ── PDF Parser ─────────────────────────────────────────────────────────────
-  // Uses pdf-parse to extract text, then applies regex for common bank formats.
-  // Matches lines like: "01/15/2026  AMAZON PURCHASE  -45.23"
+  // ── PDF Parser ────────────────────────────────────────────────────────────
 
   private async parsePdf(buffer: Buffer): Promise<ParsedRow[]> {
     let pdfParse: (buf: Buffer) => Promise<{ text: string }>;
@@ -229,12 +243,10 @@ export class ImportJobsProcessor extends WorkerHost {
     }
 
     const data = await pdfParse(buffer);
-    const lines = data.text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const lines = data.text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 0);
 
     const rows: ParsedRow[] = [];
 
-    // Pattern: date (various formats) + text + amount at end
-    // Covers: MM/DD/YYYY, YYYY-MM-DD, DD MMM YYYY, MMM DD YYYY
     const datePatterns = [
       String.raw`\d{2}[\/\-]\d{2}[\/\-]\d{4}`,
       String.raw`\d{4}[\/\-]\d{2}[\/\-]\d{2}`,
@@ -261,7 +273,7 @@ export class ImportJobsProcessor extends WorkerHost {
     return rows;
   }
 
-  // ── Helpers ─────────────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   private findColIdx(headers: string[], candidates: string[]): number {
     for (const c of candidates) {
@@ -272,14 +284,11 @@ export class ImportJobsProcessor extends WorkerHost {
   }
 
   private parseDate(raw: string): string | null {
-    // Try various formats → normalize to YYYY-MM-DD
     const cleaned = raw.replace(/[^\w\s\/\-,]/g, '').trim();
 
-    // MM/DD/YYYY or DD/MM/YYYY or MM-DD-YYYY
     const slashMatch = /^(\d{2})[\/\-](\d{2})[\/\-](\d{4})$/.exec(cleaned);
     if (slashMatch) {
       const [, a, b, year] = slashMatch;
-      // Assume MM/DD/YYYY (North American standard)
       const month = parseInt(a, 10);
       const day   = parseInt(b, 10);
       if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
@@ -287,11 +296,9 @@ export class ImportJobsProcessor extends WorkerHost {
       }
     }
 
-    // YYYY-MM-DD or YYYY/MM/DD
     const isoMatch = /^(\d{4})[\/\-](\d{2})[\/\-](\d{2})$/.exec(cleaned);
     if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
 
-    // Try native Date parse as fallback
     const d = new Date(cleaned);
     if (!isNaN(d.getTime())) {
       return d.toISOString().split('T')[0];
@@ -301,7 +308,6 @@ export class ImportJobsProcessor extends WorkerHost {
   }
 
   private parseAmount(raw: string): number {
-    // Remove currency symbols, spaces, commas; preserve sign
     const cleaned = raw.replace(/[$,\s]/g, '').trim();
     const num = parseFloat(cleaned);
     return isNaN(num) ? 0 : num;
