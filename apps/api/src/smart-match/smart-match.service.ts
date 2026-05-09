@@ -1,11 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
-import { RawTransaction } from '../entities/raw-transaction.entity';
-import { Account } from '../entities/account.entity';
+import { Repository, In, ILike } from 'typeorm';
+import { DataSource } from 'typeorm';
+import {
+  RawTransaction,
+  RawTransactionStatus,
+} from '../entities/raw-transaction.entity';
+import { Account, AccountSubtype } from '../entities/account.entity';
 import { ClassificationRule } from '../entities/classification-rule.entity';
 import { VendorLibrary } from '../entities/vendor-library.entity';
 import { MccCategoryMap } from '../entities/mcc-category-map.entity';
+import { ClassificationMethod } from '../entities/classified-transaction.entity';
 import {
   MatchContext,
   MatchResult,
@@ -18,12 +23,28 @@ import { VendorLibraryMatcher } from './rules/vendor-library.matcher';
 import { RecurrenceMatcher } from './rules/recurrence.matcher';
 import { AccountDefaultMatcher } from './rules/account-default.matcher';
 import { SmartMatchAuditService } from './smart-match-audit.service';
+import { ClassificationService } from '../reports/services/classification.service';
+import {
+  SmartMatchOverrideDto,
+  SmartMatchBulkConfirmDto,
+} from './dto/smart-match.dto';
 
 export interface Layer1Result {
-  /** Raw transaction IDs that received a confident suggestion (confidence >= medium). */
   hits: string[];
-  /** Raw transaction IDs that need Layer 2 AI fallback. */
   misses: string[];
+}
+
+export interface SmartMatchCounts {
+  suggested: number;
+  cap_exceeded: number;
+  failed: number;
+  manual: number;
+}
+
+export interface BulkConfirmResult {
+  confirmed: number;
+  skipped: number;
+  errors: number;
 }
 
 @Injectable()
@@ -41,6 +62,7 @@ export class SmartMatchService {
     private readonly vendorRepo: Repository<VendorLibrary>,
     @InjectRepository(MccCategoryMap)
     private readonly mccRepo: Repository<MccCategoryMap>,
+    private readonly dataSource: DataSource,
     private readonly learnedMatcher: LearnedRuleMatcher,
     private readonly manualMatcher: ManualRuleMatcher,
     private readonly mccMatcher: MccMatcher,
@@ -48,12 +70,11 @@ export class SmartMatchService {
     private readonly recurrenceMatcher: RecurrenceMatcher,
     private readonly accountDefaultMatcher: AccountDefaultMatcher,
     private readonly auditService: SmartMatchAuditService,
+    private readonly classificationService: ClassificationService,
   ) {}
 
-  /**
-   * Build a shared MatchContext for a business.
-   * Loads all reference data in one Promise.all — zero N+1 queries across matchers.
-   */
+  // ── Context builder ────────────────────────────────────────────────────────
+
   private async buildContext(businessId: string): Promise<MatchContext> {
     const [accounts, classificationRules, vendorLibrary, mccRows] =
       await Promise.all([
@@ -61,47 +82,23 @@ export class SmartMatchService {
           where: { business_id: businessId, is_active: true },
           order: { account_code: 'ASC' },
         }),
-        this.ruleRepo.find({
-          where: { business_id: businessId, is_active: true },
-        }),
-        // Global vendor library sorted by match_priority ASC (first match wins).
+        this.ruleRepo.find({ where: { business_id: businessId, is_active: true } }),
         this.vendorRepo.find({ order: { match_priority: 'ASC' } }),
         this.mccRepo.find(),
       ]);
 
-    const mccMap = new Map<string, MccCategoryMap>(
-      mccRows.map((m) => [m.mcc, m]),
-    );
-
+    const mccMap = new Map<string, MccCategoryMap>(mccRows.map((m) => [m.mcc, m]));
     return { businessId, accounts, classificationRules, vendorLibrary, mccMap };
   }
 
-  /**
-   * Run Layer 1 rules against the given raw transaction IDs.
-   *
-   * Algorithm:
-   *   1. Build MatchContext once (4 DB queries regardless of batch size).
-   *   2. For each tx, run P1-P5 matchers in priority order.
-   *   3. First confident match (confidence != 'low') writes suggestion columns
-   *      and marks the row 'suggested'. Tx goes into hits[].
-   *   4. On miss, run P6 (account-default) to pre-set suggested_is_personal
-   *      as a hint for the AI prompt. Tx goes into misses[].
-   *   5. Write a SmartMatchAudit row for every confident hit.
-   *   6. Return { hits, misses } for SmartMatchBatchProcessor (34d) to enqueue
-   *      Layer 2 AI jobs from misses[].
-   *
-   * Errors per-tx are caught and routed to misses[] — never fail the batch.
-   */
-  async runLayer1(
-    businessId: string,
-    rawTxIds: string[],
-  ): Promise<Layer1Result> {
+  // ── Layer 1 ────────────────────────────────────────────────────────────────
+
+  async runLayer1(businessId: string, rawTxIds: string[]): Promise<Layer1Result> {
     if (rawTxIds.length === 0) return { hits: [], misses: [] };
 
     const txs = await this.rawTxRepo.find({
       where: { id: In(rawTxIds), business_id: businessId },
     });
-
     if (txs.length === 0) return { hits: [], misses: [] };
 
     const ctx = await this.buildContext(businessId);
@@ -124,20 +121,12 @@ export class SmartMatchService {
             smart_match_at: new Date(),
           });
           await this.auditService.recordSuggestion(
-            businessId,
-            tx.id,
-            result.source!,
-            result.confidence!,
-            false,
+            businessId, tx.id, result.source!, result.confidence!, false,
           );
           hits.push(tx.id);
         } else {
-          // P6: write is_personal hint for Layer 2 even though tx goes to AI.
           const defaultResult = await this.accountDefaultMatcher.match(tx, ctx);
-          if (
-            defaultResult.matched &&
-            defaultResult.suggested_is_personal !== null
-          ) {
+          if (defaultResult.matched && defaultResult.suggested_is_personal !== null) {
             await this.rawTxRepo.update(tx.id, {
               suggested_is_personal: defaultResult.suggested_is_personal,
             });
@@ -145,45 +134,303 @@ export class SmartMatchService {
           misses.push(tx.id);
         }
       } catch (err) {
-        this.logger.error(
-          `Layer 1 failed for tx ${tx.id}: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        );
+        this.logger.error(`Layer 1 failed for tx ${tx.id}: ${err instanceof Error ? err.message : String(err)}`);
         misses.push(tx.id);
       }
     }
 
-    this.logger.log(
-      `Layer 1 complete [${businessId}]: ${hits.length} hits, ${misses.length} misses / ${txs.length} txs`,
-    );
-
+    this.logger.log(`Layer 1 [${businessId}]: ${hits.length} hits, ${misses.length} misses`);
     return { hits, misses };
   }
 
-  /**
-   * Run matchers P1-P5 in priority order.
-   * Stops and returns on the first match with confidence !== 'low'.
-   */
   private async runConfidentMatchers(
     tx: RawTransaction,
     ctx: MatchContext,
   ): Promise<{ result: MatchResult; confident: boolean }> {
-    const matchers = [
+    for (const matcher of [
       this.learnedMatcher,
       this.manualMatcher,
       this.mccMatcher,
       this.vendorMatcher,
       this.recurrenceMatcher,
-    ];
-
-    for (const matcher of matchers) {
+    ]) {
       const result = await matcher.match(tx, ctx);
       if (result.matched && result.confidence !== 'low') {
         return { result, confident: true };
       }
     }
-
     return { result: NO_MATCH, confident: false };
+  }
+
+  // ── Query methods ──────────────────────────────────────────────────────────
+
+  async getCounts(businessId: string): Promise<SmartMatchCounts> {
+    const rows = await this.dataSource.query<{ status: string; count: string }[]>(
+      `SELECT smart_match_status AS status, COUNT(*) AS count
+       FROM raw_transactions
+       WHERE business_id = $1
+         AND status = 'pending'
+         AND smart_match_status IS NOT NULL
+       GROUP BY smart_match_status`,
+      [businessId],
+    );
+
+    const map: Record<string, number> = {};
+    for (const r of rows) map[r.status] = Number(r.count);
+
+    // manual = pending rows with NO smart match attempt
+    const manualCount = await this.rawTxRepo.count({
+      where: {
+        business_id: businessId,
+        status: RawTransactionStatus.PENDING,
+        smart_match_status: undefined as any,
+      },
+    });
+
+    return {
+      suggested:    map['suggested']    ?? 0,
+      cap_exceeded: map['cap_exceeded'] ?? 0,
+      failed:       map['failed']       ?? 0,
+      manual:       manualCount,
+    };
+  }
+
+  async getSuggested(
+    businessId: string,
+    page: number,
+    limit: number,
+  ): Promise<{ data: RawTransaction[]; total: number }> {
+    const [data, total] = await this.rawTxRepo.findAndCount({
+      where: {
+        business_id: businessId,
+        smart_match_status: 'suggested',
+        status: RawTransactionStatus.PENDING,
+      },
+      order: { smart_match_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+    return { data, total };
+  }
+
+  // ── Source account resolution ──────────────────────────────────────────────
+
+  private async resolveSourceAccount(
+    businessId: string,
+    rawTx: RawTransaction,
+    suppliedId?: string,
+  ): Promise<string | null> {
+    if (suppliedId) return suppliedId;
+
+    if (rawTx.source_account_name) {
+      const match = await this.accountRepo.findOne({
+        where: {
+          business_id: businessId,
+          account_name: ILike(`%${rawTx.source_account_name}%`),
+          is_active: true,
+        },
+      });
+      if (match) return match.id;
+    }
+
+    // Fallback: first active bank or credit_card account
+    const fallback = await this.accountRepo.findOne({
+      where: [
+        { business_id: businessId, account_subtype: AccountSubtype.BANK, is_active: true },
+        { business_id: businessId, account_subtype: AccountSubtype.CREDIT_CARD, is_active: true },
+      ],
+      order: { account_code: 'ASC' },
+    });
+
+    return fallback?.id ?? null;
+  }
+
+  // ── Confirm ────────────────────────────────────────────────────────────────
+
+  async confirm(
+    businessId: string,
+    rawTransactionId: string,
+    clerkUserId: string,
+    suppliedSourceAccountId?: string,
+  ): Promise<void> {
+    const rawTx = await this.rawTxRepo.findOne({
+      where: {
+        id: rawTransactionId,
+        business_id: businessId,
+        smart_match_status: 'suggested',
+      },
+    });
+    if (!rawTx) {
+      throw new NotFoundException(
+        `Transaction ${rawTransactionId} not found or not in suggested state`,
+      );
+    }
+    if (!rawTx.suggested_account_id) {
+      throw new BadRequestException('Suggestion has no account — use override instead');
+    }
+
+    const sourceAccountId = await this.resolveSourceAccount(
+      businessId, rawTx, suppliedSourceAccountId,
+    );
+
+    // Apply is_personal from suggestion before classifying
+    if (rawTx.suggested_is_personal !== null) {
+      await this.rawTxRepo.update(rawTx.id, {
+        is_personal: rawTx.suggested_is_personal,
+      });
+    }
+
+    await this.classificationService.classify({
+      businessId,
+      rawTransactionId,
+      accountId: rawTx.suggested_account_id,
+      sourceAccountId: sourceAccountId ?? rawTx.suggested_account_id,
+      classificationMethod: ClassificationMethod.MANUAL,
+      taxCodeId: rawTx.suggested_tax_code_id ?? undefined,
+      classifiedBy: clerkUserId,
+    });
+
+    await this.rawTxRepo.update(rawTx.id, {
+      status: RawTransactionStatus.CLASSIFIED,
+    });
+
+    await this.auditService.recordResolution({
+      rawTransactionId,
+      businessId,
+      wasAccepted: true,
+      wasOverridden: false,
+    });
+  }
+
+  // ── Override ───────────────────────────────────────────────────────────────
+
+  async override(
+    businessId: string,
+    rawTransactionId: string,
+    clerkUserId: string,
+    dto: SmartMatchOverrideDto,
+  ): Promise<void> {
+    const rawTx = await this.rawTxRepo.findOne({
+      where: { id: rawTransactionId, business_id: businessId },
+    });
+    if (!rawTx) {
+      throw new NotFoundException(`Transaction ${rawTransactionId} not found`);
+    }
+
+    const sourceAccountId = await this.resolveSourceAccount(
+      businessId, rawTx, dto.sourceAccountId,
+    );
+
+    await this.classificationService.classify({
+      businessId,
+      rawTransactionId,
+      accountId: dto.accountId,
+      sourceAccountId: sourceAccountId ?? dto.accountId,
+      classificationMethod: ClassificationMethod.MANUAL,
+      taxCodeId: dto.taxCodeId,
+      classifiedBy: clerkUserId,
+    });
+
+    await this.rawTxRepo.update(rawTx.id, {
+      status: RawTransactionStatus.CLASSIFIED,
+    });
+
+    // Upsert a user_learned rule so next import auto-matches this description
+    const existing = await this.ruleRepo.findOne({
+      where: {
+        business_id: businessId,
+        match_type: 'keyword',
+        match_value: rawTx.description,
+        source: 'user_learned',
+      },
+    });
+
+    if (existing) {
+      await this.ruleRepo.update(existing.id, {
+        target_account_id: dto.accountId,
+        tax_code_id: dto.taxCodeId ?? null,
+        is_active: true,
+      });
+    } else {
+      await this.ruleRepo.save(
+        this.ruleRepo.create({
+          business_id: businessId,
+          name: `Learned: ${rawTx.description.substring(0, 60)}`,
+          match_type: 'keyword',
+          match_value: rawTx.description,
+          target_account_id: dto.accountId,
+          tax_code_id: dto.taxCodeId ?? null,
+          source: 'user_learned',
+          priority: 10,
+          is_active: true,
+        }),
+      );
+    }
+
+    await this.auditService.recordResolution({
+      rawTransactionId,
+      businessId,
+      wasAccepted: false,
+      wasOverridden: true,
+      overrideAccountId: dto.accountId,
+    });
+  }
+
+  // ── Bulk confirm ───────────────────────────────────────────────────────────
+
+  async bulkConfirm(
+    businessId: string,
+    clerkUserId: string,
+    dto: SmartMatchBulkConfirmDto,
+  ): Promise<BulkConfirmResult> {
+    let candidates: RawTransaction[];
+
+    if (dto.rawTransactionIds && dto.rawTransactionIds.length > 0) {
+      candidates = await this.rawTxRepo.find({
+        where: {
+          id: In(dto.rawTransactionIds),
+          business_id: businessId,
+          smart_match_status: 'suggested',
+        },
+      });
+    } else {
+      candidates = await this.rawTxRepo.find({
+        where: {
+          business_id: businessId,
+          smart_match_status: 'suggested',
+          status: RawTransactionStatus.PENDING,
+        },
+      });
+    }
+
+    let confirmed = 0;
+    let skipped = 0;
+    let errors = 0;
+
+    for (const tx of candidates) {
+      if (!tx.suggested_account_id) {
+        skipped++;
+        continue;
+      }
+      try {
+        await this.confirm(businessId, tx.id, clerkUserId, undefined);
+        confirmed++;
+      } catch (err) {
+        this.logger.warn(
+          `Bulk confirm skipped tx ${tx.id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        // Already classified = skip; other errors = error
+        if (err instanceof BadRequestException) {
+          skipped++;
+        } else {
+          errors++;
+        }
+      }
+    }
+
+    this.logger.log(
+      `Bulk confirm [${businessId}]: ${confirmed} confirmed, ${skipped} skipped, ${errors} errors`,
+    );
+    return { confirmed, skipped, errors };
   }
 }
