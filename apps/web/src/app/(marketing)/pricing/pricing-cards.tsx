@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useRef, Fragment, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -483,7 +483,7 @@ export function PricingCards() {
           </div>
           <div>
             <p className="text-sm font-bold text-foreground mb-1">AI bookkeeping assistant &#x2014; included on Pro and Accountant plans</p>
-            <p className="text-sm text-muted-foreground leading-relaxed">Ask anything about your books in plain English. Instant answers from your actual data, powered by Claude AI.</p>
+            <p className="text-sm text-muted-foreground leading-relaxed">Ask anything about your books in plain English. Instant answers from your actual data.</p>
           </div>
         </div>
       </div>

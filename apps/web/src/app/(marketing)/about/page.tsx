@@ -1,4 +1,4 @@
-import { Metadata } from 'next';
+﻿import { Metadata } from 'next';
 import Link from 'next/link';
 import { CheckCircle2, ArrowRight, Target, Shield, Zap, Users } from 'lucide-react';
 
@@ -117,7 +117,7 @@ export default function AboutPage() {
           {[
             'Double-entry accounting engine',
             'Automatic bank transaction sync',
-            'AI bookkeeping assistant (Claude AI)',
+            'AI bookkeeping assistant',
             'Income Statement, Balance Sheet, Trial Balance, General Ledger',
             'HST, GST & US sales tax support',
             'Owner contributions & draws tracking',

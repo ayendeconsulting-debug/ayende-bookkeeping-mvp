@@ -1,4 +1,10 @@
-﻿import { Check, Shield, Building2, Clock, ChevronRight } from 'lucide-react';
+﻿import type { Metadata } from 'next';
+import { Check, Shield, Building2, Clock, ChevronRight } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Accountant Portal — Tempo Books',
+  description: '30-day money-back guarantee. Full access from day one. One platform to manage every client\u2019s books \u2014 bank feeds, receipts, ledger, and tax-ready reports.',
+};
 
 // ── Update this to the Accountant plan checkout destination ──────────────────
 const CHECKOUT_URL = '/sign-up?plan=accountant';
