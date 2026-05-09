@@ -1,4 +1,4 @@
-import { Check, Shield, Building2, Clock, ChevronRight } from 'lucide-react';
+﻿import { Check, Shield, Building2, Clock, ChevronRight } from 'lucide-react';
 
 // ── Update this to the Accountant plan checkout destination ──────────────────
 const CHECKOUT_URL = '/sign-up?plan=accountant';
@@ -29,7 +29,7 @@ const STEPS = [
     number: '02',
     title: 'Clients connect and upload',
     description:
-      'Bank feeds connect via Plaid. Receipts upload on mobile. Data flows to you automatically.',
+      'Bank feeds connect via Plaid. Personal and business transactions separate automatically — only business transactions post to the ledger. Receipts upload on mobile and attach to the exact transaction.',
   },
   {
     number: '03',
@@ -40,9 +40,9 @@ const STEPS = [
 ];
 
 const PAIN_POINTS = [
-  'Client data scattered across emails, spreadsheets, and shared drives',
-  'Chasing receipts and bank statements every quarter',
-  'Year-end surprises because nothing was reconciled in real time',
+  'Clients arriving at year-end with receipts in a bag and no clear books',
+  'Staff misclassifying transactions that go unnoticed until a client catches them',
+  'Paying for QuickBooks and Karbon separately — and still reconciling in spreadsheets',
 ];
 
 const TRUST_SIGNALS = [
@@ -249,7 +249,7 @@ export default function CampaignPage() {
       <section className="bg-[#0F6E56] py-20">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
-            Your clients are already losing money to bad bookkeeping.
+            Your clients' books should be ready for CRA before the letter arrives. Tempo makes that the default.
           </h2>
           <p className="text-[#E1F5EE]/80 text-base mb-10">
             Every month without a clean ledger is a month of missed deductions, delayed

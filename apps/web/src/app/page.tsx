@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import Image from 'next/image';
 import { MarketingNav } from '@/components/marketing-nav';
 import { MarketingFooter } from '@/components/marketing-footer';
@@ -102,7 +102,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── How It Works (carousel from B-4) ────────────────────────── */}
+        {/* ── How It Works ─────────────────────────────────────────────── */}
         <section className="max-w-5xl mx-auto px-6 py-16">
           <div className="text-center mb-12">
             <p className="text-xs font-semibold text-[#0F6E56] uppercase tracking-wider mb-3">How It Works</p>
@@ -110,7 +110,7 @@ export default function HomePage() {
               Up and running in your first session.
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              No accountant required. No manual setup. Connect your bank and your books start themselves.
+              No accountant required. No manual setup. Connect your bank and transactions start flowing in automatically.
             </p>
           </div>
           <HowItWorksCarousel />

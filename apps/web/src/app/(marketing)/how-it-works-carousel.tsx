@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { Zap, Sparkles, FileText, type LucideIcon } from 'lucide-react';
@@ -19,8 +19,8 @@ const STEPS: Step[] = [
   },
   {
     step: '02',
-    title: 'Transactions classify themselves',
-    desc: 'AI classifies every transaction against your chart of accounts. HST/GST is split automatically. You review, adjust, and post &mdash; most months take under 10 minutes.',
+    title: 'Transactions, pre-classified for your review',
+    desc: 'AI classifies every transaction against your chart of accounts. Personal and business transactions separate automatically &mdash; only business transactions post to the ledger. HST/GST is split automatically. You review, adjust, and post &mdash; most months take under 10 minutes.',
     icon: Sparkles,
   },
   {
