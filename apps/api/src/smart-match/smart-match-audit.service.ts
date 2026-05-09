@@ -14,9 +14,7 @@ export class SmartMatchAuditService {
 
   /**
    * Record a Smart Match suggestion (Layer 1 hit or Layer 2 AI call).
-   * Called immediately after suggestion columns are written to raw_transactions.
    * Resolution fields remain null until the user acts on the suggestion.
-   *
    * Failures are swallowed — audit is observability, never business logic.
    */
   async recordSuggestion(
@@ -51,8 +49,7 @@ export class SmartMatchAuditService {
 
   /**
    * Record the resolution of a Smart Match suggestion.
-   * Called from 34f (confirm/override endpoints) after the user acts.
-   *
+   * Called from 34f confirm/override endpoints after the user acts.
    * Finds the most recent unresolved audit row for the transaction.
    */
   async recordResolution(opts: {
@@ -85,5 +82,22 @@ export class SmartMatchAuditService {
         }`,
       );
     }
+  }
+
+  /**
+   * Count Smart Match Layer 2 AI calls for a business in the current calendar
+   * month (UTC). Used by SmartMatchAiProcessor for plan-specific cap enforcement.
+   * Intentionally separate from general AiUsageGuard caps.
+   */
+  async countAiCallsThisMonth(businessId: string): Promise<number> {
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+
+    return this.auditRepo
+      .createQueryBuilder('audit')
+      .where('audit.business_id = :businessId', { businessId })
+      .andWhere('audit.ai_call_made = true')
+      .andWhere('audit.created_at >= :monthStart', { monthStart })
+      .getCount();
   }
 }

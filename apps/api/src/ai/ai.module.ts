@@ -66,6 +66,6 @@ import { DocumentsModule } from '../documents/documents.module';
     AiJobsService,
     AiUsageGuard,
   ],
-  exports: [AiJobsService, AiUsageGuard, AiUsageService, ExtractorService], // Phase 31b.4
+  exports: [AiJobsService, AiUsageGuard, AiUsageService, ExtractorService, ClassificationAiService], // Phase 31b.4
 })
 export class AiModule {}
