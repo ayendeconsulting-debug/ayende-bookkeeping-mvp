@@ -35,7 +35,7 @@ export class RawTransaction {
   @JoinColumn({ name: 'business_id' })
   business: Business;
 
-  // Nullable – Plaid-sourced transactions don't use import_batches
+  // Nullable - Plaid-sourced transactions don't use import_batches
   @Column({ type: 'uuid', nullable: true })
   import_batch_id: string;
 
@@ -54,7 +54,7 @@ export class RawTransaction {
   @Column({ type: 'varchar', length: 100, nullable: true })
   source_account_type: string;
 
-  // ─── SOURCE TRACKING ──────────────────────────────────────────────────────
+  // --- SOURCE TRACKING ---
   @Column({
     type: 'enum',
     enum: RawTransactionSource,
@@ -62,7 +62,7 @@ export class RawTransaction {
   })
   source: RawTransactionSource;
 
-  // ─── PLAID-SPECIFIC FIELDS ────────────────────────────────────────────────
+  // --- PLAID-SPECIFIC FIELDS ---
   @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   plaid_transaction_id: string;
 
@@ -78,22 +78,22 @@ export class RawTransaction {
   @Column({ type: 'varchar', length: 255, nullable: true })
   plaid_pending_transaction_id: string;
 
-  // ─── FILE-IMPORT-SPECIFIC FIELDS ──────────────────────────────────────────
+  // --- FILE-IMPORT-SPECIFIC FIELDS ---
   @Column({ type: 'varchar', length: 64, nullable: true })
   hash_signature: string;
 
-  // ─── MULTI-CURRENCY (Phase 5) ─────────────────────────────────────────────
+  // --- MULTI-CURRENCY (Phase 5) ---
   @Column({ type: 'varchar', length: 3, nullable: true })
   currency_code: string | null;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
   original_amount: number | null;
 
-  // ─── FREELANCER MODE (Phase 5) ────────────────────────────────────────────
+  // --- FREELANCER MODE (Phase 5) ---
   @Column({ type: 'boolean', default: false })
   is_personal: boolean;
 
-  // ─── STATUS ───────────────────────────────────────────────────────────────
+  // --- STATUS ---
   @Column({
     type: 'enum',
     enum: RawTransactionStatus,
@@ -104,17 +104,45 @@ export class RawTransaction {
   @Column({ type: 'text', nullable: true })
   notes: string;
 
-  // ─── PHASE 15: AI Anomaly Flags ───────────────────────────────────────────
-  // Persisted from Transaction Explainer AI job result.
-  // Reset to null when transaction is posted or a new explain job starts.
+  // --- PHASE 15: AI Anomaly Flags ---
   @Column({ type: 'jsonb', nullable: true })
   anomaly_flags: string[] | null;
 
-  // ─── PHASE 17: Personal Budget Category ───────────────────────────────────
-  // Manual category assignment for personal mode users.
-  // FK to budget_categories.id — ON DELETE SET NULL handled by nullable column.
+  // --- PHASE 17: Personal Budget Category ---
   @Column({ type: 'uuid', nullable: true })
   personal_category_id: string | null;
+
+  // --- PHASE 34: Smart Match suggestion columns ---
+  // Status field (rt.status) is INTENTIONALLY untouched. Suggestions live alongside.
+  // smart_match_status: NULL | 'queued' | 'suggested' | 'cap_exceeded' | 'failed'
+  @Column({ type: 'varchar', length: 20, nullable: true, default: null })
+  smart_match_status: string | null;
+
+  // smart_match_source: 'rule_learned' | 'rule_manual' | 'rule_mcc' | 'rule_vendor' | 'rule_recurrence' | 'ai'
+  @Column({ type: 'varchar', length: 20, nullable: true, default: null })
+  smart_match_source: string | null;
+
+  // 'high' | 'medium' | 'low'
+  @Column({ type: 'varchar', length: 10, nullable: true, default: null })
+  smart_match_confidence: string | null;
+
+  @Column({ type: 'uuid', nullable: true, default: null })
+  suggested_account_id: string | null;
+
+  @Column({ type: 'uuid', nullable: true, default: null })
+  suggested_tax_code_id: string | null;
+
+  @Column({ type: 'boolean', nullable: true, default: null })
+  suggested_is_personal: boolean | null;
+
+  @Column({ type: 'uuid', nullable: true, default: null })
+  suggested_personal_category_id: string | null;
+
+  @Column({ type: 'text', nullable: true, default: null })
+  smart_match_reasoning: string | null;
+
+  @Column({ type: 'timestamp with time zone', nullable: true, default: null })
+  smart_match_at: Date | null;
 
   @CreateDateColumn()
   created_at: Date;
