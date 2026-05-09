@@ -90,7 +90,7 @@ export default function CampaignPage() {
             <ChevronRight className="w-4 h-4" />
           </a>
           <p className="text-xs text-gray-500">
-            30-day money-back guarantee &middot; No trial limitations &middot; Cancel anytime
+            30-day money-back guarantee &middot; Full access from day one &middot; Cancel anytime
           </p>
         </div>
       </section>
@@ -184,7 +184,7 @@ export default function CampaignPage() {
                 Get Started →
               </a>
               <p className="text-xs text-gray-400 text-center mt-3">
-                No trial limitations. Full access from day one.
+                Full access from day one. No lock-in.
               </p>
             </div>
           </div>
