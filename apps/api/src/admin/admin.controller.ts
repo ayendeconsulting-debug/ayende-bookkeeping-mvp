@@ -144,4 +144,11 @@ export class AdminController {
   seedMccMap() {
     return this.adminService.seedMccMap();
   }
+
+  /** POST /admin/seed-all -- Phase 34: run all Smart Match seeders in one call (single auth) */
+  @Post('seed-all')
+  @HttpCode(HttpStatus.OK)
+  seedAll() {
+    return this.adminService.seedAll();
+  }
 }

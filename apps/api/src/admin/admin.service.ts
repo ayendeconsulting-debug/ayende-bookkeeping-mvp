@@ -935,4 +935,17 @@ export class AdminService {
 
     return { inserted, updated, total: MCC_CATEGORY_MAP.length };
   }
+  /**
+   * Phase 34: Run all Smart Match seeders sequentially in one call.
+   * Reduces JWT-lifetime exposure when running multiple seeders manually.
+   * Returns combined counts.
+   */
+  async seedAll(): Promise<{
+    vendor_library: { inserted: number; updated: number; total: number };
+    mcc_map: { inserted: number; updated: number; total: number };
+  }> {
+    const vendor_library = await this.seedVendorLibrary();
+    const mcc_map = await this.seedMccMap();
+    return { vendor_library, mcc_map };
+  }
 }
