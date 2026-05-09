@@ -30,6 +30,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { ReferralsModule } from './referrals/referrals.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ImportModule } from './import/import.module';
+import { SmartMatchModule } from './smart-match/smart-match.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { LegalAcceptanceGuard } from './legal/legal-acceptance.guard';
@@ -84,6 +85,7 @@ function getRedisBullMQConnection() {
     ReferralsModule,
     NotificationsModule,
     ImportModule,
+    SmartMatchModule,
   ],
   controllers: [AppController, HealthController],
   providers: [
