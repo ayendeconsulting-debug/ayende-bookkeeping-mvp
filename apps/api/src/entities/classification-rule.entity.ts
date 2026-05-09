@@ -12,7 +12,7 @@ import { Business } from './business.entity';
 import { Account } from './account.entity';
 import { TaxCode } from './tax-code.entity';
 
-export type ClassificationRuleSource = 'manual' | 'user_learned';
+export type ClassificationRuleSource = 'manual' | 'user_learned' | 'pre_seeded';
 
 @Entity('classification_rules')
 @Index(['business_id', 'priority'])
@@ -54,9 +54,10 @@ export class ClassificationRule {
 
   /**
    * Source of the rule:
-   *   manual       — created explicitly by the user in Settings
-   *   user_learned — promoted from a manual classification override via
+   *   manual       - created explicitly by the user in Settings
+   *   user_learned - promoted from a manual classification override via
    *                  the Classification Learning confirmation prompt (Phase 11)
+   *   pre_seeded   - shipped from vendor library at tenant initialization (Phase 34)
    */
   @Column({
     type: 'varchar',
@@ -64,6 +65,13 @@ export class ClassificationRule {
     default: 'manual',
   })
   source: ClassificationRuleSource;
+
+  // --- PHASE 34: Tenant learning velocity ---
+  // Increments every time this rule matches a Smart Match Layer 1 pass.
+  // Used to surface "your most-used rules" in admin UI and to sort high-velocity
+  // rules earlier in the matcher chain for performance tuning.
+  @Column({ type: 'integer', default: 0 })
+  match_count: number;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   created_at: Date;
