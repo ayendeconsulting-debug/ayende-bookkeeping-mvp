@@ -15,6 +15,8 @@ export interface AiClassificationSuggestion {
   suggested_account_name: string | null;
   suggested_tax_code_id: string | null;
   suggested_tax_code: string | null;
+  /** Phase 34d: true = personal, false = business, null = uncertain */
+  suggested_is_personal: boolean | null;
   confidence: 'high' | 'medium' | 'low';
   reasoning: string;
   requires_human_review: boolean;
@@ -32,11 +34,15 @@ export class ClassificationAiService {
     private readonly taxCodeRepo: Repository<TaxCode>,
   ) {}
 
-  async suggest(businessId: string, rawTransactionId: string): Promise<AiClassificationSuggestion> {
+  async suggest(
+    businessId: string,
+    rawTransactionId: string,
+  ): Promise<AiClassificationSuggestion> {
     const rawTx = await this.rawTxRepo.findOne({
       where: { id: rawTransactionId, business_id: businessId },
     });
-    if (!rawTx) throw new NotFoundException(`Raw transaction ${rawTransactionId} not found`);
+    if (!rawTx)
+      throw new NotFoundException(`Raw transaction ${rawTransactionId} not found`);
 
     const accounts = await this.accountRepo.find({
       where: { business_id: businessId, is_active: true },
@@ -47,22 +53,38 @@ export class ClassificationAiService {
       where: { business_id: businessId, is_active: true },
     });
 
-    const accountList = accounts.map(a =>
-      `${a.account_code} | ${a.account_name} | ${a.account_type} | ${a.account_subtype}`
-    ).join('\n');
+    const accountList = accounts
+      .map(
+        (a) =>
+          `${a.account_code} | ${a.account_name} | ${a.account_type} | ${a.account_subtype}`,
+      )
+      .join('\n');
 
-    const taxList = taxCodes.length > 0
-      ? taxCodes.map(t => `${t.id} | ${t.code} | ${t.name} | ${t.tax_type} | ${(Number(t.rate) * 100).toFixed(2)}%`).join('\n')
-      : 'None configured';
+    const taxList =
+      taxCodes.length > 0
+        ? taxCodes
+            .map(
+              (t) =>
+                `${t.id} | ${t.code} | ${t.name} | ${t.tax_type} | ${(Number(t.rate) * 100).toFixed(2)}%`,
+            )
+            .join('\n')
+        : 'None configured';
+
+    // Surface Layer 1 is_personal hint (from account-default matcher) to the AI
+    const personalHint =
+      rawTx.suggested_is_personal !== null
+        ? `Note: preliminary analysis suggests this is a ${rawTx.suggested_is_personal ? 'personal' : 'business'} expense. Confirm or override.`
+        : '';
 
     const systemPrompt = `You are a bookkeeping assistant for a Canadian/US small business.
 Your job is to classify bank transactions into the correct chart of accounts.
-You must respond with ONLY valid JSON and nothing else — no explanation, no markdown.`;
+You must respond with ONLY valid JSON and nothing else - no explanation, no markdown.`;
 
     const userPrompt = `Classify this transaction:
 Description: "${rawTx.description}"
 Amount: ${rawTx.amount}
 Date: ${rawTx.transaction_date}
+${personalHint}
 
 Available accounts (code | name | type | subtype):
 ${accountList}
@@ -74,6 +96,7 @@ Respond with ONLY this JSON structure:
 {
   "suggested_account_code": "<account code from the list above, or null>",
   "suggested_tax_code_id": "<tax code id from the list above, or null>",
+  "suggested_is_personal": <true if personal expense, false if business expense, null if uncertain>,
   "confidence": "high" | "medium" | "low",
   "reasoning": "<1-2 sentence explanation>",
   "requires_human_review": true | false
@@ -84,6 +107,7 @@ Respond with ONLY this JSON structure:
     let parsed: {
       suggested_account_code: string | null;
       suggested_tax_code_id: string | null;
+      suggested_is_personal: boolean | null;
       confidence: 'high' | 'medium' | 'low';
       reasoning: string;
       requires_human_review: boolean;
@@ -94,35 +118,39 @@ Respond with ONLY this JSON structure:
       parsed = JSON.parse(clean);
     } catch {
       return {
-        raw_transaction_id: rawTransactionId,
-        description: rawTx.description,
-        amount: Number(rawTx.amount),
-        suggested_account_id: null,
+        raw_transaction_id:    rawTransactionId,
+        description:           rawTx.description,
+        amount:                Number(rawTx.amount),
+        suggested_account_id:   null,
         suggested_account_code: null,
         suggested_account_name: null,
-        suggested_tax_code_id: null,
-        suggested_tax_code: null,
-        confidence: 'low',
-        reasoning: 'AI returned an unparseable response — please classify manually.',
-        requires_human_review: true,
+        suggested_tax_code_id:  null,
+        suggested_tax_code:     null,
+        suggested_is_personal:  null,
+        confidence:             'low',
+        reasoning:              'AI returned an unparseable response - please classify manually.',
+        requires_human_review:  true,
       };
     }
 
-    const matchedAccount = accounts.find(a => a.account_code === parsed.suggested_account_code) ?? null;
-    const matchedTaxCode = taxCodes.find(t => t.id === parsed.suggested_tax_code_id) ?? null;
+    const matchedAccount =
+      accounts.find((a) => a.account_code === parsed.suggested_account_code) ?? null;
+    const matchedTaxCode =
+      taxCodes.find((t) => t.id === parsed.suggested_tax_code_id) ?? null;
 
     return {
-      raw_transaction_id: rawTransactionId,
-      description: rawTx.description,
-      amount: Number(rawTx.amount),
-      suggested_account_id:   matchedAccount?.id           ?? null,
-      suggested_account_code: matchedAccount?.account_code ?? null,
-      suggested_account_name: matchedAccount?.account_name ?? null,
-      suggested_tax_code_id:  matchedTaxCode?.id           ?? null,
-      suggested_tax_code:     matchedTaxCode?.code         ?? null,
-      confidence:             parsed.confidence             ?? 'low',
-      reasoning:              parsed.reasoning              ?? '',
-      requires_human_review:  parsed.requires_human_review ?? true,
+      raw_transaction_id:    rawTransactionId,
+      description:           rawTx.description,
+      amount:                Number(rawTx.amount),
+      suggested_account_id:   matchedAccount?.id            ?? null,
+      suggested_account_code: matchedAccount?.account_code  ?? null,
+      suggested_account_name: matchedAccount?.account_name  ?? null,
+      suggested_tax_code_id:  matchedTaxCode?.id            ?? null,
+      suggested_tax_code:     matchedTaxCode?.code          ?? null,
+      suggested_is_personal:  parsed.suggested_is_personal  ?? null,
+      confidence:             parsed.confidence              ?? 'low',
+      reasoning:              parsed.reasoning               ?? '',
+      requires_human_review:  parsed.requires_human_review  ?? true,
     };
   }
 }
