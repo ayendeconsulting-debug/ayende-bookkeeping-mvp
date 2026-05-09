@@ -13,6 +13,8 @@ import { Account } from '../entities/account.entity';
 import { JournalEntry } from '../entities/journal-entry.entity';
 import { JournalLine } from '../entities/journal-line.entity';
 import { ClassifiedTransaction } from '../entities/classified-transaction.entity';
+import { VendorLibrary } from '../entities/vendor-library.entity';
+import { MccCategoryMap } from '../entities/mcc-category-map.entity';
 import { BusinessesModule } from '../businesses/businesses.module';
 import { AdminController } from './admin.controller';
 import { DemoController } from './demo.controller';
@@ -38,6 +40,8 @@ import { InsightsService } from './insights.service';
       JournalEntry,
       JournalLine,
       ClassifiedTransaction,
+      VendorLibrary,
+      MccCategoryMap,
     ]),
     BusinessesModule,
   ],
