@@ -10,6 +10,7 @@ import { SmartMatchAudit } from '../entities/smart-match-audit.entity';
 import { Subscription } from '../entities/subscription.entity';
 import { AiUsageLog } from '../entities/ai-usage-log.entity';
 import { AiModule } from '../ai/ai.module';
+import { ReportsModule } from '../reports/reports.module';
 import { SmartMatchService } from './smart-match.service';
 import { SmartMatchAuditService } from './smart-match-audit.service';
 import { LearnedRuleMatcher } from './rules/learned-rule.matcher';
@@ -20,16 +21,15 @@ import { RecurrenceMatcher } from './rules/recurrence.matcher';
 import { AccountDefaultMatcher } from './rules/account-default.matcher';
 import { SmartMatchBatchProcessor } from './processors/smart-match-batch.processor';
 import { SmartMatchAiProcessor } from './processors/smart-match-ai.processor';
+import { SmartMatchController } from './smart-match.controller';
 
 /**
  * Phase 34 — Smart Match auto-classification engine.
  *
  * 34c: SmartMatchModule scaffold + 6 Layer 1 rule matchers.
  * 34d: SmartMatchBatchProcessor + SmartMatchAiProcessor added.
- *
- * Exports:
- *   SmartMatchService      — used by 34e import/Plaid hooks + 34j firm controller
- *   SmartMatchAuditService — used by 34f confirm/override endpoints
+ * 34e: Import + Plaid sync hook-in.
+ * 34f: SmartMatchController + confirm/override/bulk-confirm/run service methods.
  */
 @Module({
   imports: [
@@ -48,7 +48,9 @@ import { SmartMatchAiProcessor } from './processors/smart-match-ai.processor';
       { name: 'smart-match-ai' },
     ),
     AiModule,
+    ReportsModule,
   ],
+  controllers: [SmartMatchController],
   providers: [
     SmartMatchService,
     SmartMatchAuditService,
