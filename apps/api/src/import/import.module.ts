@@ -12,6 +12,8 @@ import { Account } from '../entities/account.entity';
   imports: [
     TypeOrmModule.forFeature([ImportBatch, RawTransaction, Account]),
     BullModule.registerQueue({ name: 'import-jobs' }),
+    // Phase 34e: producer-only registration — SmartMatchModule owns the consumer
+    BullModule.registerQueue({ name: 'smart-match-batch' }),
   ],
   controllers: [ImportController],
   providers: [ImportService, ImportJobsProcessor],
