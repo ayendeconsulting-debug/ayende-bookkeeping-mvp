@@ -17,10 +17,10 @@ import { AI_FEATURE_KEY } from './decorators/ai-feature.decorator';
 
 /** Monthly AI call caps per subscription plan */
 const PLAN_CAPS: Record<string, number> = {
-  starter:    50,
-  pro:        200,
-  accountant: 500,
-  trialing:   200, // grace cap during trial – matches Pro
+  starter:    100,  // Phase 34g: raised from 50
+  pro:        1000, // Phase 34g: raised from 200
+  accountant: 2000, // Phase 34g: raised from 500
+  trialing:   1000, // Phase 34g: raised from 200 // grace cap during trial – matches Pro
 };
 
 @Injectable()
