@@ -323,15 +323,23 @@ export function TransactionInbox({
   }
 
   function handlePersonalCatClose() { setPersonalCatOpen(false); setPersonalCatTx(null); }
-  function handlePersonalCatSuccess() {
+  function handlePersonalCatSuccess(data?: { categoryId?: string }) {
     const justCategorizedId = personalCatTx?.id ?? null;
+    const assignedCategoryId = data?.categoryId ?? null;
     setPersonalCatOpen(false);
     setPersonalCatTx(null);
     startTransition(() => router.refresh());
-    if (justCategorizedId) {
+    if (justCategorizedId && assignedCategoryId) {
+      const assignedCat = budgetCategories?.find((c) => c.id === assignedCategoryId) ?? null;
       findSimilarPersonalTransactions(justCategorizedId).then((res) => {
         if (res.success && res.data && res.data.similar.length > 0) {
-          setSimilarResult({ ...res.data, mode: 'personal' });
+          setSimilarResult({
+            ...res.data,
+            mode:           'personal',
+            category_id:    assignedCategoryId,
+            category_name:  assignedCat?.name ?? null,
+            category_color: assignedCat?.color ?? null,
+          });
           setSimilarOpen(true);
         }
       });
@@ -1006,6 +1014,9 @@ export function TransactionInbox({
           suggested_account_name={similarResult.suggested_account_name}
           suggested_account_code={similarResult.suggested_account_code}
           suggested_source_account_id={similarResult.suggested_source_account_id}
+          category_id={similarResult.category_id ?? null}
+          category_name={similarResult.category_name ?? null}
+          category_color={similarResult.category_color ?? null}
           onClose={() => { setSimilarOpen(false); setSimilarResult(null); }}
           onApplied={() => { setSimilarOpen(false); setSimilarResult(null); startTransition(() => router.refresh()); }}
         />
