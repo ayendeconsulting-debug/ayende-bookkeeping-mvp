@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useTransition } from 'react';
+import { useState, useCallback, useTransition, useMemo } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal, CheckSquare, Wand2, Sparkles, Split, ArrowLeftRight, AlertTriangle, Tag, X, ArrowDownToLine, Paperclip } from 'lucide-react';
 import { Account, TaxCode, RawTransaction, BusinessMode, BudgetCategoryWithSpending, BucketCounts } from '@/types';
@@ -15,6 +15,8 @@ import { AdminOnly } from '@/components/admin-only';
 import { NewJEButton } from '@/components/manual-je-panel';
 import { TransactionDetailPanel, type PanelAction } from '@/components/transaction-detail-panel';
 import { TransactionTagToggle } from '@/components/transaction-tag-toggle';
+import { SmartMatchChip } from '@/components/smart-match-chip';
+import { SmartMatchConfirmBar } from '@/components/smart-match-confirm-bar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +27,7 @@ import {
   bulkPostTransactions,
   findSimilarTransactions,
 } from '@/app/(app)/transactions/actions';
+import { bulkConfirmSmartMatch } from '@/app/(app)/transactions/smart-match-actions';
 import { bulkAssignPersonalCategory, findSimilarPersonalTransactions } from '@/app/(app)/personal/transactions/actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import {
@@ -46,6 +49,8 @@ interface TransactionInboxProps {
   currentSourceAccount?: string;
   currentMonth?: string;
   bucketCounts?: BucketCounts;
+  /** Phase 34h: Smart Match sub-tab counts from GET /smart-match/counts */
+  smartMatchCounts?: { suggested: number; cap_exceeded: number; failed: number };
 }
 
 // Phase 30: mode-aware bucket model. See SRD v30.0 section 5.
@@ -128,6 +133,7 @@ export function TransactionInbox({
   currentSourceAccount = '',
   currentMonth = '',
   bucketCounts,
+  smartMatchCounts,
 }: TransactionInboxProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -162,6 +168,8 @@ export function TransactionInbox({
   const [lastClassifiedTxId, setLastClassifiedTxId] = useState<string | null>(null);
 
   const [detailRawTransactionId, setDetailRawTransactionId] = useState<string | null>(null);
+  // Phase 34h: 'suggested' | 'manual' | null (null defaults to 'suggested' when counts.suggested > 0)
+  const [smartSubTab, setSmartSubTab] = useState<'suggested' | 'manual' | null>(null);
 
   const [selectedIds, setSelectedIds]               = useState<Set<string>>(new Set());
   const [bulkAccountId, setBulkAccountId]           = useState('');
@@ -180,6 +188,18 @@ export function TransactionInbox({
   const totalPages = Math.ceil(totalCount / LIMIT);
 
   const categoryMap = Object.fromEntries(budgetCategories.map((c) => [c.id, c]));
+
+  // Phase 34h: filter displayed rows by smart-match sub-tab when inside Needs Review
+  const displayedTransactions = useMemo(() => {
+    if (currentStatus !== 'needs_review') return initialTransactions;
+    const hasSuggested = (smartMatchCounts?.suggested ?? 0) > 0;
+    if (!hasSuggested) return initialTransactions;
+    const activeTab = smartSubTab ?? 'suggested';
+    if (activeTab === 'suggested') {
+      return initialTransactions.filter((tx) => tx.smart_match_status === 'suggested');
+    }
+    return initialTransactions.filter((tx) => tx.smart_match_status !== 'suggested');
+  }, [initialTransactions, currentStatus, smartSubTab, smartMatchCounts]);
 
   const selectableTxs = initialTransactions.filter(
     (tx) => tx.status === 'pending' && !tx.is_personal && !isPersonal,
@@ -223,7 +243,7 @@ export function TransactionInbox({
     });
   }
 
-  function handleStatusTab(status: string) { updateParams({ status }); }
+  function handleStatusTab(status: string) { updateParams({ status }); setSmartSubTab(null); }
   function handleSearch(e: React.FormEvent) { e.preventDefault(); updateParams({ search: searchValue }); }
   function handlePage(page: number) { updateParams({ page: String(page) }); }
   function handleSourceAccount(val: string) { updateParams({ sourceAccountName: val }); }
@@ -498,9 +518,43 @@ export function TransactionInbox({
         </div>
       </div>
 
+      {/* Phase 34h: Smart Match sub-tabs — only inside Needs Review when suggestions exist */}
+      {currentStatus === 'needs_review' && (smartMatchCounts?.suggested ?? 0) > 0 && (
+        <div className="px-6 pt-2 pb-0 border-b border-border bg-background flex items-center gap-0">
+          {(['suggested', 'manual'] as const).map((tab) => {
+            const isActive = (smartSubTab ?? 'suggested') === tab;
+            const count = tab === 'suggested' ? (smartMatchCounts?.suggested ?? 0) : undefined;
+            return (
+              <button
+                key={tab}
+                onClick={() => setSmartSubTab(tab)}
+                className={cn(
+                  'px-4 py-2 text-sm border-b-2 -mb-px transition-colors inline-flex items-center gap-2',
+                  isActive
+                    ? 'border-accent-teal text-accent-teal font-medium'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
+                )}
+              >
+                {tab === 'suggested' ? (
+                  <><Sparkles className="w-3.5 h-3.5" />Suggested</>
+                ) : 'Manual'}
+                {count !== undefined && count > 0 && (
+                  <span className={cn(
+                    'text-xs font-medium rounded-full px-1.5 py-0.5 min-w-[20px] text-center',
+                    isActive
+                      ? 'bg-accent-teal-muted text-accent-teal'
+                      : 'bg-muted text-muted-foreground',
+                  )}>{count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Table */}
       <div className={cn('flex-1 overflow-auto bg-background', isPending && 'opacity-60 pointer-events-none')}>
-        {initialTransactions.length === 0 ? (
+        {displayedTransactions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
               <Search className="w-5 h-5 text-muted-foreground" />
@@ -544,7 +598,7 @@ export function TransactionInbox({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {initialTransactions.map((tx) => {
+                  {displayedTransactions.map((tx) => {
                     const amount = Number(tx.amount);
                     const isSelectable = tx.status === 'pending' && !tx.is_personal && !isPersonal;
                     const isPersonalSelectable = isFreelancer && tx.is_personal && tx.status === 'pending';
@@ -598,6 +652,7 @@ export function TransactionInbox({
                               <Paperclip className="w-3.5 h-3.5 text-muted-foreground inline-block mr-1.5 -mt-0.5 flex-shrink-0" />
                             )}
                             <span className="block truncate text-foreground">{tx.description}</span>
+                            <SmartMatchChip tx={tx} />
                           </div>
                           {isPersonal && assignedCat ? (
                             <span className="inline-flex items-center gap-1 mt-0.5">
@@ -705,7 +760,7 @@ export function TransactionInbox({
 
             {/* Mobile card list */}
             <div className="sm:hidden divide-y divide-border">
-              {initialTransactions.map((tx) => {
+              {displayedTransactions.map((tx) => {
                 const amount = Number(tx.amount);
                 const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal && !isPersonal;
                 const assignedCat = tx.personal_category_id ? categoryMap[tx.personal_category_id] : null;
@@ -899,6 +954,16 @@ export function TransactionInbox({
         onClose={handleOwnerContribClose}
         onSuccess={handleOwnerContribSuccess}
         initialOwnerContribution={true}
+      />
+
+      {/* Phase 34h: Smart Match confirm bar — appears when Suggested sub-tab is active */}
+      <SmartMatchConfirmBar
+        suggestedCount={
+          currentStatus === 'needs_review' && (smartSubTab === 'suggested' || !smartSubTab)
+            ? (smartMatchCounts?.suggested ?? 0)
+            : 0
+        }
+        onDone={() => setSmartSubTab('manual')}
       />
 
       <TransactionExplainerPanel transaction={explainerTx} open={explainerOpen} onClose={handleExplainerClose} />

@@ -81,6 +81,14 @@ export interface RawTransaction {
   classified_id?: string | null;
   classified_account_id?: string | null;
   classified_source_account_id?: string | null;
+  // Phase 34h: Smart Match suggestion columns
+  smart_match_status?: string | null;
+  smart_match_source?: string | null;
+  smart_match_confidence?: string | null;
+  smart_match_reasoning?: string | null;
+  smart_match_at?: string | null;
+  suggested_account_id?: string | null;
+  suggested_is_personal?: boolean | null;
   created_at: string;
 }
 
