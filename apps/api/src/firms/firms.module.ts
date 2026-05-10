@@ -1,5 +1,6 @@
 import { Module, NestModule, MiddlewareConsumer, RequestMethod } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
 import { AccountantFirm } from '../entities/accountant-firm.entity';
 import { FirmStaff } from '../entities/firm-staff.entity';
 import { FirmClient } from '../entities/firm-client.entity';
@@ -10,6 +11,8 @@ import { Account } from '../entities/account.entity';
 import { JournalLine } from '../entities/journal-line.entity';
 import { JournalEntry } from '../entities/journal-entry.entity';
 import { RawTransaction } from '../entities/raw-transaction.entity';
+// Phase 34j: firm-wide Smart Match tracking
+import { FirmSmartMatchRun } from '../entities/firm-smart-match-run.entity';
 import { FirmsController } from './firms.controller';
 import { FirmsService } from './firms.service';
 import { FirmClientService } from './firm-client.service';
@@ -18,6 +21,9 @@ import { AccessRequestService } from './access-request.service';
 import { AuditLogService } from './audit-log.service';
 import { SubdomainMiddleware } from './subdomain.middleware';
 import { ClientContextMiddleware } from './client-context.middleware';
+// Phase 34j
+import { FirmSmartMatchService } from './firm-smart-match.service';
+import { FirmSmartMatchController } from './firm-smart-match.controller';
 import { BusinessesModule } from '../businesses/businesses.module';
 import { ReportsModule } from '../reports/reports.module';
 import { EmailModule } from '../email/email.module';
@@ -35,12 +41,15 @@ import { EmailModule } from '../email/email.module';
       JournalLine,
       JournalEntry,
       RawTransaction,
+      FirmSmartMatchRun,
     ]),
+    // Phase 34j: producer-only — SmartMatchModule owns the consumer
+    BullModule.registerQueue({ name: 'smart-match-batch' }),
     BusinessesModule,
     ReportsModule,
     EmailModule,
   ],
-  controllers: [FirmsController],
+  controllers: [FirmsController, FirmSmartMatchController],
   providers: [
     FirmsService,
     FirmClientService,
@@ -49,6 +58,7 @@ import { EmailModule } from '../email/email.module';
     AuditLogService,
     SubdomainMiddleware,
     ClientContextMiddleware,
+    FirmSmartMatchService,
   ],
   exports: [
     FirmsService,
