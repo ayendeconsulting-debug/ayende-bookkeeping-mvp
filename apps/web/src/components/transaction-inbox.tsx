@@ -552,6 +552,20 @@ export function TransactionInbox({
         </div>
       )}
 
+      {/* Phase 34i: cap-exceeded notice — shown on Manual sub-tab when AI cap reached */}
+      {currentStatus === 'needs_review' &&
+        (smartSubTab === 'manual') &&
+        (smartMatchCounts?.cap_exceeded ?? 0) > 0 && (
+        <div className="mx-6 mt-3 flex items-center gap-2.5 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30 px-3.5 py-2.5">
+          <Sparkles className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+          <p className="text-xs text-amber-700 dark:text-amber-400">
+            Smart Match reached its monthly limit for your plan.{' '}
+            <span className="font-medium">{smartMatchCounts!.cap_exceeded} transaction{smartMatchCounts!.cap_exceeded !== 1 ? 's' : ''}</span>
+            {' '}need manual classification. Upgrade to classify more automatically.
+          </p>
+        </div>
+      )}
+
       {/* Table */}
       <div className={cn('flex-1 overflow-auto bg-background', isPending && 'opacity-60 pointer-events-none')}>
         {displayedTransactions.length === 0 ? (
@@ -564,7 +578,11 @@ export function TransactionInbox({
               {currentSearch ? `No results for "${currentSearch}"`
                 : currentSourceAccount ? `No transactions for "${currentSourceAccount}"`
                 : currentMonth ? 'No transactions for this month'
-                : getEmptyStateCopy(currentStatus)}
+                : currentStatus === 'needs_review' && (smartMatchCounts?.suggested ?? 0) > 0
+                  ? (smartSubTab ?? 'suggested') === 'manual'
+                    ? 'Nothing to classify manually. All transactions have Smart Match suggestions.'
+                    : 'Smart Match is working on your transactions. Check back shortly.'
+                  : getEmptyStateCopy(currentStatus)}
             </p>
           </div>
         ) : (
