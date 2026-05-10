@@ -9,7 +9,7 @@ async function getMileageLogs(): Promise<MileageLogResult> {
 export default async function MileagePage() {
   const mileageData = await getMileageLogs();
   return (
-    <div className="p-6 max-w-screen-lg mx-auto">
+    <div className="p-6 max-w-screen-lg">
       <div className="mb-6 pl-4" style={{ borderLeft: '3px solid var(--color-primary)' }}>
         <h1 className="text-xl font-semibold text-foreground">Mileage Tracker</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Log business trips and track your CRA / IRS standard mileage deduction.</p>

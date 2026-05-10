@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { apiGet } from '@/lib/api';
 import { Account, TaxCode, RawTransaction, Business, BusinessMode, BudgetCategoryWithSpending, BucketCounts } from '@/types';
+import { getSmartMatchCounts } from '@/app/(app)/transactions/smart-match-actions';
 import { TransactionInbox } from '@/components/transaction-inbox';
 
 interface PageProps {
@@ -96,7 +97,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
   // (list shows all rows) but the tab strip highlights "Needs Review".
   const status = params.status ?? 'needs_review';
 
-  const [txResult, accounts, taxCodes, business, sourceAccounts, transactionMonths, bucketCounts] = await Promise.all([
+  const [txResult, accounts, taxCodes, business, sourceAccounts, transactionMonths, bucketCounts, smartMatchCountsResult] = await Promise.all([
     getTransactions(status, search, page, sourceAccountName, month),
     getAccounts(),
     getTaxCodes(),
@@ -104,6 +105,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
     getSourceAccounts(),
     getTransactionMonths(),
     getBucketCounts(search, sourceAccountName, month),
+    getSmartMatchCounts(),
   ]);
 
   const mode = (business?.mode ?? 'business') as BusinessMode;
@@ -129,6 +131,7 @@ export default async function TransactionsPage({ searchParams }: PageProps) {
         currentSourceAccount={sourceAccountName ?? ''}
         currentMonth={month ?? ''}
         bucketCounts={bucketCounts}
+        smartMatchCounts={smartMatchCountsResult.success ? smartMatchCountsResult.data ?? undefined : undefined}
       />
     </Suspense>
   );

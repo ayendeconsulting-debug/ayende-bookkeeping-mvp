@@ -107,7 +107,7 @@ export function BankConnections({ initialBanks, accountsByItem }: BankConnection
   }
 
   return (
-    <div className="p-6 max-w-screen-lg mx-auto">
+    <div className="p-6 max-w-screen-lg">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-semibold text-foreground">Bank Accounts</h1>

@@ -58,7 +58,7 @@ export class ImportBatch {
   @Column({ type: 'integer', default: 0 })
   error_rows: number;
 
-  @Column({ type: 'uuid' })
+  @Column({ type: 'varchar', length: 255 })
   uploaded_by: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })

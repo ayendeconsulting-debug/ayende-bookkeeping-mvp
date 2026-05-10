@@ -61,7 +61,7 @@ export default async function AuditLogPage() {
 
   return (
     <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading...</div>}>
-      <div className="p-6 max-w-screen-lg mx-auto">
+      <div className="p-6 max-w-screen-lg">
         <div className="mb-6">
           <h1 className="text-xl font-semibold text-foreground">Audit Log</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
