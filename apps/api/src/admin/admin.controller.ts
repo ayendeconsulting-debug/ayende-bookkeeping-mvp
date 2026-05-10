@@ -130,4 +130,25 @@ export class AdminController {
   backfillCcaAccounts() {
     return this.adminService.backfillCcaAccounts();
   }
+
+  /** POST /admin/seed-vendor-library -- Phase 34: seed CA vendor patterns (idempotent upsert) */
+  @Post('seed-vendor-library')
+  @HttpCode(HttpStatus.OK)
+  seedVendorLibrary() {
+    return this.adminService.seedVendorLibrary();
+  }
+
+  /** POST /admin/seed-mcc-map -- Phase 34: seed MCC -> category map (idempotent upsert) */
+  @Post('seed-mcc-map')
+  @HttpCode(HttpStatus.OK)
+  seedMccMap() {
+    return this.adminService.seedMccMap();
+  }
+
+  /** POST /admin/seed-all -- Phase 34: run all Smart Match seeders in one call (single auth) */
+  @Post('seed-all')
+  @HttpCode(HttpStatus.OK)
+  seedAll() {
+    return this.adminService.seedAll();
+  }
 }

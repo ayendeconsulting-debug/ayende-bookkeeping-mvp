@@ -4,6 +4,7 @@ import { FirmAiUsageWidget } from '@/components/firm-ai-usage-widget';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { UserPlus } from 'lucide-react';
+import { FirmSmartMatchTrigger } from '@/components/firm-smart-match-trigger';
 
 export default async function AccountantClientsPage() {
   const [clients, firmUsage] = await Promise.all([
@@ -32,6 +33,11 @@ export default async function AccountantClientsPage() {
 
       {/* Firm AI Usage Widget — only shown for Accountant plan */}
       {firmUsage && <FirmAiUsageWidget usage={firmUsage} />}
+
+      {/* Phase 34k: Firm-wide Smart Match trigger + progress banner */}
+      <FirmSmartMatchTrigger
+        activeClientCount={clients.filter((c) => c.status === 'active').length}
+      />
 
       {/* Table */}
       <ClientListTable clients={clients} />

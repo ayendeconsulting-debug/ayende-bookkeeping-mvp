@@ -17,6 +17,11 @@ import { Account, AccountType, AccountSubtype } from '../entities/account.entity
 import { JournalEntry, JournalEntryStatus } from '../entities/journal-entry.entity';
 import { JournalLine } from '../entities/journal-line.entity';
 import { ClassifiedTransaction, ClassificationMethod } from '../entities/classified-transaction.entity';
+
+import { VendorLibrary } from '../entities/vendor-library.entity';
+import { MccCategoryMap } from '../entities/mcc-category-map.entity';
+import { VENDOR_LIBRARY_CA } from './seed-data/vendor-library-ca';
+import { MCC_CATEGORY_MAP } from './seed-data/mcc-category-map';
 import { BusinessesService } from '../businesses/businesses.service';
 import { FREELANCER_6MO } from './seed-data/freelancer-6mo';
 import { BUSINESS_6MO } from './seed-data/business-6mo';
@@ -856,5 +861,91 @@ export class AdminService {
       accountsAdded,
       accountsSkipped,
     };
+  }
+  // ─── Phase 34: Smart Match seeders ─────────────────────────────────
+  /**
+   * Idempotent upsert of vendor library from VENDOR_LIBRARY_CA seed data.
+   * Re-running updates existing entries by vendor_pattern and inserts new ones.
+   * Returns counts: { inserted, updated, total }.
+   */
+  async seedVendorLibrary(): Promise<{ inserted: number; updated: number; total: number }> {
+    const repo = this.dataSource.getRepository(VendorLibrary);
+    let inserted = 0;
+    let updated = 0;
+
+    for (const entry of VENDOR_LIBRARY_CA) {
+      const existing = await repo.findOne({ where: { vendor_pattern: entry.pattern } });
+      if (existing) {
+        existing.vendor_display = entry.display;
+        existing.category_hint = entry.category_hint;
+        existing.account_subtype = entry.account_subtype;
+        existing.default_is_personal = entry.default_personal;
+        existing.confidence = entry.confidence;
+        existing.match_priority = entry.priority;
+        await repo.save(existing);
+        updated++;
+      } else {
+        await repo.save(repo.create({
+          vendor_pattern: entry.pattern,
+          vendor_display: entry.display,
+          category_hint: entry.category_hint,
+          account_subtype: entry.account_subtype,
+          default_is_personal: entry.default_personal,
+          country_scope: ['CA'],
+          confidence: entry.confidence,
+          match_priority: entry.priority,
+        }));
+        inserted++;
+      }
+    }
+
+    return { inserted, updated, total: VENDOR_LIBRARY_CA.length };
+  }
+
+  /**
+   * Idempotent upsert of MCC -> category map from MCC_CATEGORY_MAP seed data.
+   * Re-running updates existing rows by mcc PK and inserts new ones.
+   * Returns counts: { inserted, updated, total }.
+   */
+  async seedMccMap(): Promise<{ inserted: number; updated: number; total: number }> {
+    const repo = this.dataSource.getRepository(MccCategoryMap);
+    let inserted = 0;
+    let updated = 0;
+
+    for (const entry of MCC_CATEGORY_MAP) {
+      const existing = await repo.findOne({ where: { mcc: entry.mcc } });
+      if (existing) {
+        existing.category_hint = entry.category_hint;
+        existing.account_subtype = entry.account_subtype;
+        existing.default_is_personal = entry.default_personal;
+        existing.description = entry.description;
+        await repo.save(existing);
+        updated++;
+      } else {
+        await repo.save(repo.create({
+          mcc: entry.mcc,
+          category_hint: entry.category_hint,
+          account_subtype: entry.account_subtype,
+          default_is_personal: entry.default_personal,
+          description: entry.description,
+        }));
+        inserted++;
+      }
+    }
+
+    return { inserted, updated, total: MCC_CATEGORY_MAP.length };
+  }
+  /**
+   * Phase 34: Run all Smart Match seeders sequentially in one call.
+   * Reduces JWT-lifetime exposure when running multiple seeders manually.
+   * Returns combined counts.
+   */
+  async seedAll(): Promise<{
+    vendor_library: { inserted: number; updated: number; total: number };
+    mcc_map: { inserted: number; updated: number; total: number };
+  }> {
+    const vendor_library = await this.seedVendorLibrary();
+    const mcc_map = await this.seedMccMap();
+    return { vendor_library, mcc_map };
   }
 }

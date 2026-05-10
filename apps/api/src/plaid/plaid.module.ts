@@ -23,9 +23,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
       PlaidWebhookLog,
       RawTransaction,
     ]),
-    BullModule.registerQueue({
-      name: 'plaid-sync',
-    }),
+    BullModule.registerQueue({ name: 'plaid-sync' }),
+    // Phase 34e: producer-only registration — SmartMatchModule owns the consumer
+    BullModule.registerQueue({ name: 'smart-match-batch' }),
     ReportsModule,
     PersonalModule,
     BusinessesModule,
