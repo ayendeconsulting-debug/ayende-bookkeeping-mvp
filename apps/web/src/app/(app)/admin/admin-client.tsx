@@ -262,6 +262,21 @@ export function AdminClient() {
   const [seedError, setSeedError] = useState('');
   const [clearing, setClearing] = useState(false);
   const [clearResult, setClearResult] = useState<{ deleted: number } | null>(null);
+  const [seedingAll, setSeedingAll] = useState(false);
+  const [seedAllResult, setSeedAllResult] = useState<{ vendors: number; mccs: number } | null>(null);
+  const [seedAllError, setSeedAllError] = useState('');
+
+
+  async function handleSeedAll() {
+    setSeedingAll(true); setSeedAllError(''); setSeedAllResult(null);
+    try {
+      const res = await fetch('/api/proxy/admin/seed-all', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? 'Seed failed');
+      setSeedAllResult(data);
+    } catch (e: any) { setSeedAllError(e.message); }
+    finally { setSeedingAll(false); }
+  }
 
   async function handleSeed() {
     if (!seedBizId.trim()) { setSeedError('Business ID is required.'); return; }
@@ -291,7 +306,7 @@ export function AdminClient() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Platform Admin</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -585,6 +600,26 @@ export function AdminClient() {
             <p className="text-xs text-muted-foreground">
               The trash button clears only pending synthetic transactions. Posted transactions are not affected.
             </p>
+          </div>
+
+          {/* Phase 34: Seed Vendor Library + MCC Map */}
+          <div className="rounded-2xl border border-border bg-card p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              <h2 className="text-base font-semibold text-foreground">Smart Match Seeds</h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Seeds the vendor library (783 Canadian vendors) and MCC map (206 codes) for Smart Match Layer 1. Safe to re-run.
+            </p>
+            {seedAllError && <p className="text-sm text-destructive">{seedAllError}</p>}
+            {seedAllResult && (
+              <div className="rounded-xl bg-primary-light dark:bg-primary/10 border border-primary/20 px-4 py-3">
+                <p className="text-sm font-semibold text-primary">{seedAllResult.vendors} vendors + {seedAllResult.mccs} MCCs seeded</p>
+              </div>
+            )}
+            <Button onClick={handleSeedAll} disabled={seedingAll} className="w-full">
+              {seedingAll ? 'Seeding...' : 'Seed Vendor Library + MCC Map'}
+            </Button>
           </div>
         </div>
       )}
