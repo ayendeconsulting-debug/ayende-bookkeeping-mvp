@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -365,8 +365,23 @@ export class PersonalService {
     const LIABILITY_TYPES = ['credit', 'loan'];
     const plaidAssets = plaidAccounts.filter((a: any) => ASSET_TYPES.includes(a.type));
     const plaidLiabilities = plaidAccounts.filter((a: any) => LIABILITY_TYPES.includes(a.type));
-    const plaidAssetTotal = plaidAssets.reduce((s: number, a: any) => s + Math.max(0, Number(a.current_balance)), 0);
-    const plaidLiabilityTotal = plaidLiabilities.reduce((s: number, a: any) => s + Math.abs(Number(a.current_balance)), 0);
+    // When Plaid has not pushed a real balance (e.g. demo / synthetic accounts),
+    // fall back to the sum of raw_transactions for that business so that
+    // Money In / Money Out activity is reflected in Net Worth assets.
+    const hasRealBalances = plaidAccounts.some((a: any) => Number(a.current_balance) !== 0);
+    let plaidAssetTotal = plaidAssets.reduce((s: number, a: any) => s + Math.max(0, Number(a.current_balance)), 0);
+    let plaidLiabilityTotal = plaidLiabilities.reduce((s: number, a: any) => s + Math.abs(Number(a.current_balance)), 0);
+    if (!hasRealBalances) {
+      // Derive bank balance from raw_transactions: SUM(amount) where amount > 0
+      // gives money-in, SUM(amount) where amount < 0 gives money-out.
+      const txBalance = await this.dataSource.query(
+        `SELECT COALESCE(SUM(amount), 0) AS net_balance FROM raw_transactions WHERE business_id = $1`,
+        [businessId],
+      );
+      const derivedBalance = parseFloat(Number(txBalance[0]?.net_balance ?? 0).toFixed(2));
+      if (derivedBalance > 0) plaidAssetTotal = derivedBalance;
+      else if (derivedBalance < 0) plaidLiabilityTotal = Math.abs(derivedBalance);
+    }
     const coaAssets = coaBalances.filter((a: any) => a.account_type === 'asset');
     const coaLiabilities = coaBalances.filter((a: any) => a.account_type === 'liability');
     const coaAssetTotal = coaAssets.reduce((s: number, a: any) => s + Math.max(0, Number(a.balance)), 0);
