@@ -1,6 +1,6 @@
 import {
   IsString, IsNumber, IsOptional, IsDateString,
-  Min, Max, IsUUID,
+  Min, Max,
 } from 'class-validator';
 
 export class CreateVehicleDto {
@@ -30,7 +30,8 @@ export class CreateVehicleDto {
   @IsNumber()
   @Min(0)
   @Max(100)
-  business_use_pct: number;
+  @IsOptional()
+  business_use_pct?: number;
 }
 
 export class UpdateVehicleDto {
@@ -65,6 +66,15 @@ export class RecordPaymentDto {
   @IsNumber()
   @Min(0)
   interest_amount: number;
+}
+
+export class LumpSumPaymentDto {
+  @IsDateString()
+  payment_date: string;
+
+  @IsNumber()
+  @Min(0.01)
+  lump_sum_amount: number;
 }
 
 export class AllocateUsageDto {

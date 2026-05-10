@@ -7,6 +7,7 @@ import {
   CreateVehicleDto,
   UpdateVehicleDto,
   RecordPaymentDto,
+  LumpSumPaymentDto,
   AllocateUsageDto,
 } from './dto/vehicle.dto';
 import { Roles } from '../auth/roles.decorator';
@@ -46,6 +47,12 @@ export class VehicleController {
   @Post(':id/payments')
   recordPayment(@Req() req: Request, @Param('id') id: string, @Body() dto: RecordPaymentDto) {
     return this.vehicleService.recordPayment(req.user!.businessId, id, dto);
+  }
+
+  @Roles('admin')
+  @Post(':id/lump-sum')
+  recordLumpSum(@Req() req: Request, @Param('id') id: string, @Body() dto: LumpSumPaymentDto) {
+    return this.vehicleService.recordLumpSum(req.user!.businessId, id, dto);
   }
 
   @Roles('admin')

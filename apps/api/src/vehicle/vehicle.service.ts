@@ -11,6 +11,7 @@ import {
   CreateVehicleDto,
   UpdateVehicleDto,
   RecordPaymentDto,
+  LumpSumPaymentDto,
   AllocateUsageDto,
 } from './dto/vehicle.dto';
 
@@ -92,7 +93,7 @@ export class VehicleService {
         monthly_payment:   dto.monthly_payment,
         loan_start_date:   new Date(dto.loan_start_date),
         remaining_balance: loanAmount,
-        business_use_pct:  dto.business_use_pct,
+        business_use_pct:  dto.business_use_pct ?? 0,
         asset_account_id:  assetAccountId,
         loan_account_id:   loanAccountId,
         status:            'active',
@@ -404,7 +405,7 @@ export class VehicleService {
         if (!vehicle) throw new NotFoundException(`Vehicle ${vehicleId} not found`);
         const monthlyRate = Number(vehicle.interest_rate) / 12;
         const payment     = Number(vehicle.monthly_payment);
-        let balance       = Number(vehicle.loan_amount);
+        let balance       = Number(vehicle.remaining_balance);
         const schedule: { period: number; payment: number; principal: number; interest: number; balance: number }[] = [];
         let period = 1;
         while (balance > 0.01 && period <= 360) {
@@ -419,6 +420,69 @@ export class VehicleService {
   }
 
   // ── Serializers ───────────────────────────────────────────────────────
+
+  // -- Record Lump Sum Payment -----------------------------------------------
+
+  async recordLumpSum(businessId: string, vehicleId: string, dto: LumpSumPaymentDto) {
+    const vehicle = await this.vehicleRepo.findOne({
+      where: { id: vehicleId, business_id: businessId },
+    });
+    if (!vehicle) throw new NotFoundException(`Vehicle ${vehicleId} not found`);
+    if (vehicle.status === 'paid_off') {
+      throw new BadRequestException('Vehicle loan is already paid off');
+    }
+
+    const lumpSum      = parseFloat(Math.min(Number(dto.lump_sum_amount), Number(vehicle.remaining_balance)).toFixed(2));
+    const balanceAfter = parseFloat((Number(vehicle.remaining_balance) - lumpSum).toFixed(2));
+
+    return this.dataSource.transaction(async (em) => {
+      const ocRows = await em.query(
+        `SELECT id FROM accounts WHERE business_id = $1 AND account_subtype = 'owner_contribution' AND is_active = true LIMIT 1`,
+        [businessId],
+      );
+      if (!ocRows.length) {
+        throw new BadRequestException('Owner Contribution account not found.');
+      }
+      const ownerContribId: string = ocRows[0].id;
+
+      const jeResult = await em.query(
+        `INSERT INTO journal_entries (business_id, entry_date, description, status, reference_type, reference_id, created_by, created_at)
+         VALUES ($1, $2, $3, 'posted', 'vehicle_lump_sum', $4, 'system', NOW())
+         RETURNING id`,
+        [businessId, dto.payment_date, `Lump sum payment - ${vehicle.name}`, vehicleId],
+      );
+      const jeId: string = jeResult[0].id;
+
+      await em.query(
+        `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+         VALUES ($1, $2, 1, $3, $4, 0, $5)`,
+        [businessId, jeId, vehicle.loan_account_id, lumpSum, `Lump sum principal - ${vehicle.name}`],
+      );
+      await em.query(
+        `INSERT INTO journal_lines (business_id, journal_entry_id, line_number, account_id, debit_amount, credit_amount, description)
+         VALUES ($1, $2, 2, $3, 0, $4, $5)`,
+        [businessId, jeId, ownerContribId, lumpSum, `Lump sum contribution - ${vehicle.name}`],
+      );
+
+      const payment = this.paymentRepo.create({
+        vehicle_id:       vehicleId,
+        business_id:      businessId,
+        payment_date:     new Date(dto.payment_date),
+        total_payment:    lumpSum,
+        principal_amount: lumpSum,
+        interest_amount:  0,
+        balance_after:    balanceAfter,
+        journal_entry_id: jeId,
+      });
+      await em.save(VehiclePayment, payment);
+
+      vehicle.remaining_balance = balanceAfter;
+      if (balanceAfter <= 0.01) vehicle.status = 'paid_off';
+      await em.save(FinancedVehicle, vehicle);
+
+      return { ...this.serializePayment(payment), journal_entry_id: jeId, balance_after: balanceAfter };
+    });
+  }
 
   private serializeVehicle(v: FinancedVehicle) {
     return {
