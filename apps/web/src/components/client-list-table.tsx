@@ -15,7 +15,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { BookOpen, UserPlus, Archive, ExternalLink } from 'lucide-react';
+import { BookOpen, UserPlus, Archive, ExternalLink, Sparkles } from 'lucide-react';
 
 interface ClientListTableProps {
   clients: ClientListItem[];
@@ -61,6 +61,7 @@ export function ClientListTable({ clients }: ClientListTableProps) {
             <TableHead>HST Status</TableHead>
             <TableHead>Added</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Suggested</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -116,6 +117,18 @@ export function ClientListTable({ clients }: ClientListTableProps) {
                   <Badge variant="outline" className="text-muted-foreground text-xs">
                     Archived
                   </Badge>
+                )}
+              </TableCell>
+
+              {/* Phase 34k: Smart Match suggestion count badge */}
+              <TableCell>
+                {(client.suggested_count ?? 0) > 0 ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
+                    <Sparkles className="w-2.5 h-2.5" />
+                    {client.suggested_count}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground text-sm">{'\u2014'}</span>
                 )}
               </TableCell>
 
