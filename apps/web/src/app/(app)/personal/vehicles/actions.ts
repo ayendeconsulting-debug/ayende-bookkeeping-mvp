@@ -126,6 +126,23 @@ export async function recordPayment(
   }
 }
 
+export async function recordLumpSumPayment(
+  vehicleId: string,
+  payload: { payment_date: string; lump_sum_amount: number },
+): Promise<{ data?: VehiclePayment; error?: string }> {
+  try {
+    const data = await api<VehiclePayment>(`/vehicles/${vehicleId}/lump-sum`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    revalidatePath('/personal/vehicles');
+    revalidatePath('/freelancer/vehicles');
+    return { data };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
 export async function allocateUsage(
   vehicleId: string,
   payload: { period_start: string; period_end: string },

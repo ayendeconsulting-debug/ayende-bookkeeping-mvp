@@ -13,10 +13,10 @@ export default async function PersonalVehiclesPage() {
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-foreground">Financed Vehicles</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Track loan payments, interest expense, and business-use allocation.
+          Track loan payments and interest expense.
         </p>
       </div>
-      <VehicleManager initialVehicles={vehicles} />
+      <VehicleManager initialVehicles={vehicles} isPersonalMode />
     </div>
   );
 }
