@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useTransition } from 'react';
 import { Download, FileText, Sparkles, Loader2, AlertCircle, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
@@ -285,7 +285,7 @@ export function ReportViewer({ type, label, data, startDate: initialStart, endDa
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-screen-lg mx-auto">
+    <div className="p-4 md:p-6 max-w-screen-lg">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-foreground">{label}</h1>

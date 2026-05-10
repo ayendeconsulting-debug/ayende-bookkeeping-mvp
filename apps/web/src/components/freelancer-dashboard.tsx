@@ -49,7 +49,7 @@ export function FreelancerDashboard({
   const unit    = country === 'US' ? 'miles' : 'km';
 
   return (
-    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
+    <div className="p-4 md:p-6 max-w-screen-xl">
 
       <div className="mb-6">
         <h1 className="text-2xl font-extrabold text-foreground">{business?.name ?? 'My Business'}</h1>

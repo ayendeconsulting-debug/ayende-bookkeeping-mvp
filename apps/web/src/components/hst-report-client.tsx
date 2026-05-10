@@ -201,7 +201,7 @@ export function HstReportClient({ initialPeriods, initialError }: Props) {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-screen-lg mx-auto">
+    <div className="p-4 md:p-6 max-w-screen-lg">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Receipt className="w-5 h-5 text-muted-foreground" />

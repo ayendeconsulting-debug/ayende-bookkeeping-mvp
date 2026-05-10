@@ -144,7 +144,7 @@ export function PayrollWizard({ pastEntries, accounts, template }: PayrollWizard
   const selectClass = 'w-full text-sm border border-input rounded-lg px-3 py-2 outline-none focus:border-primary bg-card text-foreground';
 
   return (
-    <div className="p-6 max-w-screen-lg mx-auto">
+    <div className="p-6 max-w-screen-lg">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

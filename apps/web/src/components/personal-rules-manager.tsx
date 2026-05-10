@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -72,7 +72,7 @@ export function PersonalRulesManager({ initialRules, categories }: PersonalRules
   }
 
   return (
-    <div className="p-6 max-w-screen-lg mx-auto">
+    <div className="p-6 max-w-screen-lg">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-foreground">Personal Categorization Rules</h1>
