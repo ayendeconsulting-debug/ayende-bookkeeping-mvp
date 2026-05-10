@@ -63,7 +63,7 @@ export default async function DashboardPage() {
   const showHstCard = !!((business as any)?.country === 'CA' && (business as any)?.province_code && hstPosition);
 
   return (
-    <div className="p-4 md:p-6 max-w-screen-xl mx-auto">
+    <div className="p-4 md:p-6 max-w-screen-xl">
       <ReferralAttributor />
 
       <div className="mb-5">

@@ -180,7 +180,7 @@ export function CcaManager({ initialAssets, initialSchedule }: CcaManagerProps) 
   const currentYear = new Date().getFullYear();
 
   return (
-    <div className="p-6 max-w-screen-lg mx-auto flex flex-col gap-6">
+    <div className="p-6 max-w-screen-lg flex flex-col gap-6">
 
       {/* Header */}
       <div className="flex items-center justify-between">
