@@ -11,6 +11,8 @@ export interface ClientListItem {
   hst_registration_number: string | null;
   status: 'active' | 'archived';
   added_at: string;
+  /** Phase 34k: Smart Match pending suggestion count for this client business. */
+  suggested_count?: number;
 }
 
 export interface FirmAiUsage {
