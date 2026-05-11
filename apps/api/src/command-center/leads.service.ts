@@ -194,6 +194,43 @@ export class LeadsService {
     return { success: true };
   }
 
+  // ?? Phase 36h: Manual re-enrichment (admin-triggered, bypasses skip-list) ??
+  async reenrichLead(id: string): Promise<{ success: boolean; status: string }> {
+    const lead = await this.repo.findOne({ where: { id, deleted_at: IsNull() } });
+    if (!lead) throw new NotFoundException('Lead not found');
+
+    const enabled = this.configService.get<string>('LEAD_ENRICHMENT_ENABLED') === 'true';
+    if (!enabled) {
+      this.logger.warn(`reenrichLead [${id}] aborted: LEAD_ENRICHMENT_ENABLED is false`);
+      return { success: false, status: 'enrichment_disabled' };
+    }
+
+    lead.enrichment_status = 'pending' as EnrichmentStatus;
+    lead.enrichment_error = null;
+    await this.repo.save(lead);
+
+    try {
+      await this.enrichmentQueue.add(
+        'enrich',
+        { leadId: lead.id },
+        {
+          attempts:    3,
+          backoff:     { type: 'exponential', delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail:     false,
+        },
+      );
+      this.logger.log(`Lead ${id} manually re-enqueued for enrichment`);
+      return { success: true, status: 'queued' };
+    } catch (err) {
+      this.logger.error(`reenrichLead [${id}] enqueue failed: ${(err as Error).message}`);
+      lead.enrichment_status = 'failed' as EnrichmentStatus;
+      lead.enrichment_error = (err as Error).message.substring(0, 490);
+      await this.repo.save(lead);
+      return { success: false, status: 'enqueue_failed' };
+    }
+  }
+
   async importCsv(rows: CreateLeadDto[]): Promise<{ imported: number; updated: number }> {
     let imported = 0;
     let updated  = 0;

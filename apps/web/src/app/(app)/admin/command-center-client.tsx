@@ -958,6 +958,8 @@ export function CommandCenterClient() {
   const [showCsvImport, setShowCsvImport] = useState(false);
   // ── Phase 36: expansion state for enriched lead details ────────────────
   const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
+  // ── Phase 36h: re-enrich in-flight state ───────────────────────────────
+  const [reenrichingId, setReenrichingId] = useState<string | null>(null);
 
 
   const loadTemplates = useCallback(async () => {
@@ -1174,6 +1176,25 @@ export function CommandCenterClient() {
       const res = await fetch('/api/proxy/admin/leads/' + id, { method: 'DELETE' });
       if (res.ok) setLeads((prev) => prev.filter((l) => l.id !== id));
     } finally { setDeletingLeadId(null); }
+  }
+
+  // ── Phase 36h: manual re-enrich trigger ──────────────────────────────
+  async function handleReenrichLead(id: string) {
+    setReenrichingId(id);
+    try {
+      const res = await fetch('/api/proxy/admin/leads/' + id + '/enrich', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) {
+        alert('Re-enrich failed: ' + (data?.status ?? 'unknown error') + '. Make sure LEAD_ENRICHMENT_ENABLED is set on Railway.');
+      } else {
+        setLeads((prev) => prev.map((l) => l.id === id ? { ...l, enrichment_status: 'pending', enrichment_error: null, score: null } : l));
+        setTimeout(() => loadLeads(leadStatusFilter || undefined), 12000);
+      }
+    } catch (err) {
+      alert('Re-enrich request failed: ' + (err instanceof Error ? err.message : String(err)));
+    } finally {
+      setReenrichingId(null);
+    }
   }
 
   async function handleCsvImport() {
@@ -1629,6 +1650,10 @@ export function CommandCenterClient() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1 justify-end">
+                            <button onClick={() => handleReenrichLead(l.id)} disabled={reenrichingId === l.id}
+                              className="text-muted-foreground hover:text-primary transition-colors p-1 rounded" title="Re-enrich lead">
+                              {reenrichingId === l.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                            </button>
                             <button onClick={() => openEditLead(l)}
                               className="text-muted-foreground hover:text-primary transition-colors p-1 rounded" title="Edit">
                               <Pencil className="w-3.5 h-3.5" />
