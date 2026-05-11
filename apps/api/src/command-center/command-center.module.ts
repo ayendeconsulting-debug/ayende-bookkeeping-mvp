@@ -41,6 +41,7 @@ import { AdminGuard } from '../admin/admin.guard';
       PlaidItem,
     ]),
     BullModule.registerQueue({ name: 'campaign-email' }),
+    BullModule.registerQueue({ name: 'lead-enrichment' }),
   ],
   controllers: [
     EmailTemplatesController,
