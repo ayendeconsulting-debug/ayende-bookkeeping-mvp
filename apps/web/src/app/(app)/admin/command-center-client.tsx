@@ -1,10 +1,11 @@
-﻿'use client';
+'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, Fragment } from 'react';
 import {
   Mail, Plus, Pencil, Eye, X, Loader2,
   ToggleLeft, ToggleRight, Trash2, Megaphone, Users, Zap,
   Send, Ban, ChevronDown, ChevronRight, RefreshCw, Calendar, Search,
+  Flame, Sun, Moon, TrendingUp, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,6 +107,20 @@ interface Lead {
   notes: string;
   converted_at: string | null;
   created_at: string;
+  // ── Phase 36: Lead Enrichment Engine ───────────────────────────────────
+  score?: number | null;
+  score_reason?: string | null;
+  intent?: string | null;
+  urgency?: string | null;
+  recommended_action?: string | null;
+  enriched_company?: string | null;
+  enriched_title?: string | null;
+  enriched_size?: string | null;
+  enriched_location?: string | null;
+  enriched_linkedin?: string | null;
+  enriched_at?: string | null;
+  enrichment_status?: 'pending' | 'complete' | 'failed' | 'skipped' | null;
+  enrichment_error?: string | null;
 }
 
 const LEAD_TYPE_STYLE: Record<Lead['type'], string> = {
@@ -123,6 +138,40 @@ const LEAD_STATUS_STYLE: Record<Lead['status'], string> = {
 };
 
 const LEAD_STATUSES: Lead['status'][] = ['new', 'contacted', 'nurturing', 'converted', 'lost'];
+// ── Phase 36: Lead Enrichment styling ───────────────────────────────────────
+const ENRICHMENT_STATUS_STYLE: Record<NonNullable<Lead['enrichment_status']>, string> = {
+  pending:  'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  complete: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400',
+  failed:   'bg-destructive/10 text-destructive',
+  skipped:  'bg-muted text-muted-foreground',
+};
+function getScoreBadge(score: number | null | undefined) {
+  if (score === null || score === undefined) {
+    return { emoji: null, label: '—', className: 'text-muted-foreground', Icon: null as any };
+  }
+  if (score >= 8) {
+    return {
+      emoji: '🔥',
+      label: score + '/10',
+      className: 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 border-red-200 dark:border-red-900',
+      Icon: Flame,
+    };
+  }
+  if (score >= 5) {
+    return {
+      emoji: '☀️',
+      label: score + '/10',
+      className: 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-400 border-amber-200 dark:border-amber-900',
+      Icon: Sun,
+    };
+  }
+  return {
+    emoji: '🌙',
+    label: score + '/10',
+    className: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+    Icon: Moon,
+  };
+}
 
 const SOURCE_LABEL: Record<string, string> = {
   marketing_form: 'Form',
@@ -907,6 +956,8 @@ export function CommandCenterClient() {
   const [importingCsv, setImportingCsv] = useState(false);
   const [importResult, setImportResult] = useState<{ imported: number; updated: number } | null>(null);
   const [showCsvImport, setShowCsvImport] = useState(false);
+  // ── Phase 36: expansion state for enriched lead details ────────────────
+  const [expandedLeadId, setExpandedLeadId] = useState<string | null>(null);
 
 
   const loadTemplates = useCallback(async () => {
@@ -932,7 +983,17 @@ export function CommandCenterClient() {
     try {
       const url = '/api/proxy/admin/leads' + (status ? '?status=' + status : '');
       const res = await fetch(url);
-      if (res.ok) setLeads(await res.json());
+      if (res.ok) {
+        const data: Lead[] = await res.json();
+        // Phase 36: sort by score desc (nulls last), then created_at desc
+        data.sort((a, b) => {
+          const aScore = a.score ?? -1;
+          const bScore = b.score ?? -1;
+          if (aScore !== bScore) return bScore - aScore;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+        setLeads(data);
+      }
     } catch { /* non-fatal */ }
     finally { setLoadingLeads(false); }
   }, []);
@@ -1489,6 +1550,8 @@ export function CommandCenterClient() {
                 <table className="w-full text-sm min-w-[640px]">
                   <thead>
                     <tr className="border-b border-border bg-muted/40">
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-6" />
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground w-20">Score</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Name</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden md:table-cell">Email</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Company</th>
@@ -1500,8 +1563,42 @@ export function CommandCenterClient() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {leads.map((l) => (
-                      <tr key={l.id} className="hover:bg-muted/20 transition-colors">
+                    {leads.map((l) => {
+                      const badge = getScoreBadge(l.score);
+                      const isExpanded = expandedLeadId === l.id;
+                      const canExpand = l.enrichment_status === 'complete' || l.enrichment_status === 'failed';
+                      return (
+                      <Fragment key={l.id}>
+                      <tr className="hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3">
+                          {canExpand ? (
+                            <button
+                              onClick={() => setExpandedLeadId(isExpanded ? null : l.id)}
+                              className="text-muted-foreground hover:text-foreground transition-colors"
+                              title="View enrichment details"
+                            >
+                              {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                            </button>
+                          ) : null}
+                        </td>
+                        <td className="px-4 py-3">
+                          {badge.Icon ? (
+                            <span className={cn('inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full border', badge.className)}>
+                              <badge.Icon className="w-3 h-3" />
+                              {badge.label}
+                            </span>
+                          ) : l.enrichment_status === 'pending' ? (
+                            <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                              <Loader2 className="w-3 h-3 animate-spin" />Scoring
+                            </span>
+                          ) : l.enrichment_status === 'skipped' ? (
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                              Skipped
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3">
                           <p className="text-sm font-medium text-foreground">{l.first_name} {l.last_name}</p>
                           {l.notes && <p className="text-xs text-muted-foreground mt-0.5 truncate max-w-[160px]">{l.notes}</p>}
@@ -1543,7 +1640,84 @@ export function CommandCenterClient() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      {isExpanded && canExpand && (
+                        <tr className="bg-muted/10">
+                          <td colSpan={10} className="px-4 py-4">
+                            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Enrichment Details</p>
+                                {l.enrichment_status && (
+                                  <span className={cn('text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize', ENRICHMENT_STATUS_STYLE[l.enrichment_status])}>
+                                    {l.enrichment_status}
+                                  </span>
+                                )}
+                              </div>
+                              {l.score_reason && (
+                                <div>
+                                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Why this score</p>
+                                  <p className="text-xs text-foreground">{l.score_reason}</p>
+                                </div>
+                              )}
+                              {l.recommended_action && (
+                                <div>
+                                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1">Recommended action</p>
+                                  <p className="text-xs text-foreground font-medium">{l.recommended_action}</p>
+                                </div>
+                              )}
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2 border-t border-border">
+                                {l.enriched_title && (
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Title</p>
+                                    <p className="text-xs text-foreground">{l.enriched_title}</p>
+                                  </div>
+                                )}
+                                {l.enriched_size && (
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Company size</p>
+                                    <p className="text-xs text-foreground">{l.enriched_size}</p>
+                                  </div>
+                                )}
+                                {l.enriched_location && (
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Location</p>
+                                    <p className="text-xs text-foreground">{l.enriched_location}</p>
+                                  </div>
+                                )}
+                                {l.intent && (
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Intent</p>
+                                    <p className="text-xs text-foreground capitalize">{l.intent}</p>
+                                  </div>
+                                )}
+                                {l.urgency && (
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Urgency</p>
+                                    <p className="text-xs text-foreground capitalize">{l.urgency}</p>
+                                  </div>
+                                )}
+                                {l.enriched_linkedin && (
+                                  <div>
+                                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">LinkedIn</p>
+                                    <a href={l.enriched_linkedin} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline truncate block max-w-[160px]">View profile</a>
+                                  </div>
+                                )}
+                              </div>
+                              {l.enrichment_error && (
+                                <div className="pt-2 border-t border-border">
+                                  <p className="text-[10px] font-semibold text-destructive uppercase tracking-wide mb-1">Enrichment notes</p>
+                                  <p className="text-xs text-muted-foreground">{l.enrichment_error}</p>
+                                </div>
+                              )}
+                              {l.enriched_at && (
+                                <p className="text-[10px] text-muted-foreground text-right">Enriched {fmtDate(l.enriched_at)}</p>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      </Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
