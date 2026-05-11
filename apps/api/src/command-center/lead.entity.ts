@@ -8,6 +8,7 @@ import {
 
 export type LeadStatus = 'new' | 'contacted' | 'nurturing' | 'converted' | 'lost';
 export type LeadType   = 'inbound' | 'cold' | 'partnership';
+export type EnrichmentStatus = 'pending' | 'complete' | 'failed' | 'skipped';
 
 @Entity('leads')
 export class Lead {
@@ -57,6 +58,55 @@ export class Lead {
 
   @Column({ length: 100, nullable: true })
   utm_campaign: string;
+
+  // ── Phase 36: Lead Enrichment Engine ───────────────────────────────────────
+  // All nullable. Populated asynchronously by lead-enrichment.processor.
+  // See SRD_v36_0_Phase36_LeadEnrichmentEngine.docx section 7.
+
+  @Column({ type: 'int', nullable: true })
+  score: number | null;
+
+  @Column({ length: 500, nullable: true })
+  score_reason: string | null;
+
+  @Column({ length: 50, nullable: true })
+  intent: string | null;
+
+  @Column({ length: 50, nullable: true })
+  urgency: string | null;
+
+  @Column({ length: 255, nullable: true })
+  recommended_action: string | null;
+
+  @Column({ length: 255, nullable: true })
+  enriched_company: string | null;
+
+  @Column({ length: 255, nullable: true })
+  enriched_title: string | null;
+
+  @Column({ length: 100, nullable: true })
+  enriched_size: string | null;
+
+  @Column({ length: 255, nullable: true })
+  enriched_location: string | null;
+
+  @Column({ length: 500, nullable: true })
+  enriched_linkedin: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  enriched_at: Date | null;
+
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'complete', 'failed', 'skipped'],
+    nullable: true,
+  })
+  enrichment_status: EnrichmentStatus | null;
+
+  @Column({ length: 500, nullable: true })
+  enrichment_error: string | null;
+
+  // ── End Phase 36 additions ─────────────────────────────────────────────────
 
   @Column({ type: 'timestamptz', nullable: true })
   converted_at: Date | null;

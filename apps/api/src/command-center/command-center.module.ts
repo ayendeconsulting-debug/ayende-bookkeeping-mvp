@@ -25,6 +25,9 @@ import { TemplateSeedService } from './template-seed.service';
 import { EmailPreferencesService } from './email-preferences.service';
 import { UnsubscribeController } from './unsubscribe.controller';
 import { AdminGuard } from '../admin/admin.guard';
+import { LeadEnrichmentService } from './lead-enrichment.service';
+import { LeadEnrichmentProcessor } from './lead-enrichment.processor';
+import { AiModule } from '../ai/ai.module';
 
 @Module({
   imports: [
@@ -41,6 +44,8 @@ import { AdminGuard } from '../admin/admin.guard';
       PlaidItem,
     ]),
     BullModule.registerQueue({ name: 'campaign-email' }),
+    BullModule.registerQueue({ name: 'lead-enrichment' }),
+    AiModule,
   ],
   controllers: [
     EmailTemplatesController,
@@ -61,6 +66,8 @@ import { AdminGuard } from '../admin/admin.guard';
     TemplateSeedService,
     EmailPreferencesService,
     AdminGuard,
+    LeadEnrichmentService,
+    LeadEnrichmentProcessor,
   ],
   exports: [
     EmailTemplatesService,
@@ -68,6 +75,7 @@ import { AdminGuard } from '../admin/admin.guard';
     LeadsService,
     AutomationsService,
     EmailPreferencesService,
+    LeadEnrichmentService,
   ],
 })
 export class CommandCenterModule {}

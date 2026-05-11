@@ -57,6 +57,13 @@ export class AdminLeadsController {
   softDelete(@Param('id') id: string) {
     return this.service.softDelete(id);
   }
+
+  /** POST /admin/leads/:id/enrich — Phase 36h: manual re-enrichment trigger */
+  @Post(':id/enrich')
+  @HttpCode(HttpStatus.ACCEPTED)
+  reenrich(@Param('id') id: string) {
+    return this.service.reenrichLead(id);
+  }
 }
 
 // ── Public: marketing form submission ────────────────────────────────────────

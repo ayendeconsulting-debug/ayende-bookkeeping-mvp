@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
-import { Lead, LeadStatus, LeadType } from './lead.entity';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { ConfigService } from '@nestjs/config';
+import { Lead, LeadStatus, LeadType, EnrichmentStatus } from './lead.entity';
 import { AutomationsService } from './automations.service';
 
 export interface CreateLeadDto {
@@ -27,6 +30,15 @@ export interface UpdateLeadDto {
   type?: LeadType;
 }
 
+// ── Phase 36: Default skip-list when LEAD_ENRICHMENT_SKIP_DOMAINS env unset ──
+const DEFAULT_SKIP_DOMAINS = [
+  'gettempo.ca',
+  'adeehinmidu.com',
+  'ayendeconsulting.com',
+  'example.com',
+  'test.com',
+];
+
 @Injectable()
 export class LeadsService {
   private readonly logger = new Logger(LeadsService.name);
@@ -35,6 +47,9 @@ export class LeadsService {
     @InjectRepository(Lead)
     private readonly repo: Repository<Lead>,
     private readonly automationsService: AutomationsService,
+    @InjectQueue('lead-enrichment')
+    private readonly enrichmentQueue: Queue,
+    private readonly configService: ConfigService,
   ) {}
 
   findAll(status?: LeadStatus): Promise<Lead[]> {
@@ -102,7 +117,63 @@ export class LeadsService {
       }
     }
 
+    // ── Phase 36: Queue enrichment job (fire-and-forget) ─────────────────────
+    // Only on first creation. Re-submissions don't re-enrich.
+    if (isNew) {
+      await this.enqueueEnrichment(lead);
+    }
+
     return lead;
+  }
+
+  // ── Phase 36: Enrichment queue dispatcher ──────────────────────────────────
+  private async enqueueEnrichment(lead: Lead): Promise<void> {
+    try {
+      const enabled = this.configService.get<string>('LEAD_ENRICHMENT_ENABLED') === 'true';
+
+      // Master kill-switch off → no enrichment, no status set
+      if (!enabled) {
+        return;
+      }
+
+      // Skip-list check
+      const skipDomainsRaw = this.configService.get<string>('LEAD_ENRICHMENT_SKIP_DOMAINS');
+      const skipDomains = (skipDomainsRaw
+        ? skipDomainsRaw.split(',').map(d => d.trim().toLowerCase())
+        : DEFAULT_SKIP_DOMAINS);
+
+      const emailDomain = lead.email.split('@')[1]?.toLowerCase() ?? '';
+
+      if (skipDomains.includes(emailDomain)) {
+        // Mark as skipped — visible in Command Center, no Apollo/Claude/email
+        lead.enrichment_status = 'skipped' as EnrichmentStatus;
+        await this.repo.save(lead);
+        this.logger.log(`Lead ${lead.id} enrichment skipped (domain: ${emailDomain})`);
+        return;
+      }
+
+      // Mark pending, then enqueue
+      lead.enrichment_status = 'pending' as EnrichmentStatus;
+      await this.repo.save(lead);
+
+      await this.enrichmentQueue.add(
+        'enrich',
+        { leadId: lead.id },
+        {
+          attempts:    3,
+          backoff:     { type: 'exponential', delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail:     false,
+        },
+      );
+
+      this.logger.log(`Lead ${lead.id} enqueued for enrichment`);
+    } catch (err) {
+      // Never let queue failures break the form
+      this.logger.error(
+        `Failed to enqueue enrichment for lead ${lead.id}: ${(err as Error).message}`,
+      );
+    }
   }
 
   async update(id: string, dto: UpdateLeadDto): Promise<Lead> {
@@ -121,6 +192,43 @@ export class LeadsService {
     lead.deleted_at = new Date();
     await this.repo.save(lead);
     return { success: true };
+  }
+
+  // ?? Phase 36h: Manual re-enrichment (admin-triggered, bypasses skip-list) ??
+  async reenrichLead(id: string): Promise<{ success: boolean; status: string }> {
+    const lead = await this.repo.findOne({ where: { id, deleted_at: IsNull() } });
+    if (!lead) throw new NotFoundException('Lead not found');
+
+    const enabled = this.configService.get<string>('LEAD_ENRICHMENT_ENABLED') === 'true';
+    if (!enabled) {
+      this.logger.warn(`reenrichLead [${id}] aborted: LEAD_ENRICHMENT_ENABLED is false`);
+      return { success: false, status: 'enrichment_disabled' };
+    }
+
+    lead.enrichment_status = 'pending' as EnrichmentStatus;
+    lead.enrichment_error = null;
+    await this.repo.save(lead);
+
+    try {
+      await this.enrichmentQueue.add(
+        'enrich',
+        { leadId: lead.id },
+        {
+          attempts:    3,
+          backoff:     { type: 'exponential', delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail:     false,
+        },
+      );
+      this.logger.log(`Lead ${id} manually re-enqueued for enrichment`);
+      return { success: true, status: 'queued' };
+    } catch (err) {
+      this.logger.error(`reenrichLead [${id}] enqueue failed: ${(err as Error).message}`);
+      lead.enrichment_status = 'failed' as EnrichmentStatus;
+      lead.enrichment_error = (err as Error).message.substring(0, 490);
+      await this.repo.save(lead);
+      return { success: false, status: 'enqueue_failed' };
+    }
   }
 
   async importCsv(rows: CreateLeadDto[]): Promise<{ imported: number; updated: number }> {
