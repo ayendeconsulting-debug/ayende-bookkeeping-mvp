@@ -6,6 +6,7 @@ import {
   Paperclip,
   AlertTriangle,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import type { RawTransaction, TransactionDetail } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -19,12 +20,15 @@ export type PanelAction =
   | 'split'
   | 'transfer'
   | 'explain'
-  | 'restore';
+  | 'restore'
+  | 'contribution';
 
 interface TransactionDetailPanelProps {
   rawTransactionId: string | null;
   onClose: () => void;
   onAction?: (action: PanelAction, txId: string) => void;
+  /** Phase 38: when true (freelancer mode) show Owner Contribution in the panel. */
+  allowContribution?: boolean;
 }
 
 const fmtCAD = new Intl.NumberFormat('en-CA', {
@@ -67,6 +71,7 @@ export function TransactionDetailPanel({
   rawTransactionId,
   onClose,
   onAction,
+  allowContribution = false,
 }: TransactionDetailPanelProps) {
   const [detail, setDetail] = useState<TransactionDetail | null>(null);
   const [loading, setLoading] = useState(false);
@@ -163,12 +168,31 @@ export function TransactionDetailPanel({
                 />
               )}
 
-              {detail.raw.status === 'pending' && <PendingBody onAction={fireAction} />}
+              {detail.raw.status === 'pending' && (
+                <PendingBody
+                  onAction={fireAction}
+                  allowContribution={allowContribution && !detail.raw.is_personal}
+                />
+              )}
               {detail.raw.status === 'classified' && (
                 <ClassifiedBody detail={detail} onAction={fireAction} />
               )}
               {detail.raw.status === 'posted' && <PostedBody detail={detail} />}
               {detail.raw.status === 'ignored' && <IgnoredBody onAction={fireAction} />}
+
+              {/* Phase 38: Explain is always reachable from the panel (was the inline sparkle). */}
+              {onAction && (
+                <div className="pt-1">
+                  <Button
+                    onClick={() => fireAction('explain')}
+                    variant="outline"
+                    className="w-full min-h-[44px] text-accent-teal border-accent-teal/40 hover:bg-accent-teal-muted"
+                  >
+                    <Sparkles className="h-4 w-4 mr-1.5" />
+                    Explain with AI
+                  </Button>
+                </div>
+              )}
 
               <div className="pt-2">
                 {detail.journalEntry ? (
@@ -286,7 +310,13 @@ function AnomalySection({
   );
 }
 
-function PendingBody({ onAction }: { onAction: (a: PanelAction) => void }) {
+function PendingBody({
+  onAction,
+  allowContribution,
+}: {
+  onAction: (a: PanelAction) => void;
+  allowContribution?: boolean;
+}) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">
@@ -307,6 +337,15 @@ function PendingBody({ onAction }: { onAction: (a: PanelAction) => void }) {
           Split
         </Button>
       </div>
+      {allowContribution && (
+        <Button
+          onClick={() => onAction('contribution')}
+          variant="outline"
+          className="w-full min-h-[44px] border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
+        >
+          Owner contribution
+        </Button>
+      )}
     </div>
   );
 }
