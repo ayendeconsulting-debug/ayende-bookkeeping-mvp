@@ -312,13 +312,14 @@ export function TransactionInbox({
     if (!tx) return;
     setDetailRawTransactionId(null);
     switch (action) {
-      case 'classify':   openClassify(tx); break;
-      case 'post':       openPost(tx); break;
-      case 'unclassify': handleUnclassify(tx); break;
-      case 'split':      openSplit(tx); break;
-      case 'transfer':   openTransfer(tx); break;
-      case 'explain':    setExplainerTx(tx); setExplainerOpen(true); break;
-      case 'restore':    startTransition(() => router.refresh()); break;
+      case 'classify':     openClassify(tx); break;
+      case 'post':         openPost(tx); break;
+      case 'unclassify':   handleUnclassify(tx); break;
+      case 'split':        openSplit(tx); break;
+      case 'transfer':     openTransfer(tx); break;
+      case 'contribution': openOwnerContrib(tx); break;
+      case 'explain':      setExplainerTx(tx); setExplainerOpen(true); break;
+      case 'restore':      startTransition(() => router.refresh()); break;
     }
   }
 
@@ -418,50 +419,63 @@ export function TransactionInbox({
     });
   }
 
-  // Phase 30: pendingCount derivation removed; header now uses counts.needs_review.
+  // Phase 38: single-bottom-bar arbitration. A selection bar always outranks the
+  // Smart Match confirm bar so the two never stack.
+  const hasSelectionBar = (someSelected && !isPersonal) || (somePersonalSelected && (isPersonal || isFreelancer));
+  const smartConfirmCount =
+    !hasSelectionBar &&
+    currentStatus === 'needs_review' &&
+    (smartSubTab === 'suggested' || !smartSubTab)
+      ? (smartMatchCounts?.suggested ?? 0)
+      : 0;
 
   return (
     <div className="flex flex-col h-full">
       {/* Page header */}
-      <div className="px-6 py-5 border-b border-border bg-background">
-        <div className="flex items-center justify-between mb-3">
-          <div>
+      <div className="px-6 py-4 border-b border-border bg-background">
+        {/* Row 1: title + compact action cluster */}
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="min-w-0">
             <h1 className="text-2xl font-extrabold text-foreground">Transactions</h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {totalCount} total · {counts.needs_review} needs review
-              {isFreelancer && (
-                <span className="ml-2 text-purple-500 text-xs font-medium">
-                  Â· Tag each transaction as Business or Personal
-                </span>
-              )}
+              {totalCount} transactions {'\u00b7'} {counts.needs_review} to review
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <form onSubmit={handleSearch} className="hidden sm:flex gap-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input className="pl-8 w-48" placeholder="Search transactions"
+                  value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
+              </div>
+              <Button type="submit" variant="outline" size="sm" title="Apply filters" aria-label="Apply filters">
+                <SlidersHorizontal className="w-4 h-4" />
+              </Button>
+            </form>
             {!isPersonal && (
               <AdminOnly>
                 <Button variant="outline" size="sm" onClick={handleRunRules}
-                  disabled={isRunRulesPending}
+                  disabled={isRunRulesPending} title="Run classification rules"
                   className="border-accent-teal/60 text-accent-teal hover:bg-accent-teal-muted">
-                  <Wand2 className="w-4 h-4 mr-1.5" />
-                  {isRunRulesPending ? 'Runningâ€¦' : 'Run Rules'}
+                  <Wand2 className="w-4 h-4" />
+                  <span className="hidden md:inline ml-1.5">{isRunRulesPending ? 'Running\u2026' : 'Run Rules'}</span>
                 </Button>
               </AdminOnly>
             )}
-            <form onSubmit={handleSearch} className="flex gap-2">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input className="pl-8 w-56" placeholder="Search transactionsâ€¦"
-                  value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
-              </div>
-              <Button type="submit" variant="outline" size="sm">
-                <SlidersHorizontal className="w-4 h-4 mr-1.5" />Filter
-              </Button>
-            </form>
           </div>
         </div>
 
-        {/* Account + Month filters */}
+        {/* Mobile search */}
+        <form onSubmit={handleSearch} className="sm:hidden mb-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input className="pl-8 w-full" placeholder="Search transactions"
+              value={searchValue} onChange={(e) => setSearchValue(e.target.value)} />
+          </div>
+        </form>
+
+        {/* Filters: account + month + clear */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <select
             value={currentSourceAccount}
@@ -496,15 +510,15 @@ export function TransactionInbox({
           )}
         </div>
 
-        {/* Phase 30: bucket tabs with count badges */}
-        <div className="flex gap-0 -mb-px">
+        {/* Single bucket tab strip */}
+        <div className="flex gap-0 -mb-px overflow-x-auto">
           {BUCKETS.map((tab) => {
             const isActive = currentStatus === tab.key;
             const tabCount = counts[tab.key as keyof typeof counts] ?? 0;
             return (
               <button key={tab.key} onClick={() => handleStatusTab(tab.key)}
                 className={cn(
-                  'px-4 py-2 text-sm border-b-2 transition-colors inline-flex items-center gap-2',
+                  'px-4 py-2 text-sm border-b-2 transition-colors inline-flex items-center gap-2 whitespace-nowrap',
                   isActive
                     ? 'border-accent-teal text-accent-teal font-medium'
                     : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
@@ -526,9 +540,9 @@ export function TransactionInbox({
         </div>
       </div>
 
-      {/* Phase 34h: Smart Match sub-tabs — only inside Needs Review when suggestions exist */}
+      {/* Phase 38: Suggested/Manual demoted from a second bordered strip to inline pills */}
       {currentStatus === 'needs_review' && (smartMatchCounts?.suggested ?? 0) > 0 && (
-        <div className="px-6 pt-2 pb-0 border-b border-border bg-background flex items-center gap-0">
+        <div className="px-6 pt-3 pb-0 bg-background flex items-center gap-2">
           {(['suggested', 'manual'] as const).map((tab) => {
             const isActive = (smartSubTab ?? 'suggested') === tab;
             const count = tab === 'suggested' ? (smartMatchCounts?.suggested ?? 0) : undefined;
@@ -537,22 +551,17 @@ export function TransactionInbox({
                 key={tab}
                 onClick={() => setSmartSubTab(tab)}
                 className={cn(
-                  'px-4 py-2 text-sm border-b-2 -mb-px transition-colors inline-flex items-center gap-2',
+                  'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-colors',
                   isActive
-                    ? 'border-accent-teal text-accent-teal font-medium'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
+                    ? 'border-accent-teal/40 bg-accent-teal-muted text-accent-teal'
+                    : 'border-border text-muted-foreground hover:text-foreground',
                 )}
               >
                 {tab === 'suggested' ? (
-                  <><Sparkles className="w-3.5 h-3.5" />Suggested</>
+                  <><Sparkles className="w-3 h-3" />Suggested</>
                 ) : 'Manual'}
                 {count !== undefined && count > 0 && (
-                  <span className={cn(
-                    'text-xs font-medium rounded-full px-1.5 py-0.5 min-w-[20px] text-center',
-                    isActive
-                      ? 'bg-accent-teal-muted text-accent-teal'
-                      : 'bg-muted text-muted-foreground',
-                  )}>{count}</span>
+                  <span className="text-[10px] font-semibold">{count}</span>
                 )}
               </button>
             );
@@ -560,7 +569,7 @@ export function TransactionInbox({
         </div>
       )}
 
-      {/* Phase 34i: cap-exceeded notice — shown on Manual sub-tab when AI cap reached */}
+      {/* Phase 34i: cap-exceeded notice - shown on Manual sub-tab when AI cap reached */}
       {currentStatus === 'needs_review' &&
         (smartSubTab === 'manual') &&
         (smartMatchCounts?.cap_exceeded ?? 0) > 0 && (
@@ -620,17 +629,15 @@ export function TransactionInbox({
                     <TableHead className="text-right">Amount</TableHead>
                     {isFreelancer && <TableHead className="w-44">Type</TableHead>}
                     <TableHead>Status</TableHead>
-                    <TableHead className="w-64">Actions</TableHead>
+                    <TableHead className="w-40">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {displayedTransactions.map((tx) => {
                     const amount = Number(tx.amount);
                     const isSelectable = tx.status === 'pending' && !tx.is_personal && !isPersonal;
-                    const isPersonalSelectable = isFreelancer && tx.is_personal && tx.status === 'pending';
                     const isSelected = selectedIds.has(tx.id);
                     const isPersonalSelected = personalSelectedIds.has(tx.id);
-                    const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal && !isPersonal;
                     const assignedCat = tx.personal_category_id ? categoryMap[tx.personal_category_id] : null;
 
                     return (
@@ -690,7 +697,7 @@ export function TransactionInbox({
                             <span className="text-xs text-muted-foreground">{tx.plaid_category}</span>
                           ) : null}
                         </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? 'â€”'}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? '\u2014'}</TableCell>
                         <TableCell className="text-right">
                           <span className={cn('font-medium text-sm', amount >= 0 ? 'text-accent-teal' : 'text-accent-coral')}>
                             {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
@@ -714,8 +721,9 @@ export function TransactionInbox({
                             : <Badge variant={statusVariant(tx.status)}>{tx.status.charAt(0).toUpperCase() + tx.status.slice(1)}</Badge>
                           }
                         </TableCell>
+                        {/* Phase 38: primary action only; secondary actions live in the detail panel (opens on row click) */}
                         <TableCell onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-1.5">
                             {isPersonal && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
@@ -732,24 +740,6 @@ export function TransactionInbox({
                                   onClick={() => openClassify(tx)}>Classify</Button>
                               </AdminOnly>
                             )}
-                            {isFreelancer && !isPersonal && tx.status === 'pending' && !tx.is_personal && (
-                              <AdminOnly>
-                                <Button size="sm" variant="outline"
-                                  className="h-7 text-xs border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-900/20"
-                                  onClick={() => openOwnerContrib(tx)}>
-                                  <ArrowDownToLine className="w-3 h-3 mr-1" />Contribution
-                                </Button>
-                              </AdminOnly>
-                            )}
-                            {!isPersonal && tx.status === 'classified' && (
-                              <AdminOnly>
-                                <Button size="sm" variant="outline" className="h-7 text-xs"
-                                  onClick={() => openPost(tx)}>Post</Button>
-                                <Button size="sm" variant="outline" className="h-7 text-xs text-muted-foreground hover:text-destructive"
-                                  onClick={() => handleUnclassify(tx)}>Unclassify</Button>
-                              </AdminOnly>
-                            )}
-                            {!isPersonal && tx.status === 'posted' && <span className="text-xs text-muted-foreground">Posted</span>}
                             {tx.status === 'pending' && tx.is_personal && isFreelancer && (
                               <AdminOnly>
                                 <Button size="sm" variant="outline"
@@ -759,22 +749,13 @@ export function TransactionInbox({
                                 </Button>
                               </AdminOnly>
                             )}
-                            {isActionable && (
+                            {!isPersonal && tx.status === 'classified' && (
                               <AdminOnly>
-                                <button onClick={() => openSplit(tx)} title="Split transaction"
-                                  className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-accent-teal">
-                                  <Split className="w-3.5 h-3.5" />
-                                </button>
-                                <button onClick={() => openTransfer(tx)} title="Mark as transfer"
-                                  className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-accent-teal">
-                                  <ArrowLeftRight className="w-3.5 h-3.5" />
-                                </button>
+                                <Button size="sm" variant="outline" className="h-7 text-xs"
+                                  onClick={() => openPost(tx)}>Post</Button>
                               </AdminOnly>
                             )}
-                            <button onClick={() => { setExplainerTx(tx); setExplainerOpen(true); }} title="Explain with AI"
-                              className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-accent-teal">
-                              <Sparkles className="w-3.5 h-3.5" />
-                            </button>
+                            {!isPersonal && tx.status === 'posted' && <span className="text-xs text-muted-foreground">Posted</span>}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -788,7 +769,6 @@ export function TransactionInbox({
             <div className="sm:hidden divide-y divide-border">
               {displayedTransactions.map((tx) => {
                 const amount = Number(tx.amount);
-                const isActionable = (tx.status === 'pending' || tx.status === 'classified') && !tx.is_personal && !isPersonal;
                 const assignedCat = tx.personal_category_id ? categoryMap[tx.personal_category_id] : null;
                 const isPersonalSelected = personalSelectedIds.has(tx.id);
 
@@ -830,12 +810,16 @@ export function TransactionInbox({
                       </span>
                     )}
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-muted-foreground">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? 'â€”'}</span>
+                      <span className="text-xs text-muted-foreground">{sourceAccounts.find((a: {value: string; label: string}) => a.value === tx.source_account_name)?.label ?? tx.source_account_name ?? '\u2014'}</span>
                       <span className={cn('text-sm font-semibold', amount >= 0 ? 'text-accent-teal' : 'text-accent-coral')}>
                         {amount >= 0 ? '+' : ''}{formatCurrency(amount)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap min-h-[44px]" onClick={(e) => e.stopPropagation()}>
+                    {/* Phase 38: primary action(s) inline; everything else via the detail panel (tap card) */}
+                    <div className="flex items-center gap-2 flex-wrap mt-2" onClick={(e) => e.stopPropagation()}>
+                      {isFreelancer && tx.status === 'pending' && (
+                        <TransactionTagToggle transactionId={tx.id} isPersonal={tx.is_personal} onToggle={handleTagToggle} />
+                      )}
                       {isPersonal && (
                         <AdminOnly>
                           <Button size="sm" variant="outline"
@@ -852,13 +836,11 @@ export function TransactionInbox({
                             onClick={() => openClassify(tx)}>Classify</Button>
                         </AdminOnly>
                       )}
-                      {isFreelancer && !isPersonal && tx.status === 'pending' && !tx.is_personal && (
+                      {isFreelancer && tx.status === 'pending' && tx.is_personal && (
                         <AdminOnly>
                           <Button size="sm" variant="outline"
-                            className="h-9 text-xs border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400"
-                            onClick={() => openOwnerContrib(tx)}>
-                            <ArrowDownToLine className="w-3.5 h-3.5 mr-1" />Contribution
-                          </Button>
+                            className="h-9 text-xs border-purple-400 text-purple-600 hover:bg-purple-50 dark:border-purple-700 dark:text-purple-400 dark:hover:bg-purple-900/20"
+                            onClick={() => openClassify(tx)}>Categorize</Button>
                         </AdminOnly>
                       )}
                       {!isPersonal && tx.status === 'classified' && (
@@ -867,22 +849,6 @@ export function TransactionInbox({
                             onClick={() => openPost(tx)}>Post</Button>
                         </AdminOnly>
                       )}
-                      {isActionable && (
-                        <AdminOnly>
-                          <button onClick={() => openSplit(tx)} title="Split"
-                            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-primary">
-                            <Split className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => openTransfer(tx)} title="Transfer"
-                            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-primary">
-                            <ArrowLeftRight className="w-4 h-4" />
-                          </button>
-                        </AdminOnly>
-                      )}
-                      <button onClick={() => { setExplainerTx(tx); setExplainerOpen(true); }} title="Explain with AI"
-                        className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded hover:bg-muted text-muted-foreground hover:text-primary ml-auto">
-                        <Sparkles className="w-4 h-4" />
-                      </button>
                     </div>
                   </div>
                 );
@@ -895,7 +861,7 @@ export function TransactionInbox({
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between px-6 py-3 border-t border-border bg-background">
-          <span className="text-sm text-muted-foreground">Page {currentPage} of {totalPages} Â· {totalCount} transactions</span>
+          <span className="text-sm text-muted-foreground">Page {currentPage} of {totalPages} {'\u00b7'} {totalCount} transactions</span>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" disabled={currentPage <= 1}
               onClick={() => handlePage(currentPage - 1)}>Previous</Button>
@@ -915,14 +881,14 @@ export function TransactionInbox({
           <div className="h-5 w-px bg-border flex-shrink-0" />
           <select value={bulkCategoryId} onChange={(e) => setBulkCategoryId(e.target.value)}
             className={cn(selectClass, 'flex-1 max-w-xs h-9')}>
-            <option value="">Select categoryâ€¦</option>
+            <option value="">Select category</option>
             {budgetCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <Button onClick={handlePersonalBulkCategorize}
             disabled={isPersonalBulkPending || !bulkCategoryId}
             className="flex-shrink-0">
             <Tag className="w-3.5 h-3.5 mr-1.5" />
-            {isPersonalBulkPending ? 'Savingâ€¦' : `Categorize ${personalSelectedIds.size}`}
+            {isPersonalBulkPending ? 'Saving\u2026' : `Categorize ${personalSelectedIds.size}`}
           </Button>
           <Button variant="outline" onClick={() => setPersonalSelectedIds(new Set())}
             disabled={isPersonalBulkPending} className="flex-shrink-0">Clear</Button>
@@ -939,9 +905,9 @@ export function TransactionInbox({
           <div className="h-5 w-px bg-border flex-shrink-0" />
           <select value={bulkAccountId} onChange={(e) => setBulkAccountId(e.target.value)}
             className={cn(selectClass, 'flex-1 max-w-xs h-9')}>
-            <option value="">Select accountâ€¦</option>
+            <option value="">Select account</option>
             {accounts.filter(a => a.account_type === 'expense' || a.account_type === 'asset').map((a) => (
-              <option key={a.id} value={a.id}>{a.account_code} â€“ {a.account_name}</option>
+              <option key={a.id} value={a.id}>{`${a.account_code} \u2013 ${a.account_name}`}</option>
             ))}
           </select>
           <select value={bulkTaxCodeId} onChange={(e) => setBulkTaxCodeId(e.target.value)}
@@ -952,7 +918,7 @@ export function TransactionInbox({
             ))}
           </select>
           <Button onClick={handleBulkClassify} disabled={isBulkPending || !bulkAccountId} className="flex-shrink-0">
-            {isBulkPending ? 'Classifyingâ€¦' : `Classify ${selectedIds.size}`}
+            {isBulkPending ? 'Classifying\u2026' : `Classify ${selectedIds.size}`}
           </Button>
           <Button variant="outline" onClick={() => setSelectedIds(new Set())}
             disabled={isBulkPending} className="flex-shrink-0">Clear</Button>
@@ -982,13 +948,9 @@ export function TransactionInbox({
         initialOwnerContribution={true}
       />
 
-      {/* Phase 34h: Smart Match confirm bar — appears when Suggested sub-tab is active */}
+      {/* Phase 34h: Smart Match confirm bar - single-bar arbitration via smartConfirmCount */}
       <SmartMatchConfirmBar
-        suggestedCount={
-          currentStatus === 'needs_review' && (smartSubTab === 'suggested' || !smartSubTab)
-            ? (smartMatchCounts?.suggested ?? 0)
-            : 0
-        }
+        suggestedCount={smartConfirmCount}
         onDone={() => setSmartSubTab('manual')}
       />
 
@@ -997,6 +959,7 @@ export function TransactionInbox({
         rawTransactionId={detailRawTransactionId}
         onClose={() => setDetailRawTransactionId(null)}
         onAction={handleDetailAction}
+        allowContribution={isFreelancer}
       />
       <SplitTransactionModal transaction={splitTx} accounts={accounts}
         open={splitOpen} onClose={handleSplitClose} onSuccess={handleSplitSuccess}
@@ -1024,4 +987,3 @@ export function TransactionInbox({
     </div>
   );
 }
-
