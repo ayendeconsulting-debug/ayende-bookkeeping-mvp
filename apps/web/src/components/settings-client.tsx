@@ -9,7 +9,7 @@ import {
   Settings, Building2, User, ShieldCheck,
   CheckCircle2, AlertCircle, Loader2, Save, RefreshCw, DollarSign,
   Sun, Moon, CreditCard, ExternalLink, Receipt,
-  XCircle, Download,
+  XCircle, Download, Sparkles,
 } from 'lucide-react';
 import { AdminOnly } from '@/components/admin-only';
 import { toastSuccess, toastError } from '@/lib/toast';
@@ -18,13 +18,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTheme } from '@/components/theme-provider';
+import { useSubscription } from '@/hooks/use-subscription';
 import {
   updateBusinessSettings, verifyAccountingIntegrity, getCurrencyRates,
   createPortalSession, updateTaxSettings,
 } from '@/app/(app)/settings/actions';
 
 interface Province { id: string; province_code: string; province_name: string; hst_rate: number | null; gst_rate: number; is_hst_province: boolean; }
-interface Business { id: string; name: string; legal_name?: string; tax_id?: string; currency_code: string; fiscal_year_end: string; created_at: string; province_code?: string | null; hst_registration_number?: string | null; hst_reporting_frequency?: 'monthly' | 'quarterly' | 'annual' | null; }
+interface Business { id: string; name: string; legal_name?: string; tax_id?: string; currency_code: string; fiscal_year_end: string; created_at: string; province_code?: string | null; hst_registration_number?: string | null; hst_reporting_frequency?: 'monthly' | 'quarterly' | 'annual' | null; mode?: 'business' | 'freelancer' | 'personal'; settings?: Record<string, any>; }
 interface Subscription { status: SubscriptionStatusUI; plan: 'starter' | 'pro' | 'accountant' | null; billing_cycle: 'monthly' | 'annual' | null; trial_ends_at: string | null; current_period_end: string | null; days_remaining: number | null; mbg_ends_at?: string | null; readonly_started_at?: string | null; stripe_customer_id?: string | null; }
 interface SettingsClientProps { business: Business | null; subscription: Subscription | null; provinces: Province[]; }
 
@@ -280,6 +281,92 @@ function TaxSettingsSection({ business, provinces }: { business: Business | null
   );
 }
 
+function SmartSortSection({ business, plan, planLoading }: { business: Business | null; plan: 'starter' | 'pro' | 'accountant' | null; planLoading: boolean }) {
+  const isPro        = plan === 'pro';
+  const isFreelancer = business?.mode === 'freelancer';
+  const s            = business?.settings ?? {};
+  const [enabled, setEnabled]               = useState<boolean>(s.auto_sort_enabled === true);
+  const [personalDefault, setPersonalDefault] = useState<boolean>(s.auto_sort_personal_default === true);
+  const [saving, setSaving]                 = useState<boolean>(false);
+  const [error, setError]                   = useState<string | null>(null);
+
+  async function persist(next: { auto_sort_enabled: boolean; auto_sort_personal_default: boolean }) {
+    setError(null);
+    setSaving(true);
+    const result = await updateBusinessSettings({ settings: next });
+    setSaving(false);
+    if (result.success) toastSuccess('Smart Sort updated', 'Your auto-categorization preferences have been saved.');
+    else { const msg = result.error ?? 'Failed to save Smart Sort settings.'; setError(msg); toastError('Failed to save', msg); }
+  }
+
+  function handleToggleEnabled() {
+    if (!isPro) return;
+    const next = !enabled;
+    setEnabled(next);
+    void persist({ auto_sort_enabled: next, auto_sort_personal_default: personalDefault });
+  }
+
+  function handleTogglePersonal() {
+    if (!isPro || !enabled) return;
+    const next = !personalDefault;
+    setPersonalDefault(next);
+    void persist({ auto_sort_enabled: enabled, auto_sort_personal_default: next });
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex-row items-center gap-2 pb-4"><Sparkles className="w-4 h-4 text-muted-foreground" /><CardTitle>Smart Sort</CardTitle></CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <p className="text-sm text-muted-foreground">Automatically categorize new transactions using your saved rules as they are imported. Auto-sorted items stay in Needs Review with an Auto badge so you can confirm or dismiss them.</p>
+
+        {!isPro && !planLoading && (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/40 border border-border rounded-lg px-3 py-2">
+            <AlertCircle className="w-4 h-4" />
+            Smart Sort is a Pro feature. <Link href="/pricing" className="underline font-medium">Upgrade to enable</Link>.
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-foreground">Auto-categorize on import</span>
+            <span className="text-xs text-muted-foreground">Applies confident rule matches automatically.</span>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={enabled}
+            disabled={!isPro || saving}
+            onClick={handleToggleEnabled}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${enabled ? 'bg-accent-teal' : 'bg-muted'} ${(!isPro || saving) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
+
+        {isFreelancer && (
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col">
+              <span className="text-sm font-medium text-foreground">Default unmatched to Personal</span>
+              <span className="text-xs text-muted-foreground">Unmatched transactions are provisionally tagged Personal (still reviewable).</span>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={personalDefault}
+              disabled={!isPro || !enabled || saving}
+              onClick={handleTogglePersonal}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${personalDefault ? 'bg-accent-teal' : 'bg-muted'} ${(!isPro || !enabled || saving) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${personalDefault ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+        )}
+
+        {error && <div className="flex items-center gap-1.5 text-sm text-destructive"><AlertCircle className="w-4 h-4" />{error}</div>}
+      </CardContent>
+    </Card>
+  );
+}
 function BusinessSettingsSection({ business }: { business: Business | null }) {
   const [name, setName]               = useState(business?.name ?? '');
   const [fiscalYearEnd, setFiscalYearEnd] = useState(business?.fiscal_year_end ? String(business.fiscal_year_end).slice(0, 10) : '');
@@ -468,6 +555,7 @@ function IntegritySection() {
 
 export function SettingsClient({ business, subscription, provinces }: SettingsClientProps) {
   const [showProfile, setShowProfile] = useState(false);
+  const { plan, loading: planLoading } = useSubscription();
 
   return (
     <div className="p-6 max-w-screen-md mx-auto">
@@ -478,6 +566,7 @@ export function SettingsClient({ business, subscription, provinces }: SettingsCl
 
       <div className="flex flex-col gap-5">
         <BusinessSettingsSection business={business} />
+        <SmartSortSection business={business} plan={plan} planLoading={planLoading} />
         <TaxSettingsSection business={business} provinces={provinces} />
         <BillingSection subscription={subscription} />
         <AccountantAccessSection />

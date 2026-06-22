@@ -15,6 +15,7 @@ export async function updateBusinessSettings(data: {
   name?: string;
   fiscal_year_end?: string;
   currency_code?: string;
+  settings?: Record<string, any>;
 }) {
   try {
     await api('/businesses/me', { method: 'PATCH', body: JSON.stringify(data) });
