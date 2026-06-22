@@ -1,4 +1,4 @@
-'use server';
+﻿'use server';
 
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
@@ -28,7 +28,7 @@ async function patchBusiness(data: Record<string, unknown>) {
   return {};
 }
 
-/* ── Step 1: Save mode + country ──────────────────────────────────────────── */
+/* â”€â”€ Step 1: Save mode + country â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function saveModeAndCountry(
   mode: 'business' | 'freelancer' | 'personal',
   country: 'CA' | 'US',
@@ -36,7 +36,7 @@ export async function saveModeAndCountry(
   return patchBusiness({ mode, country });
 }
 
-/* ── Step 2: Save business details ───────────────────────────────────────── */
+/* â”€â”€ Step 2: Save business details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function saveBusinessDetails(data: {
   name: string;
   currency_code: string;
@@ -45,7 +45,7 @@ export async function saveBusinessDetails(data: {
   return patchBusiness(data);
 }
 
-/* ── Phase 9: Get provinces for onboarding dropdown ──────────────────────── */
+/* â”€â”€ Phase 9: Get provinces for onboarding dropdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function getProvincesForOnboarding(): Promise<{
   data?: Array<{
     province_code: string;
@@ -69,7 +69,7 @@ export async function getProvincesForOnboarding(): Promise<{
   }
 }
 
-/* ── Phase 9: Save tax settings ──────────────────────────────────────────── */
+/* â”€â”€ Phase 9: Save tax settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function saveTaxSettings(data: {
   province_code?: string;
   hst_registration_number?: string;
@@ -88,7 +88,7 @@ export async function saveTaxSettings(data: {
   return {};
 }
 
-/* ── Step 3: Seed chart of accounts ──────────────────────────────────────── */
+/* â”€â”€ Step 3: Seed chart of accounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function seedAccounts(
   industry: string,
 ): Promise<{ seeded?: number; skipped?: boolean; error?: string }> {
@@ -104,7 +104,7 @@ export async function seedAccounts(
   return res.json();
 }
 
-/* ── Step 4: Create first tax code (optional) ────────────────────────────── */
+/* â”€â”€ Step 4: Create first tax code (optional) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function createFirstTaxCode(data: {
   code: string;
   name: string;
@@ -124,7 +124,7 @@ export async function createFirstTaxCode(data: {
   return {};
 }
 
-/* ── Step 5: Fetch legal acceptance status ───────────────────────────────── */
+/* â”€â”€ Step 5: Fetch legal acceptance status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export interface LegalStatusDocument {
   document_type: string;
   current_version: string;
@@ -152,7 +152,7 @@ export async function fetchLegalAcceptanceStatus(): Promise<{
   }
 }
 
-/* ── Step 5: Accept legal documents ─────────────────────────────────────── */
+/* â”€â”€ Step 5: Accept legal documents â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function acceptLegalDocuments(
   documents: {
     document_type: string;
@@ -172,7 +172,7 @@ export async function acceptLegalDocuments(
   return {};
 }
 
-/* ── Phase 12 Step 6: Create Stripe checkout from onboarding ─────────────── */
+/* â”€â”€ Phase 12 Step 6: Create Stripe checkout from onboarding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function createCheckoutSessionFromOnboarding(
   plan: 'starter' | 'pro' | 'accountant',
   billing_cycle: 'monthly' | 'annual',
@@ -209,7 +209,12 @@ export async function createCheckoutSessionFromOnboarding(
   return { url: data.url };
 }
 
-/* ── Step 7 / Complete: Mark onboarding done and redirect ────────────────── */
+/* â”€â”€ Step 7 / Complete: Mark onboarding done and redirect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Mark onboarding finished (no redirect); caller navigates to /pricing -- */
+export async function finishOnboarding(): Promise<{ error?: string }> {
+  return patchBusiness({ settings: { mode_selected: true } });
+}
+
 export async function completeOnboarding(
   destination: '/dashboard' | '/banks',
 ): Promise<void> {
@@ -217,12 +222,12 @@ export async function completeOnboarding(
   redirect(destination);
 }
 
-/* ── Cancel onboarding ───────────────────────────────────────────────────── */
+/* â”€â”€ Cancel onboarding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function cancelOnboarding(): Promise<{ error?: string }> {
   return patchBusiness({ settings: { mode_selected: true }, mode: 'cancelled' });
 }
 
-/* ── Legacy — kept for backward compatibility ────────────────────────────── */
+/* â”€â”€ Legacy â€” kept for backward compatibility â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export async function saveModeSelection(
   mode: 'business' | 'freelancer' | 'personal',
   country: 'CA' | 'US',
