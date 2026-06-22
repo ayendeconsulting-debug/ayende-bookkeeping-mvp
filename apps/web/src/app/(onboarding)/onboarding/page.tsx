@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useTransition, useEffect } from 'react';
 import {
@@ -8,6 +8,7 @@ import {
   getProvincesForOnboarding,
   seedAccounts,
   cancelOnboarding,
+  finishOnboarding,
 } from './actions';
 import { toastSuccess, toastError } from '@/lib/toast';
 import { Button } from '@/components/ui/button';
@@ -58,21 +59,21 @@ function readTempoPlanCookie(): TempoPlan | null {
 const MODE_CARDS = [
   {
     id: 'business' as Mode,
-    icon: '🏢',
+    icon: 'ðŸ¢',
     title: 'Business',
     subtitle: 'Incorporated companies, partnerships, registered businesses',
     features: ['Full double-entry accounting', 'AP/AR tracking', 'Financial reports', 'Invoice creation', 'Multi-user access'],
   },
   {
     id: 'freelancer' as Mode,
-    icon: '💼',
+    icon: 'ðŸ’¼',
     title: 'Freelancer / Sole Proprietor',
     subtitle: 'Independent contractors, consultants, self-employed',
     features: ['Personal & business split', 'Simplified categories', 'Quarterly tax estimates', 'Invoice creation', 'Mileage tracker'],
   },
   {
     id: 'personal' as Mode,
-    icon: '🏠',
+    icon: 'ðŸ ',
     title: 'Personal Finance',
     subtitle: 'Household budgeting, savings goals, spending tracking',
     features: ['Budget categories', 'Savings goals', 'Net worth tracker', 'Recurring payment detection', 'Upcoming reminders'],
@@ -80,12 +81,12 @@ const MODE_CARDS = [
 ];
 
 const INDUSTRIES = [
-  { id: 'general',      label: 'General / Other',        icon: '📋', description: 'Standard chart of accounts for any business' },
-  { id: 'services',     label: 'Professional Services',  icon: '💼', description: 'Consulting, legal, accounting, IT services' },
-  { id: 'retail',       label: 'Retail',                 icon: '🛒', description: 'Inventory, cost of goods sold, sales' },
-  { id: 'construction', label: 'Construction',           icon: '🏗️', description: 'WIP, contract revenue, subcontractors' },
-  { id: 'restaurant',   label: 'Restaurant / Food',      icon: '🍽️', description: 'Food & beverage, kitchen labor, catering' },
-  { id: 'freelancer',   label: 'Freelancer',             icon: '🧑‍💻', description: 'Home office, tools, mileage, consulting revenue' },
+  { id: 'general',      label: 'General / Other',        icon: 'ðŸ“‹', description: 'Standard chart of accounts for any business' },
+  { id: 'services',     label: 'Professional Services',  icon: 'ðŸ’¼', description: 'Consulting, legal, accounting, IT services' },
+  { id: 'retail',       label: 'Retail',                 icon: 'ðŸ›’', description: 'Inventory, cost of goods sold, sales' },
+  { id: 'construction', label: 'Construction',           icon: 'ðŸ—ï¸', description: 'WIP, contract revenue, subcontractors' },
+  { id: 'restaurant',   label: 'Restaurant / Food',      icon: 'ðŸ½ï¸', description: 'Food & beverage, kitchen labor, catering' },
+  { id: 'freelancer',   label: 'Freelancer',             icon: 'ðŸ§‘â€ðŸ’»', description: 'Home office, tools, mileage, consulting revenue' },
 ];
 
 // ProgressBar now accepts totalSteps so it reflects mode-aware step count.
@@ -148,7 +149,7 @@ export default function OnboardingPage() {
     });
   }, [step, selectedCountry, provincesLoaded]);
 
-  // ── Step handlers ──────────────────────────────────────────────────────────
+  // â”€â”€ Step handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   function handleStep1() {
     if (!selectedMode || !selectedCountry) { setError('Please select a mode and country.'); return; }
@@ -221,7 +222,11 @@ export default function OnboardingPage() {
 
   // Onboarding complete -- send user to /pricing to select plan and subscribe.
   function handleCheckout() {
-    window.location.href = '/pricing';
+    startTransition(async () => {
+      const result = await finishOnboarding();
+      if (result?.error) { setError(result.error); toastError('Could not finish onboarding', result.error); return; }
+      window.location.href = '/pricing';
+    });
   }
 
   const selectedProvince = provinces.find((p) => p.province_code === provinceCode);
@@ -299,7 +304,7 @@ export default function OnboardingPage() {
                     <button key={c} onClick={() => setSelectedCountry(c)}
                       className={['relative flex items-center gap-3 p-3 rounded-xl border-2 transition-all bg-card hover:border-primary',
                         isSelected ? 'border-primary ring-2 ring-primary/20 bg-primary-light/30 dark:bg-primary/5' : 'border-border'].join(' ')}>
-                      <span className="text-xl">{c === 'CA' ? '🇨🇦' : '🇺🇸'}</span>
+                      <span className="text-xl">{c === 'CA' ? 'ðŸ‡¨ðŸ‡¦' : 'ðŸ‡ºðŸ‡¸'}</span>
                       <div className="text-left flex-1">
                         <div className="font-semibold text-sm text-foreground">{c === 'CA' ? 'Canada' : 'United States'}</div>
                         <div className="text-xs text-muted-foreground">{c === 'CA' ? 'CAD \u00b7 CRA' : 'USD \u00b7 IRS'}</div>
@@ -460,7 +465,7 @@ export default function OnboardingPage() {
 
 
             <div className="rounded-xl border border-border bg-muted p-5 flex flex-col items-center gap-3 text-center">
-              <div className="text-3xl">🏦</div>
+              <div className="text-3xl">ðŸ¦</div>
               <div>
                 <p className="text-sm font-medium text-foreground">Secure bank connection via Plaid</p>
                 <p className="text-xs text-muted-foreground mt-1">Works with 12,000+ financial institutions in Canada and the US.</p>

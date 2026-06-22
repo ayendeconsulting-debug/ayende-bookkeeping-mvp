@@ -257,7 +257,7 @@ export class SmartMatchService {
       where: {
         id: rawTransactionId,
         business_id: businessId,
-        smart_match_status: 'suggested',
+        smart_match_status: In(['suggested', 'auto_applied']),
       },
     });
     if (!rawTx) {
@@ -390,14 +390,14 @@ export class SmartMatchService {
         where: {
           id: In(dto.rawTransactionIds),
           business_id: businessId,
-          smart_match_status: 'suggested',
+          smart_match_status: In(['suggested', 'auto_applied']),
         },
       });
     } else {
       candidates = await this.rawTxRepo.find({
         where: {
           business_id: businessId,
-          smart_match_status: 'suggested',
+          smart_match_status: In(['suggested', 'auto_applied']),
           status: RawTransactionStatus.PENDING,
         },
       });
@@ -432,5 +432,143 @@ export class SmartMatchService {
       `Bulk confirm [${businessId}]: ${confirmed} confirmed, ${skipped} skipped, ${errors} errors`,
     );
     return { confirmed, skipped, errors };
+  }
+
+  // --- Phase 39: Auto-Categorization ---
+
+  /**
+   * Phase 39b: auto-sort variant of Layer 1. Triggered on ingest (import / Plaid)
+   * when the business has auto_sort_enabled. Differs from runLayer1():
+   *   - confident hits are marked 'auto_applied' (not 'suggested') so the recount
+   *     can branch and the row carries an Auto badge while staying in review;
+   *   - when defaultPersonalForMisses is set (freelancer), misses are provisionally
+   *     tagged Personal and also marked 'auto_applied' -- unless account context
+   *     says the source is a business account, in which case the row is left as a
+   *     business miss so a deductible expense is never buried.
+   * Nothing is classified or posted here; confirm()/dismiss() resolve each row.
+   * Idempotent: only PENDING rows with no prior smart_match_status are processed.
+   */
+  async runAutoSort(
+    businessId: string,
+    rawTxIds: string[],
+    opts: { defaultPersonalForMisses?: boolean } = {},
+  ): Promise<Layer1Result> {
+    if (rawTxIds.length === 0) return { hits: [], misses: [] };
+
+    const txs = await this.rawTxRepo.find({
+      where: {
+        id: In(rawTxIds),
+        business_id: businessId,
+        status: RawTransactionStatus.PENDING,
+        smart_match_status: undefined as any,
+      },
+    });
+    if (txs.length === 0) return { hits: [], misses: [] };
+
+    const ctx = await this.buildContext(businessId);
+    const hits: string[] = [];
+    const misses: string[] = [];
+
+    for (const tx of txs) {
+      try {
+        const { result, confident } = await this.runConfidentMatchers(tx, ctx);
+
+        if (confident && result.matched) {
+          await this.rawTxRepo.update(tx.id, {
+            smart_match_status: 'auto_applied',
+            smart_match_source: result.source,
+            smart_match_confidence: result.confidence,
+            suggested_account_id: result.suggested_account_id,
+            suggested_tax_code_id: result.suggested_tax_code_id,
+            suggested_is_personal: result.suggested_is_personal,
+            smart_match_reasoning: result.reasoning,
+            smart_match_at: new Date(),
+          });
+          await this.auditService.recordSuggestion(
+            businessId, tx.id, result.source!, result.confidence!, false,
+          );
+          hits.push(tx.id);
+          continue;
+        }
+
+        // Miss. Optionally default to Personal (freelancer), but never override a
+        // source account that account-default knows is a business account, so a
+        // deductible business expense is never silently buried.
+        if (opts.defaultPersonalForMisses) {
+          const def = await this.accountDefaultMatcher.match(tx, ctx);
+          const accountSaysBusiness =
+            def.matched && def.suggested_is_personal === false;
+          if (!accountSaysBusiness) {
+            await this.rawTxRepo.update(tx.id, {
+              is_personal: true,
+              suggested_is_personal: true,
+              smart_match_status: 'auto_applied',
+              smart_match_source: 'auto_personal_default',
+              smart_match_at: new Date(),
+            });
+            await this.auditService.recordSuggestion(
+              businessId, tx.id, 'auto_personal_default', 'low', false,
+            );
+            hits.push(tx.id);
+            continue;
+          }
+        }
+        misses.push(tx.id);
+      } catch (err) {
+        this.logger.error(
+          `Auto-sort failed for tx ${tx.id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        misses.push(tx.id);
+      }
+    }
+
+    this.logger.log(
+      `Auto-sort [${businessId}]: ${hits.length} auto-applied, ${misses.length} left for review`,
+    );
+    return { hits, misses };
+  }
+
+  /**
+   * Phase 39b: dismiss an auto-applied suggestion. Reverts the row to an untouched
+   * PENDING state so it returns to the primary "needs review" count. If the row was
+   * auto-tagged Personal by the personal-default rule, the is_personal tag is also
+   * reverted. No ClassifiedTransaction exists yet (auto-apply only stages), so there
+   * is nothing to unwind on the ledger.
+   */
+  async dismiss(businessId: string, rawTransactionId: string): Promise<void> {
+    const rawTx = await this.rawTxRepo.findOne({
+      where: {
+        id: rawTransactionId,
+        business_id: businessId,
+        smart_match_status: 'auto_applied',
+      },
+    });
+    if (!rawTx) {
+      throw new NotFoundException(
+        `Transaction ${rawTransactionId} not found or not in auto-applied state`,
+      );
+    }
+
+    const wasAutoPersonal = rawTx.smart_match_source === 'auto_personal_default';
+
+    await this.rawTxRepo.update(rawTx.id, {
+      smart_match_status: null,
+      smart_match_source: null,
+      smart_match_confidence: null,
+      suggested_account_id: null,
+      suggested_tax_code_id: null,
+      suggested_is_personal: null,
+      suggested_personal_category_id: null,
+      smart_match_reasoning: null,
+      smart_match_at: null,
+      ...(wasAutoPersonal ? { is_personal: false } : {}),
+    });
+
+    await this.auditService.recordResolution({
+      rawTransactionId,
+      businessId,
+      wasAccepted: false,
+      wasOverridden: false,
+    });
   }
 }
